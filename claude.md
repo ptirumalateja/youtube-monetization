@@ -527,3 +527,140 @@ Already installed:
 wan2.2_ti2v_5B_fp16.safetensors
 umt5_xxl_fp8_e4m3fn_scaled.safetensors
 wan2.2_vae.safetensors
+```
+
+Still to download for the main video model (Section 10). The text encoder above is reused.
+
+---
+
+# 10. Corrected Production Specs (supersede earlier test settings)
+
+## 10.1 Aspect ratio
+
+- All generation is **vertical 9:16 at 704×1280**. This applies to Flux stills and Wan video.
+- The first test clip was 1280×704 (landscape). Do not reuse that setting.
+- Final delivery: **1080×1920**, after upscaling.
+
+## 10.2 Video model: Wan 2.2 I2V A14B (fp8)
+
+The 5B TI2V model is the main cause of softness. Use the 14B image-to-video model instead. It fits on the A6000 (48 GB) in fp8.
+
+| File | ComfyUI folder |
+|---|---|
+| `wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors` | `models/diffusion_models/` |
+| `wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors` | `models/diffusion_models/` |
+| `wan_2.1_vae.safetensors` (A14B uses the 2.1 VAE, not `wan2.2_vae`) | `models/vae/` |
+| `umt5_xxl_fp8_e4m3fn_scaled.safetensors` (already installed) | `models/text_encoders/` |
+| Optional: Lightx2v 4-step LoRAs, high-noise and low-noise | `models/loras/` |
+
+Source: Hugging Face `Comfy-Org/Wan_2.2_ComfyUI_Repackaged` (`split_files/...`). Check exact filenames against the repo before downloading.
+
+Settings:
+
+- 704×1280, **81 frames** (about 5 s). Go up to 121 only when a shot needs the length.
+- A14B outputs at **16 fps**. Interpolate to 24/30 fps afterwards (RIFE or FILM in ComfyUI). Don't just retime the clip, or the motion goes stiff.
+- Two-stage sampling: high-noise model for the first half of the steps, low-noise model for the rest. Use the stock ComfyUI Wan 2.2 I2V template.
+- With Lightx2v: about 4–8 total steps, CFG 1. Use it for drafts. Do final takes without it if the motion looks flat.
+- Generate **3–4 takes per shot**. Once a take is approved, record and **lock its seed** in the shot log (Section 13).
+
+## 10.3 First-and-last-frame mode
+
+Use Wan 2.2 FLF2V (first + last frame) wherever a single start image can't carry the move:
+
+- **Shot 2**: from the Abhimanyu close-up to the full Cakravyuha reveal. This is required.
+- Shot 11 (opening closes) if the gap won't close reliably from one frame.
+
+---
+
+# 11. Pipeline
+
+```text
+1. Character lock   Train a Flux LoRA per character on 15–25 images made from the
+                    reference: varied angles, same face, armor and blue drape.
+                    Characters: Abhimanyu, Arjuna, Yudhishthira, Drona, Jayadratha.
+2. Hero stills      Flux at 704×1280. One approved still per shot (Section 12).
+                    Approve every still before generating any video.
+3. Motion           Wan 2.2 I2V A14B, 704×1280, 81 frames. Small camera moves only.
+4. Interpolate      16 fps -> 24/30 fps (RIFE/FILM).
+5. Upscale          1080×1920 (SeedVR2 in ComfyUI, or Topaz).
+6. Edit             Cut to the narration's actual timing, not fixed 4-second slots.
+7. Sound            Narration + low drone/score + war ambience (horses, wheels, wind).
+                    Hold silence after "never supposed to be alone".
+8. Captions         Added in the editor only. Never in generated clips.
+```
+
+---
+
+# 12. Shot List and Prompts
+
+Prompts are written as camera directions. Every shot uses the shared negative prompt (12.1). Timings are approximate. The final cut follows the narration audio.
+
+## 12.1 Shared negative prompt
+
+```text
+superhero, fantasy armor, glowing eyes, magic, energy effects, glowing circle,
+excessive gold, CGI look, cartoon, anime, video game, modern objects, text,
+captions, subtitles, logo, watermark, heavy camera shake, gore, blood spray,
+costume change, morphing, face change, identity change, extra limbs, deformed
+hands, blurry face, spinning formation
+```
+
+## 12.2 Shared style suffix (append to every still prompt)
+
+```text
+grounded ancient Indian battlefield, historically inspired armor, muted bronze,
+deep blue, dusty earth tones, warm sunset haze, atmospheric dust and smoke,
+painterly photorealistic, cinematic film still, vertical 9:16 composition
+```
+
+## 12.3 Shots
+
+| # | Time | Narration | Still (Flux) | Motion (Wan) |
+|---|---|---|---|---|
+| 1 | 0:00–0:04 | He knew how to get in. | Close-up, Abhimanyu (LoRA), golden sunset, banners and dust behind, eyes on the formation. | slow push-in, 50mm, shallow depth of field, dust drifting, subject still, slight breath |
+| 2 | 0:04–0:08 | He didn't know how to get out. | **FLF**: first = Shot 1 still; last = wide still, Abhimanyu small in foreground, vast layered Cakravyuha behind. | slow dolly back and rise, 35mm, formation troops shift subtly in place, nothing rotates |
+| 3 | 0:08–0:12 | So why did the Pandavas send Abhimanyu…? | Abhimanyu facing the seated/standing Pandava commanders in a war council at the camp edge. | slow lateral track left, 35mm, banners stir, figures mostly still |
+| 4 | 0:12–0:16 | Because on that day… Arjuna was away. | Arjuna's chariot from behind, silhouetted, heading toward a distant separate battle (Samsaptakas). | rear tracking shot, chariot recedes into dust, low sun ahead |
+| 5 | 0:16–0:20 | And Drona had formed a battle array… | Drona, older, white-bearded, commanding from his chariot; layered formation stretching behind. | slow push-in on Drona, 50mm, troops settle into position |
+| 6 | 0:20–0:24 | Abhimanyu knew how to breach it. | Close-up, Abhimanyu checking his bowstring, eyes studying the formation. | slow push-in, hands tighten on bow, subject otherwise still |
+| 7 | 0:24–0:28 | But he admitted… he didn't know how to escape. | Tight close-up, a moment of doubt in his expression. | very slow push, slight exhale, gaze lowers then lifts with resolve |
+| 8 | 0:28–0:32 | Still, Yudhishthira told him to break the formation… | Yudhishthira gesturing toward the formation, Abhimanyu in soft foreground. | slow arc right, 50mm, gesture completes, background haze |
+| 9 | 0:32–0:36 | and promised the others would follow. | Pandava warriors mounting chariots behind Abhimanyu; ends on him. | slow push past the warriors to Abhimanyu, rack focus to his face |
+| 10 | 0:36–0:40 | Abhimanyu charged. | Low angle, Abhimanyu's chariot launching, horses mid-stride, dust. | fast tracking alongside the chariot, 24mm, dust kicked up, banners whipping |
+| 11 | 0:40–0:44 | He broke through. | Chariot punching through the first ring of shields and spears. | fast forward push with the chariot, soldiers scatter aside |
+| 12 | 0:44–0:48 | Then the opening closed. | High wide angle: the gap in the formation closing behind a lone chariot. | slow overhead drift, ranks close the gap, motion slows dramatically |
+| 13 | 0:48–0:52 | Jayadratha stopped the Pandavas from following. | Jayadratha's line of chariots and shields blocking the Pandava advance at the gap. | slow push-in on Jayadratha, Pandavas held back beyond |
+| 14a | ~0:52 | Abhimanyu was alone. / His bow was destroyed. | Close-up, Abhimanyu's bow snapping. | quick, 1.5 s, slight push |
+| 14b | ~0:53.5 | His chariot was wrecked. | Broken wheel and tilted chariot in dust. | 1.5 s, dust settling |
+| 14c | ~0:55 | His sword was gone. | Empty hand, sword falling into dust (no gore). | 1.5 s, hand closes on nothing |
+| 15 | ~0:56.5 | So he picked up a chariot wheel… and kept fighting. | Abhimanyu lifting a chariot wheel overhead, surrounded, defiant. | slow push-in, wheel rises, dust swirling |
+| 16 | ~0:59–1:00.84 | But that was the tragedy. He was never supposed to be alone. | Ultra-wide sunset battlefield, a single small figure at the center of the closed formation. | very slow pull-back, light fading. Hold, then silence. |
+
+Notes:
+
+- The 52–60 s section is now **4–5 quick cuts of about 1.5 s** (14a/14b/14c/15/16) instead of one 4-second clip.
+- **Cakravyuha**: build the reveal still (Shot 2, last frame) first, with visible layers: infantry, chariots, cavalry, elephants. Then ask Wan only for small troop movement. Nothing spins or glows.
+
+---
+
+# 13. Shot Log (fill in as takes are approved)
+
+| # | Still file | Still seed | Video file | Video seed | Steps / LoRA | Approved |
+|---|---|---|---|---|---|---|
+| 1 | | | | | | |
+
+---
+
+# 14. RunPod Access from Claude Code
+
+- **Preferred (Option A):** run Claude Code on the pod itself, so it has direct access to `localhost:8188`, the model folders and the GPU. Needs a persistent `/workspace` volume.
+
+  ```bash
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+  npm install -g @anthropic-ai/claude-code
+  cd /workspace && git clone https://github.com/ptirumalateja/youtube-monetization.git
+  cd youtube-monetization && claude    # log in once
+  claude remote-control                # session appears in the Claude app
+  ```
+
+- **Option B (cloud session):** set `RUNPOD_API_KEY` in the environment (done), set Network access to Custom with `api.runpod.io`, `rest.runpod.io` and `*.proxy.runpod.net` allowed (still not applied as of 2026-10-05), and expose port 8188 as HTTP on the pod. The proxy URL `https://<pod-id>-8188.proxy.runpod.net` has no password, so keep it private. This option gives no shell access.
