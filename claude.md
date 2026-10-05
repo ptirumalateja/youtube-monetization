@@ -81,7 +81,7 @@ It should NOT look like:
 
 ---
 
-# 4. Master Audio Transcript
+# 4. Master Audio Transcript (v1, superseded by Section 15)
 
 ## Duration: ~60.84 seconds
 
@@ -664,3 +664,75 @@ Notes:
   ```
 
 - **Option B (cloud session):** set `RUNPOD_API_KEY` in the environment (done), set Network access to Custom with `api.runpod.io`, `rest.runpod.io` and `*.proxy.runpod.net` allowed (still not applied as of 2026-10-05), and expose port 8188 as HTTP on the pod. The proxy URL `https://<pod-id>-8188.proxy.runpod.net` has no password, so keep it private. This option gives no shell access.
+
+---
+
+# 15. Master Script v5 (approved, supersedes Section 4)
+
+Target about 55 s, about 145 words. The first 15 s are read with more urgency; long pauses only at "No one was there" and the final two lines.
+
+> No bow. No sword. No chariot.
+> Just a broken wheel... against an entire army.
+>
+> Abhimanyu walked into this trap knowing the way in... but not the way out.
+>
+> You've heard he learned the secret in his mother's womb.
+> That's not the real tragedy.
+>
+> Day thirteen. Arjuna: lured away.
+> Drona's Chakravyuha: no one left knew how to break it.
+> Except Arjuna's son.
+>
+> He told them the truth: "I can break in. I don't know the way out."
+> So they made him a promise: "You break it open. We'll be right behind you."
+>
+> He tore through. Deeper. And deeper.
+> Then he turned around.
+> No one was there.
+>
+> One man, Jayadratha, had sealed the gap. The whole Pandava army, stuck outside.
+>
+> They broke his bow. Smashed his chariot. Shattered his sword.
+> So he picked up a wheel... and kept fighting.
+>
+> He didn't die because he couldn't get out.
+> He died because no one could get in.
+
+Accuracy wording rules (from the source research):
+- He did not know the way out. Never say he "could never" get out.
+- The Pandavas did not know how to break the formation. Never say it was "unbreakable".
+- The womb story is redirected ("not the real tragedy"), not called false.
+
+---
+
+# 16. Storyboard v5 (stills to generate, all 9:16)
+
+Face = Abhimanyu's face is clearly visible and must match the reference. Other characters are shown from behind, in silhouette, or out of focus, so only Abhimanyu needs identity locking. Spoken lines are narration: no open mouths or lip movement in any still.
+
+| # | ~Time | Line | Still | Face |
+|---|---|---|---|---|
+| 1 | 0:00 | No bow. No sword. No chariot. | Low angle, Abhimanyu wrenching a chariot wheel up out of the dust, empty quiver, torn blue drape | Yes |
+| 2 | 0:03 | Just a broken wheel... against an entire army. | High wide: small lone figure with the wheel, ringed by layered ranks of soldiers, dust, sunset | Small |
+| 3 | 0:06 | knowing the way in... but not the way out. | Close-up, calm face, the formation's spear wall soft behind him | Yes |
+| 4 | 0:10 | learned the secret in his mother's womb. | Night tent, oil lamp, a pregnant woman asleep, a warrior's silhouette speaking softly at her side | No |
+| 5 | 0:13 | That's not the real tragedy. | A single broken chariot wheel lying in dust, embers drifting, near-dark | No |
+| 6 | 0:16 | Day thirteen. Arjuna: lured away. | Arjuna's chariot from behind, galloping away toward a distant separate battle | No (rear) |
+| 7 | 0:19 | Drona's Chakravyuha... | **World master still.** Aerial view of the layered circular formation (infantry, chariots, cavalry, elephants), Drona's chariot near the centre | No |
+| 8 | 0:23 | Except Arjuna's son. | Abhimanyu stepping forward from a group of warriors, light catching his face | Yes |
+| 9 | 0:25 | "I can break in. I don't know the way out." | Over-the-shoulder from the commanders: Abhimanyu looking past them at the formation, mouth closed | Yes |
+| 10 | 0:29 | "You break it open. We'll be right behind you." | Yudhishthira's hand on Abhimanyu's shoulder (Yudhishthira out of focus), warriors mounting chariots behind | Yes |
+| 11 | 0:33 | He tore through. | Chariot smashing through the first shield line, horses mid-stride | Yes (mid) |
+| 12 | 0:35 | Deeper. And deeper. | Inside the formation, walls of soldiers on both sides, chariot driving forward | Yes (mid) |
+| 13 | 0:38 | Then he turned around. | Close-up over his shoulder as he looks back | Yes |
+| 14 | 0:40 | No one was there. | His point of view: the gap behind him closing, ranks locking, empty dust | No |
+| 15 | 0:43 | Jayadratha had sealed the gap... stuck outside. | Behind Jayadratha's chariot: his shield line holding back the Pandava chariots beyond | No (rear) |
+| 16a | 0:48 | They broke his bow. | Insert: a bow snapping in his hands | Hands |
+| 16b | 0:49 | Smashed his chariot. | Insert: the chariot tipping, wheel shattering | No |
+| 16c | 0:50 | Shattered his sword. | Insert: a broken sword blade falling into dust | Hands |
+| 17 | 0:52 | So he picked up a wheel... and kept fighting. | Hero shot: the wheel raised against the sun, advancing | Yes |
+| 18 | 0:55 | He didn't die... no one could get in. | Ultra-wide sunset: the closed formation, one small figure at its centre, light fading | Small |
+
+Order of work:
+1. Character canon: 4–6 approved Abhimanyu views at 9:16 from the reference (front, three-quarter, profile, back, full body).
+2. World master: Shot 7, which sets the formation's look for Shots 2, 14 and 18.
+3. All remaining stills, 3–4 variations each, approved before any video is made.
