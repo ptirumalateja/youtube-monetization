@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Queue Wan 2.2 I2V A14B (fp8 + Lightx2v 4-step) jobs on the Slow Light ComfyUI pod.
 
-Usage: wan_i2v.py JOBS.json   (list of {"name", "image", "prompt", "seed", "frames"?})
+Usage: wan_i2v.py JOBS.json   (list of {"name", "image", "prompt", "seed", "frames"?, "neg_extra"?})
 "image" is a file in ComfyUI's input folder. Output: 704x1280, 16 fps.
 """
 import json, os, subprocess, sys
@@ -12,7 +12,7 @@ NEG = ("text, captions, subtitles, logo, watermark, morphing, face change, ident
        "heavy camera shake, flicker, blurry, low quality, jpeg artifacts, static frame, gore, blood spray, talking, lip movement")
 
 
-def graph(prompt, seed, image, prefix, frames=81):
+def graph(prompt, seed, image, prefix, frames=81, neg_extra=""):
     return {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors", "weight_dtype": "default"}},
         "2": {"class_type": "UNETLoader", "inputs": {"unet_name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors", "weight_dtype": "default"}},
@@ -24,7 +24,7 @@ def graph(prompt, seed, image, prefix, frames=81):
         "8": {"class_type": "VAELoader", "inputs": {"vae_name": "wan_2.1_vae.safetensors"}},
         "9": {"class_type": "LoadImage", "inputs": {"image": image}},
         "10": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["7", 0], "text": prompt}},
-        "11": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["7", 0], "text": NEG}},
+        "11": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["7", 0], "text": NEG + (", " + neg_extra if neg_extra else "")}},
         "12": {"class_type": "WanImageToVideo", "inputs": {"positive": ["10", 0], "negative": ["11", 0], "vae": ["8", 0],
                 "width": 704, "height": 1280, "length": frames, "batch_size": 1, "start_image": ["9", 0]}},
         "13": {"class_type": "KSamplerAdvanced", "inputs": {"model": ["5", 0], "add_noise": "enable", "noise_seed": seed, "steps": 4, "cfg": 1.0,
@@ -40,7 +40,7 @@ def graph(prompt, seed, image, prefix, frames=81):
 
 
 for job in json.load(open(sys.argv[1])):
-    g = graph(job["prompt"], job["seed"], job["image"], f"slowlight/vid/{job['name']}_s{job['seed']}", job.get("frames", 81))
+    g = graph(job["prompt"], job["seed"], job["image"], f"slowlight/vid/{job['name']}_s{job['seed']}", job.get("frames", 81), job.get("neg_extra", ""))
     out = subprocess.run(["curl", "-sS", "-m", "60", "-H", "Content-Type: application/json", "-d", "@-", B + "/prompt"],
                          input=json.dumps({"prompt": g}), capture_output=True, text=True).stdout
     print(job["name"], job["seed"], out.strip()[:300])
