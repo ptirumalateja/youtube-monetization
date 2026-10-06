@@ -8,7 +8,7 @@ Submits via curl (Cloudflare blocks Python's default user agent).
 """
 import json, os, subprocess, sys
 
-B = os.environ.get("COMFY_URL", "https://zl14vlosbt1es1-8188.proxy.runpod.net")
+B = os.environ.get("COMFY_URL", "https://0ddq5eh1aql1or-8188.proxy.runpod.net")
 W, H = 928, 1664  # 9:16
 
 
