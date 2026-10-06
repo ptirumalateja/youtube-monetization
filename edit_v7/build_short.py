@@ -23,7 +23,7 @@ narr_len = float(subprocess.check_output(
     ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", "narration.mp3"]).decode())
 TOTAL = round(narr_len + cuts["tail_seconds"], 3)
 
-GRADE = ("eq=contrast=1.06:saturation=0.9:gamma=0.98,"
+GRADE = ("eq=contrast=1.05:saturation=0.98:gamma=0.99,"
          "vignette=angle=PI/5,unsharp=5:5:0.35,noise=alls=5:allf=t")
 
 
