@@ -172,7 +172,7 @@ fc = (
     f"[4:a]aresample=48000,adelay={int(sfx[SFX['chariot']]*1000)}|{int(sfx[SFX['chariot']]*1000)},volume=0.8[b2];"
     f"[5:a]aresample=48000,adelay={int(sfx[SFX['sword']]*1000)}|{int(sfx[SFX['sword']]*1000)},volume=0.8[b3];"
     f"[nar1][musd][amb][wind][b1][b2][b3]amix=inputs=7:normalize=0:duration=first,"
-    f"atrim=0:{TOTAL},loudnorm=I=-13:TP=-1.5:LRA=11[aout]"
+    f"atrim=0:{TOTAL},loudnorm=I=-11.5:TP=-1.5:LRA=11[aout]"
 )
 run(["ffmpeg", "-v", "error", "-y", "-i", "narration.mp3", "-i", "audio/score.mp3", "-i", "audio/amb.mp3",
      "-i", "audio/sfx_bow.mp3", "-i", "audio/sfx_chariot.mp3", "-i", "audio/sfx_sword.mp3",
