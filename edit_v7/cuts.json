@@ -1,0 +1,100 @@
+{
+ "narration": "Teja Clone V3 (ElevenLabs voice hnvKSWZUzB30Og1MMmAl), eleven_v4, take A of the approved v6 script with pause tags (generation KciT21llvSAgrVTUrxUN), 52.5 s",
+ "tail_seconds": 2.8,
+ "score_offset": 9.0,
+ "quiet_shot": "f14",
+ "sfx": {
+  "bow": "f15",
+  "chariot": "f16",
+  "sword": "f17"
+ },
+ "title": "THE REAL TRAGEDY\\NOF ABHIMANYU",
+ "shots": [
+  {
+   "shot": "f01",
+   "start": 0.0
+  },
+  {
+   "shot": "f02",
+   "start": 2.12
+  },
+  {
+   "shot": "f03",
+   "start": 5.0
+  },
+  {
+   "shot": "f04",
+   "start": 9.0
+  },
+  {
+   "shot": "f05",
+   "start": 12.2
+  },
+  {
+   "shot": "f06",
+   "start": 16.55
+  },
+  {
+   "shot": "f07",
+   "start": 18.95
+  },
+  {
+   "shot": "f08",
+   "start": 22.8
+  },
+  {
+   "shot": "f09",
+   "start": 26.2
+  },
+  {
+   "shot": "f10",
+   "start": 28.7
+  },
+  {
+   "shot": "f11",
+   "start": 30.45,
+   "anchor": "end"
+  },
+  {
+   "shot": "f12",
+   "start": 31.85,
+   "anchor": "end"
+  },
+  {
+   "shot": "f13",
+   "start": 35.0
+  },
+  {
+   "shot": "f14",
+   "start": 37.85
+  },
+  {
+   "shot": "f15",
+   "start": 39.9
+  },
+  {
+   "shot": "f16",
+   "start": 41.5
+  },
+  {
+   "shot": "f17",
+   "start": 43.15
+  },
+  {
+   "shot": "f18a",
+   "start": 45.35
+  },
+  {
+   "shot": "f18b",
+   "start": 46.1
+  },
+  {
+   "shot": "f20",
+   "start": 48.95
+  },
+  {
+   "shot": "f21",
+   "start": 50.55
+  }
+ ]
+}
