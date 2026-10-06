@@ -12,7 +12,7 @@ W, H = 928, 1664  # 9:16
 
 
 def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg=""):
-    return {
+    g = {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "qwen_image_edit_2511_fp8mixed.safetensors", "weight_dtype": "default"}},
         "2": {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["1", 0], "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "strength_model": 1.0 if lora else 0.0}},
         "3": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["2", 0], "shift": 3.1}},
@@ -30,10 +30,15 @@ def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg=""):
         "14": {"class_type": "VAEDecode", "inputs": {"samples": ["13", 0], "vae": ["6", 0]}},
         "15": {"class_type": "SaveImage", "inputs": {"images": ["14", 0], "filename_prefix": prefix}},
     }
+    if image is None:  # text-to-image: no reference picture
+        del g["7"]
+        for n in ("8", "9"):
+            del g[n]["inputs"]["image1"]
+    return g
 
 
 for job in json.load(open(sys.argv[1])):
-    g = graph(job["prompt"], job["seed"], job.get("image", "slowlight/abhimanyu_ref.png"), f"slowlight/{job['name']}_s{job['seed']}",
+    g = graph(job["prompt"], job["seed"], job.get("image"), f"slowlight/{job['name']}_s{job['seed']}",
               job.get("steps", 4), job.get("cfg", 1.0), job.get("lora", True), job.get("neg", ""))
     out = subprocess.run(["curl", "-sS", "-m", "60", "-H", "Content-Type: application/json", "-d", "@-", B + "/prompt"],
                          input=json.dumps({"prompt": g}), capture_output=True, text=True).stdout
