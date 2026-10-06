@@ -776,3 +776,32 @@ The goal is a recognisable house look, not generic AI mythology. Every still is 
 - Lessons: every "only the hero wears indigo" mention makes the model add a small blue figure to shots without him, so leave it out of those prompts; say "no visible sun disc"; "walls of soldiers" becomes stone walls unless you say "dense crowd of soldiers".
 - Video: Wan 2.2 I2V A14B fp8 + Lightx2v 4-step, 704×1280 @ 16 fps, seed 7001 (`scripts/wan_i2v.py`), about 3.5 min per 65-frame clip on the A40.
 - Edit: `edit/build_short.py` retimes each clip to its narration line (`edit/cuts.json`), interpolates to 24 fps, upscales to 1080×1920, grades (contrast, desaturation, vignette, grain), and burns captions with the current word highlighted in amber, plus the title and end cards.
+
+---
+
+# 19. Production Log: Abhimanyu v7, the Epic Redesign (2026-10-06)
+
+**Design statement:** cinematic Indian epic realism. Larger-than-life characters and monumental environments, grounded by tactile materials, atmospheric dust, natural light and believable ancient-world detail. Heroic and mythic in scale, but never fantasy-game, superhero or CGI spectacle. The full spec is in `storyboard_v7.md`.
+
+## Narration
+- **Voice: Teja Clone V3** (ElevenLabs `hnvKSWZUzB30Og1MMmAl`). It is an instant clone of the same source recording behind the Higgsfield "Teja - Curiozo Narrator" voice used for FZ1073 (`refs/voice/Curiozo_Narrator_source_sample.mp3`).
+- Model `eleven_v4`, the same script, pause tags and phonetic spellings as v6 take C. Take A: generation `KciT21llvSAgrVTUrxUN`, 52.5 s.
+- Lesson: `eleven_multilingual_v2` without pause tags rushed the read to about 40 s and mangled the names. Keep v4 plus tags.
+- Why FZ1073 sounded better: a warmer source recording, so a steadier, darker voice (pitch movement about 6 semitones versus 14 for the old Teja Clone; brightness about 900 versus 1300).
+
+## Picture
+- Masters: `refs/v7/` (M1 is the epic-test elephant gate, with a sky correction applied by script). The 21 selected frames are in `refs/v7/frames/`; the sheet is `refs/v7/storyboard_v7.jpg`.
+- Light arc: golden (shots 1–11), breaking (12–13), dusk (14–18b), twilight (20–21).
+- Fixes made during review:
+  - f03 and f06 re-rendered (head turning, sand pouring).
+  - f12 played in reverse, so the elephants close the gap, with a dip to black on "the opening closed".
+  - f21 is a slow pull-back on the still frame, because Wan reopened the gap.
+  - f13 Jayadratha re-rendered as an Indian king (no cape or scale armour, which read as "300").
+- Lessons:
+  - Qwen keeps adding sun discs and starbursts unless the prompt says "sun hidden".
+  - Any "commander" prompt drifts to Roman/Spartan dress, so name the Indian dress explicitly (crown, dhoti, silk sash) and put cape and scale armour in the negative.
+
+## Edit
+- `edit_v7/build_short.py` (v6 pipeline, warmer grade).
+- Final audio: +1.6 dB through a limiter, giving -14.0 LUFS integrated with a -0.7 dB sample peak.
+- Release: `release/SlowLight_Abhimanyu_v7_1080p.mp4` (55.3 s, 1080×1920, 24 fps, 11 Mbps, 77 MB). The upload metadata in `release/Abhimanyu_v6_metadata.md` still applies.
