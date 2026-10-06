@@ -53,11 +53,13 @@ for i, s in enumerate(shots):
         pad = max(0.0, slot - usable * speed)    # hold the last frame for the rest
     vf = (f"trim=start={offset},setpts=(PTS-STARTPTS)*{speed:.4f},"
           f"minterpolate=fps={FPS}:mi_mode=mci:mc_mode=aobmc:vsbmc=1,"
-          f"tpad=stop_mode=clone:stop_duration={pad:.3f},"
-          f"trim=duration={slot},setpts=PTS-STARTPTS,"
+          f"tpad=stop_mode=clone:stop_duration={pad + 1.0:.3f},"   # always over-pad, then cut to an exact frame count
+          f"setpts=PTS-STARTPTS,"
           f"scale={W}:{H}:flags=lanczos,setsar=1,{GRADE},format=yuv420p")
     out = f"out/shots/{i:02d}_{s['shot']}.mp4"
-    run(["ffmpeg", "-v", "error", "-y", "-i", src, "-vf", vf, "-an", "-r", str(FPS),
+    # Exact frame count from absolute cut times, so rounding never accumulates into drift.
+    nframes = round(end * FPS) - round(start * FPS)
+    run(["ffmpeg", "-v", "error", "-y", "-i", src, "-vf", vf, "-an", "-r", str(FPS), "-frames:v", str(nframes),
          "-c:v", "libx264", "-preset", "medium", "-crf", "16", out])
     parts.append(out)
     print(f"{s['shot']:5} slot {slot:5.2f}s  clip {dur:4.2f}s  speed {speed:.2f}  hold {pad:.2f}s")
