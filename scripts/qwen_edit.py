@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Queue Qwen-Image-Edit 2511 jobs on the Slow Light ComfyUI pod.
 
-Usage: qwen_edit.py JOBS.json   (list of {"name", "prompt", "seed", "image"?, "steps"?, "cfg"?, "lora"?, "neg"?})
+Usage: qwen_edit.py JOBS.json   (list of {"name", "prompt", "seed", "image"?, "image2"?, "steps"?, "cfg"?, "lora"?, "neg"?})
 Defaults are the fast 4-step Lightning draft; set lora=false, steps=40, cfg=4 for full quality.
 Refine a draft: "init" (an input-folder image) + "denoise" (~0.5) keeps its composition.
 Submits via curl (Cloudflare blocks Python's default user agent).
@@ -12,7 +12,7 @@ B = os.environ.get("COMFY_URL", "https://zl14vlosbt1es1-8188.proxy.runpod.net")
 W, H = 928, 1664  # 9:16
 
 
-def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init=None, denoise=1.0):
+def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init=None, denoise=1.0, image2=None):
     g = {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "qwen_image_edit_2511_fp8mixed.safetensors", "weight_dtype": "default"}},
         "2": {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["1", 0], "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "strength_model": 1.0 if lora else 0.0}},
@@ -31,6 +31,10 @@ def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init
         "14": {"class_type": "VAEDecode", "inputs": {"samples": ["13", 0], "vae": ["6", 0]}},
         "15": {"class_type": "SaveImage", "inputs": {"images": ["14", 0], "filename_prefix": prefix}},
     }
+    if image2:  # second reference picture (e.g. a character plus a prop)
+        g["23"] = {"class_type": "LoadImage", "inputs": {"image": image2}}
+        for n in ("8", "9"):
+            g[n]["inputs"]["image2"] = ["23", 0]
     if init:  # refine an existing draft: start from its latent, keep the composition
         g["20"] = {"class_type": "LoadImage", "inputs": {"image": init}}
         g["21"] = {"class_type": "ImageScale", "inputs": {"image": ["20", 0], "upscale_method": "lanczos", "width": W, "height": H, "crop": "center"}}
@@ -47,7 +51,7 @@ def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init
 for job in json.load(open(sys.argv[1])):
     g = graph(job["prompt"], job["seed"], job.get("image"), f"slowlight/{job['name']}_s{job['seed']}",
               job.get("steps", 4), job.get("cfg", 1.0), job.get("lora", True), job.get("neg", ""),
-              job.get("init"), job.get("denoise", 1.0))
+              job.get("init"), job.get("denoise", 1.0), job.get("image2"))
     out = subprocess.run(["curl", "-sS", "-m", "60", "-H", "Content-Type: application/json", "-d", "@-", B + "/prompt"],
                          input=json.dumps({"prompt": g}), capture_output=True, text=True).stdout
     print(job["name"], job["seed"], out.strip()[:300])
