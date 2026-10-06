@@ -6,9 +6,9 @@ Defaults are the fast 4-step Lightning draft; set lora=false, steps=40, cfg=4 fo
 Refine a draft: "init" (an input-folder image) + "denoise" (~0.5) keeps its composition.
 Submits via curl (Cloudflare blocks Python's default user agent).
 """
-import json, subprocess, sys
+import json, os, subprocess, sys
 
-B = "https://ksi3z3lawawmy0-8188.proxy.runpod.net"
+B = os.environ.get("COMFY_URL", "https://zl14vlosbt1es1-8188.proxy.runpod.net")
 W, H = 928, 1664  # 9:16
 
 

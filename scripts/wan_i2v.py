@@ -4,9 +4,9 @@
 Usage: wan_i2v.py JOBS.json   (list of {"name", "image", "prompt", "seed", "frames"?})
 "image" is a file in ComfyUI's input folder. Output: 704x1280, 16 fps.
 """
-import json, subprocess, sys
+import json, os, subprocess, sys
 
-B = "https://ksi3z3lawawmy0-8188.proxy.runpod.net"
+B = os.environ.get("COMFY_URL", "https://zl14vlosbt1es1-8188.proxy.runpod.net")
 NEG = ("text, captions, subtitles, logo, watermark, morphing, face change, identity change, costume change, extra limbs, "
        "deformed hands, extra fingers, glowing eyes, magic, energy effects, fantasy armor, cartoon, anime, CGI, "
        "heavy camera shake, flicker, blurry, low quality, jpeg artifacts, static frame, gore, blood spray, talking, lip movement")
