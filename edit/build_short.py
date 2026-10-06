@@ -170,7 +170,7 @@ run(["ffmpeg", "-v", "error", "-y", "-i", "narration.mp3", "-i", "audio/score.mp
 # Fade the picture to black after the last line, then draw captions and the end card on top.
 vf =(f"fade=t=out:st={narr_len+0.2}:d=0.9:color=black,ass=out/captions.ass:fontsdir=fonts")
 run(["ffmpeg", "-v", "error", "-y", "-i", "out/picture.mp4", "-i", "out/mix.wav", "-vf", vf,
-     "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-profile:v", "high",
+     "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-maxrate", "16M", "-bufsize", "32M", "-profile:v", "high",
      "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart",
      "-t", str(TOTAL), "out/abhimanyu_short.mp4"])
 print("done:", TOTAL, "s")
