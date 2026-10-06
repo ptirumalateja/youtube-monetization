@@ -730,3 +730,29 @@ Order of work:
 1. Character canon: 4–6 approved Abhimanyu views at 9:16 from the reference (front, three-quarter, profile, back, full body).
 2. World master: Shot 7, which sets the formation's look for Shots 2, 14 and 18.
 3. All remaining stills, 3–4 variations each, approved before any video is made.
+
+---
+
+# 17. Slow Light Look (brand visual rules, set 2026-10-06)
+
+The goal is a recognisable house look, not generic AI mythology. Every still is checked against this list before it goes to video.
+
+## Signature
+- **One saturated colour per frame: the indigo-blue drape.** Everything else is muted dust ochre, grey-brown and weathered bronze.
+- **Light: "slow light".** Low sun through thick haze, a warm amber glow only near the horizon, soft side light on faces, deep but not crushed shadows. Never a saturated orange sunset sky, never a blown-out white sky.
+- **Texture:** 35mm film grain, shallow depth of field, airborne dust in every exterior frame.
+- **Framing:** off-centre, with foreground elements (spear shafts, banners, dust, broken arrows) and real negative space. No centred "character showcase" poses.
+- **Caption-safe:** keep faces and key action out of the bottom 20% and the right-hand 12% of the 9:16 frame (Shorts/Reels UI and captions sit there).
+
+## Abhimanyu (locked)
+- The same face as `refs/abhimanyu_ref.png`: young, lean and wiry, not a bodybuilder.
+- Dark curly shoulder-length hair, small sweat-smudged red tilak.
+- Dull, dented bronze armour over worn leather straps; faded indigo drape with frayed edges; dusty cream dhoti; barefoot.
+- Dust, sweat and small cuts on skin. He gets dirtier as the story goes on (clean-ish in Shots 3, 8–10; battered from Shot 13 onward).
+- Mouth closed in every shot (all lines are narration).
+
+## Generation settings (Qwen-Image-Edit 2511, `scripts/qwen_edit.py`)
+- Explore: Lightning 4-step, cfg 1, about 13 s per image on the A40.
+- Final approved stills: no Lightning, 40 steps, cfg 4, with the negative prompt, about 4 min per image. Visibly more natural skin and less plastic.
+- Shared negative: `orange sunset, oversaturated, golden glow, shiny clean armor, bodybuilder, muscular, fantasy, CGI, plastic skin, airbrushed, symmetrical posed portrait, centered, text, watermark, logo, cartoon, anime, extra fingers, deformed hands`
+- Approved character reference set: round 2 (`slowlight/r2_*` on the pod), with `r2_01_close_HQ_s2001` as the main face reference.
