@@ -42,6 +42,8 @@ for i, s in enumerate(shots):
         ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", src]).decode())
     # Skip the first few frames (still identical to the source image) when there is spare footage.
     offset = min(0.25, max(0.0, dur - slot))
+    if s.get("anchor") == "end" and dur > slot:  # keep the clip's ending (e.g. the moment light snaps out)
+        offset = dur - slot - 0.05
     usable = dur - offset
     if usable >= slot:
         speed = 1.0
