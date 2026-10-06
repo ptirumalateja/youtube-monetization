@@ -1,0 +1,17 @@
+{
+ "narration": "Teja Clone, eleven_v4, calm take C with Teja's phonetic spellings (ElevenLabs generation zvxZ9z3gandQsPCe3jPY), 50.9 s",
+ "tail_seconds": 2.8,
+ "score_offset": 9.0,
+ "quiet_shot": "f14",
+ "sfx": {"bow": "f15", "chariot": "f16", "sword": "f17"},
+ "title": "THE REAL TRAGEDY\\NOF ABHIMANYU",
+ "shots": [
+  {"shot": "f01", "start": 0.00}, {"shot": "f02", "start": 2.15}, {"shot": "f03", "start": 5.00},
+  {"shot": "f04", "start": 9.00}, {"shot": "f05", "start": 12.15}, {"shot": "f06", "start": 16.50},
+  {"shot": "f07", "start": 18.90}, {"shot": "f08", "start": 23.35}, {"shot": "f09", "start": 26.10},
+  {"shot": "f10", "start": 28.40}, {"shot": "f11", "start": 30.20}, {"shot": "f12", "start": 31.90},
+  {"shot": "f13", "start": 34.30}, {"shot": "f14", "start": 37.20}, {"shot": "f15", "start": 39.00},
+  {"shot": "f16", "start": 40.60}, {"shot": "f17", "start": 42.15}, {"shot": "f18", "start": 43.95},
+  {"shot": "f19", "start": 45.80}, {"shot": "f20", "start": 47.40}, {"shot": "f21", "start": 49.10}
+ ]
+}
