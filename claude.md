@@ -493,35 +493,29 @@ The following must remain consistent unless a shot intentionally starts from a n
 
 # 8. RunPod Environment
 
-## Pod
+## Pod (since 2026-10-06)
 
-`comfyui-rtx-a6000`
+- Name: `slowlight-a40`, ID `ryj8fblndy68xx`
+- GPU: NVIDIA A40, 48 GB, On-Demand Secure Cloud, $0.49/hr
+- Datacenter: CA-MTL-1
+- Image: `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda12.8`
+- ComfyUI: `https://ryj8fblndy68xx-8188.proxy.runpod.net` (no password: keep private)
 
-## Device
+## Storage
 
-`bbab976d9a06`
+- Network Volume `slowlight-storage-mtl1` (ID `8u2c6qulmy`), 100 GB, CA-MTL-1, mounted at `/workspace`.
+- If the A40 is unavailable, start a new pod in CA-MTL-1 with any free GPU and attach this volume. Nothing needs reinstalling.
+- Stop the pod when not generating; the volume keeps everything.
 
-## GPU
+## Previous pod (retired)
 
-NVIDIA RTX A6000
-
-~48 GB VRAM
-
-## ComfyUI
-
-`/workspace/runpod-slim/ComfyUI`
-
-## Port
-
-`8188`
-
-ComfyUI is already running locally.
+`comfyui-rtx-a6000` lost its GPU slot on 2026-10-06 and was removed. Its reference image is saved in the repo at `refs/abhimanyu_ref.png`.
 
 ---
 
-# 9. Installed Wan Models
+# 9. Installed Wan Models (old pod only; the new volume starts empty)
 
-Already installed:
+Was installed on the old pod:
 
 ```text
 wan2.2_ti2v_5B_fp16.safetensors
