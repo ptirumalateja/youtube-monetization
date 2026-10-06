@@ -756,3 +756,23 @@ The goal is a recognisable house look, not generic AI mythology. Every still is 
 - Final approved stills: no Lightning, 40 steps, cfg 4, with the negative prompt, about 4 min per image. Visibly more natural skin and less plastic.
 - Shared negative: `orange sunset, oversaturated, golden glow, shiny clean armor, bodybuilder, muscular, fantasy, CGI, plastic skin, airbrushed, symmetrical posed portrait, centered, text, watermark, logo, cartoon, anime, extra fingers, deformed hands`
 - Approved character reference set: round 2 (`slowlight/r2_*` on the pod), with `r2_01_close_HQ_s2001` as the main face reference.
+
+---
+
+# 18. Production Log: Abhimanyu v5 (2026-10-06)
+
+## Narration
+- Voice: **Teja Clone** (ElevenLabs cloned voice, ID `kSSKCawiBGYj8mwPzTwG`), recorded by Teja from `refs/voice_clone_script.md`. Replaces Teja V2.
+- Model `eleven_v4`, opening tag `[calm, low documentary storytelling voice, serious and engaged]`, Sanskrit names in IPA (e.g. `/tʃəkrəˈʋjuːɦə/`). Avoid `[intense]`/`[dramatically]` tags and capitals: they make the voice shout. `eleven_multilingual_v2` sounded flat and sleepy; `eleven_v3` ran 76–87 s, far too slow.
+- Final take: generation `aiRJxCatQS5w4gDq4Q1j`, 58.7 s, saved as `edit/narration.mp3`, word timings in `edit/words.json`.
+
+## Sound
+- Score: ElevenLabs Music v2.5, **instrumental=true**, 62 s (`edit/audio/score.mp3`), started 1.8 s in so its drop lands on "No one was there."
+- Ambience: 30 s looping battlefield bed; impacts for bow, chariot and sword.
+- Mix: narration-keyed ducking on the score, score and ambience dipped under "No one was there.", loudness-normalized to -14 LUFS.
+
+## Picture
+- Stills: Qwen-Image-Edit 2511 (fast 4-step) from `slowlight/abhi_canon.png`; selections in `edit/stills/`.
+- Lessons: every "only the hero wears indigo" mention makes the model add a small blue figure to shots without him, so leave it out of those prompts; say "no visible sun disc"; "walls of soldiers" becomes stone walls unless you say "dense crowd of soldiers".
+- Video: Wan 2.2 I2V A14B fp8 + Lightx2v 4-step, 704×1280 @ 16 fps, seed 7001 (`scripts/wan_i2v.py`), about 3.5 min per 65-frame clip on the A40.
+- Edit: `edit/build_short.py` retimes each clip to its narration line (`edit/cuts.json`), interpolates to 24 fps, upscales to 1080×1920, grades (contrast, desaturation, vignette, grain), and burns captions with the current word highlighted in amber, plus the title and end cards.
