@@ -268,7 +268,7 @@ def g08(t, i, phase="a"):
     hf = font("Montserrat.ttf", 40, 600)
     if phase == "a":
         centered(d, 110, "144 REPORTS", hf, IVORY)
-        if t > 2.0:
+        if t > 9.6:  # lands on the narration's "only one"
             k = order[0]
             c, r = GRID[k]
             x, y = ox + c * sx, oy + r * sy
