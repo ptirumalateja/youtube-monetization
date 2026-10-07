@@ -805,3 +805,12 @@ The goal is a recognisable house look, not generic AI mythology. Every still is 
 - `edit_v7/build_short.py` (v6 pipeline, warmer grade).
 - Final audio: +1.6 dB through a limiter, giving -14.0 LUFS integrated with a -0.7 dB sample peak.
 - Release: `release/SlowLight_Abhimanyu_v7_1080p.mp4` (55.3 s, 1080×1920, 24 fps, 11 Mbps, 77 MB). The upload metadata in `release/Abhimanyu_v6_metadata.md` still applies.
+
+## v7.1 revisions (Teja's review, 2026-10-07)
+- **f08:** Yudhishthira is now a separate figure seen from behind, a full arm's length from Abhimanyu, pointing at the formation. No touching.
+- **f09:** the army stays still in its ranks; Abhimanyu's lone chariot is far ahead of it. Nobody moves in front of him.
+- **f11:** breakthrough as a power attack. An arrow storm from his drawn bow, the colossal elephants rearing and recoiling apart, on an open plain. Qwen kept inventing stone castle walls, so the wall was edited out of a draft.
+- **f12:** from inside, behind him, as the elephants and spear lines close the breach. Only the narrowing part of the Wan clip is used, slowed, then a dip to black.
+- **f13:** the elephant wall is sealed. Jayadratha stands on his chariot with the boar banner and blocks Bhima (golden mace) and the Pandava chariots.
+- **f15:** a sword splits the bow's wooden limb.
+- **f16:** the chariot is wrecked, with its axle snapped and a wheel lying flat beside it.
