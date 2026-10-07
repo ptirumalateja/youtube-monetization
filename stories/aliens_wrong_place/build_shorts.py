@@ -120,10 +120,11 @@ def build(name, cfg):
            "Style: Kick,Montserrat,30,&H00B9BE6E,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,8,0,1,0,0,8,0,0,150,1",
            "", "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
     ass.append(f"Dialogue: 0,{ts(0)},{ts(3.2)},Kick,,0,0,0,,{{\\fad(400,600)}}SLOW LIGHT  ·  {cfg['kicker']}")
-    for ch in chunks:
+    for ci, ch in enumerate(chunks):
+        nxt = m(chunks[ci + 1][0]["start"]) if ci + 1 < len(chunks) else 1e9
         for i, w in enumerate(ch):
             a = m(w["start"])
-            b = m(ch[i + 1]["start"]) if i + 1 < len(ch) else m(w["end"]) + 0.25
+            b = m(ch[i + 1]["start"]) if i + 1 < len(ch) else min(m(w["end"]) + 0.25, nxt)  # never overlap the next chunk
             txt = " ".join((f"{{\\c&H54B0E8&}}{x['text']}{{\\c&HF2F4F2&}}" if j == i else x["text"]) for j, x in enumerate(ch))
             ass.append(f"Dialogue: 0,{ts(a)},{ts(b)},Cap,,0,0,0,,{{\\pos({W // 2},{int(H * 0.66)})}}{txt}")
     open(f"out/{name}.ass", "w").write("\n".join(ass) + "\n")
@@ -163,7 +164,7 @@ def build(name, cfg):
         wf.writeframes((np.clip(bed, -1, 1) * 32767).astype(np.int16).tobytes())
     run(["ffmpeg", "-v", "error", "-y", "-i", f"out/{name}_narr.wav", "-i", f"out/{name}_bed.wav", "-filter_complex",
          "[0:a]highpass=f=70,acompressor=threshold=0.1:ratio=2.5:attack=15:release=250[n];[1:a]volume=2.4,lowpass=f=6000[b];"
-         "[n][b]amix=inputs=2:normalize=0:duration=longest,volume=3.4,alimiter=limit=0.89:level=disabled[a]",
+         "[n][b]amix=inputs=2:normalize=0:duration=longest,volume=2.1,alimiter=limit=0.89:level=disabled[a]",
          "-map", "[a]", "-ac", "2", "-ar", str(SR), f"out/{name}_mix.wav"])
     run(["ffmpeg", "-v", "error", "-y", "-i", f"out/{name}_pic.mp4", "-i", f"out/{name}_mix.wav",
          "-vf", f"ass=out/{name}.ass:fontsdir={FONTS}", "-c:v", "libx264", "-b:v", "10M", "-maxrate", "14M", "-bufsize", "20M",
