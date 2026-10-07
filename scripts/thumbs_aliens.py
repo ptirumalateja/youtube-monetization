@@ -123,3 +123,13 @@ text(im, (430, 400), "72 SECONDS.", 108, IVORY, 900)
 text(im, (430, 555), "NEVER", 120, RED, 900)
 text(im, (430, 690), "HEARD AGAIN.", 86, RED, 800)
 save(grain(im, 5), "long_thumbnail_alt_wow_1920x1080.jpg")
+
+# 5. Long-form main (v2): the dish and the lone listener under the Milky Way, one star circled.
+W, H = 1920, 1080
+im = load(os.path.join(ST, "stills", "A18_end.png"), (W, H), bright=1.0, contrast=1.12)
+im = shade(im, bottom=0.25, vignette=0.4, band=(0.66, 0.16, 0.45))
+sx, sy = round(1465 * W / 1664), round(197 * W / 1664) - (round(928 * W / 1664) - H) // 2
+ring(im, (sx - 58, sy - 52, sx + 58, sy + 52), width=7)
+text(im, (1470, 640), "60 YEARS OF LISTENING.", 64, IVORY, 700)
+text(im, (1470, 770), "SILENCE.", 176, IVORY, 900)
+save(grain(im, 5), "long_thumbnail_main_dish_1920x1080.jpg")
