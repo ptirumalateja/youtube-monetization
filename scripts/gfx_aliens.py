@@ -114,7 +114,7 @@ PAPER = (214, 210, 196)
 COLS = ["1 1   1", "  1 1  ", "1    1 ", " 6EQUJ5", "  1   1", "1  1   ", " 1   1 ", "  1  1 ", "1      ", "   1 1 "]
 
 
-def g02(t, i):
+def g02(t, i, wow=True):
     rng = random.Random(7)
     img = Image.new("RGB", (W, H), (20, 20, 18))
     paper = Image.new("RGB", (1100, 1400), PAPER)
@@ -142,7 +142,7 @@ def g02(t, i):
     if prog > 0:
         pd.arc([520, 20 + 11 * 44, 620, 20 + 18.4 * 44], start=-90, end=-90 + 360 * prog, fill=RED, width=6)
     # handwritten Wow!
-    if t > 5.4:
+    if wow and t > 5.4:
         a = ease((t - 5.4) / 0.6)
         wf = font("Cinzel.ttf", 92, 700)
         col = tuple(int(PAPER[c] * (1 - a) + RED[c] * a) for c in range(3))
