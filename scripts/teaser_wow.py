@@ -51,16 +51,16 @@ def para(im, y, s, size, fill, weight=500, maxw=900, lh=1.35):
 
 
 # 1. The printout: what is this?
-src = Image.open(os.path.join(ST, "out", "thumb", "g02v_nowow.png")).convert("RGB")
+src = Image.open(os.path.join(ST, "out", "thumb", "g02v_10.5.png")).convert("RGB")
 im = src.crop((0, 200, 1080, 200 + H))
 im = shade(im, vignette=0.5)
 fade_band(im, 0, 560)
 fade_band(im, H - 260, H, top=False)
 text(im, (W // 2, 120), "IN 1977, A TELESCOPE", 62, IVORY, 800)
 text(im, (W // 2, 205), "PRINTED THIS.", 92, IVORY, 900)
-text(im, (W // 2, 300), "An astronomer circled it", 42, AMBER, 600)
-text(im, (W // 2, 360), "and wrote one word next to it.", 42, AMBER, 600)
-text(im, (W // 2, H - 110), "Guess the word →", 44, IVORY, 700)
+text(im, (W // 2, 300), "The astronomer who found it", 42, AMBER, 600)
+text(im, (W // 2, 360), "could only write one word.", 42, AMBER, 600)
+text(im, (W // 2, H - 110), "Swipe →", 44, IVORY, 700)
 save(grain(im, 5), "01_printout.jpg")
 
 # 2. Decoder: what the six characters mean.
