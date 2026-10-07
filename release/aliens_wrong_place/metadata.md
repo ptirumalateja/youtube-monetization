@@ -35,6 +35,10 @@ Sources:
 
 Visuals are AI-generated reconstructions and illustrations, not archival footage.
 
+Music:
+"Shadows and Dust" and "Decoherence" by Scott Buckley, www.scottbuckley.com.au
+Licensed under Creative Commons Attribution 4.0 (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
 Slow Light: stories worth slowing down for.
 
 #Aliens #SETI #WowSignal #Space #Astronomy #UFO #UAP #FermiParadox #SlowLight
