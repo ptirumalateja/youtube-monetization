@@ -85,10 +85,15 @@ def dur(path):
 GRADE = "eq=contrast=1.04:saturation=0.92:gamma=0.98,vignette=angle=PI/4.5,noise=alls=6:allf=t"
 
 
+REUSE = "--reuse" in sys.argv
+
+
 def render_segment(i, a, b, kind, src, opt):
     t0, t1 = shift(a), shift(b) + opt.get("tail", 0.0)
     n = round(t1 * FPS) - round(t0 * FPS)
     out = f"out/seg/{i:02d}_{src}.mp4"
+    if REUSE and os.path.exists(out) and not (kind == "clip" and "--reclips" in sys.argv):
+        return out
     dim = opt.get("dim", 1.0)
     if kind == "still":
         zin = opt.get("zoom", "in") == "in"
@@ -216,7 +221,13 @@ env = np.clip(0.35 + 0.65 * (t / LAST_WORD), 0, 1)                         # slo
 lfo = 0.6 + 0.4 * np.sin(2 * np.pi * t / 23.0)
 drone = (np.sin(2 * np.pi * 41.2 * t) + 0.6 * np.sin(2 * np.pi * 61.9 * t + 0.4 * np.sin(2 * np.pi * 0.07 * t))
          + 0.25 * np.sin(2 * np.pi * 82.4 * t * (1 + 0.002 * np.sin(2 * np.pi * 0.11 * t))))
-air = np.convolve(rng.normal(0, 1, N), np.ones(400) / 400, mode="same") * 6       # dark wind
+def smooth(x, k):
+    c = np.cumsum(np.concatenate([[0.0], x]))
+    y = (c[k:] - c[:-k]) / k
+    return np.concatenate([y, np.zeros(len(x) - len(y))])
+
+
+air = smooth(rng.normal(0, 1, N), 400) * 6                                       # dark wind
 bed = (drone * 0.55 + air * 0.35) * env * lfo
 
 
@@ -235,7 +246,7 @@ def window(a, b, fade=1.2):
 
 
 hiss = rng.normal(0, 1, N)
-hiss = hiss - np.convolve(hiss, np.ones(8) / 8, mode="same")                          # thin, high radio static
+hiss = hiss - smooth(hiss, 8)                          # thin, high radio static
 crackle = (rng.random(N) < 0.0006) * rng.normal(0, 6, N)
 static = (hiss * 0.5 + crackle) * (window(0, PRE + 1.5, 0.4) * 0.9 + window(shift(9.2), shift(25.0), 0.8) * 0.45
                                    + window(shift(57.5), shift(61.6), 0.6) * 0.8 + window(shift(44.1), shift(57.5), 1.5) * 0.2)
@@ -266,6 +277,6 @@ run(["ffmpeg", "-v", "error", "-y", "-i", narr, "-i", "out/bed.wav", "-filter_co
 
 # ---------- final ----------
 run(["ffmpeg", "-v", "error", "-y", "-i", "out/picture.mp4", "-i", "out/mix.wav",
-     "-vf", f"ass=out/labels.ass:fontsdir={FONTS}", "-c:v", "libx264", "-crf", "17", "-preset", "slow", "-pix_fmt", "yuv420p",
+     "-vf", f"ass=out/labels.ass:fontsdir={FONTS}", "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p",
      "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", "-shortest", "out/aliens_long.mp4"])
 print("done", dur("out/aliens_long.mp4"), "s")
