@@ -44,3 +44,19 @@ Most people know the version where Abhimanyu learned the Chakravyuha in his moth
 
 ## Disclosure
 The images are AI-generated. Turn on the platform's AI label where one exists.
+
+## YouTube Short (slideshow version)
+File: `release/SlowLight_Abhimanyu_StoryShort_1080p.mp4`. 31.4 s, 1080×1920, six slides with a slow push-in and crossfades, instrumental score, -14 LUFS.
+
+**Title:** He Was Never Supposed to Be Alone | The Real Tragedy of Abhimanyu #Shorts
+
+**Description:**
+He knew how to get in. He didn't know how to get out.
+On the 13th day of Kurukshetra, the Pandavas promised to follow Abhimanyu into the Chakravyuha. Then the opening closed.
+Retold from the Drona Parva of the Mahabharata (BORI Critical Edition).
+Slow Light: stories worth slowing down for.
+#Mahabharata #Abhimanyu #Chakravyuha #IndianMythology #Shorts
+
+**Tags:** Abhimanyu, Chakravyuha, Mahabharata, Mahabharata story, Mahabharat, Kurukshetra, Arjuna, Drona, Jayadratha, Yudhishthira, Pandavas, Indian mythology, Hindu mythology, Indian epics, Abhimanyu story, Slow Light
+
+**Settings:** Altered or synthetic content: Yes. Category: Education.

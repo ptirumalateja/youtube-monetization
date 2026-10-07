@@ -8,6 +8,7 @@ import json, os, sys, textwrap
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H = 1080, 1350
+VIDEO = False  # 9:16 Shorts frames: full image, text above the platform UI, no page counter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONTS = os.path.join(ROOT, "edit_v7", "fonts")
 AMBER = (232, 176, 84)
@@ -25,6 +26,8 @@ def font(name, size, weight=None):
 
 
 def crop45(im, focus):
+    if VIDEO:
+        return im.resize((W, H), Image.LANCZOS)
     s = W / im.width
     im = im.resize((W, round(im.height * s)), Image.LANCZOS)
     top = min(max(0, round(focus * im.height - H / 2)), im.height - H)
@@ -32,10 +35,13 @@ def crop45(im, focus):
 
 
 def shade(im, start=0.52):
+    if VIDEO:
+        start = 0.38
     """Dark gradient over the lower part for text, plus a soft top vignette."""
     g = Image.new("L", (1, H))
+    end = 0.64 if VIDEO else 1.0
     for y in range(H):
-        t = (y / H - start) / (1 - start)
+        t = (y / H - start) / (end - start)
         a = 0 if t < 0 else min(1, t) ** 1.3 * 225
         top = max(0, (0.10 - y / H) / 0.10) * 90
         g.putpixel((0, y), int(max(a, top)))
@@ -65,7 +71,7 @@ def build(slides, out):
         body = font("Montserrat.ttf", 40, 600)
         lines = "\n".join(textwrap.fill(p, 36) for p in s["text"].split("\n"))
         nlines = lines.count("\n") + 1
-        y = H - 120 - nlines * 52
+        y = (round(H * 0.74) if VIDEO else H - 120) - nlines * 52
         af = font("Cinzel.ttf", 50, 700)
         acc = "\n".join(textwrap.fill(p, 30) for p in s.get("accent", "").split("\n")) if s.get("accent") else ""
         if acc:
@@ -82,8 +88,12 @@ def build(slides, out):
         y = draw_centered(d, y, lines, body, IVORY, spacing=12)
         if acc:
             draw_centered(d, y + 24, acc, af, AMBER, spacing=12)
-        # footer: brand + page count
         ff = font("Cinzel.ttf", 26, 600)
+        if VIDEO:
+            draw_centered(d, 150, "SLOW LIGHT", font("Cinzel.ttf", 30, 600), (226, 216, 196))
+            im.save(os.path.join(out, f"v{i:02d}.png"))
+            continue
+        # footer: brand + page count
         d.text((48, H - 58), "SLOW LIGHT", font=ff, fill=(220, 210, 190))
         pf = font("Montserrat.ttf", 26, 600)
         p = f"{i}/{n}"
@@ -92,4 +102,7 @@ def build(slides, out):
 
 
 if __name__ == "__main__":
+    if "--video" in sys.argv:
+        sys.argv.remove("--video")
+        VIDEO, W, H = True, 1080, 1920
     build(json.load(open(sys.argv[1])), sys.argv[2])
