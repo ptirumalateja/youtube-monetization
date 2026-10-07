@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Queue Qwen-Image-Edit 2511 jobs on the Slow Light ComfyUI pod.
 
-Usage: qwen_edit.py JOBS.json   (list of {"name", "prompt", "seed", "image"?, "image2"?, "steps"?, "cfg"?, "lora"?, "neg"?})
+Usage: qwen_edit.py JOBS.json   (list of {"name", "prompt", "seed", "image"?, "image2"?, "steps"?, "cfg"?, "lora"?, "neg"?, "aspect"?})
+"aspect": "16:9" renders 1664x928 for long-form; the default is 9:16 (928x1664).
 Defaults are the fast 4-step Lightning draft; set lora=false, steps=40, cfg=4 for full quality.
 Refine a draft: "init" (an input-folder image) + "denoise" (~0.5) keeps its composition.
 Submits via curl (Cloudflare blocks Python's default user agent).
@@ -12,7 +13,7 @@ B = os.environ.get("COMFY_URL", "https://zrqv12r68xf2aa-8188.proxy.runpod.net")
 W, H = 928, 1664  # 9:16
 
 
-def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init=None, denoise=1.0, image2=None):
+def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init=None, denoise=1.0, image2=None, W=W, H=H):
     g = {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "qwen_image_edit_2511_fp8mixed.safetensors", "weight_dtype": "default"}},
         "2": {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["1", 0], "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "strength_model": 1.0 if lora else 0.0}},
@@ -51,7 +52,8 @@ def graph(prompt, seed, image, prefix, steps=4, cfg=1.0, lora=True, neg="", init
 for job in json.load(open(sys.argv[1])):
     g = graph(job["prompt"], job["seed"], job.get("image"), f"slowlight/{job['name']}_s{job['seed']}",
               job.get("steps", 4), job.get("cfg", 1.0), job.get("lora", True), job.get("neg", ""),
-              job.get("init"), job.get("denoise", 1.0), job.get("image2"))
+              job.get("init"), job.get("denoise", 1.0), job.get("image2"),
+              *((1664, 928) if job.get("aspect") == "16:9" else (W, H)))
     out = subprocess.run(["curl", "-sS", "-m", "60", "-H", "Content-Type: application/json", "-d", "@-", B + "/prompt"],
                          input=json.dumps({"prompt": g}), capture_output=True, text=True).stdout
     print(job["name"], job["seed"], out.strip()[:300])
