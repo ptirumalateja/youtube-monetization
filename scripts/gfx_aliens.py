@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Designed graphics for the Slow Light aliens long-form (1920x1080, 30 fps, eerie palette).
 
-Usage: gfx_aliens.py OUTDIR [name ...]   (no names = render all)
+Usage: gfx_aliens.py [--vertical] OUTDIR [name ...]   (no names = render all; --vertical = 1080x1920, files end in _v)
 Each graphic is a short MP4 written to OUTDIR/<name>.mp4. Rendered frame by frame with PIL, piped to ffmpeg.
 """
 import math, os, random, subprocess, sys
@@ -296,9 +296,9 @@ def g10(t, i):
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=AMBER)
     f = font("Montserrat.ttf", 40, 600)
     if t > 1.0:
-        centered(d, 90, "EVERYTHING WE'VE SEARCHED: ~7,700 LITRES", f, AMBER)
+        centered(d, 90 if W > H else int(H * 0.22), "EVERYTHING WE'VE SEARCHED: ~7,700 LITRES", f, AMBER)
     if t > 3.0:
-        centered(d, H - 150, "EARTH'S OCEANS: 1.335 BILLION TRILLION LITRES", f, (120, 170, 200))
+        centered(d, H - 150 if W > H else int(H * 0.70), "EARTH'S OCEANS: 1.335 BILLION TRILLION LITRES", f, (120, 170, 200))
     return vignette(grain(img, 9, i))
 
 
@@ -319,8 +319,8 @@ def endcard(t, i):
     img = Image.new("RGB", (W, H), (0, 0, 0))
     d = ImageDraw.Draw(img)
     a = ease((t - 0.8) / 1.5)
-    centered(d, 470, "SLOW LIGHT", font("Cinzel.ttf", 84, 700), tuple(int(v * a) for v in IVORY))
-    centered(d, 590, "stories worth slowing down for", font("Montserrat.ttf", 34, 500), tuple(int(v * a) for v in DIM))
+    centered(d, H // 2 - 70, "SLOW LIGHT", font("Cinzel.ttf", 84, 700), tuple(int(v * a) for v in IVORY))
+    centered(d, H // 2 + 50, "stories worth slowing down for", font("Montserrat.ttf", 34, 500), tuple(int(v * a) for v in DIM))
     return img
 
 
@@ -331,8 +331,12 @@ ALL = {
 }
 
 if __name__ == "__main__":
+    suffix = ""
+    if "--vertical" in sys.argv:  # 1080x1920 versions for Shorts
+        sys.argv.remove("--vertical")
+        W, H, suffix = 1080, 1920, "_v"
     out = sys.argv[1]
     os.makedirs(out, exist_ok=True)
     for name in (sys.argv[2:] or ALL):
         fn, sec = ALL[name]
-        write(name, fn, sec, out)
+        write(name + suffix, fn, sec, out)

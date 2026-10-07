@@ -89,7 +89,9 @@ REUSE = "--reuse" in sys.argv
 
 
 def render_segment(i, a, b, kind, src, opt):
-    t0, t1 = shift(a), shift(b) + opt.get("tail", 0.0)
+    # a shot that starts right where a visual insert (the title card) sits begins after that insert
+    t0 = shift(a) + sum(d for at, d, vis in INSERTS if vis and abs(at - a) < 1e-6)
+    t1 = shift(b) + opt.get("tail", 0.0)
     n = round(t1 * FPS) - round(t0 * FPS)
     out = f"out/seg/{i:02d}_{src}.mp4"
     if REUSE and os.path.exists(out) and not (kind == "clip" and "--reclips" in sys.argv):
@@ -220,7 +222,10 @@ rng = np.random.default_rng(1977)
 env = np.clip(0.35 + 0.65 * (t / LAST_WORD), 0, 1)                         # slowly rising over the film
 lfo = 0.6 + 0.4 * np.sin(2 * np.pi * t / 23.0)
 drone = (np.sin(2 * np.pi * 41.2 * t) + 0.6 * np.sin(2 * np.pi * 61.9 * t + 0.4 * np.sin(2 * np.pi * 0.07 * t))
-         + 0.25 * np.sin(2 * np.pi * 82.4 * t * (1 + 0.002 * np.sin(2 * np.pi * 0.11 * t))))
+         + 0.25 * np.sin(2 * np.pi * 82.4 * t * (1 + 0.002 * np.sin(2 * np.pi * 0.11 * t)))
+         # phone-audible partials: a slow, uneasy shimmer
+         + 0.32 * np.sin(2 * np.pi * 123.5 * t) * (0.6 + 0.4 * np.sin(2 * np.pi * 0.09 * t))
+         + 0.16 * np.sin(2 * np.pi * 185.0 * t + 0.8 * np.sin(2 * np.pi * 0.05 * t)) * (0.5 + 0.5 * np.sin(2 * np.pi * 0.13 * t + 1)))
 def smooth(x, k):
     c = np.cumsum(np.concatenate([[0.0], x]))
     y = (c[k:] - c[:-k]) / k
@@ -271,12 +276,12 @@ with wave.open("out/bed.wav", "wb") as wf:
 
 run(["ffmpeg", "-v", "error", "-y", "-i", narr, "-i", "out/bed.wav", "-filter_complex",
      "[0:a]highpass=f=70,acompressor=threshold=0.1:ratio=2.5:attack=15:release=250,volume=1.0[n];"
-     "[1:a]volume=0.55,lowpass=f=6000[b];[n][b]amix=inputs=2:normalize=0:duration=longest,"
-     "volume=2.2,alimiter=limit=0.89:level=disabled[a]",
+     "[1:a]volume=2.4,lowpass=f=6000[b];[n][b]amix=inputs=2:normalize=0:duration=longest,"
+     "volume=3.4,alimiter=limit=0.89:level=disabled[a]",
      "-map", "[a]", "-ar", str(SR), "-ac", "2", "out/mix.wav"])
 
 # ---------- final ----------
 run(["ffmpeg", "-v", "error", "-y", "-i", "out/picture.mp4", "-i", "out/mix.wav",
-     "-vf", f"ass=out/labels.ass:fontsdir={FONTS}", "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p",
+     "-vf", f"ass=out/labels.ass:fontsdir={FONTS}", "-c:v", "libx264", "-b:v", "12M", "-maxrate", "16M", "-bufsize", "24M", "-preset", "medium", "-pix_fmt", "yuv420p",
      "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", "-shortest", "out/aliens_long.mp4"])
 print("done", dur("out/aliens_long.mp4"), "s")

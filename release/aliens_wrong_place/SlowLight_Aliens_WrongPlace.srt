@@ -1,0 +1,275 @@
+1
+00:00:02,600 --> 00:00:07,280
+On the night of August 15th, 1977, Ohio State's
+
+2
+00:00:07,580 --> 00:00:10,760
+Big Ear radio telescope was listening to the sky.
+
+3
+00:00:11,780 --> 00:00:16,119
+For 72 seconds, it heard something, a signal so
+
+4
+00:00:16,259 --> 00:00:20,480
+strong and so narrow that days later, the astronomer
+
+5
+00:00:20,660 --> 00:00:23,920
+reading the printout circled it in red pen and
+
+6
+00:00:24,000 --> 00:00:25,660
+wrote one word next to it:
+
+7
+00:00:25,680 --> 00:00:26,980
+"Wow!"
+
+8
+00:00:29,060 --> 00:00:30,340
+It was never heard again.
+
+9
+00:00:35,980 --> 00:00:38,420
+The search had begun 17 years earlier.
+
+10
+00:00:39,300 --> 00:00:43,599
+In 1960, in West Virginia, a young astronomer named
+
+11
+00:00:43,720 --> 00:00:47,180
+Frank Drake pointed a radio dish at two nearby
+
+12
+00:00:47,279 --> 00:00:50,300
+stars, much like our Sun, and listened.
+
+13
+00:00:51,459 --> 00:00:54,879
+He tuned to the natural frequency of hydrogen, the
+
+14
+00:00:54,940 --> 00:00:57,059
+most common element in the universe.
+
+15
+00:00:57,980 --> 00:01:00,599
+If anyone out there wanted to be heard, the
+
+16
+00:01:00,640 --> 00:01:03,500
+reasoning went, that's where they might call.
+
+17
+00:01:04,860 --> 00:01:07,400
+For four months, he heard nothing but static.
+
+18
+00:01:08,800 --> 00:01:12,759
+Ten years before that, the physicist Enrico Fermi had
+
+19
+00:01:12,880 --> 00:01:14,700
+asked a simple question over lunch:
+
+20
+00:01:14,720 --> 00:01:18,259
+"If the galaxy is so old and so vast,
+
+21
+00:01:18,880 --> 00:01:19,759
+where is everybody?"
+
+22
+00:01:21,280 --> 00:01:24,740
+Since then, we've listened with bigger dishes and better
+
+23
+00:01:24,820 --> 00:01:25,460
+computers.
+
+24
+00:01:26,420 --> 00:01:30,759
+In 2019, astronomers even caught a signal that seemed
+
+25
+00:01:30,800 --> 00:01:32,899
+to come from our nearest neighboring star.
+
+26
+00:01:34,039 --> 00:01:36,259
+It turned out to be our own electronics.
+
+27
+00:01:37,380 --> 00:01:40,399
+More than 60 years later, the answer is still
+
+28
+00:01:41,119 --> 00:01:41,640
+silence.
+
+29
+00:01:43,080 --> 00:01:45,500
+But what if we've been listening for the wrong
+
+30
+00:01:45,600 --> 00:01:45,880
+thing?
+
+31
+00:01:47,500 --> 00:01:49,179
+Look at Earth from far away.
+
+32
+00:01:50,140 --> 00:01:53,539
+We aren't deliberately sending the universe a message, but
+
+33
+00:01:53,600 --> 00:01:54,539
+we are changing it.
+
+34
+00:01:55,520 --> 00:01:56,920
+Our cities glow at night.
+
+35
+00:01:57,580 --> 00:01:59,759
+Our machines leak radio into space.
+
+36
+00:02:00,720 --> 00:02:03,619
+We've even changed the chemistry of our own air.
+
+37
+00:02:04,780 --> 00:02:07,539
+So scientists now search for something else:
+
+38
+00:02:08,460 --> 00:02:09,539
+technosignatures.
+
+39
+00:02:11,340 --> 00:02:16,020
+Not a hello, just evidence that someone, somewhere, built
+
+40
+00:02:16,220 --> 00:02:16,638
+something.
+
+41
+00:02:17,820 --> 00:02:21,340
+Artificial light on a distant planet, a gas in
+
+42
+00:02:21,359 --> 00:02:25,540
+its air that nature doesn't make, heat from machines.
+
+43
+00:02:26,780 --> 00:02:30,040
+Not a voice calling to us, just the traces
+
+44
+00:02:30,260 --> 00:02:33,760
+a civilization leaves behind, the way ours does.
+
+45
+00:02:35,380 --> 00:02:38,180
+And then there's the question closer to home.
+
+46
+00:02:39,260 --> 00:02:42,440
+For years, military pilots have reported things in the
+
+47
+00:02:42,460 --> 00:02:44,200
+sky they couldn't identify.
+
+48
+00:02:45,440 --> 00:02:47,680
+In 2021, a U.S.
+
+49
+00:02:47,799 --> 00:02:52,280
+intelligence report reviewed 144 of those reports.
+
+50
+00:02:53,420 --> 00:02:55,940
+It could confidently explain only one:
+
+51
+00:02:56,880 --> 00:02:58,700
+a large deflating balloon.
+
+52
+00:02:59,920 --> 00:03:02,160
+Later reviews explained many more.
+
+53
+00:03:03,359 --> 00:03:07,540
+And in 2024, a Pentagon office reviewing decades of
+
+54
+00:03:07,600 --> 00:03:11,299
+records found no evidence of alien technology.
+
+55
+00:03:13,000 --> 00:03:15,140
+Unexplained doesn't mean alien.
+
+56
+00:03:15,960 --> 00:03:17,640
+It means unexplained.
+
+57
+00:03:18,900 --> 00:03:20,500
+So have we really looked?
+
+58
+00:03:21,940 --> 00:03:26,600
+In 2018, astronomers estimated how much of the possible
+
+59
+00:03:26,739 --> 00:03:29,480
+search space all our efforts had covered.
+
+60
+00:03:30,560 --> 00:03:34,320
+Compare it to all of Earth's oceans and everything
+
+61
+00:03:34,400 --> 00:03:37,320
+we've ever done is about one hot tub of
+
+62
+00:03:37,400 --> 00:03:37,720
+water.
+
+63
+00:03:39,260 --> 00:03:41,540
+If you scooped a single hot tub out of
+
+64
+00:03:41,600 --> 00:03:45,420
+the ocean and found no fish, you wouldn't conclude
+
+65
+00:03:45,620 --> 00:03:46,739
+the ocean is empty.
+
+66
+00:03:47,960 --> 00:03:51,859
+So no, there is no confirmed evidence that aliens
+
+67
+00:03:51,900 --> 00:03:52,340
+are here.
+
+68
+00:03:53,500 --> 00:03:56,100
+But maybe the silence isn't an answer.
+
+69
+00:03:57,299 --> 00:04:00,320
+Maybe we just haven't learned how to listen
