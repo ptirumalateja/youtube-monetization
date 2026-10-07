@@ -81,3 +81,25 @@ Full story: [link the long video]
 **Caption (Short 2):** Everything we've searched for aliens, compared to Earth's oceans: one hot tub. 🌊 Full film on YouTube: Slow Light. #Aliens #SETI #Space #Astronomy #SlowLight
 **Facebook Tags:** aliens, SETI, Wow signal, space, astronomy, UFO, UAP, Fermi paradox, technosignatures, Slow Light
 Turn on the AI label on both platforms.
+
+---
+
+## Extra hashtags (search-focused)
+YouTube: put 3–5 hashtags in the description (the first 3 appear above the title). If you use more than 15, YouTube ignores them all.
+
+**Long-form (pick up to 15):**
+#Aliens #SETI #WowSignal #FermiParadox #AreWeAlone #Extraterrestrial #AlienLife #Space #Astronomy #Universe #SpaceDocumentary #UAP #UFO #Technosignatures #Unexplained
+
+**Short 1 (Wow! signal):**
+#Shorts #WowSignal #Aliens #SpaceMystery #Unexplained #SETI #RadioSignal #SpaceFacts #Mystery #Space
+
+**Short 2 (hot tub):**
+#Shorts #Aliens #SETI #AreWeAlone #SpaceFacts #FermiParadox #Universe #Astronomy #MindBlowing #Space
+
+**Instagram (5–8 targeted ones beat 30 generic ones):**
+Short 1: #wowsignal #aliens #spacemystery #unexplained #seti #spacefacts #astronomy #slowlight
+Short 2: #aliens #areWeAlone #spacefacts #fermiparadox #universe #astronomy #seti #slowlight
+
+**Facebook (3–5 hashtags at most):** #Aliens #WowSignal #SpaceMystery #SETI #SlowLight
+
+**Extra YouTube tags (Tags field, not hashtags):** are we alone in the universe, alien signal, mysterious signal from space, wow signal explained, unexplained space signal, alien life evidence, search for alien life, fermi paradox explained, breakthrough listen, radio telescope, ohio state big ear, 6EQUJ5, space mystery, aliens documentary, why haven't we found aliens
