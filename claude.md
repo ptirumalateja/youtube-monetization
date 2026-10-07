@@ -495,11 +495,11 @@ The following must remain consistent unless a shot intentionally starts from a n
 
 ## Pod (since 2026-10-06)
 
-- Name: `slowlight-a40`, ID `l1rnmkhcwsgzh6`
+- Name: `slowlight-a40`, ID `zrqv12r68xf2aa`
 - GPU: NVIDIA A40, 48 GB, On-Demand Secure Cloud, $0.49/hr
 - Datacenter: CA-MTL-1
 - Image: `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda12.8`
-- ComfyUI: `https://l1rnmkhcwsgzh6-8188.proxy.runpod.net` (no password: keep private)
+- ComfyUI: `https://zrqv12r68xf2aa-8188.proxy.runpod.net` (no password: keep private)
 
 ## Storage
 

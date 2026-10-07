@@ -6,7 +6,7 @@ Usage: wan_i2v.py JOBS.json   (list of {"name", "image", "prompt", "seed", "fram
 """
 import json, os, subprocess, sys
 
-B = os.environ.get("COMFY_URL", "https://l1rnmkhcwsgzh6-8188.proxy.runpod.net")
+B = os.environ.get("COMFY_URL", "https://zrqv12r68xf2aa-8188.proxy.runpod.net")
 NEG = ("text, captions, subtitles, logo, watermark, morphing, face change, identity change, costume change, extra limbs, "
        "deformed hands, extra fingers, glowing eyes, magic, energy effects, fantasy armor, cartoon, anime, CGI, "
        "heavy camera shake, flicker, blurry, low quality, jpeg artifacts, static frame, gore, blood spray, talking, lip movement")
