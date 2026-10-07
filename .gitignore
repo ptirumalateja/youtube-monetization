@@ -11,3 +11,4 @@ stories/aliens_wrong_place/clips/
 stories/aliens_wrong_place/clips_raw/
 stories/aliens_wrong_place/gfx/*.mp4
 stories/aliens_wrong_place/clips_v/
+__pycache__/
