@@ -1,0 +1,39 @@
+[
+ {
+  "image": "refs/v7/frames/f01.png",
+  "focus": 0.42,
+  "title": "THE REAL TRAGEDY\nOF ABHIMANYU",
+  "text": "He knew how to get in.\nHe didn't know how to get out.",
+  "shade": 0.42
+ },
+ {
+  "image": "refs/v7/frames/f02.png",
+  "focus": 0.45,
+  "kicker": "Kurukshetra \u00b7 Day 13",
+  "text": "Arjuna had been drawn away. Drona formed the Chakravyuha, a spiral the Pandavas could not break."
+ },
+ {
+  "image": "refs/v7/frames/f09.png",
+  "focus": 0.4,
+  "kicker": "The promise",
+  "text": "Abhimanyu could break in, but not out. Yudhishthira asked him to open it, and promised the others would follow."
+ },
+ {
+  "image": "refs/v7/frames/f12.png",
+  "focus": 0.48,
+  "kicker": "The opening closed",
+  "text": "He broke through. Then Jayadratha held the gap, and no one could follow him in."
+ },
+ {
+  "image": "refs/v7/frames/f18b.png",
+  "focus": 0.4,
+  "kicker": "Alone",
+  "text": "His bow broken. His chariot wrecked. His sword gone. He picked up a chariot wheel, and kept fighting."
+ },
+ {
+  "image": "refs/v7/frames/f20.png",
+  "focus": 0.5,
+  "text": "The tragedy was never that he didn't know the way out.",
+  "accent": "He was never supposed\nto be alone."
+ }
+]
