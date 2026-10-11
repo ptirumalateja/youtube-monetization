@@ -31,7 +31,7 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 
 ## Episode 1: "India is about to crash into Asia"
 
-**Length:** about 45 s · 9:16 · no still images · **Hook type:** anticipation (hook B)
+**Length:** about 38 s (under 40) · 9:16 · no still images · **Hook type:** anticipation (hook B), with voiceover from frame 0
 
 ### Visual rule
 
@@ -54,28 +54,24 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 ### Narration
 
 > India is about to crash into Asia...
-> and it's moving up to five times faster than most continents.
+> moving five times faster than most continents.
 >
-> When it hits... the ocean floor in between will end up on top of Mount Everest.
+> When it hits, the ocean floor in between ends up on top of Mount Everest.
 >
-> 90 million years ago, India broke free... and raced north across an open ocean.
+> 90 million years ago, India broke free and raced north.
+> Most continents move as fast as your fingernails grow. India moved up to 20 centimetres a year.
 >
-> Most continents move about as fast as your fingernails grow.
-> India was moving up to 20 centimetres a year.
+> Scientists think its plate was unusually thin... and two subduction zones were dragging it north.
 >
-> Why so fast? Scientists think its plate was unusually thin...
-> and it was being dragged north by two subduction zones at once.
+> Around 50 million years ago, India's leading edge — now buried beneath Tibet — hit Asia.
 >
-> Then, around 50 million years ago... India's leading edge — now buried beneath Tibet — hit Asia.
+> The ocean floor was crushed... folded... and pushed into the sky.
 >
-> The ocean floor between them was crushed... folded...
-> and pushed into the sky.
+> That's why Everest's summit is full of ancient sea creatures.
 >
-> That's why the summit of Everest is made of rock full of ancient sea creatures.
->
-> And India is still pushing into Asia... so Everest is still rising.
+> And India is still pushing. Everest is still rising.
 
-(About 120 words, about 45 s. The last line cuts straight back to shot 1, India racing toward Asia, so the video loops: "...still rising" → "India is about to crash into Asia".)
+(About 100 words, about 38 s. Voice starts on frame 0, over the moving globe. There's no title card or text-only screen: the on-screen text on shot 1 does the job a title would. The last line cuts straight back to shot 1, so the video loops: "...still rising" → "India is about to crash into Asia".)
 
 ### Shot list
 
