@@ -4,7 +4,7 @@ Your four topics combine into one three-part series:
 
 | Ep | Title | Built from your topics |
 |---|---|---|
-| 1 | **The top of Everest was once the bottom of an ocean** | "Why did India move so fast?" and "What happened when India hit Asia" |
+| 1 | **India is about to crash into Asia** | "Why did India move so fast?" and "What happened when India hit Asia" |
 | 2 | **What if India had no Himalayas?** | "What if India had no Himalayas?" |
 | 3 | **When the asteroid hit, India was already on fire** | "The asteroid that changed everything" (Chicxulub and the Deccan Traps, both about 66 million years ago) |
 
@@ -29,15 +29,20 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 
 ---
 
-## Episode 1: "The top of Everest was once the bottom of an ocean"
+## Episode 1: "India is about to crash into Asia"
 
-**Length:** about 42 s · 9:16 · no still images
+**Length:** about 45 s · 9:16 · no still images · **Hook type:** anticipation (hook B)
+
+### Visual rule
+
+- **If a camera could have filmed it, it should look filmed.** Use real stock footage, or AI shots of calm natural motion graded to match.
+- **If no camera could have filmed it, it should look designed.** Use Blender visualisations, never AI pretending to be footage.
 
 ### Fact base
 
 - The summit rock of Everest is marine limestone (the Qomolangma Formation) with fossils of sea creatures such as crinoids and trilobites.
 - India separated from Madagascar about 90 Ma, after leaving the rest of Gondwana earlier.
-- India's peak speed was about 15–20 cm/yr (roughly 80–50 Ma). Typical plates move 2–5 cm/yr, and fingernails grow about 3–4 cm/yr.
+- India's peak speed was about 15–20 cm/yr (roughly 80–50 Ma). Typical plates move 2–5 cm/yr, and fingernails grow about 3–4 cm/yr. "Up to five times faster than most continents" is therefore safe.
 - **Why so fast?** There are competing explanations, so present them as "scientists think":
   - India's lithosphere was unusually thin, about 100 km (Kumar et al., 2007, *Nature*).
   - It was pulled by two subduction zones at once (Jagoutz et al., 2015, *Nature Geoscience*).
@@ -48,16 +53,17 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 
 ### Narration
 
-> The top of Mount Everest... was once the bottom of an ocean.
+> India is about to crash into Asia...
+> and it's moving up to five times faster than most continents.
 >
-> Because about 90 million years ago, India wasn't part of Asia.
-> It was a giant island... drifting north.
+> When it hits... the ocean floor in between will end up on top of Mount Everest.
 >
-> And it was fast.
+> 90 million years ago, India broke free... and raced north across an open ocean.
+>
 > Most continents move about as fast as your fingernails grow.
-> India moved up to five times faster.
+> India was moving up to 20 centimetres a year.
 >
-> Why? Scientists think its plate was unusually thin...
+> Why so fast? Scientists think its plate was unusually thin...
 > and it was being dragged north by two subduction zones at once.
 >
 > Then, around 50 million years ago... India's leading edge — now buried beneath Tibet — hit Asia.
@@ -65,34 +71,39 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 > The ocean floor between them was crushed... folded...
 > and pushed into the sky.
 >
-> That's the Himalayas.
+> That's why the summit of Everest is made of rock full of ancient sea creatures.
 >
-> And India never stopped pushing.
-> Which means Everest... is still rising.
+> And India is still pushing into Asia... so Everest is still rising.
 
-(About 105 words. The last shot returns to the summit to loop back to line 1.)
+(About 120 words, about 45 s. The last line cuts straight back to shot 1, India racing toward Asia, so the video loops: "...still rising" → "India is about to crash into Asia".)
 
 ### Shot list
 
-**Layer key:** `AI` = AI video generation · `GLOBE` = GPlates/Blender data render
+**Layer key:**
+- `GLOBE`: Blender globe driven by GPlates plate data
+- `DESIGN`: Blender designed visualisation
+- `STOCK`: real stock footage (Pexels/Pixabay, free licence)
+- `AI`: Wan clip made with the look-test recipe (full-quality start frame, no speed LoRA, graded with grain)
 
-| # | Time | Line | Layer | Shot | SFX |
-|---|---|---|---|---|---|
-| 1 | 0–3 | "The top of Mount Everest…" | AI | **HOOK, frame 0 already moving:** a fast aerial rush up the final ridge of Everest at sunrise, with wind-blown snow plumes, cresting the summit | Howling wind, whoosh |
-| 2 | 3–5 | "…the bottom of an ocean." | AI | Macro of grey summit limestone, frost blowing away to reveal a fossil sea lily. A match-cut dissolve turns the rock into the same fossil alive and swaying on an ancient seafloor | Wind fades into deep underwater ambience |
-| 3 | 5–9 | "…India wasn't part of Asia. It was a giant island…" | GLOBE | Photoreal globe at about 90 Ma. Slow push in on India, alone in a vast ocean, with clouds drifting | Low ocean drone |
-| 4 | 9–12 | "And it was fast." | GLOBE | Time-lapse: India streaks north across the ocean, with a faint glowing motion trail behind it. Speed it up hard | Rising whoosh, bass swell |
-| 5 | 12–17 | "…fingernails… five times faster." | AI and GLOBE | Split screen: a fingernail growing in time-lapse on top, India racing on the globe below | Ticking clock |
-| 6 | 17–23 | "…unusually thin… two subduction zones…" | AI | Cutaway cross-section of Earth's crust. A thin plate slides over glowing orange mantle, with two dark trenches ahead pulling it down like a conveyor | Deep grinding, magma rumble |
-| 7 | 23–27 | "…around 50 million years ago… India's leading edge… hit Asia." | GLOBE | The gap between India and Asia closes, following the plate data from about 50 Ma to 35 Ma. A thin glowing line along India's northern edge marks the buried leading edge. **Freeze the music for a beat on contact** | Silence, then a massive low impact boom |
-| 8 | 26–31 | "…crushed… folded… pushed into the sky." | AI | Ground-level time-lapse: layered seafloor rock buckles, folds and rises into jagged peaks, water draining off, dust and clouds forming | Rock cracking and rumbling, building |
-| 9 | 31–34 | "That's the Himalayas." | AI | Epic aerial reveal of the Himalayan range at golden hour, with the camera pulling up and back | Music hits full, wind |
-| 10 | 34–38 | "And India never stopped pushing." | GLOBE | Today's globe, with India pressed into Asia and a subtle glowing arrow of pressure pushing north | Low pulse |
-| 11 | 38–42 | "…Everest… is still rising." | AI | Slow push toward Everest's summit with snow plume blowing. The final frame matches shot 1's framing so the loop is seamless | Wind, cut to silence on the last word |
+| # | Time | Line | Layer | Shot | Text on screen | SFX |
+|---|---|---|---|---|---|---|
+| 1 | 0–3 | "India is about to crash into Asia…" | GLOBE | **HOOK, frame 0 already moving:** India is mid-ocean (about 70 Ma), racing north toward Asia with a faint motion trail. The camera is low and close, with Asia looming at the top of frame. A year counter in the corner rolls down: "70,000,000 years ago…" | **India is about to hit Asia** | Deep rumble rising, ticking |
+| 2 | 3–6 | "…five times faster than most continents." | GLOBE | Faster push alongside India, with the trail stretching and clouds whipping past | **5× faster** | Whoosh, bass swell |
+| 3 | 6–10 | "When it hits… on top of Mount Everest." | STOCK/AI | A quick teaser of the Everest summit ridge with blowing spindrift, then a macro of summit rock with a fossil sea lily | — | Wind, then sudden quiet |
+| 4 | 10–14 | "90 million years ago, India broke free…" | GLOBE | Rewind: the counter jumps back to 90 Ma. India tears away from Madagascar, with a thin glowing seam opening between them | **90 million years ago** | Rewind sweep, a crack |
+| 5 | 14–19 | "…fingernails… 20 centimetres a year." | STOCK + GLOBE | Split screen: a fingernail time-lapse (stock) on top, India racing on the globe below | **~4 cm/yr vs 20 cm/yr** | Ticking clock |
+| 6 | 19–25 | "…unusually thin… two subduction zones…" | DESIGN | Clean designed cutaway of Earth's interior. A thin plate glides over a glowing mantle, with two trenches ahead pulling it down like conveyor belts. Museum-quality look, not fake footage | — | Deep grinding |
+| 7 | 25–29 | "…around 50 million years ago… India's leading edge… hit Asia." | GLOBE | The gap closes along the real data path (50 → 35 Ma). A thin glowing line along India's northern edge marks the buried leading edge. **Freeze the music for a beat on contact** | **50 million years ago** | Silence, then a massive low impact boom |
+| 8 | 29–34 | "…crushed… folded… pushed into the sky." | DESIGN | Designed cross-section: ocean-floor rock layers (with fossil shells visible in them) fold and rise into peaks | — | Rock cracking, rising rumble |
+| 9 | 34–38 | "…summit of Everest… ancient sea creatures." | STOCK | Real drone footage of the Himalayas or Everest at golden hour, then a cut back to the fossil macro from shot 3 | — | Music hits full, wind |
+| 10 | 38–41 | "And India is still pushing into Asia…" | GLOBE | Today's globe, with India pressed into Asia and a soft pressure glow pushing north | **Still moving: ~4 cm/yr** | Low pulse |
+| 11 | 41–45 | "…so Everest is still rising." | AI | The Everest summit ridge with a snow plume blowing (the look-test shot). On the last word, **hard cut to shot 1** so the loop is seamless | — | Wind, cut to silence |
 
-### AI prompt suffix (every AI shot)
+### Sourcing notes
 
-*Photoreal, cinematic, 9:16, natural lighting, documentary style, no text, no captions, no maps, no logos, no watermark.*
+- **Stock:** search Pexels/Pixabay for "Everest drone", "Himalaya aerial" and "fingernail time lapse". Check each clip's licence and keep the links.
+- **Fossil macro (shots 3 and 9):** AI with the look-test recipe, or a stock photo of a crinoid fossil animated with a slow push in the edit.
+- **Globe (shots 1, 2, 4, 7 and 10):** one Blender scene rendered at different times and camera positions. Credit line: *"Plate reconstruction: Müller et al. (2019), EarthByte / GPlates."*
 
 ---
 
