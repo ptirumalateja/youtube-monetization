@@ -41,11 +41,14 @@ sepm=nt.nodes.new("ShaderNodeSeparateColor"); nt.links.new(msk.outputs["Color"],
 # ocean: deepen and add a little blue variation; land: texture
 hsv=nt.nodes.new("ShaderNodeHueSaturation"); hsv.inputs["Saturation"].default_value=0.92; hsv.inputs["Value"].default_value=0.95
 nt.links.new(col.outputs["Color"],hsv.inputs["Color"]); nt.links.new(hsv.outputs[0],bsdf.inputs["Base Color"])
-rough=nt.nodes.new("ShaderNodeMapRange"); rough.inputs["To Min"].default_value=0.45; rough.inputs["To Max"].default_value=0.85
-nt.links.new(sepm.outputs["Red"],rough.inputs["Value"]); nt.links.new(rough.outputs[0],bsdf.inputs["Roughness"]); bsdf.inputs["Specular IOR Level"].default_value=0.22
+rough=nt.nodes.new("ShaderNodeMapRange"); rough.inputs["To Min"].default_value=0.55; rough.inputs["To Max"].default_value=0.85
+nt.links.new(sepm.outputs["Red"],rough.inputs["Value"]); nt.links.new(rough.outputs[0],bsdf.inputs["Roughness"]); bsdf.inputs["Specular IOR Level"].default_value=0.12
 # India highlight: soft warm emission on plate 501 land
 emis=nt.nodes.new("ShaderNodeMath"); emis.operation="MULTIPLY"; emis.inputs[1].default_value=0.05
 nt.links.new(sepm.outputs["Green"],emis.inputs[0])
+tr=nt.nodes.new("ShaderNodeMath"); tr.operation="POWER"; tr.inputs[1].default_value=2.4; nt.links.new(sepm.outputs["Blue"],tr.inputs[0])
+trs=nt.nodes.new("ShaderNodeMath"); trs.operation="MULTIPLY_ADD"; trs.inputs[1].default_value=0.5; nt.links.new(tr.outputs[0],trs.inputs[0]); nt.links.new(emis.outputs[0],trs.inputs[2])
+emis=trs
 bsdf.inputs["Emission Color"].default_value=(1.0,0.55,0.18,1); nt.links.new(emis.outputs[0],bsdf.inputs["Emission Strength"])
 # --- Clouds (procedural, slowly evolving)
 cl=sphere("Clouds",1.012,256); mc=bpy.data.materials.new("Clouds"); mc.use_nodes=True; ct=mc.node_tree; cl.data.materials.append(mc)
@@ -81,11 +84,21 @@ def look(cam_pos,target,up):
     return Matrix(((r.x,u.x,-f.x),(r.y,u.y,-f.y),(r.z,u.z,-f.z))).to_4x4()
 for i in range(FEND):
     md=meta[str(i)]; la,lo=md["india_lat"],md["india_lon"]
-    cpos=ll2v(la+4.0,lo+1.0,2.45); tgt=ll2v(la+21.0,lo+4.0,1.0)
-    a,b=math.radians(la+21.0),math.radians(lo+4.0); north=Vector((-math.sin(a)*math.cos(b),-math.sin(a)*math.sin(b),math.cos(a)))
+    if os.environ.get("CAM")=="fixed":
+        cl,co,cr=map(float,os.environ["CAM_POS"].split(",")); tl,to=map(float,os.environ["CAM_TGT"].split(","))
+        cpos=ll2v(cl,co,cr*(1-0.06*i/max(FEND-1,1))); tgt=ll2v(tl,to,1.0); a,b=math.radians(tl),math.radians(to)
+    else:
+        cpos=ll2v(la+4.0,lo+1.0,2.45); tgt=ll2v(la+21.0,lo+4.0,1.0)
+        a,b=math.radians(la+21.0),math.radians(lo+4.0)
+    north=Vector((-math.sin(a)*math.cos(b),-math.sin(a)*math.sin(b),math.cos(a)))
     M=look(cpos,tgt,north); M.translation=cpos; cam.matrix_world=M
     cam.keyframe_insert("location",frame=i+1); cam.keyframe_insert("rotation_euler",frame=i+1)
     # sun stays fixed relative to the camera so lighting doesn't drift
-    sd=(ll2v(la+25,lo-35)).normalized(); sun.rotation_euler=(-sd).to_track_quat("-Z","Y").to_euler(); sun.keyframe_insert("rotation_euler",frame=i+1)
+    sd=(ll2v(tl+10,to-40) if os.environ.get('CAM')=='fixed' else ll2v(la+25,lo-35)).normalized(); sun.rotation_euler=(-sd).to_track_quat("-Z","Y").to_euler(); sun.keyframe_insert("rotation_euler",frame=i+1)
 bpy.ops.wm.save_as_mainfile(filepath=f"{OUT}/scene.blend")
-bpy.ops.render.render(animation=True)
+only=os.environ.get("FRAMES")
+if only:
+    for f in map(int,only.split(",")):
+        sc.frame_set(f); sc.render.filepath=f"{OUT}/f_{f:04d}"; bpy.ops.render.render(write_still=True)
+else:
+    bpy.ops.render.render(animation=True)

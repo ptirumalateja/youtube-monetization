@@ -29,7 +29,21 @@ This renders the India Episode 1 globe shots from real plate-reconstruction data
    Blender 4.2 LTS is installed at `/workspace/tools/blender`.
 3. **`ffmpeg -framerate 24 -i f_%04d.png …`** encodes the clean clip. **`overlay.py`** adds a preview title and year counter. The final text should go on in the editor.
 
-## Hook shot (Episode 1, shot 1)
+## Hook shot (Episode 1, shot 1): racing version (current)
+
+```
+gen_seq.py 8192 80 52 72 seq_race
+trail.py seq_race 0.86
+CAM=fixed CAM_POS=-18,59.5,2.75 CAM_TGT=1,62 blender -b -P globe_scene.py -- seq_race render_race 64
+overlay.py race_clean.mp4 race_preview.mp4 80 52      # preview text + year counter
+```
+
+How it's set up:
+- **Fixed camera** with a slow 6% push-in, so India visibly travels up the frame toward Asia.
+- **`trail.py`** writes a fading wake into the mask's B channel, and the shader shows it as a faint warm glow on the ocean.
+- **`FRAMES=1,36,72`** renders only those frames, for quick look checks.
+
+## Hook shot: first version (camera follows India)
 
 ```
 gen_seq.py 8192 74 58 72 seq_hook
