@@ -43,6 +43,7 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
   - It was pulled by two subduction zones at once (Jagoutz et al., 2015, *Nature Geoscience*).
   - It got a push from the Réunion plume head (Cande & Stegman, 2011, *Nature*).
 - The collision began about 50–55 Ma.
+- In the Müller et al. (2019) plate model, India's visible landmass only reaches Asia around 40–35 Ma. The first contact was India's northern margin ("Greater India"), now underthrust beneath Tibet, and its size is debated. Hence the wording "India's leading edge… hit Asia". Never draw an invented Greater India outline.
 - India still converges with Asia at about 4–5 cm/yr, and the Himalayas are still rising by millimetres per year.
 
 ### Narration
@@ -59,7 +60,7 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 > Why? Scientists think its plate was unusually thin...
 > and it was being dragged north by two subduction zones at once.
 >
-> Then, around 50 million years ago... it hit Asia.
+> Then, around 50 million years ago... India's leading edge — now buried beneath Tibet — hit Asia.
 >
 > The ocean floor between them was crushed... folded...
 > and pushed into the sky.
@@ -83,7 +84,7 @@ Three linked episodes do better than three separate one-off videos. "Part 2" in 
 | 4 | 9–12 | "And it was fast." | GLOBE | Time-lapse: India streaks north across the ocean, with a faint glowing motion trail behind it. Speed it up hard | Rising whoosh, bass swell |
 | 5 | 12–17 | "…fingernails… five times faster." | AI and GLOBE | Split screen: a fingernail growing in time-lapse on top, India racing on the globe below | Ticking clock |
 | 6 | 17–23 | "…unusually thin… two subduction zones…" | AI | Cutaway cross-section of Earth's crust. A thin plate slides over glowing orange mantle, with two dark trenches ahead pulling it down like a conveyor | Deep grinding, magma rumble |
-| 7 | 23–26 | "…around 50 million years ago… it hit Asia." | GLOBE | India makes contact with Asia. **Freeze the music for a beat on contact** | Silence, then a massive low impact boom |
+| 7 | 23–27 | "…around 50 million years ago… India's leading edge… hit Asia." | GLOBE | The gap between India and Asia closes, following the plate data from about 50 Ma to 35 Ma. A thin glowing line along India's northern edge marks the buried leading edge. **Freeze the music for a beat on contact** | Silence, then a massive low impact boom |
 | 8 | 26–31 | "…crushed… folded… pushed into the sky." | AI | Ground-level time-lapse: layered seafloor rock buckles, folds and rises into jagged peaks, water draining off, dust and clouds forming | Rock cracking and rumbling, building |
 | 9 | 31–34 | "That's the Himalayas." | AI | Epic aerial reveal of the Himalayan range at golden hour, with the camera pulling up and back | Music hits full, wind |
 | 10 | 34–38 | "And India never stopped pushing." | GLOBE | Today's globe, with India pressed into Asia and a subtle glowing arrow of pressure pushing north | Low pulse |
