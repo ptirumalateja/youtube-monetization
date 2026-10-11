@@ -493,37 +493,93 @@ The following must remain consistent unless a shot intentionally starts from a n
 
 # 8. RunPod Environment
 
+_Last verified: 2026-10-11._
+
 ## Pod
 
-`comfyui-rtx-a6000`
+| Field | Value |
+|---|---|
+| Name | `slowlight-a40` |
+| Pod ID | `zrqv12r68xf2aa` |
+| GPU | NVIDIA **A40**, 48 GB VRAM ($0.49/hr on-demand) |
+| Image | `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda12.8` |
+| Ports | `8188` ComfyUI · `8080` File Browser · `8888` Jupyter · `22` SSH |
 
-## Device
+If the pod won't start because its host machine has no free GPU, deploy a temporary pod in **CA-MTL-1** and attach the same network volume. All models and outputs live on that volume, so nothing is lost. Terminate the temporary pod when you're done.
 
-`bbab976d9a06`
+## Storage
 
-## GPU
-
-NVIDIA RTX A6000
-
-~48 GB VRAM
+- **Network volume:** `slowlight-storage-mtl1` (`8u2c6qulmy`), 150 GB, datacenter **CA-MTL-1**, mounted at `/workspace`.
+- **Billing:** charged on the provisioned size (about $0.07/GB/month, roughly $10.50/month). Deleting files doesn't lower the bill, and network volumes can't be shrunk.
+- **Usage:** about 115 GB used, nearly all of it models (see §9).
 
 ## ComfyUI
 
-`/workspace/runpod-slim/ComfyUI`
+`/workspace/runpod-slim/ComfyUI`, port `8188`.
 
-## Port
-
-`8188`
-
-ComfyUI is already running locally.
+- **Outputs:** `output/slowlight/`
+- **Custom nodes:** `ComfyUI-Manager`, `ComfyUI-KJNodes`, `Civicomfy`, `ComfyUI-RunpodDirect`
+- **SeedVR2:** supported natively by ComfyUI, so no extra custom node is needed.
 
 ---
 
-# 9. Installed Wan Models
+# 9. Installed Models
 
-Already installed:
+All paths are relative to `ComfyUI/models/`.
+
+## Wan 2.2 Image-to-Video 14B (fp8): ~35 GB
+
+Image-to-video only. Every shot needs a start frame.
 
 ```text
-wan2.2_ti2v_5B_fp16.safetensors
-umt5_xxl_fp8_e4m3fn_scaled.safetensors
-wan2.2_vae.safetensors
+diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors   13.3 GB
+diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors    13.3 GB
+text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors                 6.3 GB
+loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors      1.1 GB
+loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors       1.1 GB
+vae/wan_2.1_vae.safetensors
+```
+
+## LTX-2.3 22B distilled (fp8): ~37 GB
+
+Text-to-video and image-to-video.
+
+```text
+checkpoints/LTX-2.3/ltx-2.3-22b-distilled-fp8.safetensors           27.5 GB
+text_encoders/gemma_3_12B_it_fp4_mixed.safetensors                   8.8 GB
+latent_upscale_models/ltx-2.3-spatial-upscaler-x2-1.1.safetensors    0.9 GB
+```
+
+## Qwen-Image-Edit 2511 (fp8): ~29 GB
+
+Use it to make and edit start frames and character references.
+
+```text
+diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors          19.1 GB
+text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors                  8.7 GB
+loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors    0.8 GB
+vae/qwen_image_vae.safetensors
+```
+
+## SeedVR2 video upscale/restore: ~11.5 GB
+
+Run it as the last pass on final clips.
+
+```text
+diffusion_models/seedvr2_7b_int8_convrot.safetensors                 7.8 GB   (use on A40)
+diffusion_models/seedvr2_3b_int8_convrot.safetensors                 3.2 GB   (use on 24 GB GPUs)
+vae/seedvr2_ema_vae_fp16.safetensors                                 0.5 GB
+```
+
+## GPU fit notes
+
+- **A40 (48 GB):** everything runs.
+- **24 GB GPUs (e.g. RTX A5000):**
+  - Wan 14B and Qwen-Image-Edit run.
+  - SeedVR2 3B runs.
+  - LTX-2.3 (27.5 GB) only runs with offloading to system RAM, which is slow.
+  - Use 24 GB pods for maintenance only, not production.
+
+## Open decision
+
+Pick one main video model: **Wan 2.2 14B or LTX-2.3**. Run the same 2–3 shots through both and keep the winner. Dropping the loser frees about 35 GB, enough for another model such as Wan 2.2 text-to-video 14B.
