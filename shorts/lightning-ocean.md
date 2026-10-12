@@ -119,3 +119,16 @@ Each clip is 2–4 s and generated at 9:16. Every prompt ends with: *photoreal, 
 - **YouTube title:** Lightning hit the ocean. Why didn't the fish die? ⚡🐟
 - **Instagram/Facebook caption:** Lightning just hit the sea, so why are the fish fine? 🤯 Follow @slowlight for more "wait, why?" questions.
 - **Pinned comment:** Would you rather be in the water or on a boat during a lightning storm? 👇
+
+## Clips used (rough cut v3, 2026-10-12)
+
+| Shot | Clip | Notes |
+|---|---|---|
+| 1 | Pixabay `264199` | Crop on the bolt (right side). The bolt is persistent in the source, so the edit gates it into short strikes (a real bolt lasts under a second). |
+| 2 | Pexels `15158164` (dark dense school) | Chosen over `265150` to keep the night mood. |
+| 3 | Pexels `17890015` (top-down sea), swimmer cropped out | Day-for-night grade + designed rings, STRONG/WEAK labels and a falloff bar. `248156` had too much foam and rock. |
+| 4 | Pexels `14691495` (sea bream, real footage) | `325569` rejected: it's a glossy AI/CG render (rule 2.8). |
+| 5 | Pixabay `265150`, top of frame (fish near the surface) | Red danger tint + flicker. `26830` / `10862` rejected as CG renders. |
+| 6 | Pexels `17890015` (same clip as shot 3) | Push-in on the swimmer, which visually ties back to the rings shot. The buoy clip `13998920` is a CG render, so it isn't used. |
+
+Edit script: `tools/edit/edit_lightning.py <raw_dir> <sfx_dir> <out.mp4>`.
