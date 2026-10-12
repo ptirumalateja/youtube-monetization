@@ -35,7 +35,7 @@ This renders the India Episode 1 globe shots from real plate-reconstruction data
 gen_seq.py 8192 80 52 72 seq_race
 trail.py seq_race 0.86
 CAM=fixed CAM_POS=-18,59.5,2.75 CAM_TGT=1,62 blender -b -P globe_scene.py -- seq_race render_race 64
-overlay.py race_clean.mp4 race_preview.mp4 80 52      # preview text + year counter
+overlay.py race_clean.mp4 race_preview.mp4 80 52 "INDIA IS ABOUT|TO HIT ASIA"   # preview text + year counter ("-" "-" = no counter)
 ```
 
 How it's set up:
