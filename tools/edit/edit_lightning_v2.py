@@ -123,7 +123,9 @@ def captions(f, T):
             key = (txt, round(pop, 1))
             if key not in CAP_CACHE:
                 col = [WHITE, YEL, (255, 92, 70)][hl]
-                CAP_CACHE[key] = text_layer([txt], 1330, int(78 * (0.92 + 0.08 * pop)), [col], pop, FB)
+                size = 78
+                while font(FB, size).getlength(txt) > 960: size -= 2
+                CAP_CACHE[key] = text_layer([txt], 1330, int(size * (0.92 + 0.08 * pop)), [col], pop, FB)
             return over(f, CAP_CACHE[key])
     return f
 HOOK = None
@@ -206,7 +208,7 @@ def shot_explain(a, b):
         elif T < 16.5: cam = cam_lerp((0, -1.4, 9.5), (0, -4.2, 17.5), (T - 11.2) / 4.0)
         else:          cam = cam_lerp((0, -4.2, 17.5), (5.5, -2.5, 3.0), (T - 16.5) / 1.1)
         bolt = flicker(t, T0) + 0.6 * env(t, T0 + 1.6, 0.01, 0.1)
-        lines = ease((T - 13.6) / 0.8)
+        lines = ease((T - 9.0) / 1.0)
         fish = [(x + 0.02 * np.sin(T * 0.5 + s), y, l, s, 0.0) for x, y, l, s in FISH]
         f = LS.render(T, cam, field_t0=a + T0 + 1.9, front_speed=2.4, show_lines=lines, bolt=bolt, fishes=fish)
         yield f
@@ -218,7 +220,7 @@ def shot_fish(a, b):
         t = i / FPS; T = a + t
         fx, fy = interp(FISHKEY, t)
         cw = 1000 - 40 * t
-        f, (x0, y0) = crop(fr, fx * 3840 + 120, fy * 2160 - 60, cw, cw * 16 / 9)
+        f, (x0, y0) = crop(fr, fx * 3840 - 60, fy * 2160 - 60, cw, cw * 16 / 9)
         f = look(f, 0.85, 0.55, (0.70, 0.95, 1.05), gamma=1.2)
         # restrained science cue: widely spaced iso-lines drift across; the fish fits between two of them
         la = ease((T - 20.45) / 0.5) * (1 - ease((T - 22.9) / 0.5))
@@ -229,14 +231,14 @@ def shot_fish(a, b):
             ph = (X - px + 0.55 * spacing) / spacing
             d = np.abs(ph - np.round(ph)) * spacing
             line = np.exp(-(d / 2.2) ** 2) * np.ones((H, 1))
-            f = f + line[..., None] * LS.VOLT * 0.45 * la
+            f = f + line[..., None] * LS.VOLT * 0.75 * la
             # bracket across the body + tiny delta label
             lay = Image.new("RGBA", (W, H), (0, 0, 0, 0)); dr = ImageDraw.Draw(lay)
-            L = 0.16 * 3840 * sc / 2; yb = py + 0.075 * 2160 * sc
+            L = 0.16 * 3840 * sc / 2; px = px + 0.02 * 3840 * sc; yb = py - 0.11 * 2160 * sc
             c = (150, 220, 255, int(230 * la))
             dr.line([px - L, yb, px + L, yb], fill=c, width=4)
             for xq in (px - L, px + L): dr.line([xq, yb - 16, xq, yb + 16], fill=c, width=4)
-            dr.text((px, yb + 52), "tiny difference", font=font(FE, 44), fill=c, anchor="mm")
+            dr.text((px, yb - 50), "TINY DIFFERENCE", font=font(FE, 54), fill=c, anchor="mm", stroke_width=3, stroke_fill=(0, 0, 0, int(150 * la)))
             f = over(f, lay)
         yield f
 
@@ -248,7 +250,7 @@ def shot_danger(a, b):
         bolt = flicker(t, 0.05) * 0.8 + flicker(t, 3.05) * 0.6
         fish = [(x + 0.015 * np.sin(T * 0.5 + s), y, l, s, hot if s == 5 else 0.0) for x, y, l, s in FISH]
         fish[4] = (0.75 + (0.04 * np.sin(T * 30) * hot), -0.42, 0.9, 5, hot)  # shudder when hit
-        f = LS.render(T, cam, field_t0=a - 6.0, front_speed=2.4, show_lines=1.0, bolt=bolt, fishes=fish, hot=hot * 0.8)
+        f = LS.render(T, cam, field_t0=a - 6.0, front_speed=2.4, show_lines=1.0, bolt=bolt, fishes=fish, hot=hot * 0.8, glow=0.45)
         yield f
 
 def shot_boat(a, b):
@@ -267,7 +269,7 @@ def shot_swimmer(a, b):
         t = i / FPS; T = a + t; u = t / (b - a)
         z = 1 + 0.10 * ease(u) + (0.06 * ease((T - 32.05) / 0.4))  # push in on "like you"
         f, _ = crop(fr, 700, 420, 405 / z, 720 / z)
-        f = look(f, 0.50, 0.40, (0.72, 0.92, 1.12), gamma=1.45)  # sunny day -> grey storm light
+        f = look(f, 0.85, 0.45, (0.75, 0.93, 1.10), gamma=1.15)  # sunny day -> grey storm light
         f = relight(f, flicker(t, 0.9) * 0.7)
         yield f
 
