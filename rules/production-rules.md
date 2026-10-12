@@ -43,6 +43,14 @@ These are the hard-won rules from building the India Episode 1 (Oct 2026), plus 
 3. **Sound design improves impact but cannot fix visual continuity.**
 4. Don't keep iterating the same prompt on a failed approach. Change the method.
 
+## 4b. Real events, tragedies and news footage
+
+1. **Never use AI-generated photorealistic images or video of a real event** (crashes, victims, rescues, grieving families). It's fabricated evidence, disrespectful to the people involved, and on YouTube it needs a synthetic-content disclosure. Use **designed visuals** instead (track diagrams, maps, timelines, schematics), licensed footage, or your own footage.
+2. **News-agency footage (ANI, Getty, TV channels) is copyrighted, not Creative Commons.** "Credit in the description" doesn't make it legal, and fair use isn't guaranteed. ANI in particular is known for filing copyright claims. Only use it with a licence or in a clearly transformative way you're confident about.
+3. **AI-written scripts and storyboards (ChatGPT / Meta AI) are drafts, not sources.** Verify every number, date, quote, court finding and "headline" against a primary source before it goes in a script.
+4. **No conspiracy framing** ("the official story doesn't add up") without evidence. Attribute findings to their source, e.g. "the Commission of Railway Safety found…", "the CBI alleged…".
+5. **No gore and no identifiable victims.** Keep the tone respectful, with no "emotional porn".
+
 ## 5. Tools, voice and costs (the user is credit-limited)
 
 - **Voice:** ElevenLabs `eleven_v3`, voice "Teja Clone V3" (`hnvKSWZUzB30Og1MMmAl`).
@@ -95,6 +103,17 @@ These are the hard-won rules from building the India Episode 1 (Oct 2026), plus 
    - a three-frame position check first
 
    Estimated at about 8–10 hours of work. It can be reused for Episodes 2 and 3.
+
+### Balasore triple train accident (2 June 2023): serious documentary project
+
+**Status: QUEUED as the next serious documentary, after the lightning Short (2026-10-12).** Don't rush it for a daily slot.
+- **Research first.** Primary sources:
+  - Commission of Railway Safety (CRS) inquiry report
+  - CBI chargesheet and arrests
+  - Railway Board and Ministry statements
+  - verified casualty figures
+- The ChatGPT / Meta AI drafts contain **unverified or wrong claims**: Howrah Express speed, "deadliest in 20 years", the Orissa HC "composite negligence" finding, "only 3% has Kavach", second-by-second timestamps, "June 2026 headlines", "ANI footage is Creative Commons". Verify each one or cut it.
+- **Visuals:** designed signalling and track diagrams plus a timeline. No AI images of the crash or of victims. News footage only if licensed.
 
 **Also queued in this series:**
 - Ep 2: "What if India had no Himalayas?"
