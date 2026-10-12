@@ -53,3 +53,33 @@ blender -b -P globe_scene.py -- seq_hook render_hook 64
 72 frames: about 6 min for textures and about 15 min to render on the A40.
 
 **Pod note:** Blender's system libraries (`libxrender1 libxi6 libxkbcommon0 libsm6 libgl1 libxxf86vm1 libxfixes3 libegl1`) are installed on the pod's temporary container disk. Reinstall them with apt after a pod restart.
+
+## Shots 4, 7 and 10
+
+```
+# Shot 4: India breaks from Madagascar (92 → 72 Ma, 4 s)
+gen_seq.py 8192 92 72 96 seq_s4 && trail.py seq_s4 0.95
+CAM=fixed CAM_POS=-55,40,2.7 CAM_TGT=-30,46 blender -b -P globe_scene.py -- seq_s4 r4 48
+
+# Shot 7: collision, with a glow on India's leading edge (50 → 35 Ma, 4 s)
+gen_seq.py 8192 50 35 96 seq_s7 && edge.py seq_s7 14
+CAM=fixed CAM_POS=-14,70,2.2 CAM_TGT=17,73 GLOW=0.9 blender -b -P globe_scene.py -- seq_s7 r7 48
+
+# Shot 10: today, a slow orbit with a pulsing pressure line (1 → 0 Ma, 3 s)
+gen_seq.py 8192 1 0 72 seq_s10 && edge.py seq_s10 14
+CAM=fixed CAM_POS=-6,68,2.45 CAM_POS_END=-4,80,2.3 CAM_TGT=22,76 CAM_TGT_END=24,80 GLOW=0.9 PULSE=1 \
+  blender -b -P globe_scene.py -- seq_s10 r10 48
+```
+
+### Options
+
+**Mask B channel:** either `trail.py` (a motion wake) or `edge.py` (a glow along India's northernmost edge in each column, i.e. the leading edge or suture).
+
+**`globe_scene.py` environment variables:**
+- `CAM=fixed` with `CAM_POS`, `CAM_TGT`: fixed camera.
+- `CAM_POS_END`, `CAM_TGT_END`: a smoothstep camera move from the start values to these.
+- `GLOW`: strength of the B-channel glow.
+- `PULSE=1`: makes the glow pulse.
+- `FRAMES=a,b,c`: renders only those frames.
+
+**`paleotex.py` and ice:** before 34 Ma it turns present-day ice (Antarctica, Greenland) into tundra, because the ice sheets hadn't formed yet.

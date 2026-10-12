@@ -49,6 +49,12 @@ def frame(t):
             # no Himalaya before the collision: replace present-day snow/ice on the Indian plate with nearby land tones
             c=out[li].astype(np.int16); snow=(plat[isl]>26.5)&(c.min(1)>110)  # only the Himalayan rim (present-day lat > 26.5N)
             if snow.any() and (~snow).any(): out[li[snow]]=np.median(c[~snow],0).astype(np.uint8)
+    if t>34:
+        # no Antarctic/Greenland ice sheets before ~34 Ma: turn present-day ice into dark tundra, keeping its shading
+        c=out[land].astype(np.float32); ice=(c.min(1)>150)&(c.max(1)-c.min(1)<40)
+        if ice.any():
+            lum=c[ice].mean(1,keepdims=True)/255; li=np.nonzero(land)[0][ice]
+            out[li]=np.clip((0.35+0.5*lum)*np.array([128,124,92]),0,255).astype(np.uint8)
     mask=np.zeros((H*W,3),np.uint8); mask[land,0]=255; mask[india,1]=255
     # India centroid (lat, lon) for the camera
     c=XYZ[india].mean(0); c/=np.linalg.norm(c)
