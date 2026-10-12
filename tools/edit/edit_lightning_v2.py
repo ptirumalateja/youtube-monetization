@@ -131,7 +131,7 @@ def hook(f, T):
     global HOOK
     if T < 6.30:
         if HOOK is None:
-            HOOK = text_layer(["WHY ARE THESE FISH", "STILL ALIVE?"], 300, 92, [WHITE, YEL], 1.0, FB)
+            HOOK = text_layer(["WHY ARE THESE FISH", "STILL ALIVE?"], 300, 84, [WHITE, YEL], 1.0, FB)
         a = 1.0 if T < 6.0 else 1 - (T - 6.0) / 0.3
         lay = HOOK if a >= 1 else Image.fromarray((np.asarray(HOOK) * np.array([1, 1, 1, a])).astype(np.uint8))
         return over(f, lay)
@@ -286,8 +286,8 @@ for name, a, b in ([] if VIDEO else SH):
     gi = int(round(a * FPS))
     for k, f in enumerate(GEN[name](a, b)):
         T = a + k / FPS
-        f = hook(f, T)
         f = finish(f, gi)
+        f = hook(f, T)
         f = captions(f, T)
         enc.stdin.write((f * 255).astype(np.uint8).tobytes()); gi += 1
     print(name, "done", flush=True)
