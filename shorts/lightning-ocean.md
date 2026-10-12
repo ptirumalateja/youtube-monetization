@@ -18,7 +18,53 @@
 - Fish right at the surface, near the strike point, can still be killed. Don't claim that "fish never die".
 - Swimmers and boats are at risk because they stick out of the water and sit at the surface.
 
-## Narration (ElevenLabs Slow Light voice)
+## v2 (2026-10-12): current version, science-checked, about 29 s
+
+### Narration (ElevenLabs v3, Teja Clone V3)
+
+> Lightning just hit the ocean. Hundreds of millions of volts.
+> So why are these fish still alive?
+>
+> Seawater conducts electricity, so the current doesn't stay in one place.
+> It spreads out through the water in every direction... and weakens fast with distance.
+>
+> Away from the strike, a fish is small and surrounded by water,
+> so only a tiny voltage crosses its body.
+>
+> Right next to the strike, near the surface? Fish can still die.
+>
+> But the real danger is anything sticking out of the water... like you.
+
+(About 75 words, about 29 s. "like you" hard-cuts back to the opening strike, so the video loops.)
+
+### Science notes (what we claim, and what we deliberately don't)
+
+- **We claim these:**
+  - Lightning carries hundreds of millions of volts.
+  - Seawater is conductive, so the current spreads through the water in all directions and its strength drops quickly with distance from the strike.
+  - A small fish away from the strike sits in nearly uniform water, so the voltage difference across its body is small.
+  - Fish close to the strike, near the surface, can be killed.
+  - People and boats are at risk because they stick out of the water: they are strike targets, and they sit at the surface, where the current is strongest near a strike.
+- **We do NOT claim:**
+  - a universal "safe depth"
+  - "the current doesn't dive down"
+  - any seawater-vs-fish-tissue conductivity ratio
+  - that fish are always safe
+
+### Shot list v2
+
+| # | Time | Line | Source | Shot |
+|---|---|---|---|---|
+| 1 | 0–3 | "Lightning just hit the ocean…" | STOCK | A bolt hitting the sea at night (frame 0), plus flash and shake. Text: **WHY ARE THESE FISH STILL ALIVE?** |
+| 2 | 3–6 | "…why are these fish still alive?" | STOCK | A calm school of fish underwater |
+| 3 | 6–13 | "Seawater conducts… weakens fast with distance" | STOCK + DESIGN | Dark ocean surface from above, with glowing current rings spreading out and fading with distance; a "current strength" graphic falls off |
+| 4 | 13–18 | "Away from the strike…" | STOCK + DESIGN | A single fish close-up, with a small voltage readout across its body ("tiny") |
+| 5 | 18–21 | "Right next to the strike… can still die" | STOCK | Looking up at the water surface from below, flickering light, plus a red danger tint |
+| 6 | 21–29 | "…anything sticking out of the water… like you" | STOCK | A swimmer, or a small boat in rough water. Hard cut to shot 1 on "you" |
+
+## v1 (superseded)
+
+### Narration (ElevenLabs Slow Light voice)
 
 > Lightning just hit the ocean.
 > Hundreds of millions of volts.
@@ -42,7 +88,7 @@
 
 (~95 words, about 36 s with pauses. The last line cuts straight back to the opening strike, so the video loops.)
 
-## Shot list
+### Shot list
 
 Each clip is 2–4 s and generated at 9:16. Every prompt ends with: *photoreal, cinematic, no text, no captions, no logos, no watermark.*
 
