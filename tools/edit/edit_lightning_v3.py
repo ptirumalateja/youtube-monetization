@@ -183,7 +183,7 @@ def shot_storm(a, b):
     P = plate("p2_strike")
     for i in range(n_of(a, b)):
         t = i / FPS; u = ease(t / (b - a))
-        k = flicker(t, 0.30)
+        k = max(flicker(t, 0.30), 0.8 * flicker(t, 0.95), 0.6 * flicker(t, 1.55))
         f = P.frame(bolt_k=k, splash_k=0.6 + 0.4 * k)
         f, ts, ppu = LP.view(f, 0.50, 0.36 + 0.14 * u, 1.35 - 0.35 * u)
         f = LP.rain(f, t + 2, 1.0)
@@ -217,7 +217,7 @@ def shot_explain(a, b):
             f = LP.rain(f, T, 0.5)
             la = ease((T - 7.0) / 0.3) * (1 - ease((T - 9.4) / 0.3))
             ax, ay = ts(P2.sx, P2.sy)
-            f = LP.label(f, (ax + 190, ay - 170), (ax + 6, ay - 4), "STRIKE POINT", la)
+            f = LP.label(f, (ax - 150, ay - 190), (ax - 6, ay - 4), "STRIKE POINT", la)
         elif T < 14.20:    # through the water, in every direction: pulses travel out from the strike
             u = ease((T - 11.30) / 2.9)
             k = flicker(T, 11.32)
