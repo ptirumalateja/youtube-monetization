@@ -28,6 +28,12 @@ These are the hard-won rules from building the India Episode 1 (Oct 2026), plus 
 7. **No unexplained graphics.** Rings, glows or arrows must obviously mean something, or they look like render artifacts.
 8. **Kill AI tells:** smoke-like plumes on summits, impossible footprints, lava where there's no volcano, over-glossy "AI poster" colours. Start frames use camera-style prompts (35 mm, natural muted colour, grain), not "epic, dramatic".
 9. **Polish only after the core action works.** Order: geometry/position → deformation → atmosphere → sound.
+10. **One escalating story, not caption-and-clip.** Don't give every sentence its own stock clip and label. Each shot should answer the question the previous shot raised (lightning Short v1 feedback).
+11. **Cut to the real voiceover.** Record it first, take word timings (faster-whisper), then cut. Guessed timings produce lifeless pacing.
+12. **One grade for all footage** (same white balance, contrast and palette), plus a shared finish: grain, highlight bloom, vignette and slow drift. Drop clips that can't be matched (bright aquarium or reef next to a night storm).
+13. **Don't blow up low-res sources** more than about 2×. Prefer 4K and 1440p clips for vertical crops; keep a 720p clip short and graded.
+14. **Invisible physics gets one designed scene** (e.g. a sea cross-section with iso-lines), styled in the footage palette. Don't use a repeated stock background with rings and charts.
+15. **No tutorial annotations on emotional beats** (red circles, "YOU" labels). Let the voice, the crop and the sound do it.
 
 ## 3. Accuracy
 
@@ -53,10 +59,11 @@ These are the hard-won rules from building the India Episode 1 (Oct 2026), plus 
 
 ## 5. Tools, voice and costs (the user is credit-limited)
 
-- **Voice:** ElevenLabs `eleven_v3`, voice "Teja Clone V3" (`hnvKSWZUzB30Og1MMmAl`).
+- **Voice:** Higgsfield's ElevenLabs route, element "Teja - Curiozo Narrator" (about 1.5 credits per script). See `claude.md` for the recipe and the pause fix.
   - One take, check it, then fix single lines only if needed.
-  - About 450 credits per 30 s.
-- **Sound effects:** ElevenLabs `eleven_text_to_sound_v2`, about 17 credits each. **Music:** `eleven_music_v2`, about 900 credits.
+  - Fallback: direct ElevenLabs `eleven_v3`, "Teja Clone V3", about 450 credits per 30 s.
+- **Sound effects:** free Pixabay Sounds first (the user downloads them into Drive), otherwise ElevenLabs direct `eleven_text_to_sound_v2`, about 17 credits each.
+  - **No drum-based music beds.** The user found them irritating. Use natural sound (thunder, rain, underwater ambience) plus a drum-free drone. **Music:** `eleven_music_v2`, about 900 credits.
   - Reuse what's already in the library before generating more.
   - **Ask before spending.**
 - **Higgsfield:** don't use without asking (limited credits).

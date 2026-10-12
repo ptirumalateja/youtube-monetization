@@ -132,10 +132,11 @@ This is the current master narration.
 ### Narration Rules
 
 - Current ElevenLabs cloned voice is approved.
-- **Voiceover recipe (from 2026-10-12):**
-  - ElevenLabs model `eleven_v3` with the voice **"Teja Clone V3"** (`hnvKSWZUzB30Og1MMmAl`), generated directly in ElevenLabs. Generate one take and check it before paying for more.
+- **Voiceover recipe (updated 2026-10-12, user's choice):**
+  - Default: Higgsfield's ElevenLabs route (`text2speech_v2`, variant `elevenlabs`, element "Teja - Curiozo Narrator", `6cca4fe1-d5c5-4ff4-a57d-56f29e4afc7f`, stability 0.5). About 1.5 credits per 30 s script. One take.
+  - It reads slowly with long pauses (a ~29 s script came out at 42 s). Fix it in the edit: cut the pauses to 0.1–0.5 s and speed it up about 5% (`atempo=1.05`).
+  - Direct ElevenLabs `eleven_v3` with "Teja Clone V3" (`hnvKSWZUzB30Og1MMmAl`) also matches, at about 450 credits per 30 s.
   - Don't use Higgsfield Seed Audio for narration: it gives a noticeably different voice.
-  - Higgsfield's ElevenLabs route (`text2speech_v2`, variant `elevenlabs`, element "Teja - Curiozo Narrator") is close, but slow-paced.
 - Approximate duration: 60.84 sec.
 - Narration is the master timeline.
 - Do not rewrite narration merely to fit generated video.
