@@ -497,25 +497,27 @@ The following must remain consistent unless a shot intentionally starts from a n
 
 # 8. RunPod Environment
 
-_Last verified: 2026-10-11._
+_Last verified: 2026-10-12._
 
-## Pod
+## Pods
 
-| Field | Value |
-|---|---|
-| Name | `slowlight-a40` |
-| Pod ID | `zrqv12r68xf2aa` |
-| GPU | NVIDIA **A40**, 48 GB VRAM ($0.49/hr on-demand) |
-| Image | `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda12.8` |
-| Ports | `8188` ComfyUI · `8080` File Browser · `8888` Jupyter · `22` SSH |
-
-If the pod won't start because its host machine has no free GPU, deploy a temporary pod in **CA-MTL-1** and attach the same network volume. All models and outputs live on that volume, so nothing is lost. Terminate the temporary pod when you're done.
+- **No permanent pod.** Create a pod on demand, attached to the network volume below, and terminate it when the work is done.
+- **Image:** `runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda12.8`
+- **Ports:** `8188` ComfyUI · `8080` File Browser · `8888` Jupyter · `22` SSH
+- **GPU:**
+  - RTX A5000 (24 GB, ~$0.27/hr) is enough for Blender, Wan 14B and Qwen.
+  - A40 (48 GB, ~$0.59/hr) for heavier ComfyUI work.
+- **After each pod start:** reinstall Blender's system libraries (`libxrender1 libxi6 libxkbcommon0 libsm6 libgl1 libxxf86vm1 libxfixes3 libegl1`).
 
 ## Storage
 
-- **Network volume:** `slowlight-storage-mtl1` (`8u2c6qulmy`), 150 GB, datacenter **CA-MTL-1**, mounted at `/workspace`.
-- **Billing:** charged on the provisioned size (about $0.07/GB/month, roughly $10.50/month). Deleting files doesn't lower the bill, and network volumes can't be shrunk.
-- **Usage:** about 115 GB used, nearly all of it models (see §9).
+- **Network volume:** `slowlight-100` (`bvufz93jst`), 100 GB, data centre **CA-MTL-1**, mounted at `/workspace`.
+- **Billing:** CA-MTL-1 volumes are high-performance storage at about $0.14/GB/month, so this volume costs **about $14/month**.
+  - Billing history is the source of truth. The balance pop-up's spend rate has under-reported it.
+  - A volume can only grow, never shrink.
+- **Contents:** about 72 GB used (models, ComfyUI, Blender, globe tools) and about 22 GB free for working files.
+- **Cleanup:** delete each video's intermediate textures and frames once it's published.
+- **Migration:** moved from the old 150 GB volume on 2026-10-12. LTX-2.3 and SeedVR2 7B were not carried over.
 
 ## ComfyUI
 
@@ -544,7 +546,7 @@ loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors       1.1 GB
 vae/wan_2.1_vae.safetensors
 ```
 
-## LTX-2.3 22B distilled (fp8): ~37 GB
+## LTX-2.3 22B distilled (fp8): ~37 GB (REMOVED 2026-10-12, lost the Wan comparison test)
 
 Text-to-video and image-to-video.
 
@@ -570,7 +572,6 @@ vae/qwen_image_vae.safetensors
 Run it as the last pass on final clips.
 
 ```text
-diffusion_models/seedvr2_7b_int8_convrot.safetensors                 7.8 GB   (use on A40)
 diffusion_models/seedvr2_3b_int8_convrot.safetensors                 3.2 GB   (use on 24 GB GPUs)
 vae/seedvr2_ema_vae_fp16.safetensors                                 0.5 GB
 ```
