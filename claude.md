@@ -510,6 +510,41 @@ _Last verified: 2026-10-12._
   - A40 (48 GB, ~$0.59/hr) for heavier ComfyUI work.
 - **After each pod start:** reinstall Blender's system libraries (`libxrender1 libxi6 libxkbcommon0 libsm6 libgl1 libxxf86vm1 libxfixes3 libegl1`).
 
+### Which pod for which job
+
+| Job | GPU | ~Cost | Notes |
+|---|---|---|---|
+| Wan 2.2 I2V 14B (fast 4-step tests and full 20-step renders), Qwen-Image-Edit, SeedVR2 | **A40 48 GB** | ~$0.59/hr | Production default: everything fits in VRAM. |
+| Blender/Cycles renders, quick ComfyUI checks, file maintenance | **RTX A5000 24 GB** | ~$0.27/hr | Wan 14B and Qwen run, but slower. Don't use it for production video. |
+| Copying or deleting files on the volume only | **RTX A5000** (cheapest GPU in CA-MTL-1) | ~$0.27/hr | Terminate as soon as it's done. |
+
+- **The pod must be in CA-MTL-1**, the same data centre as the volume, or the volume can't attach.
+- If the GPU you want is sold out there, try another 48 GB card in CA-MTL-1 (e.g. RTX A6000), or wait. Never move the volume.
+- Always **Secure Cloud** and **on-demand**, never spot or interruptible: a mid-render eviction wastes the run.
+
+### How to start a pod (Claude does this through the RunPod API)
+
+The API key is in the `RUNPOD_API_KEY` environment variable. **Never print it.**
+
+1. **Make a Jupyter password** and keep it only in the session scratchpad (`jpw`, `chmod 600`). Never print or commit it.
+2. **Deploy** with GraphQL `podFindAndDeployOnDemand` at `https://api.runpod.io/graphql`, header `Authorization: Bearer $RUNPOD_API_KEY`:
+   ```json
+   {"name": "slowlight-a40", "imageName": "runpod/comfyui:1.3.3-comfyuiv0.30.0-cuda12.8",
+    "gpuTypeId": "NVIDIA A40", "gpuCount": 1, "cloudType": "SECURE",
+    "dataCenterId": "CA-MTL-1", "networkVolumeId": "bvufz93jst", "volumeMountPath": "/workspace",
+    "containerDiskInGb": 30, "ports": "8188/http,8080/http,8888/http,22/tcp",
+    "env": [{"key": "JUPYTER_PASSWORD", "value": "<from jpw>"}, {"key": "PUBLIC_KEY", "value": "<ssh public key>"}]}
+   ```
+   For an A5000, use `"gpuTypeId": "NVIDIA RTX A5000"`.
+3. **Wait about 2–4 minutes** for it to boot, then reach it through the proxy:
+   - Jupyter: `https://<podId>-8888.proxy.runpod.net`. Claude runs shell commands through the Jupyter kernel websocket (the `jx.py` helper).
+   - ComfyUI: `https://<podId>-8188.proxy.runpod.net`
+   - Paths in Jupyter's `/files` API are relative to `/workspace`.
+4. **Set up:** reinstall the Blender libraries if Blender is needed, and check ComfyUI is up (`/system_stats`).
+5. **When done:** download the outputs, then terminate with `podTerminate(input: {podId: "..."})`. Terminating keeps everything on the network volume.
+   - Don't just stop the pod. A stopped pod can fail to resume when its host is full (this happened on 2026-10-12), and a fresh deploy on the same volume is just as fast.
+6. **Check the account balance** before long runs. If it hits zero, RunPod can delete the volume.
+
 ## Storage
 
 - **Network volume:** `slowlight-100` (`bvufz93jst`), 100 GB, data centre **CA-MTL-1**, mounted at `/workspace`.
