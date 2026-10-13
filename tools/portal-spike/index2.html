@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x07080a);
+const cam=new THREE.PerspectiveCamera(64,W/H,0.05,400);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(7);
+// timeline helpers
+const T0=2.1; const zOf=T=>{const u=T-T0; return -(7*u+1.4*u*u+0.5*u*u*u)}; const speed=T=>{const u=T-T0; return 7+2.8*u+1.5*u*u};
+const PASS=[3.0,4.8,6.6,8.4,11.5]; const RADII=[3.1,3.1,3.1,3.1,5.6]; const OPEN=[[2.1,2.75],[3.3,4.1],[5.1,5.9],[6.9,7.7],[9.4,10.9]];
+// ---- star streaks
+const NS=11000, sp=new Float32Array(NS*2*3), se=new Float32Array(NS*2), sc=new Float32Array(NS*2*3);
+for(let i=0;i<NS;i++){const a=R()*6.283, r=(i%5<2)?(1.8+R()*7):(1.6+Math.pow(R(),0.7)*26), z=-R()*330+30; const x=Math.cos(a)*r,y=Math.sin(a)*r;
+  for(let k=0;k<2;k++){const j=(i*2+k)*3; sp[j]=x;sp[j+1]=y;sp[j+2]=z; se[i*2+k]=k;
+    const warm=R()<0.18; const c=warm?[1,0.55,0.35]:(R()<0.4?[0.55,0.9,0.95]:[0.95,0.9,0.82]); const b=0.35+R()*0.65; sc[j]=c[0]*b;sc[j+1]=c[1]*b;sc[j+2]=c[2]*b;}}
+const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3)); sg.setAttribute('endf',new THREE.BufferAttribute(se,1)); sg.setAttribute('color',new THREE.BufferAttribute(sc,3));
+const sm=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{streak:{value:0},camz:{value:0},tint:{value:0}},
+ vertexShader:`attribute float endf; attribute vec3 color; varying vec3 vc; varying float va; uniform float streak; uniform float camz; uniform float tint;
+ void main(){vec3 p=position; float dz=mod(position.z-camz,300.0); p.z=camz+dz-300.0; p.z+=endf*streak; vec4 mv=modelViewMatrix*vec4(p,1.0); float d=length(mv.xyz); va=clamp(1.0-d/150.0,0.0,1.0)*(1.0-endf*0.85); vc=mix(color,vec3(1.0,0.28,0.2)*dot(color,vec3(0.33)),tint*0.85); gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying vec3 vc; varying float va; void main(){gl_FragColor=vec4(vc*va*1.15,1.0);}`});
+const stars=new THREE.LineSegments(sg,sm); stars.frustumCulled=false; scene.add(stars);
+// ---- ring portals
+const NR=2600; const rings=[];
+function makeRing(zc,hue){
+  const pos=new Float32Array(NR*3), col=new Float32Array(NR*3), ph=new Float32Array(NR*4);
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  for(let i=0;i<NR;i++){ph[i*4]=R()*6.283; ph[i*4+1]=(R()<0.5?-1:1)*(0.6+R()*1.8); ph[i*4+2]=Math.abs((R()+R()+R()-1.5)*0.5); ph[i*4+3]=R();
+    const w=R(); const hot=w<0.55; const c=hot?[1,0.38+R()*0.25,0.06+R()*0.1]:[1,0.9,0.7]; col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2];}
+  const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{amp:{value:1}},
+   vertexShader:`attribute vec3 color; varying vec3 vc; uniform float amp; void main(){vc=color; vec4 mv=modelViewMatrix*vec4(position,1.0); float d=-mv.z; gl_PointSize=clamp(2.6*amp*30.0/max(d,0.5),1.6,14.0); gl_Position=projectionMatrix*mv;}`,
+   fragmentShader:`varying vec3 vc; uniform float amp; void main(){vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); a*=a; gl_FragColor=vec4(vc*a*amp*1.0,1.0);}`});
+  const pts=new THREE.Points(g,m); pts.frustumCulled=false; scene.add(pts);
+  // glow disc
+  const cv=document.createElement('canvas'); cv.width=cv.height=128; const x=cv.getContext('2d'); const gr=x.createRadialGradient(64,64,10,64,64,64);
+  gr.addColorStop(0,'rgba(255,170,90,0)'); gr.addColorStop(0.72,'rgba(255,110,30,0.10)'); gr.addColorStop(0.86,'rgba(255,160,70,0.28)'); gr.addColorStop(1,'rgba(255,150,70,0)'); x.fillStyle=gr; x.fillRect(0,0,128,128);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+  sprite.scale.set(8.4,8.4,1); sprite.position.set(0,0,zc); scene.add(sprite);
+  return {pts,pos,ph,zc,m,sprite};
+}
+PASS.forEach((t,i)=>{const r=makeRing(zOf(t),0); r.RR=RADII[i]; r.open=OPEN[i]; rings.push(r);});
+function updRing(r,t){
+  const p=r.pos, ph=r.ph; for(let i=0;i<NR;i++){const th=ph[i*4]+ph[i*4+1]*t; const rad=(r.RR+ph[i*4+2]*(1+0.5*Math.sin(t*3+ph[i*4+3]*9))*(r.RR/3.1))*r.k;
+    const drift=(ph[i*4+3]-0.5)*0.9*(0.5+0.5*Math.sin(t*2+ph[i*4]*3));
+    p[i*3]=Math.cos(th)*rad; p[i*3+1]=Math.sin(th)*rad; p[i*3+2]=r.zc+drift;}
+  r.pts.geometry.attributes.position.needsUpdate=true;
+}
+// ---- composer
+const comp=new EffectComposer(renderer); comp.setSize(W,H); comp.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.7,0.5,0.5); comp.addPass(bloom); comp.addPass(new OutputPass());
+const sstep=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
+window.renderAt=(T)=>{
+  const z=zOf(T); const v=speed(T); cam.position.set(0.14*Math.sin(T*1.3),0.1*Math.cos(T*1.1),z); cam.lookAt(0.0,0.0,z-10);
+  cam.rotation.z=0.10*Math.sin(T*0.9)+0.0045*(v-7)*Math.sin(T*2.1)*0.4; cam.fov=60+Math.min(34,v*0.30); cam.updateProjectionMatrix();
+  sm.uniforms.streak.value=Math.min(40,0.014*v*v/3+v*0.05); sm.uniforms.camz.value=z; sm.uniforms.tint.value=sstep(7.8,10.6,T);
+  let near=0;
+  rings.forEach((r,i)=>{r.k=sstep(r.open[0],r.open[1],T); r.pts.visible=r.k>0.03; r.sprite.visible=r.k>0.03; updRing(r,T); const d=Math.abs(z-r.zc); const n=Math.exp(-d/(5+r.RR)); near=Math.max(near,n*r.k);
+    const far=1.0-sstep(60,130,d); r.m.uniforms.amp.value=(1.1+1.0*n)*(0.05+0.95*r.k*r.k)*(0.15+0.85*far); r.sprite.material.opacity=(0.08+0.22*n)*r.k*far; r.sprite.scale.setScalar(r.RR*2.71*Math.max(0.01,r.k)*(1+0.15*n));});
+  bloom.strength=0.7+0.5*near;
+  comp.render(); return renderer.domElement.toDataURL('image/jpeg',0.94);
+};
+window.ready=true;
+</script></body></html>

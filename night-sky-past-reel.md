@@ -59,3 +59,8 @@ Check on the 14-16 s line: modern humans are ~300,000 years old; the Andromeda l
 4. Text is inside the Shorts safe zone (bottom ~18% and top strip clear).
 5. The loop point (stargazer to stargazer) feels intentional.
 6. All sound files have a confirmed commercial-safe licence.
+
+## Build status (v1 built)
+- Built as `night_sky_past_v2_hq.mp4` (18 s, 1080x1920, 23 MB). Plates: Qwen+Wan+SeedVR2 (stargazer, Andromeda); tunnel: three.js (`tools/portal-spike/index2.html`); text/impact frames: `tools/night-sky/overlay.py`; sound: `tools/night-sky/mix.py` (library files + synth sub wall).
+- Measured: -15.7 LUFS, -1.7 dBTP, 13 distinct hits, silent gaps at 1.6 s, 11.3 s, 16.0 s. Audio not yet auditioned by ear.
+- Licences of the 18 Freesound files still need confirming (CC-BY needs credit in the description).
