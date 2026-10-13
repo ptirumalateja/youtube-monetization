@@ -1,5 +1,11 @@
 # Red Sprites Short — publishing copy
 
+Sections: YouTube Shorts (title, description, tags) · Instagram Reels (caption) · Facebook Reels (caption)
+
+---
+
+# YOUTUBE SHORTS
+
 ## Title (pick one)
 1. **Pilots Saw Red Flashes Above Storms. Nobody Believed Them.** (recommended, 56 chars)
 2. The Red Flashes Above Storms Nobody Believed Until 1989
@@ -42,3 +48,44 @@ red sprites, sprites lightning, upper atmosphere lightning, transient luminous e
 ## Check before posting
 - Confirm NASA's media reproduction guidelines cover this use (credit line above).
 - Listen to the audio on a phone.
+
+
+---
+
+# INSTAGRAM REELS (caption only; there is no title or tag field)
+
+The flashes weren't inside the storm. They were above it. ⚡
+
+For decades, pilots reported red flashes above thunderstorms. Few believed them, until a camera test in 1989 caught one by accident. They're called red sprites, and astronauts have photographed them from orbit.
+
+Would you have believed the pilots? 👇
+
+Some scenes are AI dramatised reconstructions (labelled in the video). ISS imagery: NASA / Expedition 31 crew / Image Science & Analysis Lab, NASA JSC. Not affiliated with NASA.
+
+#redsprites #lightning #nasa #space #science #thunderstorm #slowlight
+
+Notes
+- Links are not clickable in Instagram captions, so the source links stay in the YouTube description (add one link in your bio if you like).
+- Keep hashtags to about 5–8 and put them last.
+- Turn on the AI label for the post (Instagram's "AI info" setting) because the scenes are realistic AI.
+- Cover: the cockpit frame at about 3 s (red glow over the storm), kept inside the centre square so the profile grid crop works.
+
+---
+
+# FACEBOOK REELS (caption)
+
+The flashes weren't inside the storm. They were above it. ⚡
+
+For decades, pilots reported red flashes above thunderstorms. Few believed them, until a camera test at the University of Minnesota in July 1989 caught one by accident. Today they are called red sprites, and astronauts on the International Space Station have photographed them from orbit.
+
+Sources (links work on Facebook):
+NASA, "Elusive Red Sprite": https://svs.gsfc.nasa.gov/11059
+NASA Earthdata, first sprite on video: https://www.earthdata.nasa.gov/learn/data-in-action/role-space-shuttle-videotapes-discovery-sprites-jets-elves
+
+Some scenes are AI dramatised reconstructions (labelled in the video). ISS imagery: NASA / Expedition 31 crew / Image Science & Analysis Lab, NASA JSC. Not affiliated with NASA.
+
+#RedSprites #Lightning #NASA
+
+Notes
+- Use 3 hashtags or fewer on Facebook.
+- Turn on the AI label if Facebook offers it at upload.
