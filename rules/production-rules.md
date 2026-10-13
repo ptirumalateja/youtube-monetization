@@ -75,6 +75,16 @@ These are the hard-won rules from building the India Episode 1 (Oct 2026), plus 
 
 ---
 
+## Published results
+
+| Date | Short | Length | Result | Notes |
+|---|---|---|---|---|
+| 2026-10-12 | Lightning hit the ocean: why are the fish still alive? | 36 s | **~680 views (YouTube), then stalled** | 516 in the first 3h48m (+29% vs channel usual, ranked 3 of 10). 48% average viewed (~18 s). 9 likes, 0 subscribers. Fewer swipe-aways than earlier Shorts, so the hook worked. The middle lost people: the explanation ran long, and the look switched from premium images to plain stock. A full day of work for one Short is too slow. |
+
+**Takeaways:** keep to 20–30 s, one look end to end, payoff by 15 s. Build a repeatable 1–2 hour pipeline so we ship daily.
+
+---
+
 ## On hold
 
 ### India Episode 1: "India is about to crash into Asia"
