@@ -35,8 +35,8 @@ NASA Spritacular citizen science: https://science.nasa.gov/citizen-science/sprit
 
 #shorts #science #space #weather #thunderstorm #ISS #SlowLight
 
-## Keywords / tags
-red sprites, sprites lightning, upper atmosphere lightning, transient luminous events, TLE, thunderstorm, NASA, ISS, space station, science shorts, atmospheric science, weather, slow light
+## Keywords / tags (paste into the YouTube Tags field, 317 of 500 characters)
+red sprites, red sprite lightning, sprites lightning, upper atmosphere lightning, transient luminous events, TLE lightning, lightning above storms, red lightning, thunderstorm, NASA, ISS, International Space Station, space station footage, atmospheric science, weather science, science shorts, space facts, slow light
 
 ## Upload settings
 - Altered or synthetic content: **Yes** (realistic AI scenes, labelled on screen)
