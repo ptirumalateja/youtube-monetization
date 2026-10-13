@@ -64,3 +64,11 @@ Check on the 14-16 s line: modern humans are ~300,000 years old; the Andromeda l
 - Built as `night_sky_past_v2_hq.mp4` (18 s, 1080x1920, 23 MB). Plates: Qwen+Wan+SeedVR2 (stargazer, Andromeda); tunnel: three.js (`tools/portal-spike/index2.html`); text/impact frames: `tools/night-sky/overlay.py`; sound: `tools/night-sky/mix.py` (library files + synth sub wall).
 - Measured: -15.7 LUFS, -1.7 dBTP, 13 distinct hits, silent gaps at 1.6 s, 11.3 s, 16.0 s. Audio not yet auditioned by ear.
 - Licences of the 18 Freesound files still need confirming (CC-BY needs credit in the description).
+
+## Revision v3 (two hook variants)
+- New opening: near-dark frame 0 with a flaring star, sky lights up, snap-pull at 0.5 s, portal ring forms 1.0-1.7 s, pulled into the tunnel at 2.1 s. Hook text starts at 0.35 s: **A** "YOU'RE SEEING THE PAST." vs **B** "THIS LIGHT IS OLD."
+- Tunnel (`tools/portal-spike/index3.html`): four different portals (Moon: silver ring, Sun: gold double ring with flares, Proxima: red hexagon, Andromeda: large spiral ring), helix filaments for depth, streaks fade at the vanishing point.
+- Counter holds on three milestones (Moon 1.3 s, Sun 8 min 20 s, Proxima 4.2 years) with a log ruler; display jumps to 2.5 million years for Andromeda.
+- Andromeda: firmer push, outward particles, shockwave ring. Ending frame matches frame 0 (loop).
+- Sound (`tools/night-sky/mix2.py`): per-portal sound identities, bass restricted to designed hits, accelerating pulse in the hyper phase, held-breath silence at 11.3 s, controlled-decay sub wall. Measured -15.0 LUFS, -1.2 dBTP; not yet auditioned by ear.
+- Wording: "THIS LIGHT LEFT BEFORE HOMO SAPIENS EXISTED."
