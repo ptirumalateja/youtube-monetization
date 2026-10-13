@@ -62,11 +62,11 @@ Would you have believed the pilots? 👇
 
 Some scenes are AI dramatised reconstructions (labelled in the video). ISS imagery: NASA / Expedition 31 crew / Image Science & Analysis Lab, NASA JSC. Not affiliated with NASA.
 
-#redsprites #lightning #nasa #space #science #thunderstorm #slowlight
+#redsprites #lightning #space #nasa #science
 
 Notes
 - Links are not clickable in Instagram captions, so the source links stay in the YouTube description (add one link in your bio if you like).
-- Keep hashtags to about 5–8 and put them last.
+- Keep hashtags to 5 or fewer (Instagram has announced a 5-hashtag cap) and put them last.
 - Turn on the AI label for the post (Instagram's "AI info" setting) because the scenes are realistic AI.
 - Cover: the cockpit frame at about 3 s (red glow over the storm), kept inside the centre square so the profile grid crop works.
 
