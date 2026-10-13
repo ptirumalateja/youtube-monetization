@@ -1,0 +1,118 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x07080a);
+const cam=new THREE.PerspectiveCamera(64,W/H,0.05,500);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(11);
+const T0=2.1; const bump=(T,c,w)=>Math.exp(-Math.pow((T-c)/w,2)); const sm_=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
+const modv=T=>{ let m=1-0.68*bump(T,6.65,0.26);
+  if(T>=10.75&&T<11.15) m*=1-0.93*sm_(10.75,11.15,T); else if(T>=11.15&&T<11.3) m*=0.07; else if(T>=11.3){const k=sm_(11.3,11.5,T); m*=0.07+(7.0-0.07)*k*k;} return m; };
+const baseV=T=>{const u=T-T0; return 7+2.8*u+1.5*u*u};
+const speed=T=>baseV(T)*modv(T);
+const DT=1/240, NT=Math.ceil((12.0-T0)/DT); const zt=new Float64Array(NT+2); zt[0]=0; for(let i=0;i<=NT;i++){zt[i+1]=zt[i]-speed(T0+i*DT)*DT;}
+const zOf=T=>{const x=(T-T0)/DT; const i=Math.max(0,Math.min(NT,Math.floor(x))); const f=x-i; return zt[i]*(1-f)+zt[i+1]*f;};
+const sstep=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
+// ---------------- star streaks (denser near the axis)
+const NS=15000, sp=new Float32Array(NS*6), se=new Float32Array(NS*2), sc=new Float32Array(NS*6);
+for(let i=0;i<NS;i++){const a=R()*6.283, r=(i%5<2)?(1.0+R()*6.5):(1.6+Math.pow(R(),0.7)*26), z=-R()*330+30; const x=Math.cos(a)*r,y=Math.sin(a)*r;
+  const warm=R()<0.2; const c=warm?[1,0.55,0.35]:(R()<0.45?[0.5,0.9,0.95]:[0.95,0.9,0.82]); const b=0.4+R()*0.6;
+  for(let k=0;k<2;k++){const j=(i*2+k)*3; sp[j]=x;sp[j+1]=y;sp[j+2]=z; se[i*2+k]=k; sc[j]=c[0]*b;sc[j+1]=c[1]*b;sc[j+2]=c[2]*b;}}
+const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(sp,3)); sg.setAttribute('endf',new THREE.BufferAttribute(se,1)); sg.setAttribute('color',new THREE.BufferAttribute(sc,3));
+const sm=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{streak:{value:0},camz:{value:0},tint:{value:0}},
+ vertexShader:`attribute float endf; attribute vec3 color; varying vec3 vc; varying float va; uniform float streak; uniform float camz; uniform float tint;
+ void main(){vec3 p=position; float dz=mod(position.z-camz,300.0); p.z=camz+dz-300.0; p.z+=endf*streak; vec4 mv=modelViewMatrix*vec4(p,1.0); float d=length(mv.xyz); vec4 cl=projectionMatrix*mv; float rf=smoothstep(0.03,0.30,length(cl.xy/cl.w*vec2(1.0,0.56))); va=clamp(1.0-d/150.0,0.0,1.0)*(1.0-endf*0.85)*(0.15+0.85*rf); vc=mix(color,vec3(1.0,0.28,0.2)*dot(color,vec3(0.33)),tint*0.85); gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying vec3 vc; varying float va; void main(){gl_FragColor=vec4(vc*va*1.0,1.0);}`});
+const stars=new THREE.LineSegments(sg,sm); stars.frustumCulled=false; scene.add(stars);
+// ---------------- generic additive point cloud helper
+const SC=H/960;
+function makePoints(n,sizeK,maxSize){
+  const pos=new Float32Array(n*3), col=new Float32Array(n*3);
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{amp:{value:1},cf:{value:0}},
+   vertexShader:`attribute vec3 color; varying vec3 vc; uniform float amp; uniform float cf; void main(){vec4 mv=modelViewMatrix*vec4(position,1.0); float d=-mv.z; vec4 cl=projectionMatrix*mv; float rf=mix(1.0,smoothstep(0.03,0.32,length(cl.xy/cl.w*vec2(1.0,0.56))),cf); vc=color*rf; gl_PointSize=clamp(${(sizeK*SC).toFixed(2)}*amp*30.0/max(d,0.5),${(1.6*SC).toFixed(1)},${(maxSize*SC).toFixed(1)}); gl_Position=projectionMatrix*mv;}`,
+   fragmentShader:`varying vec3 vc; uniform float amp; void main(){vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); a*=a; gl_FragColor=vec4(vc*a*amp,1.0);}`});
+  const pts=new THREE.Points(g,m); pts.frustumCulled=false; scene.add(pts); return {pts,pos,col,m,n,g};
+}
+// ---------------- portals: distinct shapes
+const DEFS=[
+ {name:'moon',  T:3.0,  R:3.0, open:[2.1,2.75], n:2400, shape:'circle', spin:0.8,  spread:0.10, hot:[[0.78,0.92,1.0],[0.95,0.97,1.0]], glow:[0.6,0.8,1.0], size:2.3, inner:false, flares:0,   spiral:false, squash:1.0, rot:0},
+ {name:'sun',   T:5.0,  R:3.7, open:[3.6,4.3],  n:3200, shape:'circle', spin:1.5,  spread:0.45, hot:[[1.0,0.55,0.10],[1.0,0.80,0.35]], glow:[1.0,0.55,0.15], size:2.7, inner:false, flares:0, spikes:1500, spikeType:'cross', spiral:false, squash:1.0, rot:0},
+ {name:'prox',  T:7.0,  R:3.4, open:[5.6,6.3],  n:1700, shape:'hex',    spin:-0.55,spread:0.18, hot:[[1.0,0.15,0.12],[0.95,0.30,0.55]], glow:[1.0,0.2,0.2], size:3.6, inner:false, flares:0, spikes:1100, spikeType:'hex6', spiral:false, squash:0.82,rot:0.35},
+ {name:'andro', T:11.5, R:6.0, open:[8.6,10.9], n:4600, shape:'circle', spin:0.7,  spread:0.35, hot:[[1.0,0.80,0.45],[0.75,0.85,1.0]], glow:[1.0,0.7,0.4], size:2.8, inner:true, innerK:0.78, flares:0, spiral:true,  squash:1.0, rot:0},
+];
+const portals=DEFS.map(d=>{
+  const NP=d.n+d.flares+(d.spikes||0); const P=makePoints(NP,d.size,20); const ph=new Float32Array(NP*6);
+  for(let i=0;i<NP;i++){
+    const kind=i<d.n?((d.spiral&&R()<0.45)?3:(d.inner&&R()<0.35?1:0)):(i<d.n+d.flares?2:(d.spikeType==='cross'?4:5));
+    ph[i*6]=R()*6.283; ph[i*6+1]=(0.6+R()*1.6)*(kind==1?-1:1); ph[i*6+2]=Math.abs((R()+R()+R()-1.5)*0.5)*d.spread*2.0; ph[i*6+3]=R(); ph[i*6+4]=kind; ph[i*6+5]=R();
+    const c=d.hot[R()<0.7?0:1]; let w=0.75+R()*0.25; if(kind>=4) w*=1-0.82*Math.pow(ph[i*6+3],0.7); const cc=(R()<0.15)?[1,0.96,0.88]:c; P.col[i*3]=cc[0]*w;P.col[i*3+1]=cc[1]*w;P.col[i*3+2]=cc[2]*w;
+  }
+  const cv=document.createElement('canvas'); cv.width=cv.height=128; const x=cv.getContext('2d'); const gr=x.createRadialGradient(64,64,10,64,64,64); const g=d.glow.map(v=>Math.round(v*255));
+  gr.addColorStop(0,`rgba(${g},0)`); gr.addColorStop(0.74,`rgba(${g},0.10)`); gr.addColorStop(0.88,`rgba(${g},0.30)`); gr.addColorStop(1,`rgba(${g},0)`); x.fillStyle=gr; x.fillRect(0,0,128,128);
+  const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); scene.add(sprite);
+  return {d,P,ph,sprite,zc:zOf(d.T),k:0};
+});
+function hexScale(th){const a=((th+Math.PI/6)%(Math.PI/3)+Math.PI/3)%(Math.PI/3)-Math.PI/6; return Math.cos(Math.PI/6)/Math.cos(a);}
+function updPortal(p,T){
+  const d=p.d, pos=p.P.pos, ph=p.ph, n=d.n+d.flares+(d.spikes||0), k=p.k, rot=d.rot;
+  for(let i=0;i<n;i++){
+    const th0=ph[i*6], om=ph[i*6+1]*d.spin, off=ph[i*6+2], seed=ph[i*6+3], kind=ph[i*6+4], sd=ph[i*6+5];
+    let th=th0+om*T, rad, dz=(seed-0.5)*0.9*(0.5+0.5*Math.sin(T*2+th0*3));
+    if(kind===0){ rad=d.R*(d.shape==='hex'?hexScale(th0+om*T+rot):1)+off*(1+0.5*Math.sin(T*3+seed*9)); }
+    else if(kind===1){ rad=(d.innerK||0.72)*d.R*(d.shape==='hex'?hexScale(th+rot):1)+off*0.6; }
+    else if(kind===4||kind===5){ const u=seed; const pj=off*0.10*(0.5+Math.sin(T*3+sd*9)*0.5); let ang,s_;
+      if(kind===4){ ang=Math.floor(sd*4)*Math.PI/2; s_=d.R*(0.25+2.4*Math.pow(u,1.6)); }
+      else { ang=Math.PI/6+Math.floor(sd*6)*Math.PI/3; s_=d.R*(0.30+2.1*Math.pow(u,1.5)); }
+      pos[i*3]=Math.cos(ang)*s_-Math.sin(ang)*pj; pos[i*3+1]=(Math.sin(ang)*s_+Math.cos(ang)*pj)*d.squash; pos[i*3+2]=p.zc+dz*0.3; continue; }
+    else if(kind===2){ const f=((T*0.45+sd)%1); rad=d.R*(1.0+1.4*f); th=th0+om*0.15*T; dz=(seed-0.5)*0.4; }
+    else { const u=0.12+0.88*((seed+T*0.12*d.spin)%1); rad=d.R*(0.35+0.85*u); th=th0*0.0+ (sd*6.283*0.5)+ 2.6*Math.log(1+u*8)+ (sd>0.5?3.14159:0) + om*0.25*T; }
+    pos[i*3]=Math.cos(th+rot)*rad; pos[i*3+1]=Math.sin(th+rot)*rad*d.squash; pos[i*3+2]=p.zc+dz;
+    if(kind!==0){}
+  }
+  // spiral/flare brightness handled via amp; size by attribute-less scheme
+  p.P.g.attributes.position.needsUpdate=true;
+  // scale whole cloud by opening factor around the axis
+  for(let i=0;i<n;i++){pos[i*3]*=k; pos[i*3+1]*=k;}
+}
+// ---------------- helix filaments (continuous tunnel walls) + speed rings
+const HS=6, HM=1100; const helix=makePoints(HS*HM,2.2,10); helix.m.uniforms.cf.value=1; 
+const SRN=28, SRP=130; const srings=makePoints(SRN*SRP,1.6,6); srings.m.uniforms.cf.value=1;
+for(let i=0;i<srings.n;i++){srings.col[i*3]=0.9;srings.col[i*3+1]=0.88;srings.col[i*3+2]=0.8;}
+function updTunnel(T,z,tint){
+  const hp=helix.pos, hc=helix.col;
+  for(let s=0;s<HS;s++){ for(let m=0;m<HM;m++){ const i=s*HM+m; const zr=(m/HM)*220+((m*7919)%97)*0.01; const th=s*(6.283/HS)+0.11*zr+1.1*T; const rad=2.5+0.55*Math.sin(0.27*zr+s*1.7);
+    hp[i*3]=Math.cos(th)*rad; hp[i*3+1]=Math.sin(th)*rad; hp[i*3+2]=z-zr;
+    const f=Math.max(0,1-zr/200); const base=(s%2==0)?[0.35,0.85,0.9]:[1.0,0.62,0.30]; const tr=1-tint; 
+    hc[i*3]=(base[0]*tr+1.0*tint)*f*0.9; hc[i*3+1]=(base[1]*tr+0.25*tint)*f*0.9; hc[i*3+2]=(base[2]*tr+0.2*tint)*f*0.9; } }
+  helix.g.attributes.position.needsUpdate=true; helix.g.attributes.color.needsUpdate=true;
+  const sp_=srings.pos; const base=Math.floor(z/9)*9;
+  for(let r=0;r<SRN;r++){ const zz=base-r*9; for(let p=0;p<SRP;p++){ const i=r*SRP+p; const th=p/SRP*6.283+r*0.2; sp_[i*3]=Math.cos(th)*4.6; sp_[i*3+1]=Math.sin(th)*4.6; sp_[i*3+2]=zz; const f=Math.max(0,1-(z-zz)/230); srings.col[i*3]=0.55*f;srings.col[i*3+1]=0.6*f;srings.col[i*3+2]=0.62*f; } }
+  srings.g.attributes.position.needsUpdate=true; srings.g.attributes.color.needsUpdate=true;
+}
+// ---------------- composer
+const comp=new EffectComposer(renderer); comp.setSize(W,H); comp.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.6,0.5,0.62); comp.addPass(bloom); comp.addPass(new OutputPass());
+window.renderAt=(T)=>{
+  const z=zOf(T); const v=speed(T); const shk=bump(T,5.0,0.16); cam.position.set(0.14*Math.sin(T*1.3)+0.45*shk*Math.sin(T*97),0.1*Math.cos(T*1.1)+0.35*shk*Math.cos(T*83),z); cam.lookAt(0,0,z-10);
+  cam.rotation.z=0.10*Math.sin(T*0.9)+0.0018*Math.min(v,160)*Math.sin(T*2.1)+0.06*shk*Math.sin(T*61); cam.fov=60+Math.min(34,v*0.30)+13*bump(T,5.0,0.18); cam.updateProjectionMatrix();
+  const tint=sstep(7.4,10.6,T);
+  sm.uniforms.streak.value=Math.min(40,0.014*v*v/3+v*0.05); sm.uniforms.camz.value=z; sm.uniforms.tint.value=tint;
+  updTunnel(T,z,tint); helix.m.uniforms.amp.value=(0.85+0.4*sstep(2.1,4,T))*(1-0.45*sstep(6.5,8.5,T)); srings.m.uniforms.amp.value=0.8;
+  let near=0;
+  portals.forEach(p=>{const d=p.d; p.k=sstep(d.open[0],d.open[1],T); p.P.pts.visible=p.k>0.03; p.sprite.visible=p.k>0.03; updPortal(p,T);
+    const dist=Math.abs(z-p.zc); const n=Math.exp(-dist/(5+d.R)); near=Math.max(near,n*p.k); const far=1.0-sstep(70,150,dist);
+    p.P.m.uniforms.amp.value=(1.0+0.55*n)*(0.05+0.95*p.k*p.k)*(0.2+0.8*far); p.sprite.position.set(0,0,p.zc); p.sprite.material.opacity=(0.08+0.10*n)*p.k*far; p.sprite.scale.setScalar(d.R*2.71*Math.max(0.01,p.k)*(1+0.15*n));});
+  bloom.strength=0.55+0.4*near;
+  comp.render(); return renderer.domElement.toDataURL('image/jpeg',0.94);
+};
+window.ready=true;
+</script></body></html>

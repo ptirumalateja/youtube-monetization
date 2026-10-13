@@ -72,3 +72,10 @@ Check on the 14-16 s line: modern humans are ~300,000 years old; the Andromeda l
 - Andromeda: firmer push, outward particles, shockwave ring. Ending frame matches frame 0 (loop).
 - Sound (`tools/night-sky/mix2.py`): per-portal sound identities, bass restricted to designed hits, accelerating pulse in the hyper phase, held-breath silence at 11.3 s, controlled-decay sub wall. Measured -15.0 LUFS, -1.2 dBTP; not yet auditioned by ear.
 - Wording: "THIS LIGHT LEFT BEFORE HOMO SAPIENS EXISTED."
+
+## Revision v4 (version A hook chosen)
+- Shape language by distance: Moon = thin circle; Sun = circle + 4-point cross starburst (callback to the opening star flare); Proxima = hexagon + 6 spikes (telescope signature, red = red dwarf); Andromeda = double counter-rotating halo + spiral. Hexagon used once.
+- Camera dynamics: shake and fov kick at the Sun pass, slow-down approaching Proxima, near-freeze (10.75-11.3 s) then burst through the Andromeda ring at 11.5 s, matching the held-breath silence.
+- Ruler labels enlarged (30 px). Ending hold extended: reel is now 19 s; last frame matches frame 0 (loop).
+- Sound: whip at the Sun pass, longer quiet before the final crackle. Measured -15.1 LUFS, -1.1 dBTP. Not yet auditioned by ear.
+- Scripts: `tools/portal-spike/index4.html`, `tools/night-sky/overlay4.py`, `tools/night-sky/mix4.py`.
