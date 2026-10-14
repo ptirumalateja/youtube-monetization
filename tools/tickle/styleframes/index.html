@@ -1,0 +1,122 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>tickle style frames</title>
+<style>
+:root{--bg:#0e0906;--cream:#e8e4d0;--red:#d63e30;--gold:#e3b04b;--teal:#4fb3a9;--ink:#0a0807}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden}
+#stage{position:relative;width:1080px;height:1920px}
+svg{position:absolute;left:0;top:0}
+.cap{position:absolute;left:0;width:1080px;text-align:center;top:1210px;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;font-size:92px;letter-spacing:1px;color:var(--cream);line-height:1;text-transform:uppercase}
+.chip{display:inline-block;background:var(--red);padding:2px 18px 6px;margin:0 4px;border-radius:6px;color:var(--cream)}
+.lab{position:absolute;left:64px;top:228px;font-family:'Liberation Serif',serif;font-style:italic;color:var(--cream)}
+.lab b{display:block;font-weight:400;font-size:44px}
+.lab i{display:block;font-size:28px;opacity:.55;margin-top:6px}
+.brand{position:absolute;left:64px;top:150px;font-family:'Liberation Sans Narrow',sans-serif;font-weight:700;font-size:34px;letter-spacing:10px;color:var(--cream)}
+.brand em{font-style:normal;color:var(--red)}
+body.C .cap{-webkit-text-stroke:8px #000;paint-order:stroke fill;font-size:100px}
+body.C .chip{-webkit-text-stroke:0;transform:rotate(-2deg);border-radius:2px}
+</style></head>
+<body>
+<div id="stage">
+<svg id="art" width="1080" height="1920" viewBox="0 0 1080 1920"></svg>
+<div class="brand">SL<em>O</em>W LIGHT</div>
+<div class="lab"><b>hand, reaching</b><i>one plate, two moments</i></div>
+<div class="cap" id="cap">You can't <span class="chip">tickle</span> yourself.</div>
+</div>
+<script>
+const V=(new URLSearchParams(location.search).get('v')||'A').toUpperCase();
+document.body.className=V;
+const S=document.getElementById('art');
+const hand=`
+<path d="M-760,40 L70,12 L70,196 L-760,300 Z"/>
+<path d="M60,14 C140,-14 270,-8 345,26 L362,172 C345,222 210,244 96,212 L60,200 Z"/>
+<ellipse cx="352" cy="112" rx="38" ry="31"/>
+<ellipse cx="340" cy="158" rx="36" ry="28"/>
+<ellipse cx="322" cy="198" rx="32" ry="24"/>
+<path d="M150,24 Q215,-52 318,-34" fill="none" stroke-width="44" stroke-linecap="round"/>
+<path d="M300,52 L470,40 Q560,36 664,50" fill="none" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>`;
+// target (touch point) on the wall, right side
+const TX=900,TY=622;
+function reticle(x,y,r,c){return `<g stroke="${c}" fill="none" stroke-width="3"><circle cx="${x}" cy="${y}" r="${r}"/><circle cx="${x}" cy="${y}" r="${r*0.45}"/><path d="M${x-r-30},${y}H${x-r*0.45-8}M${x+r*0.45+8},${y}H${x+r+30}M${x},${y-r-30}V${y-r*0.45-8}M${x},${y+r*0.45+8}V${y+r+30}"/></g>`}
+function grid(c,o){let s='';for(let x=0;x<=1080;x+=60)s+=`M${x},330V1120`;for(let y=330;y<=1120;y+=60)s+=`M0,${y}H1080`;return `<path d="${s}" stroke="${c}" stroke-opacity="${o}" stroke-width="1.5" fill="none"/>`}
+const clock=(c)=>`<g transform="translate(930,236)" stroke="${c}" fill="none" stroke-width="3"><circle r="56"/><path d="M0,-46V-52M46,0H52M0,46V52M-46,0H-52" /><path d="M0,0L22,-26" stroke-width="5"/><path d="M0,0L-8,-40" stroke-width="3"/></g>`;
+function graph(redC,goldC,spike){
+  return `<g fill="none" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M0,1860 C180,1800 300,1700 470,1640 S760,1470 1080,1420" stroke="${goldC}" stroke-width="5"/>
+   <path d="M0,1860 H300 V1835 H600 V1810 H820 V1790 H1080" stroke="${redC}" stroke-width="6"/>
+   ${spike?`<path d="M820,1790 L860,1480 L900,1790" stroke="${redC}" stroke-width="6"/>`:''}
+  </g>`}
+const band=(c1,c2)=>`<rect x="0" y="1128" width="1080" height="34" fill="${c1}"/><path d="M0,1145H1080" stroke="${c2}" stroke-width="26" stroke-dasharray="46 46"/>`;
+const grain=(o)=>`<filter id="gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="1080" height="1920" filter="url(#gr)" opacity="${o}" style="mix-blend-mode:overlay"/>`;
+const vig=`<radialGradient id="vg" cx="50%" cy="42%" r="75%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".75"/></radialGradient><rect width="1080" height="1920" fill="url(#vg)"/>`;
+
+let svg='';
+const HX=90,HY=820; // hand position (wrist-forearm origin)
+const SX=313,SY=580; // shadow is AHEAD of the hand and already at the touch point
+
+if(V==='A'){ // flat editorial, pigeon-like
+  svg=`<defs>${grain(0.22)}</defs>
+  <rect width="1080" height="1920" fill="#120c08"/>
+  ${grid('#e8e4d0',0.07)}
+  ${reticle(TX,TY,52,'#d63e30')}<g stroke="#d63e30" stroke-opacity=".5" stroke-width="2" stroke-dasharray="6 8"><path d="M0,${TY}H${TX-100}"/></g>
+  ${clock('#e8e4d0')}
+  <g transform="translate(${SX},${SY}) scale(.85)" fill="#050403" stroke="#050403" stroke-linejoin="round" opacity=".9">${hand}</g>
+  ${[3,2,1].map(i=>`<g transform="translate(${HX-i*46},${HY}) scale(.85)" fill="#cfc9bd" stroke="#cfc9bd" opacity="${0.12*(4-i)}">${hand}</g>`).join('')}
+  <g transform="translate(${HX},${HY}) scale(.85)" fill="#d7d1c4" stroke="#d7d1c4" stroke-linejoin="round">${hand}</g>
+  ${band('#e8e4d0','#0e0906')}
+  ${graph('#d63e30','#e3b04b',false)}
+  ${grain(0.0)}`;
+}
+if(V==='B'){ // cinematic editorial: rim light, teal prediction, soft shadow, depth
+  svg=`<defs>
+   ${grain(0.2)}
+   <radialGradient id="wall" cx="62%" cy="34%" r="70%"><stop offset="0" stop-color="#3a2a1d"/><stop offset=".5" stop-color="#1a110b"/><stop offset="1" stop-color="#0b0705"/></radialGradient>
+   <linearGradient id="skin" gradientUnits="userSpaceOnUse" x1="0" y1="-60" x2="0" y2="300"><stop offset="0" stop-color="#f1e6d2"/><stop offset=".55" stop-color="#cdbfa8"/><stop offset="1" stop-color="#6d5f52"/></linearGradient>
+   <filter id="soft" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+   <filter id="rim" x="-10%" y="-10%" width="120%" height="120%"><feOffset in="SourceAlpha" dx="7" dy="-8" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="e"/><feFlood flood-color="#ff5a44"/><feComposite in2="e" operator="in" result="r"/><feGaussianBlur stdDeviation="1.2" result="rb"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rb"/></feMerge></filter>
+   <filter id="rimT" x="-10%" y="-10%" width="120%" height="120%"><feOffset in="SourceAlpha" dx="-7" dy="7" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="e"/><feFlood flood-color="#6fd6cb"/><feComposite in2="e" operator="in"/></filter><filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+   <radialGradient id="cone" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8c58a" stop-opacity=".22"/><stop offset="1" stop-color="#e8c58a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="#0e0906"/>
+  <rect y="300" width="1080" height="830" fill="url(#wall)"/>
+  <ellipse cx="760" cy="560" rx="620" ry="520" fill="url(#cone)"/>
+  ${grid('#e8e4d0',0.06)}
+  <g stroke="#4fb3a9" stroke-opacity=".35" stroke-width="2" stroke-dasharray="6 9"><path d="M0,${TY}H${TX-80}"/></g>
+  ${reticle(TX,TY,52,'#d63e30')}
+  ${clock('#e8e4d0')}
+  <!-- prediction: teal ghost leads the shadow -->
+  <g transform="translate(${SX+14},${SY-6}) scale(.85)" fill="#4fb3a9" stroke="#4fb3a9" opacity=".28" filter="url(#glow)">${hand}</g>
+  <g transform="translate(${SX},${SY}) scale(.85)" fill="#030202" stroke="#030202" stroke-linejoin="round" opacity=".92" filter="url(#soft)">${hand}</g>
+  <g transform="translate(${SX},${SY}) scale(.85)" fill="#000" stroke="#000" stroke-linejoin="round" filter="url(#rimT)">${hand}</g>
+  ${[3,2,1].map(i=>`<g transform="translate(${HX-i*48},${HY}) scale(.85)" fill="#e8e4d0" stroke="#e8e4d0" opacity="${0.045*(4-i)}" filter="url(#glow)">${hand}</g>`).join('')}
+  <g transform="translate(${HX},${HY+34}) scale(.85)" fill="#000" stroke="#000" opacity=".5" filter="url(#soft)">${hand}</g>
+  <g transform="translate(${HX},${HY}) scale(.85)" fill="url(#skin)" stroke="url(#skin)" stroke-linejoin="round" filter="url(#rim)">${hand}</g>
+  ${band('#e8e4d0','#0e0906')}
+  ${graph('#d63e30','#e3b04b',false)}
+  ${vig}${grain(0.0)}`;
+}
+if(V==='C'){ // anime-leaning: ink outline, cel shade, speed lines, impact
+  let rays='';for(let i=0;i<46;i++){const a=i/46*Math.PI*2,r1=120+(i%3)*30,r2=900;const w=0.018+(i%4)*0.006;rays+=`<path d="M${TX+Math.cos(a-w)*r1},${TY+Math.sin(a-w)*r1}L${TX+Math.cos(a)*r2},${TY+Math.sin(a)*r2}L${TX+Math.cos(a+w)*r1},${TY+Math.sin(a+w)*r1}Z"/>`}
+  let star='';for(let i=0;i<24;i++){const a=i/24*Math.PI*2,r=(i%2?64:128);star+=`${i?'L':'M'}${TX+Math.cos(a)*r},${TY+Math.sin(a)*r}`}
+  svg=`<defs>
+   ${grain(0.14)}
+   <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="11" cy="11" r="3.6" fill="#e8e4d0" fill-opacity=".10"/></pattern>
+   <filter id="ink" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="7" result="d"/><feFlood flood-color="#000"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1080" height="1920" fill="#150d09"/>
+  <rect y="300" width="1080" height="830" fill="url(#dots)"/>
+  <g fill="#e8e4d0" fill-opacity=".09" style="clip-path:inset(300px 0 790px 0)">${rays}</g>
+  <path d="${star}Z" fill="#d63e30" stroke="#000" stroke-width="7" stroke-linejoin="round"/>
+  <path d="${star}Z" fill="#e8e4d0" transform="translate(${TX*0.14},${TY*0.14}) scale(.86)" opacity=".95"/>
+  ${clock('#e8e4d0')}
+  <g transform="translate(${SX},${SY}) scale(.85)" fill="#000" stroke="#000" stroke-linejoin="round" opacity=".88" filter="url(#ink)">${hand}</g>
+  ${[3,2,1].map(i=>`<g transform="translate(${HX-i*70},${HY}) scale(.85)" fill="none" stroke="#e8e4d0" stroke-width="4" opacity="${0.18*(4-i)}"><use/></g>`).join('')}
+  <g transform="translate(${HX},${HY}) scale(.85)" fill="#e8dcc6" stroke="#e8dcc6" stroke-linejoin="round" filter="url(#ink)">${hand}</g>
+  <g transform="translate(${HX},${HY+14}) scale(.85)" fill="#c9a98a" stroke="#c9a98a" stroke-linejoin="round" opacity=".0">${hand}</g>
+  ${band('#e8e4d0','#150d09')}
+  ${graph('#d63e30','#e3b04b',false)}
+  ${grain(0.0)}`;
+}
+S.innerHTML=svg;
+window.ready=true;
+</script></body></html>
