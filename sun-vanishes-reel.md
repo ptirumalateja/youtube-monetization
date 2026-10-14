@@ -65,3 +65,31 @@ Pinned comment: "Would you notice the darkness or the orbit change first? ☀️
 
 Other sounds used (CC0, no credit needed): Explosion From Another Dimension, Fantasy Implosion (qubodup); Dark Suspense Accent (mikiko850); Orbiting Plasma Burst and Trail FX (CVLTIV8R); portal gate opening (berkup); Riser Hit sfx 120 (AudioPapkin); wind.ogg (sleepCircle).
 Not used in this cut: Halleck's JacobsLadderSingle2 (CC BY), so no credit for it here.
+
+## YouTube upload copy (Sun reel recut v3)
+**Title:** What if the Sun vanished right now? (8 minutes 20 seconds)
+
+**Description:**
+> What if the Sun vanished right now?
+>
+> You wouldn't know for 8 minutes and 20 seconds. That's how long sunlight takes to reach Earth.
+>
+> In general relativity, changes in gravity travel at the speed of light too, so Earth would keep orbiting for those same 8 minutes and 20 seconds. Then the light and the pull would end together, and Earth would move off in a straight line.
+>
+> A thought experiment: the Sun isn't going anywhere. Distances and sizes are not to scale. Visuals are AI-generated and 3D-rendered.
+>
+> Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0.
+> - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+> - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+>
+> Slow Light: stories worth slowing down for.
+> #space #sun #physics
+
+**Hashtags (YouTube shows the first 3 above the title):** #space #sun #physics
+
+**Tags (under 500 characters):**
+what if the sun disappeared, what if the sun vanished, sun disappears, speed of light, 8 minutes 20 seconds, speed of gravity, gravity speed of light, how long does sunlight take to reach earth, earth orbit, thought experiment, space facts, physics, astronomy, science shorts, space shorts, slow light
+
+**Pinned comment:** Would you notice the darkness or the orbit change first? ☀️
+**Settings:** Shorts, Science & Technology, not made for kids, Altered or synthetic content = Yes.
