@@ -61,3 +61,8 @@ Both are on screen by about 0.7 s, fully typed (not slow).
 - Render: `render.js` (4 parallel workers, 720x1280, upscaled to 1080x1920). Overlay: `overlay26.py A|B` (needs `proj.json` from `proj.js`). Sound: `mix_ladder26.py`. Audio chain: volume +3 dB, alimiter 0.62, AAC -> about -15.0 LUFS, -2.2 dBTP.
 - Sound credits needed if the same files are used: Electric Sparks (mikiko850, CC BY 4.0), 5 Everyday Whooshes (Tomlija, CC BY 3.0), synth_jet (vartioh, CC BY 4.0). JacobsLadder (Halleck) is loaded in the script but not placed in this cue sheet.
 - Not yet auditioned by ear.
+
+## v2.1: plunge match-cut + dense dust (final cut files `scale_ladder_3d_v2_A/B.mp4`)
+- Black gap removed. From 22.5 s the camera plunges back down the ladder (web, Milky Way, Solar System, Sun, Earth) in about 1.6 s with a corkscrew orbit, landing on Earth at 24.1 s with a soft flash; "YOU ARE HERE." types at 24.5 s. Loops to frame 0 (Earth pulling back).
+- Dense scale-free dust: 14 camera-wrapped, world-fixed lattice layers (about 126k particles) fade in and out by scale, so particles slide past at different depths.
+- Audio: gain +4.5 dB, alimiter 0.48 gives about -15.1 LUFS and -3.5 dBTP after AAC. Plunge sound: rising sweep, riser, one whoosh per scale crossing, thud on landing.

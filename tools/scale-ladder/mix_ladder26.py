@@ -110,13 +110,19 @@ bright=fft_filter(roar,'lp',3500); dark=fft_filter(roar,'lp',260); w_=np.clip(tt
 rr=(bright*(1-w_)+dark*w_)*(0.38*np.exp(-np.clip(tt,0,None)/0.6)*m)[:,None]
 buses['synth']+=(np.stack([sub*env+body,sub*env+body],1)*db(-4)+rr*db(-4)).astype(np.float32); burst(18.0,0.7,-13,hp=3000,bus='air')
 # ---- stop 5: web shimmer 20.0-23.0
-padw=(np.sin(2*np.pi*424*t)+0.6*np.sin(2*np.pi*636*t)+0.4*np.sin(2*np.pi*848*t))*(0.7+0.3*np.sin(2*np.pi*0.7*t))*np.clip((t-19.6)/1.2,0,1)*np.clip((22.9-t)/0.4,0,1)*((t>=19.6)&(t<22.9))*db(-30); buses['bed']+=np.stack([padw,padw],1).astype(np.float32)
+padw=(np.sin(2*np.pi*424*t)+0.6*np.sin(2*np.pi*636*t)+0.4*np.sin(2*np.pi*848*t))*(0.7+0.3*np.sin(2*np.pi*0.7*t))*np.clip((t-19.6)/1.2,0,1)*np.clip((22.5-t)/0.4,0,1)*((t>=19.6)&(t<22.5))*db(-30); buses['bed']+=np.stack([padw,padw],1).astype(np.float32)
 place('bed',seg(PLASMA,4.9,6.0),20.2,-16,fi=0.3,fo=0.8)
-for k,f_ in enumerate([1319,1568,1760,2093,1175,1568]): bell(20.4+0.45*k,f_,1.6,-27)
-# ---- 23.8 back to Earth: soft thud, wind, one bell ping, crackle, loop link
-synth_boom(23.8,0.7,80,34,-8)
-place('bed',wd[int(8*SR):int(11*SR)],23.8,-15,fi=0.3,fo=0.04)
-bell(24.25,1319,2.2,-18); bell(24.25,659,2.2,-24)
+for k,f_ in enumerate([1319,1568,1760,2093,1175]): bell(20.4+0.45*k,f_,1.6,-27)
+# ---- 22.5-24.1 the plunge back down the ladder: rising sweep, riser, pass-by whooshes per scale, then Earth lands
+fsw=180*np.exp(np.clip((t-22.5)/1.55,0,1)*np.log(3400/180)); phs=2*np.pi*np.cumsum(fsw)/SR
+sw=np.sin(phs)*np.clip((t-22.5)/0.3,0,1)*((t>=22.5)&(t<24.05))*(np.clip((t-22.5)/1.55,0,1)**1.6)*np.clip((24.05-t)/0.02,0,1)*db(-20); buses['riser']+=np.stack([sw,sw],1).astype(np.float32)
+place('riser',ris[int(3.15*SR):int(5.0*SR)],22.4,-7,fi=0.2,fo=0.01,length=1.65)
+whoosh_at(4,24.0,-4,rev=True,p0=0,p1=0,fo=0.01)
+for tw_,k_ in ((22.95,1),(23.4,2),(23.8,3)): whoosh_at(k_,tw_,-8,p0=0.8,p1=-0.8)
+place('hit',seg(IMP,0.08,1.6),22.5,-9,fi=0.003,fo=0.5); synth_boom(22.5,0.6,88,36,-5)
+synth_boom(24.1,0.9,85,34,-3); burst(24.1,0.05,-10,hp=2200)
+place('bed',wd[int(8*SR):int(11*SR)],24.1,-15,fi=0.3,fo=0.04)
+bell(24.55,1319,2.0,-18); bell(24.55,659,2.0,-24)
 for k,t0 in enumerate((25.35,25.5,25.62,25.74,25.84,25.92)): spark(t0,-6,k+2,length=0.16,pan=(-0.3 if k%2 else 0.3))
 u=np.clip((t-25.3)/0.68,0,1)*(t>=25.3); lk=np.sin(2*np.pi*np.cumsum(40+36*u**1.6)/SR)*u**1.5*db(-12); buses['synth']+=np.stack([lk,lk],1).astype(np.float32)
 # ---------------------------------------------------------------- reverb on hit/punch
@@ -131,7 +137,7 @@ buses['hit']=buses['hit']+reverb(buses['hit']); buses['punch']=buses['punch']+re
 for k in ('sfx','riser','bed','air'): buses[k]=fft_filter(buses[k],'hp',90)
 buses['hit']=fft_filter(buses['hit'],'hp',28)
 duck2=np.ones(N)
-for h in (2.0,5.4,11.0,18.0,23.8):
+for h in (2.0,5.4,11.0,18.0,24.1):
     i0=int((h-0.08)*SR); i1=int(h*SR); duck2[i0:i1]=np.minimum(duck2[i0:i1],0.12)
     rel=int(0.45*SR); duck2[i1:i1+rel]=np.minimum(duck2[i1:i1+rel],0.12+0.88*np.linspace(0,1,rel)**1.5)
 for k in ('sfx','bed','tick','riser','air'): buses[k]=buses[k]*duck2[:,None]
@@ -139,7 +145,7 @@ mix=sum(buses.values())
 duck=np.ones(N)
 def vac(a,b,floor=0.0,ramp=0.012):
     i0,i1=int(a*SR),int(b*SR); duck[i0:i1]=np.minimum(duck[i0:i1],floor); r=int(ramp*SR); duck[i0-r:i0]=np.minimum(duck[i0-r:i0],np.linspace(1,floor,r))
-vac(1.92,2.0); vac(5.30,5.395); vac(10.90,10.995); vac(17.05,17.95,floor=0.02,ramp=0.05); vac(22.95,23.8)
+vac(1.92,2.0); vac(5.30,5.395); vac(10.90,10.995); vac(17.05,17.95,floor=0.02,ramp=0.05); vac(24.02,24.1)
 mix=mix*duck[:,None]
 mix=fft_filter(mix,'hp',24); mix=np.tanh(mix*0.9)/np.tanh(0.9)
 mix[-int(0.02*SR):]*=np.linspace(1,0,int(0.02*SR))[:,None]

@@ -31,7 +31,7 @@ def speed_lines(seed,alpha,n=36):
         d.polygon(p,fill=(255,255,255,int(255*alpha)))
     return im
 def solid(c,a): return Image.new("RGBA",(W,H),c+(int(255*a),))
-TS=[5.4,11.0]
+TS=[5.4,11.0,22.5]
 def impact(f):
     t=f/FPS
     for ts in TS:
@@ -41,13 +41,13 @@ def impact(f):
             return Image.alpha_composite(lay,solid((255,255,255),0.08)) if k==0 else lay
     k=int(round((t-18.0)*FPS))
     if 0<=k<14: return solid((255,255,255),0.34*(1-k/14))
-    k=int(round((t-23.8)*FPS))
-    if 0<=k<6: return solid((255,255,255),0.22*(1-k/6))
+    k=int(round((t-24.1)*FPS))
+    if 0<=k<6: return solid((255,255,255),0.30*(1-k/6))
     return None
 STOPS=[(2.0,5.4,"WIDER THAN EARTH","109×","THE SUN","1.3 MILLION EARTHS FIT INSIDE",2),
        (7.6,11.0,"WIDER THAN THE SUN","6,500×","SOLAR SYSTEM","TO NEPTUNE'S ORBIT",3),
        (13.0,17.9,"WIDER THAN THE SOLAR SYSTEM","100 MILLION×","MILKY WAY","~100,000 LIGHT-YEARS ACROSS",4),
-       (20.0,23.0,"WIDER THAN THE MILKY WAY","930,000×","OBSERVABLE UNIVERSE","~93 BILLION LIGHT-YEARS ACROSS",5)]
+       (20.0,22.5,"WIDER THAN THE MILKY WAY","930,000×","OBSERVABLE UNIVERSE","~93 BILLION LIGHT-YEARS ACROSS",5)]
 def PBpos(k,f):
     f=min(f,len(PJ)-1)
     if k==2: a=PJ[f][0]
@@ -76,8 +76,8 @@ for f in range(N):
             # marker ring around the previous scene's blob
             cx,cy=PBpos(k,f); rr=(34 if k==2 else 26)+4*math.sin(t*6); A=int(A*sstep(a0+0.2,a0+0.5,t)); d.ellipse((cx-rr,cy-rr,cx+rr,cy+rr),outline=RED+(int(A*0.95),),width=3)
     # ladder UI
-    if 2.0<=t<23.0:
-        la=sstep(2.0,2.3,t)*(1-sstep(22.7,23.0,t)); LA=int(255*la)
+    if 2.0<=t<22.5:
+        la=sstep(2.0,2.3,t)*(1-sstep(22.2,22.5,t)); LA=int(255*la)
         cur=2 if t<6.5 else 3 if t<12.0 else 4 if t<19.0 else 5
         d.line((64,RUNG_Y[5],64,RUNG_Y[1]),fill=CREAM+(int(LA*0.5),),width=3)
         for k in range(1,6):
@@ -86,10 +86,10 @@ for f in range(N):
             elif k<cur: d.ellipse((64-6,y-6,64+6,y+6),fill=CREAM+(int(LA*0.9),))
             else: d.ellipse((64-6,y-6,64+6,y+6),outline=CREAM+(int(LA*0.7),),width=2)
     # ending
-    if t>=23.8:
-        ra=sstep(24.1,24.5,t)*(1-sstep(25.5,25.8,t)); cx,cy=PBpos(5,0)[0],960; cx=540; rr=285+6*math.sin(t*5)
+    if t>=24.1:
+        ra=sstep(24.4,24.7,t)*(1-sstep(25.5,25.8,t)); cx,cy=PBpos(5,0)[0],960; cx=540; rr=285+6*math.sin(t*5)
         d.ellipse((cx-rr,cy-rr,cx+rr,cy+rr),outline=RED+(int(255*ra),),width=5)
-        n=int((t-24.3)*34); a=int(255*(1-sstep(25.5,25.8,t)))
+        n=int((t-24.5)*34); a=int(255*(1-sstep(25.5,25.8,t)))
         if n>0:
             full="YOU ARE HERE."; pre="YOU ARE "; txt=full[:min(len(full),n)]
             if len(txt)<=len(pre): ctext(d,1300,txt,fend,CREAM,a,stroke=6)
@@ -97,11 +97,11 @@ for f in range(N):
                 x0=(W-tw(d,full,fend))/2; d.text((x0,1300),pre,font=fend,fill=CREAM+(a,),stroke_width=6,stroke_fill=(0,0,0,min(a,235)))
                 xo=x0+tw(d,pre,fend); wo=tw(d,full[len(pre):len(txt)],fend)
                 d.rectangle((xo-12,1294,xo+wo+12,1300+fend.size+10),fill=RED+(int(a*0.97),)); d.text((xo,1300),full[len(pre):len(txt)],font=fend,fill=CREAM+(a,))
-    if t>=0.30 and not (22.9<=t<23.8):
+    if t>=0.30 and not (False):
         ta=int(140*(1-sstep(25.4,25.8,t))); d.text((48,1500),"THOUGHT EXPERIMENT  ·  NOT TO SCALE",font=ftag,fill=(235,235,235,ta))
     imp=impact(f)
     if imp is not None: im=Image.alpha_composite(im,imp)
-    ba=sstep(22.8,23.0,t) if t<23.8 else 0.0
+    ba=0.0
     if t>=25.6: ba=0.88*sstep(25.6,26.0,t)
     if ba>0: im=Image.alpha_composite(im,solid((0,0,0),ba)) if ba<1 else Image.alpha_composite(Image.new('RGBA',(W,H),(0,0,0,255)),Image.new('RGBA',(W,H),(0,0,0,0)))
     p.stdin.write(im.tobytes())
