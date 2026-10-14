@@ -140,8 +140,8 @@ for f in range(N):
         if pj and 0<pj[0]<1 and 0<pj[1]<1:
             cx,cy=pj[0]*W,pj[1]*H; ra=sstep(13.0,13.4,t)*(1-sstep(16.0,16.35,t)); rr=(36+4*math.sin(t*6))*(1+2.0*sstep(15.2,16.0,t))
             d.ellipse((cx-rr,cy-rr,cx+rr,cy+rr),outline=RED+(int(255*ra),),width=5)
-    if t>=16.17:
-        n=int((t-16.57)*34); a=int(255*(1-sstep(18.8,19.17,t)))
+    if t>=16.57:                                   # start typing only when the counter is >= 1 (negative n would slice from the END of the string)
+        n=max(1,int((t-16.57)*34)); a=int(255*(1-sstep(18.8,19.17,t)))
         typed_two(d,1300,1390,"YOU'RE LOOKING","AT THE PAST.",n,fend,a)
     if t>=0.35:
         ta=int(140*(1-sstep(18.8,19.17,t))); d.text((48,1500),"THOUGHT EXPERIMENT  ·  NOT TO SCALE",font=ftag,fill=(235,235,235,ta))
