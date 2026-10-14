@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ComfyUI client for the tickle reel plates (RunPod pod, models on the slowlight-100 volume).
 
-  POD=<podid> python3 comfy.py qwen <seed.png> "<prompt>" <out.png> [seed] [WxH]
+  POD=<podid> python3 comfy.py qwen [--ref hero.png] [--ref look.png] <seed.png> "<prompt>" <out.png> [seed] [WxH]
   POD=<podid> python3 comfy.py wan  <still.png> "<prompt>" <out.mp4> [frames] [seed] [WxH]
 
 qwen: Qwen Image Edit 2511 (+Lightning 4-step) re-renders a storyboard panel as a 9:16 still.
@@ -48,8 +48,8 @@ def fetch(item, dest):
     open(dest, "wb").write(r.content)
 
 
-def qwen_graph(img, prompt, seed, w, h):
-    return {
+def qwen_graph(img, prompt, seed, w, h, refs=()):
+    g = {
         "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "qwen_image_edit_2511_fp8mixed.safetensors", "weight_dtype": "default"}},
         "2": {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["1", 0], "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "strength_model": 1.0}},
         "3": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["2", 0], "shift": 3.0}},
@@ -65,6 +65,13 @@ def qwen_graph(img, prompt, seed, w, h):
         "13": {"class_type": "VAEDecode", "inputs": {"samples": ["12", 0], "vae": ["6", 0]}},
         "14": {"class_type": "SaveImage", "inputs": {"images": ["13", 0], "filename_prefix": "tickle/qwen"}},
     }
+    # extra reference images (hero hand, look still) feed image2/image3 of both text encoders
+    for i, r in enumerate(refs[:2]):
+        nid = str(20 + i)
+        g[nid] = {"class_type": "LoadImage", "inputs": {"image": r}}
+        for enc in ("9", "10"):
+            g[enc]["inputs"][f"image{i + 2}"] = [nid, 0]
+    return g
 
 
 NEG = "blurry, low quality, text, watermark, subtitles, extra fingers, deformed hands, morphing, cartoon, bright daylight, overexposed"
@@ -96,10 +103,14 @@ def wan_graph(img, prompt, seed, w, h, frames):
 def main():
     mode = sys.argv[1]
     if mode == "qwen":
-        seedp, prompt, out = sys.argv[2:5]
-        seed = int(sys.argv[5]) if len(sys.argv) > 5 else 7
-        w, h = map(int, (sys.argv[6] if len(sys.argv) > 6 else "832x1472").split("x"))
-        outs, dt = run(qwen_graph(upload(seedp), prompt, seed, w, h), "14")
+        args = sys.argv[2:]
+        refs = []
+        while "--ref" in args:  # --ref <path> (up to 2): hero hand / look still for continuity
+            i = args.index("--ref"); refs.append(args[i + 1]); del args[i:i + 2]
+        seedp, prompt, out = args[:3]
+        seed = int(args[3]) if len(args) > 3 else 7
+        w, h = map(int, (args[4] if len(args) > 4 else "832x1472").split("x"))
+        outs, dt = run(qwen_graph(upload(seedp), prompt, seed, w, h, [upload(r) for r in refs]), "14")
         fetch(outs["images"][0], out)
     else:
         stillp, prompt, out = sys.argv[2:5]
