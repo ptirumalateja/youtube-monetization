@@ -27,3 +27,12 @@ Synth hits (crack + saturated body + gong), shepard risers, per-gate shimmer, pe
 - Uppbeat braam SFX (bass drop by Tomas Herudek, long impact "The Foundation", screaming echo by Epic Stock Media): per Uppbeat's help center free-plan credits apply to music, not sound effects. Verify current terms before monetised upload.
 - gregorquendel circuits hum and soundreality explosion FX: source/licence to be confirmed by the channel owner (filenames look like Pixabay). Both are low in the mix.
 - CC0 (no credit): qubodup Explosion From Another Dimension and Fantasy Implosion, mikiko850 Dark Suspense Accent, CVLTIV8R plasma burst, AudioPapkin riser hit, sleepCircle wind.
+
+## v7 (current): short, clean, punchy, decodable (`night_sky_past_v7_A.mp4`, 18.9 s)
+Why: v5/v6 were smooth but viewers could not tell what each stop was (long busy stretches between objects, chained gates, a fifth object, white-outs at the joins). v4 was decodable because every stop was portal, object, label inside about 1.5 s.
+- Four stops only (Moon 3.0 s, Sun 4.7 s, Proxima 6.4 s, Andromeda 10.05 s); Betelgeuse removed; no chained gates; one circular gate per stop (hexagons and cross spokes removed).
+- Scene time is warped (smooth Catmull time-warp, `WK` in `scene_new.js`) so the same camera move plays in 14 s of 3D.
+- Every stop has a big "THE LIGHT YOU SEE LEFT / ... AGO" counter, a red chip with the name and a one-line meaning (Sun: IF IT VANISHED NOW, YOU'D STILL SEE IT; Andromeda: BEFORE MODERN HUMANS EXISTED); a vertical time ladder (NOW to 2.5 million years) with a climbing marker; hyperdrive counter climbs from 4.2 to 2.5 million years.
+- Joins: the 3D starts as the star's light sweeping into the first gate (no white-out); Andromeda exposure reduced and path routed through an arm; the ending dissolves the star's point of light into the stargazer sky (no flash).
+- Sound (`mix_night7.py`): hits only at 0 s, 2.1 s, 10.05 s and the soft landing; a continuous choir bed, whooshes and pings carry the stops. -14.9 LUFS, -3.7 dBTP after AAC.
+- Sound credits unchanged from the section above (chakong, mikiko850, vartioh CC BY 4.0; verify Uppbeat and the two unverified files).

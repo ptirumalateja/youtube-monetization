@@ -15,8 +15,8 @@ const starMat=(col,scale,speed,gain)=>new THREE.ShaderMaterial({uniforms:{uTime:
    float L=0.55+0.55*g+0.45*c; float mu=clamp(dot(vN,vV),0.0,1.0); L*=0.35+0.65*pow(mu,0.55);
    vec3 col=uCol*L*1.25+vec3(1.0,0.6,0.25)*pow(max(L,0.0),3.2)*0.55; col+=uCol*pow(1.0-mu,3.0)*0.9; gl_FragColor=vec4(col*uGain,1.0); }`});
 // ---------------------------------------------------------------- Moon (silver, crater field, one-sided light)
-const moonMat=new THREE.ShaderMaterial({uniforms:{uL:{value:new THREE.Vector3(-0.78,0.28,0.56).normalize()}},depthTest:false,depthWrite:false,vertexShader:surfVS,
- fragmentShader:`${NOISE} varying vec3 vP; varying vec3 vN; varying vec3 vV; uniform vec3 uL;
+const moonMat=new THREE.ShaderMaterial({uniforms:{uL:{value:new THREE.Vector3(-0.78,0.28,0.56).normalize()},uFade:{value:1}},depthTest:false,depthWrite:false,vertexShader:surfVS,
+ fragmentShader:`${NOISE} varying vec3 vP; varying vec3 vN; varying vec3 vV; uniform vec3 uL; uniform float uFade;
   float h1(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
   vec3 h3(vec3 p){ return fract(sin(vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6))))*43758.5453); }
   float crater(vec3 p,float s){ vec3 q=p*s; vec3 i=floor(q), f=fract(q); float h=0.0;
@@ -27,7 +27,7 @@ const moonMat=new THREE.ShaderMaterial({uniforms:{uL:{value:new THREE.Vector3(-0
    float h0=H(p); float ha=H(normalize(p+e*t1)); float hb=H(normalize(p+e*t2)); vec3 nb=normalize(n-0.10*((ha-h0)/e*t1+(hb-h0)/e*t2));
    float mar=smoothstep(-0.05,0.35,fbm(p*2.2+1.7)); vec3 alb=mix(vec3(0.90,0.92,0.97),vec3(0.42,0.44,0.50),mar*0.85); alb*=0.8+0.2*smoothstep(-1.0,0.6,h0);
    float lam=max(dot(nb,uL),0.0); float term=smoothstep(-0.05,0.25,dot(n,uL)); vec3 col=alb*(lam*term*0.62+0.012);
-   float mu=clamp(dot(vN,vV),0.0,1.0); col+=vec3(0.35,0.5,0.9)*pow(1.0-mu,4.0)*0.18*term; gl_FragColor=vec4(col,1.0); }`});
+   float mu=clamp(dot(vN,vV),0.0,1.0); col+=vec3(0.35,0.5,0.9)*pow(1.0-mu,4.0)*0.18*term; gl_FragColor=vec4(col*uFade,1.0); }`});
 const moon=new THREE.Mesh(new THREE.SphereGeometry(MOON_R,96,64),moonMat); moon.position.copy(MOON_C); moon.renderOrder=20; scene.add(moon);
 // ---------------------------------------------------------------- Sun: blazing flare star (NOT the ladder's textured sphere): core, spikes, streak, orbiting sparks
 const sunCore=glowMesh([1.0,0.80,0.45],50,0.6,0,3.0); sunCore.position.copy(SUN_P); sunCore.renderOrder=18;
@@ -52,8 +52,8 @@ const ringSun=ringPts(SUN_P,60,'double',[1.0,0.78,0.38],1.4); ringSun.rotation.s
 const ringProx=ringPts(PROX_C,9,'hex',[1.0,0.35,0.28],1.6); ringProx.rotation.set(-0.3,0.4,0);
 const ringBet=ringPts(BET_C,BET_R*2.2,'circle',[1.0,0.55,0.25],1.2); ringBet.rotation.set(0.5,-0.3,0);
 // ---------------------------------------------------------------- Proxima (small red dwarf) + flare burst; Betelgeuse (mottled supergiant) + gas shells
-const proxMat=starMat([1.0,0.16,0.06],5.0,1.2,0.7); const prox=new THREE.Mesh(new THREE.SphereGeometry(1.0,64,48),proxMat); prox.position.copy(PROX_C); prox.renderOrder=20; scene.add(prox);
-const proxGlow=glowMesh([1.0,0.22,0.12],14,0.4,0,2.6); proxGlow.position.copy(PROX_C); proxGlow.renderOrder=18;
+const proxMat=starMat([1.0,0.16,0.06],5.0,1.2,0.7); const prox=new THREE.Mesh(new THREE.SphereGeometry(1.7,64,48),proxMat); prox.position.copy(PROX_C); prox.renderOrder=20; scene.add(prox);
+const proxGlow=glowMesh([1.0,0.22,0.12],30,0.5,0,2.4); proxGlow.position.copy(PROX_C); proxGlow.renderOrder=18;
 const betMat=starMat([1.0,0.22,0.04],2.6,0.5,0.6); const bet=new THREE.Mesh(new THREE.SphereGeometry(BET_R,96,64),betMat); bet.position.copy(BET_C); bet.renderOrder=20; scene.add(bet);
 const betGlow=glowMesh([1.0,0.38,0.10],BET_R*3.5,0.3,0,2.2); betGlow.position.copy(BET_C); betGlow.renderOrder=17;
 { const n=26000, mat=pointsMat({uAmp:{value:0.9},uMin:{value:1.4*SC},uMax:{value:10*SC}}); const P=makePoints(n,mat); scene.remove(P.pts); const g=new THREE.Group(); g.position.copy(BET_C); scene.add(g); g.add(P.pts); P.pts.renderOrder=13; window.betShell=g;
@@ -68,6 +68,6 @@ const betGlow=glowMesh([1.0,0.38,0.10],BET_R*3.5,0.3,0,2.2); betGlow.position.co
   g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
   const pts=new THREE.Points(g,mat); pts.position.copy(PROX_C); pts.frustumCulled=false; pts.renderOrder=14; scene.add(pts); window.proxBurst=mat; }
 // ---------------------------------------------------------------- the first star (the flare the viewer was watching)
-const star0Glow=glowMesh([1.0,0.95,0.85],20,0.55,0,2.2); star0Glow.position.copy(STAR0); star0Glow.renderOrder=19;
-const star0Core=glowMesh([1.0,1.0,1.0],4,1.2,0,1.6); star0Core.position.copy(STAR0); star0Core.renderOrder=19;
-const star0Spikes=[0,1].map(k=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),spikeMat([1.0,0.95,0.85],0.9)); m.scale.set(60,50,1); m.position.copy(STAR0); m.rotation.z=k*1.5708; m.renderOrder=19; m.userData.base=k*1.5708; scene.add(m); return m; });
+const star0Glow=glowMesh([1.0,0.95,0.85],7,0.5,0,2.2); star0Glow.position.copy(STAR0); star0Glow.renderOrder=19;
+const star0Core=glowMesh([1.0,1.0,1.0],1.6,1.0,0,1.6); star0Core.position.copy(STAR0); star0Core.renderOrder=19;
+const star0Spikes=[0,1].map(k=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),spikeMat([1.0,0.95,0.85],0.9)); m.scale.set(34,26,1); m.position.copy(STAR0); m.rotation.z=k*1.5708; m.renderOrder=19; m.userData.base=k*1.5708; scene.add(m); return m; });

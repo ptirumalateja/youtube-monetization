@@ -71,8 +71,8 @@ const usDot=glowMesh([1.0,0.80,0.35],120,0.0,0,2.2); usDot.renderOrder=22;
 // (portals placed after camera path is defined)
 const warpGlow=glowMesh([0.7,0.82,1.0],900,0.0,0,2.4); warpGlow.renderOrder=3;
 // ---------------------------------------------------------------- camera: spline through the fly-by waypoints; head turns to each object as it passes; arc out of Andromeda; log-spaced plunge home
-const PK=[[2.10,0,0,0],[2.60,0.5,0.2,-22],[3.20,-2.0,1.0,-46],[3.55,-2.6,1.2,-60],[4.30,-3.0,1.0,-100],[5.30,-8,3,-230],[6.30,-4,2,-340],[7.20,17,-4,-520],[8.20,25,-2,-760],[9.60,380,30,-1300],[10.80,420,35,-1900],[12.0,40,8,-9000],[13.2,10,2,-18000],[13.9,8,1.6,-18200],[15.0,0,0,-20800],[16.3,-80,40,-21900],[17.0,-300,90,-22600],[18.0,300,250,-23200],[19.2,1400,500,-23600]];
-const PASSES=[[2.35,STAR0.x,STAR0.y,STAR0.z],[3.55,MOON_C.x,MOON_C.y,MOON_C.z],[5.30,SUN_P.x,SUN_P.y,SUN_P.z],[7.20,PROX_C.x,PROX_C.y,PROX_C.z],[9.60,BET_C.x,BET_C.y,BET_C.z]];
+const PK=[[2.10,0,0,22],[2.45,4.5,2.2,-8],[2.80,0.6,0.3,-30],[3.20,-2.0,1.0,-46],[3.55,-2.6,1.2,-60],[4.30,-3.0,1.0,-100],[5.30,-8,3,-230],[6.30,-4,2,-340],[7.20,17,-4,-520],[8.20,10,0,-800],[10.80,60,25,-1900],[12.0,40,8,-9000],[13.2,10,2,-18000],[13.9,8,1.6,-18200],[15.0,260,-120,-20800],[16.3,380,-150,-21900],[17.0,-300,90,-22600],[18.0,300,250,-23200],[19.2,1400,500,-23600]];
+const PASSES=[[2.45,STAR0.x,STAR0.y,STAR0.z],[3.55,MOON_C.x,MOON_C.y,MOON_C.z],[5.30,SUN_P.x,SUN_P.y,SUN_P.z],[7.20,PROX_C.x,PROX_C.y,PROX_C.z]];
 const P_END=V3(1400,500,-23600), T_PL0=19.2, T_PL1=21.0, T_END=21.0;
 const L_PL=Math.log(P_END.distanceTo(STAR0)/8.0);
 function camPos(t){ if(t>T_PL0){ const u=Math.min(1,(t-T_PL0)/(T_PL1-T_PL0)); const f=Math.exp(-L_PL*u); return STAR0.clone().add(P_END.clone().sub(STAR0).multiplyScalar(f)); } const k=cr(PK,t); return V3(k[0],k[1],k[2]); }
@@ -88,22 +88,24 @@ function makePortal(kind,col,r,spacing,n,seed){ const g=new THREE.Group(); const
 function placePortal(P,tp){ const c=camPos(tp); const tan=camPos(tp+0.05).sub(camPos(tp-0.05)).normalize(); P.g.position.copy(c); P.g.quaternion.setFromUnitVectors(V3(0,0,-1),tan); P.tp=tp; P.c=c; }
 const PORTALS=[
  {tp:2.85,kind:'circle',col:[0.82,0.92,1.0],r:2.8,sp:8.0,n:6},
- {tp:4.65,kind:'double',col:[1.0,0.80,0.40],r:5.0,sp:14.0,n:6},
- {tp:6.65,kind:'hex',col:[1.0,0.36,0.28],r:4.0,sp:12.0,n:6},
- {tp:8.35,kind:'circle',col:[1.0,0.56,0.24],r:38.0,sp:100.0,n:6},
- {tp:13.45,kind:'double',col:[0.65,0.82,1.0],r:60.0,sp:200.0,n:7}
+ {tp:4.65,kind:'circle',col:[1.0,0.80,0.40],r:5.0,sp:14.0,n:6},
+ {tp:6.65,kind:'circle',col:[1.0,0.45,0.32],r:4.0,sp:12.0,n:6},
+ {tp:13.45,kind:'circle',col:[0.65,0.82,1.0],r:60.0,sp:200.0,n:7}
 ].map((o,i)=>{ const P=makePortal(o.kind,o.col,o.r,o.sp,o.n,i); P.o=o; return P; });
 PORTALS.forEach(P=>placePortal(P,P.o.tp));
 // chain of small gates along the path: keeps the space between realms alive (nested-ring time tunnel, colour drifts realm to realm)
 const CHAIN=[]; { const stops=[[2.4,[0.82,0.92,1.0]],[4.65,[1.0,0.80,0.40]],[6.65,[1.0,0.40,0.30]],[8.35,[1.0,0.56,0.24]],[13.45,[0.65,0.82,1.0]]];
   const colAt=t=>{ for(let i=0;i<stops.length-1;i++){ const a=stops[i],b=stops[i+1]; if(t<=b[0]){ const u=Math.min(1,Math.max(0,(t-a[0])/(b[0]-a[0]))); return [a[1][0]*(1-u)+b[1][0]*u,a[1][1]*(1-u)+b[1][1]*u,a[1][2]*(1-u)+b[1][2]*u]; } } return stops[stops.length-1][1]; };
-  for(let tk=2.5;tk<13.3;tk+=0.34){ const c=camPos(tk); const spd=camPos(tk+0.05).distanceTo(camPos(tk-0.05))/0.1; const r=Math.max(2.2,0.14*spd); const tan=camPos(tk+0.05).sub(camPos(tk-0.05)).normalize();
-    const sub=ringPts(V3(0,0,0),r,(CHAIN.length%3===2)?'hex':'circle',colAt(tk),1.0,2.2); const grp=new THREE.Group(); grp.position.copy(c); grp.quaternion.setFromUnitVectors(V3(0,0,-1),tan); grp.add(sub); scene.add(grp); CHAIN.push({grp,sub,tk,r}); } }
+  for(let tk=2.5;tk<2.4;tk+=0.34){ const c=camPos(tk); const spd=camPos(tk+0.05).distanceTo(camPos(tk-0.05))/0.1; const r=Math.max(2.2,0.14*spd); const tan=camPos(tk+0.05).sub(camPos(tk-0.05)).normalize();
+    const sub=ringPts(V3(0,0,0),r,'circle',colAt(tk),1.0,2.2); const grp=new THREE.Group(); grp.position.copy(c); grp.quaternion.setFromUnitVectors(V3(0,0,-1),tan); grp.add(sub); scene.add(grp); CHAIN.push({grp,sub,tk,r}); } }
+const WK=[[0,0],[2.1,2.1],[3.0,3.55],[4.7,5.3],[6.4,7.2],[7.4,10.8],[9.3,13.2],[10.05,14.0],[12.1,16.2],[13.0,17.4],[14.6,19.2],[15.9,21.0],[16.5,21.6]];
+function Wp(tn){ if(tn<=WK[0][0]) return tn; return cr(WK,Math.min(tn,WK[WK.length-1][0]))[0]; }
+function posAtNew(tn){ return camPos(Math.min(Math.max(Wp(tn),2.1),21.0)); }
 const _m=new THREE.Matrix4(), _q1=new THREE.Quaternion(), _q2=new THREE.Quaternion(), _q3=new THREE.Quaternion();
 function lookQ(pos,target,up,out){ _m.lookAt(pos,target,up); out.setFromRotationMatrix(_m); return out; }
 const ssm=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
 const _tmp=new THREE.Vector3();
-function setT(t){
+function setT(tn){ const t=Wp(tn);
   const tc=Math.min(Math.max(t,2.1),T_END); const pos=camPos(tc); const up=V3(0,1,0);
   let ahead; if(tc>T_PL0) ahead=STAR0.clone(); else { ahead=camPos(Math.min(tc+0.7,T_PL0)); if(tc>13.9&&tc<17.0) ahead.set(0,0,AND_Z-3000); }
   lookQ(pos,ahead,up,_q1);
@@ -113,7 +115,7 @@ function setT(t){
   const upl=(tc-T_PL0)/(T_PL1-T_PL0);
   const roll=0.07*Math.sin(tc*0.6)+0.12*Math.sin((tc-3.55)*1.5)*Math.exp(-Math.pow((tc-3.55)/1.0,2))-0.14*Math.exp(-Math.pow((tc-9.6)/1.2,2))+0.16*ssm(16.2,17.4,tc)*Math.sin((tc-16.6)*1.6)*(1-ssm(17.4,18.2,tc))+(tc>T_PL0?0.55*Math.sin(upl*5.5)*Math.sin(Math.PI*Math.min(1,upl)):0);
   cam.rotateZ(roll); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
-  const speed=camPos(tc+0.05).distanceTo(camPos(tc-0.05))/0.1; window.__speed=speed;
+  const speed=posAtNew(tn+0.05).distanceTo(posAtNew(tn-0.05))/0.1; window.__speed=speed;
   glows.forEach(g=>g.quaternion.copy(cam.quaternion));
   const dF=(p)=>pos.distanceTo(p);
   spikes.forEach(m=>{ m.quaternion.copy(cam.quaternion); m.rotateZ(m.userData.k*0.7854+0.06*t); });
@@ -121,13 +123,15 @@ function setT(t){
   sunStreak.quaternion.copy(cam.quaternion); andStreak.quaternion.copy(cam.quaternion); andRays.forEach(m=>{ m.quaternion.copy(cam.quaternion); m.rotateZ(m.userData.a+0.03*t); });
   { const fwd=V3(0,0,-1).applyQuaternion(cam.quaternion); warpGlow.position.copy(pos).addScaledVector(fwd,2500); warpGlow.scale.set(1400,1400,1); warpGlow.opacity=0.34*ssm(1500,6000,speed)*(1-ssm(13.2,13.9,t)); }
   const dS=dF(SUN_P), dM=dF(MOON_C), dP=dF(PROX_C), dB=dF(BET_C), d0=dF(STAR0);
-  moon.visible=dM<4000; prox.visible=dP<3000; bet.visible=dB<30000;
-  sunCore.opacity=0.42*(1-ssm(20,10,dS)); sunHalo.opacity=0.08*(1-ssm(2500,9000,dS)); sunWhite.opacity=0.8*(1-ssm(700,5000,dS));
-  spikes.forEach(m=>m.material.uniforms.uO.value=(m.userData.k%2?0.28:0.4)*(1-ssm(1500,6000,dS))*(0.3+0.7*ssm(10,120,dS)));
-  sunStreak.scale.set(1500,Math.min(70,Math.max(5,0.09*dS)),1); sunStreak.material.uniforms.uO.value=0.5*(1-ssm(300,900,dS)); sunStreak.visible=dS<1000;
-  star0Glow.opacity=0.55*(1-ssm(2,30,d0)); star0Core.opacity=1.2*(1-ssm(8,200,d0))*(1-ssm(60,900,d0));
-  star0Spikes.forEach(m=>m.material.uniforms.uO.value=0.9*(1-ssm(30,500,d0)));
-  proxGlow.opacity=0.4*(1-ssm(300,2500,dP)); betGlow.opacity=0.3*(1-ssm(BET_R*8,BET_R*60,dB));
+  const wnd=(a,b)=>ssm(a,a+0.5,t)*(1-ssm(b-0.5,b,t));
+  const wM=wnd(2.7,5.2), wS=wnd(4.2,7.4), wP=wnd(6.2,8.9), wB=0;
+  moonMat.uniforms.uFade.value=wM; moon.visible=dM<4000&&wM>0.002; prox.visible=dP<3000&&wP>0.002; bet.visible=dB<30000&&wB>0.002; proxMat.uniforms.uGain.value=0.7*wP; betMat.uniforms.uGain.value=0.6*wB;
+  sunCore.opacity=0.42*(1-ssm(20,10,dS))*wS; sunHalo.opacity=0.08*(1-ssm(2500,9000,dS))*wS; sunWhite.opacity=0.8*(1-ssm(700,5000,dS))*wS;
+  spikes.forEach(m=>m.material.uniforms.uO.value=(m.userData.k%2?0.28:0.4)*(1-ssm(1500,6000,dS))*(0.3+0.7*ssm(10,120,dS))*wS);
+  sunStreak.scale.set(1500,Math.min(70,Math.max(5,0.09*dS)),1); sunStreak.material.uniforms.uO.value=0.5*(1-ssm(300,900,dS))*wS; sunStreak.visible=dS<1000;
+  star0Glow.opacity=0.5*ssm(0.8,6,d0)*(1-ssm(150,1200,d0)); star0Core.opacity=1.0*ssm(0.6,4,d0)*(1-ssm(60,900,d0));
+  star0Spikes.forEach(m=>m.material.uniforms.uO.value=0.9*ssm(1,8,d0)*(1-ssm(30,500,d0)));
+  proxGlow.opacity=0.4*(1-ssm(300,2500,dP))*wP; betGlow.opacity=0.3*(1-ssm(BET_R*8,BET_R*60,dB))*wB;
   proxMat.uniforms.uTime.value=t; betMat.uniforms.uTime.value=t; window.proxBurst.uniforms.uT.value=t;
   ringStar0.visible=d0<60; ringStar0.rotation.z=t*0.8;
   PORTALS.forEach((P,pi)=>{ const dd=pos.distanceTo(P.c); const vis=dd<P.o.sp*P.o.n*5+600&&tc>P.tp-2.6&&tc<P.tp+2.4; P.g.visible=vis; if(!vis) return;
@@ -139,14 +143,14 @@ function setT(t){
     c.grp.traverse(o=>{ if(o.isPoints) o.material.uniforms.uAmp.value=1.5*ssm(2.6,0.9,dt)*(dt<0?1-ssm(0,-0.6,dt):1); }); });
   // ---- Andromeda reveal (approved plate as depth-bulged point cloud + plane) with cinematic effects
   const dA=Math.abs(pos.z-AND_Z); const ar=ssm(13.9,14.25,t); const gone=1-ssm(16.2,16.9,t); const gone2=1-ssm(17.0,18.3,t);
-  andMat.opacity=0.85*ar*gone*ssm(250,1500,dA); andPlane.visible=ar>0.001&&gone>0.001;
-  andPtsMat.uniforms.uAmp.value=0.55*ar*gone*(0.25+0.75*ssm(250,2600,dA)); andP.pts.visible=window.andReady&&gone>0.001; andPtsMat.uniforms.uTime.value=t;
+  andMat.opacity=0.62*ar*gone*ssm(250,1500,dA); andPlane.visible=ar>0.001&&gone>0.001;
+  andPtsMat.uniforms.uAmp.value=0.40*ar*gone*(0.25+0.75*ssm(250,2600,dA)); andP.pts.visible=window.andReady&&gone>0.001; andPtsMat.uniforms.uTime.value=t;
   window.andHaloMat.uniforms.uAmp.value=0.7*ar*gone2; window.andHaloMat.uniforms.uTime.value=t;
   andHalo1.rotation.z=t*0.25; andHalo2.rotation.z=-t*0.3; andHalo1.visible=andHalo2.visible=ar>0.01&&gone2>0.001;
   const aa=ar*gone2;
-  andCoreGlow.opacity=0.36*aa*ssm(200,1500,dA); andWhite.opacity=0.9*ar*gone*ssm(60,500,dA);
-  andStreak.material.uniforms.uO.value=0.38*ar*gone*ssm(150,1200,dA); andStreak.visible=aa>0.001;
-  andRays.forEach(m=>{ m.material.uniforms.uO.value=0.10*ar*gone*ssm(200,1500,dA); m.visible=aa>0.001; });
+  andCoreGlow.opacity=0.18*aa*ssm(200,1500,dA); andWhite.opacity=0.30*ar*gone*ssm(60,500,dA);
+  andStreak.material.uniforms.uO.value=0.28*ar*gone*ssm(150,1200,dA); andStreak.visible=aa>0.001;
+  andRays.forEach(m=>{ m.material.uniforms.uO.value=0.07*ar*gone*ssm(200,1500,dA); m.visible=aa>0.001; });
   { const su=(t-14.0)/1.3; shockG.visible=su>0&&su<1; shockG.scale.setScalar(0.05+4.0*Math.pow(Math.max(0,su),0.6)); shockG.quaternion.copy(cam.quaternion); ringGlobalAmp(shock,2.6*(1-ssm(0.4,1.0,su))); }
   // ---- our galaxy from outside (look-back) and the plunge home
   const wb=ssm(16.4,17.5,tc)*(1-ssm(T_PL1-0.35,T_PL1,t)); const mwNear=ssm(400,6000,pos.distanceTo(mwCenter));
