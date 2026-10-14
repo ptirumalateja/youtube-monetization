@@ -48,3 +48,20 @@ Pinned comment: "Would you notice the darkness or the orbit change first? ☀️
 3. ffmpeg: light-front ring via geq/blend, mono counter via drawtext, typed hook, flash-cut Sun-off, loop cut.
 4. Audio: low drone, riser during counter, silence hit at 08:20 (synth SFX, no VO needed unless wanted).
 5. Check: text inside Shorts safe zone, answer lands by ~12 s.
+
+## YouTube recut (v3) - what changed and credits
+- File: `sun_vanishes_v3_yt.mp4` (14 s, 9:16, with sound). Same Sun/Earth/light-front visuals as the posted cut.
+- Opening: the full question ("WHAT IF THE SUN VANISHED RIGHT NOW?") is on screen from frame 0 (no typing), with a hit at 0.0 s. The "READ CAPTION" line is removed (that wording is for Instagram).
+- Sound: new cue sheet from the Freesound library (roar and particle swooshes 0-2.4 s, suction into the cut, thud then silence, hush bed, accelerating pulse into the arrival, big hit with controlled-decay sub wall at 10.5 s). Measured -15.6 LUFS, -3.1 dBTP.
+- Title for YouTube: What if the Sun vanished right now? (8 minutes 20 seconds)
+- Pinned comment: Would you notice the darkness or the orbit change first? ☀️
+- Upload with Altered or synthetic content = Yes. Compare stayed-to-watch % against Red Sprites (29.2%) and the night-sky reel.
+
+### Sound credits for the YouTube description (CC BY, from Freesound; changes were made)
+> Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0.
+> - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+> - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+Other sounds used (CC0, no credit needed): Explosion From Another Dimension, Fantasy Implosion (qubodup); Dark Suspense Accent (mikiko850); Orbiting Plasma Burst and Trail FX (CVLTIV8R); portal gate opening (berkup); Riser Hit sfx 120 (AudioPapkin); wind.ogg (sleepCircle).
+Not used in this cut: Halleck's JacobsLadderSingle2 (CC BY), so no credit for it here.
