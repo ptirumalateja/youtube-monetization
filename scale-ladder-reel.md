@@ -66,3 +66,9 @@ Both are on screen by about 0.7 s, fully typed (not slow).
 - Black gap removed. From 22.5 s the camera plunges back down the ladder (web, Milky Way, Solar System, Sun, Earth) in about 1.6 s with a corkscrew orbit, landing on Earth at 24.1 s with a soft flash; "YOU ARE HERE." types at 24.5 s. Loops to frame 0 (Earth pulling back).
 - Dense scale-free dust: 14 camera-wrapped, world-fixed lattice layers (about 126k particles) fade in and out by scale, so particles slide past at different depths.
 - Audio: gain +4.5 dB, alimiter 0.48 gives about -15.1 LUFS and -3.5 dBTP after AAC. Plunge sound: rising sweep, riser, one whoosh per scale crossing, thud on landing.
+
+## v3 sound (files `scale_ladder_3d_v3_A/B.mp4`, script `tools/scale-ladder/mix_ladder27.py`)
+- Why: v2 hits all peaked at about -3.5 dB with the same RMS, over half the energy sat below 90 Hz (inaudible on phones) and there was almost no 2-8 kHz crack.
+- New hits: transient crack + saturated pitch-drop body (88-320 Hz) + gong partials + small sub, with a reversed "suck" swell and a 40 ms vacuum before each. Size hierarchy: hook 0.75, Sun slam 1.0, pulls 0.6, arrivals 0.35-0.45, big burst at 18.0 s 1.5 (plus detuned-saw braaam on 82/164 Hz), landing 0.85.
+- Solar System (7.6-11.0 s): the ascending major-scale glass bells were replaced by descending harmonic pings on a 106 Hz root (outer orbits lower and longer, panned around), a dark drone and a slow rotating whirr. Milky Way and web use a formant choir pad.
+- Measured after AAC: -14.7 LUFS, -3.3 dBTP.
