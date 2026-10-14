@@ -1,6 +1,6 @@
 # Publishing copy: "The Scale Ladder" (26 s, no voiceover)
 
-Files: `scale_ladder_3d_v3_A.mp4` (hook A, "EARTH IS A DOT.") and `scale_ladder_3d_v3_B.mp4` (hook B, "1.3 MILLION EARTHS FIT INSIDE THE SUN."). 9:16, 1080x1920, loops (ends on Earth, frame 0 is Earth).
+Files: `scale_ladder_3d_v4_A.mp4` (hook A, "EARTH IS A DOT.") and `scale_ladder_3d_v4_B.mp4` (hook B, "1.3 MILLION EARTHS FIT INSIDE THE SUN."). 9:16, 1080x1920, loops (ends on Earth, frame 0 is Earth).
 **Recommendation:** post A on YouTube (it pairs with "YOU ARE HERE." and is the cleaner curiosity hook) and B on Instagram/Facebook (number-led hooks tend to stop the scroll there). Treat that as the A/B: compare 2-second stayed-to-watch % and average view duration, not just views.
 
 ## Facts used (keep identical everywhere)
@@ -36,6 +36,7 @@ Recommended: option 1 (it matches hook A).
 > Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0.
 > - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer)" by chakong, https://freesound.org/people/chakong/sounds/722633/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 >
 > Slow Light: stories worth slowing down for.
 > #space #universe #science
@@ -58,7 +59,7 @@ scale of the universe, how big is the universe, zoom out, size of the universe, 
 >
 > Follow Slow Light for more stories worth slowing down for.
 >
-> Sound: mikiko850 and vartioh via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube.
+> Sound: mikiko850, vartioh and chakong via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube.
 >
 > #space #universe #astronomy #science #scale
 
@@ -69,7 +70,7 @@ scale of the universe, how big is the universe, zoom out, size of the universe, 
 >
 > And you are here.
 >
-> Sound: mikiko850 and vartioh via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds.
+> Sound: mikiko850, vartioh and chakong via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds.
 >
 > #space #universe #science
 
@@ -83,6 +84,8 @@ scale of the universe, how big is the universe, zoom out, size of the universe, 
 |---|---|---|---|
 | 849772 Electric Sparks | mikiko850 | CC BY 4.0 | **Yes** |
 | 115555 synth_jet.wav | vartioh | CC BY 4.0 | **Yes** |
+| 722633 Cinematic Sound Braaam Sample | chakong | CC BY 4.0 | **Yes** (added in v4 sound) |
+| Uppbeat braam bass drop / long impact / screaming echo | Tomas Herudek / The Foundation / Epic Stock Media | Uppbeat free SFX (verify current terms) | Not required for SFX per Uppbeat help centre |
 | 814046 Explosion From Another Dimension | qubodup | CC0 | No |
 | 814047 Fantasy Implosion | qubodup | CC0 | No |
 | 869757 Dark Suspense Accent | mikiko850 | CC0 | No |
