@@ -18,7 +18,7 @@ A/B note: version B (hook "THIS LIGHT IS OLD.") is held back; compare 2-second r
 >
 > A thought experiment: distances in the video are compressed. Visuals are AI-generated and 3D-rendered.
 >
-> Sound credits (Freesound, edited and layered; all other sounds are CC0):
+> Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0.
 > - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "JacobsLadderSingle2.flac" by Halleck, https://freesound.org/people/Halleck/sounds/19487/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
@@ -43,7 +43,7 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 >
 > Follow Slow Light for more stories worth slowing down for.
 >
-> Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY, edited), plus CC0 sounds. Full credits on YouTube.
+> Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY 4.0 / 3.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube.
 >
 > #space #astronomy #universe #science #andromeda
 
@@ -54,7 +54,7 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 >
 > You're looking at the past.
 >
-> Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY, edited), plus CC0 sounds.
+> Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY 4.0 / 3.0), changes made (trimmed, layered, processed), plus CC0 sounds.
 >
 > #space #astronomy #science
 
@@ -64,7 +64,7 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 - After 24-48 hours, record for A: 2-second stayed-to-watch %, average view duration, completion, shares. Compare with the Sun reel (84% average watch, early drop in the first 2-3 s).
 
 ## Sound licences (confirmed from the Freesound download list, downloaded 13 Oct 2026)
-CC0 = nothing to add. CC BY = credit required (done above in the YouTube description and, shortened, in the IG and FB captions; say "edited" because the sounds are cut and layered).
+CC0 = nothing to add. CC BY = credit required: creator name, link to the material, licence name and link, and an indication that changes were made (the sounds are trimmed, layered and processed). 4.0 (mikiko850, Halleck, vartioh) requires the changes notice for any modification; 3.0 (Tomlija) also requires the title, which is included. Done above in the YouTube description and, shortened, in the IG and FB captions.
 
 | File used in the video | Author (Freesound) | Licence | Credit needed? |
 |---|---|---|---|
