@@ -1,3 +1,16 @@
+# STANDING RULES FOR ALL SLOW LIGHT WORK (read first)
+
+1. **Before doing any video, sound or publishing work, read `slow-light-design-playbook.md` in full.** It is the source of truth for design decisions, camera grammar (Scale Ladder orbiting log-zoom; Night Sky single-axis tunnel), depth/parallax/motion, exposure, palette, info-layer sizes, sound design, QA checklist, lessons log and backlog. Then read the per-reel spec (`night-sky-v8-spec.md`, `scale-ladder-reel.md`) and the publish copy for the reel you touch.
+2. **Rules that always apply** (details in the playbook): no Higgsfield for images or video (use RunPod Qwen/Wan/SeedVR2 and local three.js/PIL/numpy/ffmpeg); never repeat a visual across reels; wordless, no voiceover; labelled "thought experiment / not to scale"; loops; palette charcoal/navy, cream text, gold/teal, red only for markers; counters must be monotonic; the viewer must be able to decode every transition.
+3. **Audio licences:** CC0, or CC BY with an explicit credit and "changes were made". Never CC BY-NC. Per-file credit lines are in `audio-attribution.md`; update it and the reel's `*-publish-copy.md` whenever a sound is added or swapped.
+4. **Audio files:** committed Freesound files are in `tools/sfxlib/` (mix scripts expect `../sfxlib/`). Files not in git (Uppbeat braams, unknown-licence files) and the Google Drive file ids are described in `tools/sfxlib/README.md` and `tools/sfxlib/drive_ids.txt`. Look in the user's Google Drive (Drive connector) before asking them to re-upload.
+5. **Past reasoning is not in git.** The playbook records decisions and lessons, not the back-and-forth. If something seems undecided, check the playbook's decision log and the `*-spec.md` files; if still unclear, ask the user rather than redoing a frozen decision (the user has said "no redo's": frozen plans stay frozen).
+6. Rendered videos, frames and overlay movs are not in git (scratchpad only). Rebuild them from `tools/` using the playbook's pipeline section.
+
+The rest of this file is the separate Abhimanyu-story project instructions.
+
+---
+
 # Slow Light — Abhimanyu Short Production + Claude Code / RunPod Instructions
 
 ## 1. Project
