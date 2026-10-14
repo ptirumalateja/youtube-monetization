@@ -1,0 +1,242 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>tickle reel renderer</title>
+<style>
+:root{--bg:#0e0906;--cream:#e8e4d0;--red:#d63e30;--gold:#e3b04b;--teal:#4fb3a9}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;background:var(--bg);overflow:hidden}
+#stage{position:relative;width:1080px;height:1920px}
+svg{position:absolute;left:0;top:0}
+#cap{position:absolute;left:60px;width:960px;text-align:center;top:1206px;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;font-size:92px;letter-spacing:1px;color:var(--cream);line-height:1.02;text-transform:uppercase}
+.chip{display:inline-block;background:var(--red);padding:2px 18px 6px;margin:0 4px;border-radius:6px;color:var(--cream)}
+#lab{position:absolute;left:64px;top:228px;font-family:'Liberation Serif',serif;font-style:italic;color:var(--cream)}
+#lab b{display:block;font-weight:400;font-size:44px}
+#lab i{display:block;font-size:28px;opacity:.55;margin-top:6px}
+#brand{position:absolute;left:64px;top:150px;font-family:'Liberation Sans Narrow',sans-serif;font-weight:700;font-size:34px;letter-spacing:10px;color:var(--cream)}
+#brand em{font-style:normal;color:var(--red)}
+</style></head>
+<body>
+<div id="stage">
+<svg id="art" width="1080" height="1920" viewBox="0 0 1080 1920">
+ <defs>
+  <radialGradient id="wall" cx="62%" cy="34%" r="70%"><stop offset="0" stop-color="#3a2a1d"/><stop offset=".5" stop-color="#1a110b"/><stop offset="1" stop-color="#0b0705"/></radialGradient>
+  <linearGradient id="skin" gradientUnits="userSpaceOnUse" x1="0" y1="-60" x2="0" y2="300"><stop offset="0" stop-color="#f1e6d2"/><stop offset=".55" stop-color="#cdbfa8"/><stop offset="1" stop-color="#6d5f52"/></linearGradient>
+  <radialGradient id="cone" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8c58a" stop-opacity=".22"/><stop offset="1" stop-color="#e8c58a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="vg" cx="50%" cy="42%" r="75%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".75"/></radialGradient>
+  <filter id="soft" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+  <filter id="rim" x="-10%" y="-10%" width="120%" height="120%"><feOffset in="SourceAlpha" dx="7" dy="-8" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="e"/><feFlood flood-color="#ff5a44"/><feComposite in2="e" operator="in" result="r"/><feGaussianBlur stdDeviation="1.2" result="rb"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rb"/></feMerge></filter>
+  <filter id="rimF" x="-10%" y="-10%" width="120%" height="120%"><feOffset in="SourceAlpha" dx="-7" dy="-8" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="e"/><feFlood flood-color="#ff5a44"/><feComposite in2="e" operator="in" result="r"/><feGaussianBlur stdDeviation="1.2" result="rb"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rb"/></feMerge></filter>
+  <filter id="lineart" x="-5%" y="-10%" width="110%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="3" result="d"/><feFlood flood-color="#e8e4d0" flood-opacity=".6"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="rimT" x="-10%" y="-10%" width="120%" height="120%"><feOffset in="SourceAlpha" dx="-7" dy="7" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="e"/><feFlood flood-color="#6fd6cb"/><feComposite in2="e" operator="in"/></filter>
+ </defs>
+ <g id="base"></g><g id="world"></g><g id="top"></g>
+</svg>
+<div id="brand">SL<em>O</em>W LIGHT</div>
+<div id="lab"><b></b><i></i></div>
+<div id="cap"></div>
+</div>
+<script src="timeline.js"></script>
+<script>
+const TL=window.TL, W=1080, H=1920;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const sm=x=>{x=clamp(x);return x*x*(3-2*x)};
+const eo=x=>1-Math.pow(1-clamp(x),3);
+const ei=x=>Math.pow(clamp(x),3);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const win=(t,a,b,f=0.35)=>sm((t-a)/f)*(1-sm((t-b)/f));
+const hand=`<path d="M-760,40 L70,12 L70,196 L-760,300 Z"/><path d="M60,14 C140,-14 270,-8 345,26 L362,172 C345,222 210,244 96,212 L60,200 Z"/><ellipse cx="352" cy="112" rx="38" ry="31"/><ellipse cx="340" cy="158" rx="36" ry="28"/><ellipse cx="322" cy="198" rx="32" ry="24"/><path d="M150,24 Q215,-52 318,-34" fill="none" stroke-width="44" stroke-linecap="round"/><path d="M300,52 L470,40 Q560,36 664,50" fill="none" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>`;
+const TIPX=689, TIPY=50, S=0.85; // fingertip in hand-local coords
+const D=[-223,240];              // hand plane vs wall plane offset (hand is nearer, lower-left)
+const TX=620, TY=622;            // the touch point (reticle)
+
+// ---- motion: Q(t) = where the finger is heading on the wall (smoothstep between keys) ----
+function keyed(keys,t,ease){
+  if(t<=keys[0][0])return {x:keys[0][1],y:keys[0][2]};
+  for(let i=1;i<keys.length;i++){ if(t<=keys[i][0]){const a=keys[i-1],b=keys[i],u=(ease&&ease[i-1]||sm)((t-a[0])/(b[0]-a[0]));return {x:lerp(a[1],b[1],u),y:lerp(a[2],b[2],u)}} }
+  const k=keys[keys.length-1];return {x:k[1],y:k[2]};
+}
+const QK=[[0,300,740],[0.12,300,740],[2.2,TX,TY],[16,TX,TY],[16.8,780,790],[17.6,440,560],[18.4,TX,TY],[31,TX,TY],[32,300,740]];
+const Q=t=>keyed(QK,t);
+const QL=[[0,300,740],[0.12,300,740],[1.5,TX,TY],[2.6,TX,TY]];   // looped reach used in the split screen
+const qloop=off=>(t=>keyed(QL,((t-2.4+off)%2.6+2.6)%2.6));
+const RK=[[18.4,1400,1010],[20,1260,900],[22.2,1100,790],[23.0,TX+4,TY+8],[24.2,TX+4,TY+8],[26.2,1400,1010]];
+const R=t=>keyed(RK,t,[sm,sm,ei,sm,sm]);
+
+// ---- svg helpers ----
+const G=(tr,attrs,inner)=>`<g transform="${tr}" ${attrs||''}>${inner}</g>`;
+function handG(ox,oy,s,attrs,flip){return G(`translate(${ox},${oy}) scale(${flip?-s:s},${s})`,attrs,hand)}
+function reticle(x,y,r,c,o=1,pulse=0){const rr=r*(1+0.06*pulse);return `<g stroke="${c}" fill="none" stroke-width="3" opacity="${o}"><circle cx="${x}" cy="${y}" r="${rr}"/><circle cx="${x}" cy="${y}" r="${rr*0.45}"/><path d="M${x-rr-30},${y}H${x-rr*0.45-8}M${x+rr*0.45+8},${y}H${x+rr+30}M${x},${y-rr-30}V${y-rr*0.45-8}M${x},${y+rr*0.45+8}V${y+rr+30}"/></g>`}
+function chipSVG(x,y,txt,bg,fg='#0e0906',o=1,sc=1){const w=txt.length*17+26;return `<g transform="translate(${x},${y}) scale(${sc})" opacity="${o}"><rect x="0" y="-26" width="${w}" height="40" rx="6" fill="${bg}"/><text x="13" y="3" font-family="Liberation Mono, monospace" font-weight="700" font-size="26" fill="${fg}">${txt}</text></g>`}
+function pathPts(d,n){const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);const L=p.getTotalLength(),a=[];for(let i=0;i<=n;i++){const q=p.getPointAtLength(L*i/n);a.push([q.x,q.y])}return a}
+function trace(pts,p){const n=Math.max(1,Math.floor(p*(pts.length-1)));return pts.slice(0,n+1)}
+const pl=(pts)=>pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1)).join('');
+
+// ---- base (wall, grid, light) ----
+function baseSVG(t){
+  let g='';for(let x=0;x<=W;x+=60)g+=`M${x},300V1120`;for(let y=300;y<=1120;y+=60)g+=`M0,${y}H${W}`;
+  return `<rect width="${W}" height="${H}" fill="#0e0906"/><rect y="300" width="${W}" height="820" fill="url(#wall)"/><ellipse cx="760" cy="560" rx="620" ry="520" fill="url(#cone)"/><path d="${g}" stroke="#e8e4d0" stroke-opacity=".06" stroke-width="1.5" fill="none"/>`;
+}
+// ---- reach: the hook device. hand follows the finger path; the shadow (prediction) follows the same path `lead` seconds ahead ----
+function reachContent(Qf,t,o={}){
+  const dim=o.dim==null?1:o.dim, lead=TL.lead, ST=Qf(t+lead), HT=Qf(t);
+  const sp=Math.hypot(HT.x-Qf(t-0.05).x,HT.y-Qf(t-0.05).y)/0.05, ech=clamp(sp/450);
+  const hx=HT.x+D[0]-TIPX*S, hy=HT.y+D[1]-TIPY*S, sx=ST.x-TIPX*S, sy=ST.y-TIPY*S;
+  let s='';
+  s+=o.reticles||reticle(TX,TY,52,'#d63e30',1,Math.sin(t*6));
+  s+=G(`translate(${sx+14},${sy-6}) scale(${S})`,'fill="#4fb3a9" stroke="#4fb3a9" opacity=".28" filter="url(#glow)"',hand);
+  s+=G(`translate(${sx},${sy}) scale(${S})`,'fill="#030202" stroke="#030202" stroke-linejoin="round" opacity=".92" filter="url(#soft)"',hand);
+  s+=G(`translate(${sx},${sy}) scale(${S})`,'fill="#000" stroke="#000" stroke-linejoin="round" filter="url(#rimT)"',hand);
+  for(let i=3;i>=1;i--){const E=Qf(t-0.07*i);s+=G(`translate(${E.x+D[0]-TIPX*S},${E.y+D[1]-TIPY*S}) scale(${S})`,`fill="#e8e4d0" stroke="#e8e4d0" opacity="${(0.03+0.05*(4-i))*ech*1.6}" filter="url(#glow)"`,hand)}
+  s+=G(`translate(${hx},${hy+34}) scale(${S})`,'fill="#000" stroke="#000" opacity=".5" filter="url(#soft)"',hand);
+  s+=G(`translate(${hx},${hy}) scale(${S})`,'fill="url(#skin)" stroke="url(#skin)" stroke-linejoin="round" filter="url(#rim)"',hand);
+  return `<g opacity="${dim}">${s}</g>`;
+}
+// ---- split screen: same move twice, shadow ahead both times ----
+function panelsSVG(t){
+  const a=win(t,2.4,7.0); if(a<=0.001)return '';
+  const sc=0.55, tops=[330,740], cols=['#d63e30','#e3b04b'], tags=['TRY 1','TRY 2 · SAME MOVE'];
+  let s='';
+  tops.forEach((top,i)=>{
+    const px=60+(960-1080*sc)/2, py=top-480*sc+(380-650*sc)/2;
+    s+=`<clipPath id="pc${i}"><rect x="60" y="${top}" width="960" height="380"/></clipPath>`;
+    s+=`<rect x="60" y="${top}" width="960" height="380" fill="#120b07" opacity=".9"/>`;
+    s+=`<g clip-path="url(#pc${i})"><g transform="translate(${px},${py}) scale(${sc})">${reachContent(qloop(i*1.3),t,{reticles:reticle(TX,TY,52,'#d63e30',1,Math.sin(t*6))})}</g></g>`;
+    s+=`<rect x="60" y="${top}" width="960" height="380" fill="none" stroke="${cols[i]}" stroke-width="3"/>`;
+    s+=chipSVG(76,top+46,tags[i],cols[i],'#0e0906');
+  });
+  return `<g opacity="${a}">${s}</g>`;
+}
+// ---- mechanism: command + copy ----
+const NERVE=pathPts('M250,565 C230,700 140,820 190,905 L540,912 C640,905 740,885 880,880',260);
+const COPYP=pathPts('M250,398 C290,420 330,470 332,545',80);
+const PREDP=pathPts('M332,545 C480,640 700,760 880,880',140);
+function mechSVG(t){
+  const a=win(t,7.0,11.0); if(a<=0.001)return '';
+  let s='';
+  // brain
+  s+=`<g><ellipse cx="250" cy="470" rx="130" ry="95" fill="#1c130d" stroke="#e8e4d0" stroke-opacity=".6" stroke-width="3"/>`
+   +`<path d="M150,470 Q200,430 250,470 T350,455 M170,520 Q215,490 265,520 T345,505 M190,420 Q240,400 300,425" stroke="#e8e4d0" stroke-opacity=".22" stroke-width="3" fill="none"/>`
+   +`<path d="M190,400 Q235,372 296,398" stroke="#e3b04b" stroke-width="10" fill="none" stroke-linecap="round" opacity="${0.5+0.5*sm((t-7.1)/.4)}"/>`
+   +`<ellipse cx="332" cy="548" rx="48" ry="30" fill="#4fb3a9" fill-opacity="${0.12+0.5*sm((t-9.2)/.5)}" stroke="#4fb3a9" stroke-width="3"/></g>`;
+  // arm (the hand drawn as line art)
+  const hx=880-TIPX*0.5, hy=880-TIPY*0.5;
+  s+=G(`translate(${hx},${hy}) scale(.5)`,'fill="#150e09" stroke="#150e09" stroke-linejoin="round" filter="url(#lineart)"',hand);
+  // nerve path drawn on, then pulses
+  const dp=eo((t-7.0)/1.0); s+=`<path d="${pl(trace(NERVE,dp))}" stroke="#e3b04b" stroke-opacity=".45" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  const pc=(t-7.5)/1.5; if(pc>0&&pc<1){const q=NERVE[Math.floor(pc*(NERVE.length-1))];s+=`<circle cx="${q[0]}" cy="${q[1]}" r="26" fill="#e3b04b" opacity=".35" filter="url(#glow)"/><circle cx="${q[0]}" cy="${q[1]}" r="12" fill="#e3b04b"/>`}
+  const pk=(t-8.3)/1.0; if(pk>0&&pk<1){const q=COPYP[Math.floor(pk*(COPYP.length-1))];s+=`<path d="${pl(trace(COPYP,pk))}" stroke="#4fb3a9" stroke-width="4" fill="none" stroke-opacity=".7"/><circle cx="${q[0]}" cy="${q[1]}" r="11" fill="#6fd6cb"/>`}
+  else if(pk>=1) s+=`<path d="${pl(COPYP)}" stroke="#4fb3a9" stroke-width="4" fill="none" stroke-opacity=".5"/>`;
+  const pp=(t-9.8)/1.1; if(pp>0){const n=trace(PREDP,clamp(pp));s+=`<path d="${pl(n)}" stroke="#6fd6cb" stroke-width="4" fill="none" stroke-dasharray="4 12" stroke-linecap="round" opacity=".9"/>`;if(pp<1){const q=n[n.length-1];s+=`<circle cx="${q[0]}" cy="${q[1]}" r="11" fill="#6fd6cb"/>`}}
+  s+=chipSVG(300,650,'COMMAND','#e3b04b','#0e0906',sm((t-7.7)/.25),1);
+  s+=chipSVG(400,498,'COPY','#4fb3a9','#0e0906',sm((t-8.6)/.25),1);
+  s+=chipSVG(560,716,'PREDICTION','#4fb3a9','#0e0906',sm((t-10.2)/.25),1);
+  return `<g opacity="${a}">${s}</g>`;
+}
+// ---- ripples on the skin: real (gold) meets predicted (teal) and they cancel; waveform proves it ----
+function rippleSVG(t){
+  const a=win(t,11.0,16.0); if(a<=0.001)return '';
+  const cx=540, cy=700; let s='';
+  s+=`<ellipse cx="${cx}" cy="${cy+30}" rx="450" ry="135" fill="#24180f" stroke="#e8e4d0" stroke-opacity=".25" stroke-width="3"/>`;
+  const dampen=1-0.8*sm((t-13.3)/1.6);
+  for(let i=0;i<6;i++){
+    for(const [col,off,t0] of [['#e3b04b',0,11.7],['#6fd6cb',0.3,12.1]]){
+      const age=t-(t0+i*0.62+off*0); if(age<=0)continue; const r=age*270; if(r>430)continue;
+      const op=0.95*(1-r/430)*dampen; s+=`<ellipse cx="${cx}" cy="${cy+30}" rx="${r}" ry="${r*0.3}" fill="none" stroke="${col}" stroke-width="5" opacity="${op}"/>`;
+    }
+  }
+  const s2=0.7, tipx=cx, tipy=cy+20; s+=G(`translate(${tipx-TIPX*s2},${tipy-TIPY*s2}) scale(${s2})`,'fill="url(#skin)" stroke="url(#skin)" stroke-linejoin="round" filter="url(#rim)"',hand);
+  // waveform box
+  const bx=90,by=905,bw=900,bh=190,cy2=by+bh/2+14; s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#120b07" stroke="#e8e4d0" stroke-opacity=".3" stroke-width="2"/>`;
+  const wave=(sign,amp,x1)=>{let d='';for(let x=0;x<=x1;x+=6){const y=cy2+sign*amp*Math.sin(x/70*Math.PI*2/ (1.5)-t*5);d+=(x?'L':'M')+(bx+x)+','+y.toFixed(1)}return d};
+  const g1=clamp((t-11.9)/1.0)*bw, g2=clamp((t-12.7)/1.0)*bw, g3=clamp((t-13.6)/0.9)*bw;
+  if(g1>1)s+=`<path d="${wave(1,52,g1)}" stroke="#e3b04b" stroke-width="5" fill="none"/>`;
+  if(g2>1)s+=`<path d="${wave(-1,52,g2)}" stroke="#6fd6cb" stroke-width="5" fill="none"/>`;
+  if(g3>1)s+=`<path d="M${bx},${cy2}H${bx+g3}" stroke="#e8e4d0" stroke-width="6" fill="none"/>`;
+  s+=chipSVG(bx+12,by+36,'REAL','#e3b04b','#0e0906',sm((t-11.9)/.2));
+  s+=chipSVG(bx+120,by+36,'PREDICTED','#4fb3a9','#0e0906',sm((t-12.7)/.2));
+  s+=chipSVG(bx+bw-260,by+bh-14,'= DAMPENED','#d63e30','#e8e4d0',sm((t-14.1)/.2));
+  return `<g opacity="${a}">${s}</g>`;
+}
+// ---- other hand: no shadow, no prediction, arrives with full surprise ----
+function otherSVG(t){
+  if(t<18.3||t>26.4)return '';
+  const P=R(t), s2=0.95, ox=P.x+TIPX*s2, oy=P.y-TIPY*s2; let s='';
+  const a=sm((t-18.4)/.6)*(1-sm((t-25.8)/.6));
+  s+=G(`translate(${ox},${oy+36}) scale(${-s2},${s2})`,'fill="#000" stroke="#000" opacity=".5" filter="url(#soft)"',hand);
+  s+=G(`translate(${ox},${oy}) scale(${-s2},${s2})`,'fill="url(#skin)" stroke="url(#skin)" stroke-linejoin="round" filter="url(#rimF)"',hand);
+  return `<g opacity="${a}">${s}</g>`;
+}
+function impactSVG(t){
+  const u=t-23.0; if(u<0||u>1.3)return '';
+  const r=sm(u/0.12)*150*(1-0.35*sm((u-0.2)/1.0)), op=1-sm((u-0.35)/0.9);
+  let star='';for(let i=0;i<24;i++){const a=i/24*Math.PI*2,rr=(i%2?r*0.5:r);star+=`${i?'L':'M'}${TX+Math.cos(a)*rr},${TY+Math.sin(a)*rr}`}
+  return `<g opacity="${op}"><path d="${star}Z" fill="#d63e30" stroke="#0a0807" stroke-width="6" stroke-linejoin="round"/><path d="${star}Z" fill="#e8e4d0" transform="translate(${TX*0.16},${TY*0.16}) scale(.84)"/></g>`;
+}
+// ---- graph (the proof): gold = how much the hand moves, red = tickle felt ----
+const NS=Math.round(TL.dur*TL.fps)+1, GOLD=[], RED=[];
+(function(){
+  let prev=Q(0);
+  for(let i=0;i<NS;i++){const t=i/TL.fps,q=Q(t),sp=Math.hypot(q.x-prev.x,q.y-prev.y)*TL.fps;prev=q;
+    let g=clamp(sp/1100)+0.9*Math.exp(-Math.pow((t-8.3)/0.5,2))*0.5+0.14*win(t,11.5,15,0.5)*(0.5+0.5*Math.sin(t*3.5));
+    if(t>=18.4&&t<=26.2){const r=R(t),r2=R(t-0.033);g=Math.max(g*0.3,clamp(Math.hypot(r.x-r2.x,r.y-r2.y)*TL.fps/1100))}
+    GOLD.push(g);
+    let r=0.04+0.012*Math.sin(t*1.3);
+    if(t>=23.0)r=Math.max(r,0.96*Math.exp(-(t-23.0)/0.55)*clamp((t-23.0)/0.06)+0.04);
+    RED.push(r);
+  }
+  for(let k=0;k<3;k++)for(let i=1;i<NS-1;i++)GOLD[i]=(GOLD[i-1]+GOLD[i]*2+GOLD[i+1])/4;
+  const mx=Math.max(...GOLD);for(let i=0;i<NS;i++)GOLD[i]/=mx;
+})();
+function graphSVG(t){
+  const n=Math.min(NS-1,Math.floor(t*TL.fps)), gy=v=>1860-v*360, ry=v=>1860-v*430, X=i=>i/(NS-1)*W;
+  let gd='',rd='';for(let i=0;i<=n;i++){gd+=(i?'L':'M')+X(i).toFixed(1)+','+gy(GOLD[i]).toFixed(1);rd+=(i?'L':'M')+X(i).toFixed(1)+','+ry(RED[i]).toFixed(1)}
+  let s=`<path d="M0,1860H${W}" stroke="#e8e4d0" stroke-opacity=".12" stroke-width="2"/><path d="${gd}" stroke="#e3b04b" stroke-width="5" fill="none" stroke-linejoin="round"/><path d="${rd}" stroke="#d63e30" stroke-width="6" fill="none" stroke-linejoin="round"/>`;
+  s+=`<circle cx="${X(n)}" cy="${gy(GOLD[n])}" r="9" fill="#e3b04b"/><circle cx="${X(n)}" cy="${ry(RED[n])}" r="9" fill="#d63e30"/>`;
+  s+=`<text x="64" y="1432" font-family="Liberation Mono, monospace" font-weight="700" font-size="26" fill="#e3b04b" opacity=".85">HAND MOVES</text><text x="64" y="1470" font-family="Liberation Mono, monospace" font-weight="700" font-size="26" fill="#d63e30">TICKLE FELT</text>`;
+  return s;
+}
+function clockSVG(t){const a=t/TL.dur*360,b=t*12;
+  return `<g transform="translate(930,236)" stroke="#e8e4d0" fill="none" stroke-width="3"><circle r="56"/><path d="M0,-46V-52M46,0H52M0,46V52M-46,0H-52"/><path d="M0,0L${46*Math.sin(a*Math.PI/180)*0.55},${-46*Math.cos(a*Math.PI/180)*0.55}" stroke-width="5"/><path d="M0,0L${40*Math.sin(b*Math.PI/180)},${-40*Math.cos(b*Math.PI/180)}" stroke-width="3"/></g>`}
+const band=`<rect x="0" y="1128" width="${W}" height="34" fill="#e8e4d0"/><path d="M0,1145H${W}" stroke="#0e0906" stroke-width="26" stroke-dasharray="46 46"/>`;
+
+// ---- captions ----
+function capHTML(t){
+  const c=TL.cards.find(c=>t>=c.t0&&t<c.t1); if(!c)return '';
+  const u=t-c.t0, out=1-sm((t-(c.t1-0.12))/0.12);
+  let txt=c.text, vis=txt.replace(/[\[\]]/g,'').length;
+  if(c.type){vis=Math.max(1,Math.floor(vis*clamp(u/c.type)))}
+  let n=0,html='';
+  for(const part of txt.split(/(\[[^\]]+\])/)){
+    if(!part)continue; const chip=part[0]==='[', w=chip?part.slice(1,-1):part;
+    const take=Math.max(0,Math.min(w.length,vis-n)); n+=w.length; if(take<=0)continue;
+    const sc=chip?(c.type?1:1+0.22*Math.exp(-u*9)*Math.cos(u*26)):1;
+    html+= chip?`<span class="chip" style="transform:scale(${sc})">${w.slice(0,take)}</span>`:w.slice(0,take);
+  }
+  return `<div style="opacity:${out}">${html}</div>`;
+}
+const E=id=>document.getElementById(id);
+window.renderAt=function(t,f){
+  const T=Math.min(t,TL.dur);
+  E('base').innerHTML=baseSVG(T);
+  // world: scene stack with held-breath push and impact shake
+  const push=1+0.04*sm((T-20.5)/2.5)*(1-sm((T-24.2)/0.8)), u=T-23, sh=u>=0?Math.exp(-u*9):0;
+  const dx=7*sh*Math.sin(u*90), dy=5*sh*Math.cos(u*70);
+  const ra=win(T,-1,2.5,0.35)+win(T,15.7,40,0.35);
+  const handDim=1-0.68*sm((T-18.7)/0.5)*(1-sm((T-24.4)/0.7));
+  let w='';
+  w+=`<g opacity="${clamp(ra)}">${reachContent(Q,T,{dim:handDim})}</g>`;
+  w+=panelsSVG(T)+mechSVG(T)+rippleSVG(T)+otherSVG(T)+impactSVG(T);
+  E('world').innerHTML=`<g transform="translate(${dx},${dy}) translate(${TX},${TY}) scale(${push}) translate(${-TX},${-TY})">${w}</g>`;
+  // top: band, graph, clock, vignette, grain, flash
+  const fl=(T>=23&&T<23.12)?0.12*(1-(T-23)/0.12):0;
+  const seed=((f==null?Math.round(T*TL.fps):f)%7)+1;
+  E('top').innerHTML=band+graphSVG(T)+clockSVG(T)
+   +`<rect width="${W}" height="${H}" fill="url(#vg)"/>`
+   +`<filter id="gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="${seed}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="${W}" height="${H}" filter="url(#gr)" opacity=".18" style="mix-blend-mode:overlay"/>`
+   +(fl>0?`<rect width="${W}" height="${H}" fill="#e8e4d0" opacity="${fl}"/>`:'');
+  const L=TL.labels.find(l=>T>=l.t0&&T<l.t1)||TL.labels[0];
+  E('lab').children[0].textContent=L.a; E('lab').children[1].textContent=L.b;
+  E('cap').innerHTML=capHTML(T);
+  return true;
+};
+window.ready=true;
+</script></body></html>
