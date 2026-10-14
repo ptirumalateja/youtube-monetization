@@ -1,6 +1,6 @@
 # Publishing copy: "Night sky shows the past" (version A, hook "YOU'RE SEEING THE PAST.")
 
-File: `night_sky_past_v3_A.mp4` (18 s, 9:16, loops). Sound-designed, no voiceover.
+File: `night_sky_past_v4_A.mp4` (19 s, 9:16, loops). Sound-designed, no voiceover. Final cut = V4 with hook A.
 A/B note: version B (hook "THIS LIGHT IS OLD.") is held back; compare 2-second retention and average watch time against the Sun reel.
 
 ## Facts used (keep identical everywhere)
@@ -51,7 +51,7 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 > #space #astronomy #science
 
 ## Timing (rule of thumb, not confirmed by your Instagram data)
-- Today is Tuesday. YouTube's best window in your Metricool data is Wed-Fri, peak about 4 PM IST: post the Short Wed 14 Oct, 4 PM IST.
+- YouTube's best window in your Metricool data is Wed-Fri, peak about 4 PM IST: post the Short on Wed 14 Oct at 4 PM IST.
 - Instagram and Facebook: about 7:30 PM IST.
 - After 24-48 hours, record for A: 2-second stayed-to-watch %, average view duration, completion, shares. Compare with the Sun reel (84% average watch, early drop in the first 2-3 s).
 
