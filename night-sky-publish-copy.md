@@ -18,7 +18,11 @@ A/B note: version B (hook "THIS LIGHT IS OLD.") is held back; compare 2-second r
 >
 > A thought experiment: distances in the video are compressed. Visuals are AI-generated and 3D-rendered.
 >
-> Sound credits: [ADD IF ANY FILE IS CC-BY, SEE BELOW]
+> Sound credits (Freesound, edited and layered; all other sounds are CC0):
+> - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "JacobsLadderSingle2.flac" by Halleck, https://freesound.org/people/Halleck/sounds/19487/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+> - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 >
 > Slow Light: stories worth slowing down for.
 > #space #astronomy #science
@@ -39,6 +43,8 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 >
 > Follow Slow Light for more stories worth slowing down for.
 >
+> Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY, edited), plus CC0 sounds. Full credits on YouTube.
+>
 > #space #astronomy #universe #science #andromeda
 
 ## Facebook Reel (3 hashtags, no @ tags)
@@ -48,6 +54,8 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 >
 > You're looking at the past.
 >
+> Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY, edited), plus CC0 sounds.
+>
 > #space #astronomy #science
 
 ## Timing (rule of thumb, not confirmed by your Instagram data)
@@ -55,27 +63,27 @@ night sky, stargazing, light travel time, speed of light, light years, Andromeda
 - Instagram and Facebook: about 7:30 PM IST.
 - After 24-48 hours, record for A: 2-second stayed-to-watch %, average view duration, completion, shares. Compare with the Sun reel (84% average watch, early drop in the first 2-3 s).
 
-## Sound licences: CONFIRM BEFORE POSTING
-All files came from Freesound (free). For each, open its Freesound page and note the licence. CC0 = nothing to add. CC-BY = add the credit line to the description. CC-BY-NC = do not use (the channel is meant to be monetized).
+## Sound licences (confirmed from the Freesound download list, downloaded 13 Oct 2026)
+CC0 = nothing to add. CC BY = credit required (done above in the YouTube description and, shortened, in the IG and FB captions; say "edited" because the sounds are cut and layered).
 
-| File used in the video | Author (Freesound user) | Licence | Credit needed? |
+| File used in the video | Author (Freesound) | Licence | Credit needed? |
 |---|---|---|---|
-| 814046 explosion-from-another-dimension | qubodup | TO CONFIRM | |
-| 814047 fantasy-implosion | qubodup | TO CONFIRM | |
-| 869757 dark-suspense-accent | mikiko850 | TO CONFIRM | |
-| 849772 electric-sparks | mikiko850 | TO CONFIRM | |
-| 19487 jacobsladdersingle2 | halleck | TO CONFIRM | |
-| 175183 5-everyday-whooshes | tomlija | TO CONFIRM | |
-| 276871 sword-in-air | lucabia | TO CONFIRM | |
-| 768664 portal-gate-opening | berkup | TO CONFIRM | |
-| 735062 fast-warp-in | gammagool | TO CONFIRM | |
-| 752034 sci-fi-gateway | bachsambora | TO CONFIRM | |
-| 649445 cinematic-woosh-sfx-015 | audiopapkin | TO CONFIRM | |
-| 822420 riser-hit-sfx-120 | audiopapkin | TO CONFIRM | |
-| 238375 cp_subby_whoosh | stewdio2003 | TO CONFIRM | |
-| 850262 orbiting-plasma-burst-and-trail-fx | cvltiv8r | TO CONFIRM | |
-| 115555 synth_jet | vartioh | TO CONFIRM | |
-| 22331 wind | sleepcircle | TO CONFIRM | |
+| 849772 Electric Sparks | mikiko850 | CC BY 4.0 | **Yes** |
+| 19487 JacobsLadderSingle2.flac | Halleck | CC BY 4.0 | **Yes** |
+| 175183 5 Everyday Whooshes | Tomlija | CC BY 3.0 | **Yes** |
+| 115555 synth_jet.wav | vartioh | CC BY 4.0 | **Yes** |
+| 814046 Explosion From Another Dimension | qubodup | CC0 | No |
+| 814047 Fantasy Implosion | qubodup | CC0 | No |
+| 869757 Dark Suspense Accent | mikiko850 | CC0 | No |
+| 276871 Sword In Air | lucabia | CC0 | No |
+| 768664 portal gate opening | berkup | CC0 | No |
+| 735062 Fast Warp In | GammaGool | CC0 | No |
+| 752034 Sci-Fi Gateway | Bachsambora | CC0 | No |
+| 649445 Cinematic Woosh SFX-015 | AudioPapkin | CC0 | No |
+| 822420 Riser Hit sfx 120 | AudioPapkin | CC0 | No |
+| 238375 CP_Subby_Whoosh | stewdio2003 | CC0 | No |
+| 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | CC0 | No |
+| 22331 wind.ogg | sleepCircle | CC0 | No |
 
-Credit line template (only for CC-BY files): `Sound: "<title>" by <author> (Freesound), licensed CC BY.`
-Not used in the final video (no credit needed): 382249 moving-effect (alexprost), 248182 transformers-type-sfx-2 (hykenfreak).
+Downloaded but not used in the final night-sky video (no credit needed): 382249 Moving Effect (AlexProst, CC0), 248182 Transformers Type SFX 2 (hykenfreak, CC BY 4.0), 860781 Low Frequency Vibrating Drone (bassimat, CC0).
+If a CC BY file is ever swapped out, remove its line from the credits; if one is added, add it. No CC BY-NC files are used.
