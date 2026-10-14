@@ -54,3 +54,10 @@ Both are on screen by about 0.7 s, fully typed (not slow).
 4. Near-silence before the final reveal; the last frame matches frame 0.
 5. Text inside the Shorts safe zone; ruler/labels readable on a phone.
 6. Sound licences confirmed before posting.
+
+## v2: true 3D fly-back (26 s) - built
+- Scene: `tools/scale-ladder/index.html` (three.js, procedural H-alpha Sun, orbit-ring Solar System, 200k-point Milky Way, Voronoi-boundary cosmic web). Camera orbits (yaw/tilt) around each stop for parallax; 2-sample temporal blend per frame.
+- Timeline: 0-2 hook (Earth pulls back, Sun limb arrives) | 2.0-5.4 Sun (109x) | 5.4-7.6 pull-back | 7.6-11.0 Solar System to Neptune's orbit (6,500x) | 11-13 pull-back | 13-17 Milky Way (100 million x) | 17-18 held breath | 18-20 burst | 20-23 cosmic web (930,000x) | 23.0-23.8 black | 23.8-26 Earth, "YOU ARE HERE."
+- Render: `render.js` (4 parallel workers, 720x1280, upscaled to 1080x1920). Overlay: `overlay26.py A|B` (needs `proj.json` from `proj.js`). Sound: `mix_ladder26.py`. Audio chain: volume +3 dB, alimiter 0.62, AAC -> about -15.0 LUFS, -2.2 dBTP.
+- Sound credits needed if the same files are used: Electric Sparks (mikiko850, CC BY 4.0), 5 Everyday Whooshes (Tomlija, CC BY 3.0), synth_jet (vartioh, CC BY 4.0). JacobsLadder (Halleck) is loaded in the script but not placed in this cue sheet.
+- Not yet auditioned by ear.
