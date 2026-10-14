@@ -1,0 +1,121 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>tickle vector2 comparison shots</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;background:#050302;overflow:hidden}
+svg{position:absolute;left:0;top:0}
+#cap{position:absolute;left:60px;width:960px;text-align:center;top:1330px;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;font-size:92px;letter-spacing:1px;color:#e8e4d0;line-height:1.02;text-transform:uppercase;text-shadow:0 4px 18px #000}
+.chip{display:inline-block;background:#d63e30;padding:2px 18px 6px;margin:0 4px;border-radius:6px}
+</style></head><body>
+<svg id="art" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs>
+ <filter id="stone" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="5" seed="4" result="n"/>
+  <feDiffuseLighting in="n" surfaceScale="7" diffuseConstant="1.15" lighting-color="#ffbe78" result="l"><feSpotLight x="150" y="-80" z="420" pointsAtX="640" pointsAtY="900" pointsAtZ="0" specularExponent="6" limitingConeAngle="34"/></feDiffuseLighting>
+  <feColorMatrix in="l" type="matrix" values="0.55 0 0 0 0  0 0.5 0 0 0  0 0 0.46 0 0  0 0 0 1 0"/>
+ </filter>
+ <filter id="blk" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
+ <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+ <filter id="rim" x="-10%" y="-10%" width="120%" height="120%"><feOffset in="SourceAlpha" dx="5" dy="-6" result="o"/><feComposite in="SourceAlpha" in2="o" operator="out" result="e"/><feFlood flood-color="#ff5a44"/><feComposite in2="e" operator="in" result="r"/><feGaussianBlur stdDeviation="1.1" result="rb"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rb"/></feMerge></filter>
+ <linearGradient id="skin" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="260"><stop offset="0" stop-color="#f6d9b8"/><stop offset=".45" stop-color="#c98f63"/><stop offset="1" stop-color="#3d2316"/></linearGradient>
+ <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/></linearGradient>
+ <radialGradient id="vg" cx="50%" cy="45%" r="75%"><stop offset="35%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".92"/></radialGradient>
+ <radialGradient id="glassfill" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#e8e4d0" stop-opacity=".16"/><stop offset="1" stop-color="#e8e4d0" stop-opacity=".02"/></radialGradient>
+</defs>
+<g id="scene"></g><g id="fx"></g>
+</svg>
+<div id="cap"></div>
+<script>
+const Q=new URLSearchParams(location.search), SHOT=Q.get('shot')||'hook';
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)), sm=x=>{x=clamp(x);return x*x*(3-2*x)}, eo=x=>1-Math.pow(1-clamp(x),3), lerp=(a,b,t)=>a+(b-a)*t;
+const RED='#d63e30', HOT='#ff5a44', CREAM='#e8e4d0';
+// ---- hand art: pointing hand, local coords, fingertip at (590,50), forearm extends to -x ----
+const HAND_BODY=`M-500,70 L20,50 C90,40 150,18 232,14 C330,10 450,22 566,30 C600,34 612,60 582,72 C520,80 430,86 330,90 C362,98 384,114 376,134 C396,142 404,164 388,180 C402,192 398,216 376,224 C334,248 252,252 190,238 C150,228 122,214 100,198 L-500,236 Z`;
+const THUMB=`M96,176 C150,132 232,116 300,124 C314,138 300,156 262,164 C220,178 168,190 120,200 Z`;
+const CREASE=`<path d="M300,100 C318,104 330,118 332,132 M312,150 C328,156 340,168 340,182 M285,205 C300,208 316,216 322,226" stroke="#2a150d" stroke-opacity=".5" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M420,34 C440,40 446,50 440,60 M236,18 C250,30 252,46 244,60" stroke="#2a150d" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+const TIP=[590,50];
+function handSVG(x,y,s,rot,o={}){
+  const body=`<path d="${HAND_BODY}" fill="url(#skin)"/><path d="${THUMB}" fill="#d9a67c" opacity=".92"/>${CREASE}`;
+  return `<g transform="translate(${x},${y}) rotate(${rot||0}) scale(${s})" ${o.filter?`filter="url(#${o.filter})"`:''} opacity="${o.op==null?1:o.op}">${body}</g>`;
+}
+function silhouette(x,y,s,rot,sx,sy,blur,op){
+  return `<g transform="translate(${x},${y}) rotate(${rot||0}) scale(${s*sx},${s*sy})" opacity="${op}" ${blur?'filter="url(#blk)"':''}><path d="${HAND_BODY}" fill="#020101"/><path d="${THUMB}" fill="#020101"/></g>`;
+}
+function radar(x,y,t,k){ // k: intensity 0..1.3
+  let s=`<g filter="url(#glow)" fill="none" stroke="${HOT}">`;
+  for(const [r,w,o] of [[30,3,1],[62,2.5,.85],[96,2,.6]]) s+=`<circle cx="${x}" cy="${y}" r="${r}" stroke-width="${w}" opacity="${o*Math.min(1,.5+k)}"/>`;
+  for(let i=0;i<4;i++){const age=((t*0.9+i/4)%1), r=30+age*170; s+=`<circle cx="${x}" cy="${y}" r="${r}" stroke-width="2" opacity="${(1-age)*0.7*k}"/>`}
+  const a=t*3.2; s+=`<path d="M${x+130*Math.cos(a)},${y+130*Math.sin(a)} A130,130 0 0 1 ${x+130*Math.cos(a+0.9)},${y+130*Math.sin(a+0.9)}" stroke-width="4" opacity=".9"/>`;
+  for(let i=0;i<48;i++){const q=i/48*Math.PI*2,r1=122,r2=i%4?130:142; s+=`<path d="M${x+r1*Math.cos(q)},${y+r1*Math.sin(q)}L${x+r2*Math.cos(q)},${y+r2*Math.sin(q)}" stroke-width="2" opacity=".55"/>`}
+  s+=`<path d="M${x-170},${y}H${x-146}M${x+146},${y}H${x+170}M${x},${y-170}V${y-146}M${x},${y+146}V${y+170}" stroke-width="3"/></g>`;
+  s+=`<circle cx="${x}" cy="${y}" r="${20+14*k}" fill="${HOT}" opacity="${0.18+0.35*k}" filter="url(#bloom)"/>`;
+  return s;
+}
+function motes(t,seedOff=0){let s='';for(let i=0;i<70;i++){const h=(i*97+seedOff)%1000/1000, h2=(i*53+11)%1000/1000;const x=(h*1080+t*8*(h2-.5)+0)%1080, y=(h2*1500+t*(10+h*14))%1500+200, a=.15+.5*Math.abs(Math.sin(t*.8+i)); const inBeam=clamp(1-Math.hypot(x-300,y-300)/900); s+=`<circle cx="${x}" cy="${y}" r="${1+h*2.2}" fill="#ffd9a0" opacity="${a*inBeam}"/>`}return s}
+function finish(t,f){const seed=(f%7)+1;return `<rect width="1080" height="1920" fill="url(#vg)"/><filter id="gr" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="${seed}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0"/></filter><rect width="1080" height="1920" filter="url(#gr)" opacity=".16" style="mix-blend-mode:overlay"/>`}
+
+// ============ SHOT 1: hook (shadow on stone, 0..2.4 s) ============
+function keyed(keys,t){if(t<=keys[0][0])return {x:keys[0][1],y:keys[0][2]};for(let i=1;i<keys.length;i++)if(t<=keys[i][0]){const a=keys[i-1],b=keys[i],u=sm((t-a[0])/(b[0]-a[0]));return{x:lerp(a[1],b[1],u),y:lerp(a[2],b[2],u)}}const k=keys[keys.length-1];return{x:k[1],y:k[2]}}
+const RING=[640,800], LEAD=0.35, HS=1.05;
+const QH=t=>keyed([[0,120,1060],[0.15,120,1060],[2.2,RING[0]-40,RING[1]+215],[2.6,RING[0]-40,RING[1]+215]],t);
+function hook(t,f){
+  const z=1+0.07*sm(t/2.6), cx=RING[0], cy=RING[1];
+  let s=`<g transform="translate(${cx},${cy}) scale(${z}) translate(${-cx},${-cy})">`;
+  s+=`<rect width="1080" height="1920" fill="#0b0705" filter="url(#stone)"/>`;
+  s+=`<polygon points="-80,-60 260,-60 900,1100 420,1180" fill="url(#beam)" opacity=".30" filter="url(#bloom)"/>`;
+  // shadow (the prediction) leads: same move, LEAD seconds ahead, cast big and soft on the wall
+  const u=sm((t+LEAD-0.15)/2.05), SWx=lerp(RING[0]-360,RING[0],u), SWy=lerp(RING[1]+120,RING[1],u);
+  s+=silhouette(SWx-TIP[0]*HS*1.3,SWy-TIP[1]*HS*1.2,HS,-5,1.3,1.2,true,.92);
+  // ring + radar
+  const near=sm((t-0.4)/1.8); s+=radar(RING[0],RING[1],t,0.45+0.9*near);
+  // echoes then hand
+  const sp=Math.hypot(QH(t).x-QH(t-0.05).x,QH(t).y-QH(t-0.05).y)/0.05, ech=clamp(sp/420);
+  for(let i=3;i>=1;i--){const E=QH(t-0.08*i);s+=handSVG(E.x-TIP[0]*HS,E.y-TIP[1]*HS,HS,-6,{op:0.10*(4-i)*ech,filter:'blk'})}
+  const H=QH(t);
+  s+=handSVG(H.x-TIP[0]*HS,H.y+36-TIP[1]*HS,HS,-6,{op:.5,filter:'blk'});
+  s+=handSVG(H.x-TIP[0]*HS,H.y-TIP[1]*HS,HS,-6,{filter:'rim'});
+  s+=motes(t);
+  s+=`</g>`;
+  document.getElementById('scene').innerHTML=s; document.getElementById('fx').innerHTML=finish(t,f);
+  document.getElementById('cap').innerHTML=t>0.05?`You can't <span class="chip">tickle</span> yourself.`:'';
+}
+
+// ============ SHOT 2: brain -> arm -> fingertip (3.2 s local) ============
+const HEAD=`M296,452 C288,478 262,500 256,522 C262,534 272,540 268,550 C264,562 272,570 268,582 C270,600 280,614 300,622 C322,632 346,636 372,640 C382,664 384,692 380,720 C440,740 520,740 590,722 C600,690 596,664 586,640 C610,606 622,560 612,512 C604,420 548,344 450,336 C366,332 308,380 296,452 Z`;
+const GYRI=[`M330,440 C360,410 400,420 420,444 C440,420 480,412 504,440`,`M320,486 C352,462 392,476 410,500 C436,474 478,476 500,500`,`M350,392 C392,376 440,384 470,404`,`M372,520 C400,540 440,540 470,520 C500,530 530,510 548,490`,`M340,420 C330,450 340,474 360,490`,`M520,396 C556,420 566,460 552,494`];
+const NERVE=[[470,440],[484,600],[470,760],[440,900],[470,1060],[560,1200],[650,1330],[700,1450]];
+const PRED=[[540,500],[560,640],[540,780],[520,920],[560,1070],[630,1210],[690,1340],[700,1450]];
+function ptOn(path,u){const n=path.length-1,p=clamp(u)*n,i=Math.min(n-1,Math.floor(p)),f=p-i;const a=path[i],b=path[i+1];return[lerp(a[0],b[0],f),lerp(a[1],b[1],f)]}
+function curve(path){let d=`M${path[0][0]},${path[0][1]}`;for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;d+=` Q${a[0]},${a[1]} ${mx},${my}`}const l=path[path.length-1];return d+` T${l[0]},${l[1]}`}
+function trailPts(path,u,n=26){let d='';for(let i=0;i<=n;i++){const p=ptOn(path,clamp(u-0.0)*i/n);d+=(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)}return d}
+function brain(t,f){
+  let s=`<rect width="1080" height="1920" fill="#050302"/><ellipse cx="460" cy="560" rx="560" ry="620" fill="#2a1409" opacity=".35" filter="url(#bloom)"/>`;
+  const push=1+0.04*sm(t/3.2); s+=`<g transform="translate(0,-150) translate(540,900) scale(${push}) translate(-540,-900)">`;
+  // arm tube (glass)
+  const arm='M440,780 C430,940 470,1080 570,1220 C620,1290 670,1360 704,1460';
+  s+=`<path d="${arm}" stroke="${CREAM}" stroke-opacity=".45" stroke-width="150" fill="none" stroke-linecap="round"/><path d="${arm}" stroke="#0a0604" stroke-width="142" fill="none" stroke-linecap="round"/><path d="${arm}" stroke="${CREAM}" stroke-opacity=".05" stroke-width="142" fill="none" stroke-linecap="round"/>`;
+  // head + brain
+  s+=`<path d="${HEAD}" fill="url(#glassfill)" stroke="${CREAM}" stroke-opacity=".6" stroke-width="3"/><ellipse cx="458" cy="448" rx="132" ry="96" fill="#12080a" stroke="${CREAM}" stroke-opacity=".5" stroke-width="3"/>`;
+  s+=GYRI.map(g=>`<path d="${g}" stroke="${CREAM}" stroke-opacity=".28" stroke-width="3" fill="none" stroke-linecap="round"/>`).join('');
+  s+=`<ellipse cx="540" cy="520" rx="46" ry="28" fill="${RED}" fill-opacity="${0.12+0.45*sm((t-0.35)/.4)}" stroke="${RED}" stroke-width="3"/>`;
+  // faint full paths
+  s+=`<path d="${curve(NERVE)}" stroke="${RED}" stroke-opacity=".25" stroke-width="4" fill="none"/><path d="${curve(PRED)}" stroke="${CREAM}" stroke-opacity=".15" stroke-width="3" fill="none" stroke-dasharray="4 12"/>`;
+  // command pulse (red) slow; prediction pulse (cream-white dashed) fast -> arrives first
+  const uc=eo((t-0.25)/2.3), up=sm((t-0.55)/1.35);
+  if(t>0.25){s+=`<path d="${trailPts(NERVE,uc)}" stroke="${RED}" stroke-width="7" fill="none" filter="url(#glow)" stroke-linecap="round"/>`;const p=ptOn(NERVE,uc);s+=`<circle cx="${p[0]}" cy="${p[1]}" r="20" fill="${HOT}" filter="url(#glow)"/><circle cx="${p[0]}" cy="${p[1]}" r="8" fill="#fff4e8"/>`}
+  if(t>0.55){s+=`<path d="${trailPts(PRED,up)}" stroke="${CREAM}" stroke-width="5" fill="none" stroke-dasharray="3 10" stroke-linecap="round" filter="url(#glow)"/>`;const p=ptOn(PRED,up);s+=`<circle cx="${p[0]}" cy="${p[1]}" r="12" fill="${CREAM}" filter="url(#glow)"/>`}
+  // fingertip: prediction lands first (flare), command arrives later (cancels)
+  const tip=NERVE[NERVE.length-1], a1=sm((t-1.9)/.25)*(1-sm((t-2.6)/.5)), a2=sm((t-2.55)/.2)*(1-sm((t-3.0)/.4));
+  s+=`<circle cx="${tip[0]}" cy="${tip[1]}" r="${44+30*a1}" fill="${CREAM}" opacity="${0.5*a1}" filter="url(#bloom)"/><circle cx="${tip[0]}" cy="${tip[1]}" r="${60+50*a2}" fill="${HOT}" opacity="${0.55*a2}" filter="url(#bloom)"/>`;
+  s+=`<circle cx="${tip[0]}" cy="${tip[1]}" r="16" fill="${HOT}" opacity=".9" filter="url(#glow)"/>`;
+  s+=`</g>`;
+  // labels
+  const chip=(x,y,txt,bg,fg,o)=>`<g opacity="${o}" transform="translate(${x},${y})"><rect y="-30" width="${txt.length*19+28}" height="44" rx="6" fill="${bg}"/><text x="14" y="3" font-family="Liberation Mono,monospace" font-weight="700" font-size="28" fill="${fg}">${txt}</text></g>`;
+  s+=chip(120,430,'MOVE',RED,CREAM,sm((t-0.2)/.2))+chip(640,560,'PREDICT',CREAM,'#0e0906',sm((t-0.6)/.2));
+  document.getElementById('scene').innerHTML=s; document.getElementById('fx').innerHTML=motes(t,500)+finish(t,f);
+  document.getElementById('cap').innerHTML=t>0.5?`The copy <span class="chip">predicts</span> the touch`:'';
+}
+window.renderAt=(t,f)=>{(SHOT==='hook'?hook:brain)(t,f==null?Math.round(t*30):f);return true};
+window.ready=true;
+</script></body></html>
