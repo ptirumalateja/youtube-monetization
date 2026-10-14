@@ -1,0 +1,5 @@
+const {chromium}=require('/tmp/claude-0/-home-user-youtube-monetization/43e84261-6c7e-57fc-924c-617953374ae4/scratchpad/spike/node_modules/playwright-core'); const fs=require('fs');
+(async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--use-gl=angle']});
+const p=await b.newPage({viewport:{width:180,height:320}}); p.on('pageerror',e=>console.log(e.message)); await p.goto('http://localhost:8767/index.html?w=180&h=320'); await p.waitForFunction('window.ready===true&&window.andReady===true',{timeout:120000});
+const r=await p.evaluate(()=>{ const out={}; const v=new window.THREE.Vector3(); for(let f=63;f<=631;f++){ const t=f/30; window.setT(t); window.cam.updateMatrixWorld(); const us=window.usDotPos.clone(); v.copy(us).project(window.cam); out[f]=[v.x*0.5+0.5,1-(v.y*0.5+0.5),v.z]; } return out;});
+fs.writeFileSync('proj5.json',JSON.stringify(r)); await b.close();})();
