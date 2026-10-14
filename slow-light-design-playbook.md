@@ -2,7 +2,7 @@
 
 Living record of how the Slow Light science reels are designed and built: the goals, the design decisions and why we took them, the depth / motion / camera grammar, the sound design, the pipeline, and the mistakes that taught us something. Update it whenever a decision changes.
 
-Scope: the wordless "light and scale" reels (Red Sprites, The Sun Vanishes, Night Sky, Scale Ladder). The Abhimanyu story project has its own rules in `claude.md`.
+Scope: **Format A**, the wordless "light and scale" reels (Red Sprites, The Sun Vanishes, Night Sky, Scale Ladder; sections 1-10), and **Format B**, voiceover-led editorial motion-graphic explainers (section 11, first reel: "Why can't you tickle yourself?"). The Abhimanyu story project has its own rules in `claude.md`.
 
 ---
 
@@ -26,6 +26,7 @@ Scope: the wordless "light and scale" reels (Red Sprites, The Sun Vanishes, Nigh
 | The Sun Vanishes | Light and gravity both take 8 min 20 s | `sun_vanishes_v3_yt.mp4` (14 s, YouTube recut with stronger sound) | posted IG/FB; YouTube copy in `sun-vanishes-reel.md` |
 | Night Sky "the past" | Every light you see is old; Andromeda sees our past | v4 approved (19 s, sound reference); **v8.1 final** `night_sky_past_v81_A.mp4` (19.2 s) | copy ready: `night-sky-v81-publish-copy.md` |
 | Scale Ladder | Earth to the observable universe, ends "YOU ARE HERE." | **`scale_ladder_3d_v4_A/B.mp4`** (26 s, hooks A and B) | copy ready: `scale-ladder-publish-copy.md` |
+| Why can't you tickle yourself? (Format B) | The brain predicts self-touch; the shadow arrives first | spec `tickle-reel.md`; style frames in `tools/tickle/styleframes/` | style B approved; build next |
 
 Specs and notes per reel: `night-sky-past-reel.md` (v1-v4), `night-sky-v5-notes.md` (v5-v7), `night-sky-v8-spec.md` (v8 frozen plan + v8.1 pass), `scale-ladder-reel.md`.
 
@@ -192,6 +193,12 @@ Iteration history (why it ended up here):
 | Two-node + beam pull-back instead of a face-on galaxy | avoids the "shuriken" and explains the paradox |
 | Dissolve of the single star into the stargazer plate | no flash, no visual reset |
 | Freeze the plan before each big build; one contact-sheet check per stage | stop endless polish loops |
+| Add Format B (editorial graphic, voiceover-led) beside the cinematic Format A | owner supplied the Slow Light visual format PDF and a reference Short; second visual language |
+| Tickle reel built as a code-rendered 2.5D vector explainer, not anime and not a game look | idea reads best as editorial graphics; AI footage is costly and morphs hands |
+| Style B chosen from three frames (A flat, B cinematic editorial, C anime-leaning) | rim-lit hand, teal-edged shadow as the prediction, grain and vignette looked most premium |
+| No Higgsfield SFX; sound is synthesised or CC0 from Freesound | owner is credit-limited |
+| Voiceover tried in two versions (owner's voice vs a commanding ElevenLabs voice) | choose by listening, then by retention |
+| RunPod pod stopped whenever not generating | credit budget |
 
 ## 10. Backlog and open questions
 - Night Sky hook B ("THIS LIGHT IS OLD.") for v8.1 is overlay-only if we want to A/B.
@@ -200,3 +207,49 @@ Iteration history (why it ended up here):
 - Verify Uppbeat free sound-effect terms and the origin and licence of the two unnamed files (circuits hum, explosion) before a monetised upload.
 - Higher-resolution final renders (render 1080x1920 natively) and a 60 fps variant are possible but not needed for Shorts.
 - Next reel ideas should reuse the grammar: one idea, one axis or one orbit, one label per object, a monotonic quantity, a paradox beat, a loop.
+
+## 11. Format B: editorial motion-graphic explainers (voiceover-led)
+
+Second visual language for Slow Light, beside the cinematic Format A. Source: the owner's "Slow Light Visual Format Playbook" PDF and a reference Short (a pigeon-on-a-treadmill explainer, 36 s, 720x1280). The reference is a **grammar to borrow, never artwork to copy**: its watermark and pigeon art stay out of our reels.
+
+### 11.1 Principles
+- Keep a strange visual metaphor, make the idea unmistakable, let motion design do the work instead of generated footage. One question or surprising claim, one memorable payoff, ends cleanly or loops.
+- Hook visible and understandable in the first 1-3 s; every frame readable on a phone; every reveal earns its place.
+- Credit-conscious: 4-6 master art pieces at most, animate in code; AI video only for the one or two moments that truly need organic motion (the tickle reel needs none).
+
+### 11.2 What the reference does (measured from the video)
+36 s, 30 fps, voiceover continuous (about -14.5 LUFS integrated, true peak -1.3 dBFS, speech dips only at sentence pauses, no big hits). About 18 caption cards of roughly 2 s, synced to the voice, each with one keyword on a red chip. Layout: brand mark and italic serif label top-left, clock icon top-right, subject in the upper half with red crosshair reticles tracking the key point and 3-4 ghost-echo trails behind moving parts, a dashed band at about 60% height, captions just under it, and a step-line graph in the bottom third (stepped red line = the thing that is held/felt, smooth gold line = the thing that moves). Split-screen panels with small red/yellow tag labels compare two conditions. Story shape: surprising claim -> slow-motion mechanism with a HOLD marker -> split-screen comparison -> experiment -> second subject -> open question that loops.
+
+### 11.3 Locked look: "style B" (approved from three test frames)
+Frames: `tools/tickle/styleframes/` (`index.html?v=A|B|C`, `shot.js`). B wins; A (flat) is the fallback look; C (anime) contributes only an impact starburst for the single reveal beat.
+- **Canvas:** 1080x1920 native (vector, no upscaling). Background `#0e0906` with a warm radial wall light (cone `#e8c58a` at 22%), 60 px grid at 6% cream, film grain (overlay, about 20%), vignette to 75% black.
+- **Colour semantics (do not break):** cream `#e8e4d0` text and subject; **teal `#4fb3a9` / `#6fd6cb` = the brain's prediction** (the shadow's edge); **gold `#e3b04b` = the real thing / what moves**; **red `#d63e30` = accent only** (reticles, caption chips, graph step line, rim light, the spike). No other hues.
+- **Subject lighting:** hand has a vertical skin gradient (`#f1e6d2` -> `#cdbfa8` -> `#6d5f52`), a thin red rim light on the lit edge (offset 7/-8 px, 1.2 px blur) and a soft contact shadow; 3 ghost echoes at about 4-13% opacity, spaced 48 px.
+- **Shadow (the prediction):** near-black silhouette, 16 px blur penumbra, 92% opacity, with a teal edge (offset -7/7 px) and a faint teal glow (about 28%). It is always ahead of the hand.
+- **Layout (px at 1080x1920):** brand mark "SLOW LIGHT" at (64,150), 34 px, 10 px tracking, red O; italic serif label at (64,228) 44 px with 28 px sub-label; clock centre (930,236) r 56; wall/subject zone y 300-1120; dashed band y 1128-1162; caption block from y 1210, 92 px Liberation Sans Narrow Bold uppercase, red chip (padding 2/18/6 px, radius 6) on the key word; graph y 1400-1860 (gold smooth curve + red step line). Keep body text out of the bottom 18%; the graph is decoration. Final fonts: confirm OFL licences before swapping from the system fonts.
+- **Hand art:** the test hand is a placeholder vector shape. Final hand is a refined vector or a Qwen-seeded illustration; decide by comparing, then cut out with masks. Wan only if a shot needs organic motion.
+
+### 11.4 Motion grammar
+- 2.5D: separate layers (wall, shadow, hand, echoes, reticles, graph, captions) with slow parallax pushes and rack-focus style blur changes. Easing with anticipation and overshoot; smear/echo frames on fast moves.
+- Captions: word-synced to the voice, one phrase per card (about 2 s), keyword chip pops in with a small scale overshoot, previous card leaves before the next lands.
+- Graph is the proof: it must change with the idea (flat red when the touch is predicted, a spike when it is not). The clock only ticks forward (monotonic rule still applies to any counter).
+- Impact: one impact frame (starburst + 2-frame punch) on the single reveal, within the exposure rules (flash at most 12-16% for 0.1-0.2 s).
+- Loop: last frame rhymes with frame 0.
+
+### 11.5 Voiceover and sound
+- Voice-led. Target about -15 LUFS integrated, true peak checked after AAC. Pace about 2.4 words per second; trim pauses and pitch-preserving time-stretch if a recording is slow.
+- Two versions per reel (owner's voice tightened; a commanding ElevenLabs voice), same timeline, separate caption timing files. Listen first, then compare retention.
+- Under the voice: a quiet bed, small ticks/pings on chip appearances, a low pulse on HOLD/predict moments, and one sized hit on the reveal with a held-breath gap before it. **Sound idea that carries the science:** self-touch sounds are low-passed and quiet (dampened); the unexpected touch is bright, wide and full.
+- Sources: numpy synthesis (no licence needed) and CC0 / CC BY Freesound files the owner downloads. **No Higgsfield SFX** (credits). Keep `audio-attribution.md` and the reel's publish copy in step.
+
+### 11.6 Pipeline (Format B)
+1. Frozen spec per reel (`tickle-reel.md`): script, shot table, colour use, fact table, cue sheet.
+2. Art: vector in code and/or Qwen stills on RunPod (seed with a reference plate; Qwen Image Edit does not generate from nothing); stop the pod when done.
+3. Renderer: HTML/SVG page driven by a timeline JSON, rendered frame by frame in headless Chromium (playwright-core at `/opt/node-tools`, `chrome` at `/opt/pw-browsers/chromium-1194`), PNG frames piped to ffmpeg.
+4. Audio: voice track(s), numpy mix, loudness check after AAC; mux with `-movflags +faststart`.
+5. QA: Format A checklist (section 7) plus: caption timing vs voice, graph matches the claim, red used only as accent, no text in the bottom 18%, scientific accuracy and no misleading visual, AI/synthetic label on in the upload.
+
+### 11.7 Rules specific to this format
+- Label tag: "simplified illustration" (the shadow-leads-the-hand device is a metaphor, not literal physics).
+- Never repeat artwork across reels or copy the reference video's art or branding.
+- Test the format: publish the tickle pilot, then compare stayed-to-watch at 2 s, average view duration, completion, rewatches, comments, and production time before making a series.
