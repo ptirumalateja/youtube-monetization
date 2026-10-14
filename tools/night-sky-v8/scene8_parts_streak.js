@@ -1,0 +1,5 @@
+// ---------------------------------------------------------------- Sun extras: cinematic blue anamorphic streak + glints (distinct from the ladder's textured Sun)
+const streakMat=(c,o)=>new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uC:{value:new THREE.Color(...c)},uO:{value:o}},
+ vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying vec2 vU; uniform vec3 uC; uniform float uO; void main(){ float ax=abs(vU.x-0.5)*2.0, ay=abs(vU.y-0.5)*2.0; float a=pow(max(1.0-ax,0.0),2.2)*exp(-ay*ay*60.0); gl_FragColor=vec4(uC*a*uO,1.0);} `});
+const sunStreak=new THREE.Mesh(new THREE.PlaneGeometry(1,1),streakMat([0.45,0.75,1.0],0.55)); sunStreak.scale.set(1500,70,1); sunStreak.position.copy(SUN_P); sunStreak.renderOrder=19; scene.add(sunStreak);

@@ -1,6 +1,7 @@
 # Night Sky v8: frozen shot plan (one build, checked against this table before delivery)
 
-Status: PROPOSED, waiting for sign-off. Nothing is rendered until approved. Target length about 19 s, 9:16, loops.
+Status: APPROVED and BUILT as `night_sky_past_v8_A.mp4` (18.6 s). Scripts in `tools/night-sky-v8/` (scene8_*.js are assembled by build.py as keep + streak + andro + grade + main).
+One deviation from the table: because the Moon fills about 65% of the frame while we hold on it, the Sun is revealed at the centre as the Moon slides away (about 4.45 s) instead of being visible behind it from 4.0 s.
 
 ## Why v7 was still hard to read (root causes)
 1. The camera path and the objects were not on one axis. The Moon sat off to the right, and the camera "looked at" each object through a blend, so the object slid across the frame instead of growing at the centre.
