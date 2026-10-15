@@ -146,7 +146,7 @@ window.renderAt = async (E) => {
   put(hand.ghost, gP, 0.95 * sm((E - 0.1) / 0.4) * (1 - 0.9 * conv), E, {scale: SC0, rz: slope(E + LEADT) + bob});
   for (let k = 0; k < 4; k++) { const f = (k + 1) / 5, p = tipPath(E + LEADT * f).add(V3(0.6 * f, 0.8 * f, -3.2 * f).multiplyScalar(sep)); put(hand.tr[k], p, 1.7 * sm((E - 0.2) / 0.4) * (1 - conv) * (1 - f * 0.5), E, {scale: SC0, rz: slope(E + LEADT * f), cut: 0.5}); }
   // time ribbon: thin lines stretch from the real fingertip to the ghost fingertip, collapse when they meet
-  const rv = sm((E - 0.2) / 0.4) * (1 - 0.9 * sm((E - 2.2) / 0.4));
+  const rv = (QP.get('rib') === '0' ? 0 : 1) * sm((E - 0.2) / 0.4) * (1 - 0.9 * sm((E - 2.2) / 0.4));
   ribbons.forEach((l, i) => { const P = l.geometry.attributes.position.array, C = l.geometry.attributes.color.array, m = i / (NR - 1) - 0.5;
     for (let j = 0; j < NS; j++) { const f = j / (NS - 1), p = tipPath(E + LEADT * f), w = Math.pow(Math.sin(Math.PI * f), 0.8);
       P.set([p.x + 0.6 * f * sep, p.y + 0.8 * f * sep + m * 2.8 * w * (0.4 + 0.6 * sep), -3.2 * f * sep + m * 1.6 * w * sep], j * 3);
