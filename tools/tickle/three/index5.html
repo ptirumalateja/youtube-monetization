@@ -1,0 +1,20 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>tickle animatic</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#02050a;overflow:hidden}
+canvas{position:absolute;left:0;top:0}
+#title{z-index:5;position:absolute;left:0;width:100%;text-align:center;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;color:#f1ead8;text-transform:uppercase;text-shadow:0 4px 24px #000}
+#title.big{top:80px;font-size:150px;line-height:.98;letter-spacing:2px}
+#title.sm{top:84px;font-size:58px;line-height:1.08;letter-spacing:8px;padding:0 60px}
+#title em{font-style:normal;color:#ff2d24}
+#brand{z-index:5;position:absolute;left:64px;top:34px;font-family:'Liberation Sans Narrow',sans-serif;font-weight:700;font-size:28px;letter-spacing:10px;color:#e8e4d0;opacity:.8}
+#brand em{font-style:normal;color:#d63e30}
+#wf{z-index:4;position:absolute;left:0;bottom:30px;width:1080px;height:160px}
+#flash{z-index:6;position:absolute;inset:0;background:#e8e4d0;opacity:0;pointer-events:none}
+</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<div id="brand">SL<em>O</em>W LIGHT</div><div id="title"></div><div id="wf"></div><div id="flash"></div>
+<script type="module" src="scene5.js"></script>
+</body></html>
