@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>dreams v2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#02050a;overflow:hidden}
+canvas{position:absolute;left:0;top:0}
+#title,#cap{z-index:5;position:absolute;left:0;width:100%;text-align:center;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;color:#f1ead8;text-transform:uppercase;text-shadow:0 4px 24px #000}
+#title{top:104px;font-size:66px;line-height:1;letter-spacing:2px;white-space:nowrap}
+#title em.on{color:#ff3a2e}
+#title em:last-child{color:#ff3a2e}
+#cap{top:1500px;font-size:78px;line-height:1.06;letter-spacing:3px;height:260px}
+#capbg{z-index:4;position:absolute;left:0;width:100%;top:1380px;height:540px;background:linear-gradient(to bottom,rgba(2,5,10,0),rgba(2,5,10,.78) 40%,rgba(2,5,10,.9))}
+#cap div{position:absolute;left:0;width:100%;padding:0 50px}
+em{font-style:normal;color:#ff3a2e}
+#brand{z-index:5;position:absolute;left:0;width:100%;text-align:center;top:40px;font-family:'Liberation Sans Narrow',sans-serif;font-weight:700;font-size:24px;letter-spacing:12px;color:#e8e4d0;opacity:.7}
+#brand em{color:#d63e30}
+#barwrap{z-index:5;position:absolute;left:60px;width:960px;top:196px;height:3px;background:rgba(232,228,208,.18)}
+#bar{height:3px;width:0;background:#ff3a2e;box-shadow:0 0 10px #ff3a2e}
+#flash{z-index:6;position:absolute;inset:0;background:#e8e4d0;opacity:0;pointer-events:none}
+</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+</head><body>
+<div id="brand">SL<em>O</em>W LIGHT</div><div id="title"></div><div id="barwrap"><div id="bar"></div></div><div id="capbg"></div><div id="cap"></div><div id="flash"></div>
+<script type="module" src="scene12b.js"></script>
+</body></html>

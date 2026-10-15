@@ -3,6 +3,7 @@
 usage: python3 prep_dreams_v3.py <model.onnx> <v2_raw_dir> [<v1_raw_dir>]  -> assets/dreams/v3_<key>.jpg, v3_<key>_d.png, v3_meta.json"""
 import sys, json, numpy as np, onnxruntime as ort
 from PIL import Image, ImageFilter
+import os
 model, v2 = sys.argv[1:3]; v3 = sys.argv[3] if len(sys.argv) > 3 else v2
 # key: (file, crop l,t,r,b fractions, figure anchor (u,v) in the CROPPED image, figure height as fraction of image height)
 K = {
@@ -20,6 +21,7 @@ K = {
     "heaven": ("20261015_145928", None, (0.52, 0.35), 0.04),
     "eye": ("20261015_145844", None, (0.5, 0.52), 0.10),
     "bed": ("20261015_144811", None, (0.52, 0.30), 0.25),
+    "sleeper": ("20261015_144736", None, (0.5, 0.2), 0.3),
     "head": ("20261015_153816", None, (0.51, 0.53), 0.08),
     "rem": ("20261015_153813", None, (0.56, 0.60), 0.10),
     "ribbon": ("20261015_153807", None, (0.47, 0.43), 0.06),
@@ -28,8 +30,10 @@ K = {
     "loopcard": ("20261015_153807_1", None, (0.50, 0.45), 0.03),
 }
 MASK = {"bedfall": (0, 0, 0.09, 0.07)}
-s = ort.InferenceSession(model); mean = np.array([0.485, 0.456, 0.406]); std = np.array([0.229, 0.224, 0.225]); meta = {}
+s = ort.InferenceSession(model); mean = np.array([0.485, 0.456, 0.406]); std = np.array([0.229, 0.224, 0.225]); meta = json.load(open('assets/dreams/v3_meta.json')) if os.path.exists('assets/dreams/v3_meta.json') else {}
+ONLY = os.environ.get('ONLY')
 for k, (f, c, anc, fh) in K.items():
+    if ONLY and k not in ONLY.split(','): continue
     fn = f if f.startswith("9eddf1") or f.startswith("da1484") else "image_" + f
     fn = fn if fn.startswith("image_") else "image_" + fn
     import os
