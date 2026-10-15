@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>dreams</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#02050a;overflow:hidden}
+canvas{position:absolute;left:0;top:0}
+#head,#cap{z-index:5;position:absolute;left:0;width:100%;text-align:center;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;color:#f1ead8;text-transform:uppercase;text-shadow:0 4px 24px #000}
+#head{top:120px;font-size:84px;line-height:1.02;letter-spacing:3px}
+#head div{position:absolute;left:0;width:100%}
+#cap{top:1480px;font-size:84px;line-height:1.06;letter-spacing:3px;padding:0 50px;height:260px}
+#cap div{position:absolute;left:0;width:100%;padding:0 50px}
+em{font-style:normal;color:#ff3a2e}
+#brand{z-index:5;position:absolute;left:0;width:100%;text-align:center;top:46px;font-family:'Liberation Sans Narrow',sans-serif;font-weight:700;font-size:28px;letter-spacing:12px;color:#e8e4d0;opacity:.75}
+#brand em{color:#d63e30}
+#flash{z-index:6;position:absolute;inset:0;background:#e8e4d0;opacity:0;pointer-events:none}
+</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+</head><body>
+<div id="brand">SL<em>O</em>W LIGHT</div><div id="head"></div><div id="cap"></div><div id="flash"></div>
+<script type="module" src="scene9.js"></script>
+</body></html>
