@@ -1,7 +1,7 @@
 // Scene 2: smooth skinned wire-mesh hand (bone white), predicted ghost (teal), deformable planes of predicted space,
 // red contact point that bends the space. Opening 01A-01D of the storyboard.
 import * as THREE from 'three';
-const W = 1080, H = 1920, LEAD = 0.5;
+const QP = new URLSearchParams(location.search); const W = +(QP.get('w') || 1080), H = +(QP.get('h') || 1920), LEAD = 0.5;
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), sm = x => { x = clamp(x); return x * x * (3 - 2 * x); }, lerp = (a, b, t) => a + (b - a) * t;
 const WHITE = new THREE.Color(1.25, 1.18, 1.02), TEAL = new THREE.Color(0.12, 0.9, 0.78), RED = new THREE.Color(1.0, 0.16, 0.12);
 
@@ -54,7 +54,7 @@ const lineMat = c => new THREE.ShaderMaterial({
     void main(){
       float ndv=abs(dot(normalize(vN),normalize(vV))); float rim=pow(1.0-ndv,2.2);
       float l1=lm(vA.x,0.30,0.45), l2=lm(vA.z,0.55,0.35)*0.6, l3=lm(vA.y,0.55,0.35)*0.45;
-      float lines=max(l1,max(l2,l3)); float arm=smoothstep(-20.0,-5.0,vA.x);
+      float lines=max(l1,max(l2,l3)); float arm=smoothstep(-13.0,-2.5,vA.x);
       float a=(lines*(0.38+1.5*rim)+rim*0.42+0.025)*arm*uAlpha;
       gl_FragColor=vec4(uColor*a,1.0); }`
 });
@@ -116,23 +116,35 @@ pg.setAttribute('position', new THREE.BufferAttribute(pp, 3));
 const dust = new THREE.Points(pg, new THREE.PointsMaterial({size: 2.2, sizeAttenuation: false, color: 0x4de8d0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false})); dust.renderOrder = 4; scene.add(dust);
 
 // ---------- timeline ----------
-const tipX = t => { const u = clamp((t - 0.05) / 2.0); return lerp(7.0, TARGET.x - 0.35, 1 - Math.pow(1 - u, 3)); };
-const CAM = [[0, -7, 3.0, 22, 12, 2.0, 0, 46], [0.5, -2, 4.5, 22, 19, 2.2, 0, 42], [1.0, 14, 3.0, 15, 30, 2.2, 0, 34], [1.5, 20.5, 2.4, 12, 33, 2.2, 0, 29], [2.4, 18, 3.0, 17, 30, 2.5, 0, 34], [3.2, 12, 4, 22, 28, 2.5, 0, 38]];
+const tipX = t => { const u = clamp((t - 0.05) / 2.0); return lerp(8.0, TARGET.x - 0.35, 1 - Math.pow(1 - u, 3)); };
+const CAM = [[0, 9, 3.0, 50, 10, 2.0, 0, 42], [0.6, 14, 4.0, 46, 17, 2.2, 0, 40], [1.1, 24, 3.5, 34, 28, 2.2, 0, 36], [1.6, 27, 3.0, 26, 31.5, 2.2, 0, 32], [2.4, 24, 4.0, 36, 26, 2.4, 0, 38], [3.2, 20, 5, 46, 22, 2.5, 0, 42]];
 function camAt(t) { let i = 0; while (i < CAM.length - 2 && t > CAM[i + 1][0]) i++; const a = CAM[i], b = CAM[i + 1], u = sm((t - a[0]) / (b[0] - a[0])); return a.map((v, k) => lerp(v, b[k], u)); }
 window.renderAt = async (t) => {
   const c = camAt(Math.min(t, 3.2)); camera.position.set(c[1], c[2], c[3]); camera.fov = c[7]; camera.updateProjectionMatrix(); camera.lookAt(c[4], c[5], c[6]);
-  const roll = -0.55, lead = tipX(t + LEAD), cur = tipX(t);
+  const roll = -0.3, lead = tipX(t + LEAD), cur = tipX(t);
   const pinch = sm((t - 0.35) / 1.15) * (1 - 0.25 * sm((t - 2.6) / 0.6)), flare = Math.exp(-Math.max(0, t - 1.5) / 0.22) * (t > 1.5 ? 1 : 0) * 0.8 + Math.exp(-Math.max(0, t - 2.0) / 0.3) * (t > 2.0 ? 1 : 0);
   const conv = sm((t - 1.75) / 0.5);
   placeHand(real, new THREE.Vector3(cur, TARGET.y, 0), POINT, roll, 1.0);
-  placeHand(ghost, new THREE.Vector3(lead, TARGET.y, 0), POINT, roll, 0.7 * (1 - 0.8 * conv));
-  placeHand(trail1, new THREE.Vector3(tipX(t + LEAD + 0.18), TARGET.y, 0), POINT, roll, 0.26 * (1 - conv));
-  placeHand(trail2, new THREE.Vector3(tipX(t + LEAD + 0.36), TARGET.y, 0), POINT, roll, 0.14 * (1 - conv));
-  planes.forEach((p, i) => { p.material.uniforms.uPinch.value = pinch; p.material.uniforms.uTime.value = t; p.material.uniforms.uFade.value = 1 - 0.92 * sm((t - 0.95) / 0.5); });
+  const sep = 1 - conv; placeHand(ghost, new THREE.Vector3(lead, TARGET.y + 3.4 * sep, -3.2 * sep), POINT, roll, 0.8 * (1 - 0.75 * conv));
+  placeHand(trail1, new THREE.Vector3(tipX(t + LEAD + 0.18), TARGET.y + 3.4 * sep, -3.2 * sep), POINT, roll, 0.22 * (1 - conv));
+  placeHand(trail2, new THREE.Vector3(tipX(t + LEAD + 0.36), TARGET.y + 3.4 * sep, -3.2 * sep), POINT, roll, 0.12 * (1 - conv));
+  planes.forEach((p, i) => { p.material.uniforms.uPinch.value = pinch; p.material.uniforms.uTime.value = t; p.material.uniforms.uFade.value = sm((t - 0.35) / 0.5) * (1 - 0.92 * sm((t - 1.15) / 0.5)); });
   field.material.uniforms.uPinch.value = pinch; field.material.uniforms.uTime.value = t; field.material.uniforms.uFlare.value = flare;
   const ps = 1.0 + 3.5 * flare + 0.8 * pinch; core.scale.setScalar(0.9 + ps * 0.55); core.material.opacity = 0.3 + 0.35 * pinch + 0.25 * flare;
-  dust.position.x = -t * 0.8; renderer.domElement.style.opacity = String(sm(t / 0.35));
+  dust.position.x = -t * 0.8; renderer.domElement.style.opacity = String(0.25 + 0.75 * sm(t / 0.25));
   const tt = document.getElementById('title'); const n = clamp((t - 1.55) / 0.35); tt.innerHTML = n > 0 ? `<div style="opacity:${n}">YOUR BRAIN<br><em>CHEATS.</em></div>` : '';
+  renderer.render(scene, camera); return true;
+};
+// ---- isolated hand debug: window.renderHand(poseName, yaw, pitch) ----
+const OPEN = {flex: [[0.1, 0.18, 0.08], [0.06, 0.14, 0.06], [0.1, 0.2, 0.08], [0.16, 0.24, 0.1]], spread: [0.3, 0.05, -0.2, -0.42], th: {abd: 0.5, f: [0.12, 0.08]}};
+const POSES = {point: POINT, open: OPEN};
+window.renderHand = async (poseName, yaw, pitch, dist = 46) => {
+  [...planes, field, core, dust, ghost.pre, ghost.ln, trail1.pre, trail1.ln, trail2.pre, trail2.ln].forEach(o => o.visible = false);
+  renderer.domElement.style.opacity = '1'; document.getElementById('title').innerHTML = '';
+  const M = boneMats(POSES[poseName]); skin(real.g.attributes.position.array, M); real.g.attributes.position.needsUpdate = true; real.g.computeVertexNormals();
+  real.pre.matrix.identity(); real.ln.matrix.identity(); real.ln.material.uniforms.uAlpha.value = 1; real.pre.visible = real.ln.visible = true;
+  const cx = 2, cy = 0, cz = 2; camera.fov = 30; camera.updateProjectionMatrix();
+  camera.position.set(cx + dist * Math.sin(yaw) * Math.cos(pitch), cy + dist * Math.sin(pitch), cz + dist * Math.cos(yaw) * Math.cos(pitch)); camera.lookAt(cx, cy, cz);
   renderer.render(scene, camera); return true;
 };
 window.ready = true;
