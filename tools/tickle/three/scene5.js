@@ -14,13 +14,13 @@ const TX = {hand: await loadTex('hand_point_side.png'), palm: await loadTex('pal
 
 // ---------- sprite factory (contour art) ----------
 const spriteMat = (tex, tint, op) => new THREE.ShaderMaterial({
-  uniforms: {uTex: {value: tex}, uTint: {value: tint.clone()}, uOp: {value: op}, uTime: {value: 0}, uWave: {value: 0}, uReveal: {value: 1}, uRed: {value: 0}, uEdgeL: {value: 0}, uRad: {value: 0}},
+  uniforms: {uTex: {value: tex}, uTint: {value: tint.clone()}, uOp: {value: op}, uTime: {value: 0}, uWave: {value: 0}, uReveal: {value: 1}, uRed: {value: 0}, uEdgeL: {value: 0}, uRad: {value: 0}, uCut: {value: 0}},
   transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
   vertexShader: `uniform float uTime; uniform float uWave; varying vec2 vUv;
     void main(){ vUv=uv; vec3 p=position; float f=smoothstep(0.45,1.0,uv.x); p.y+=uWave*0.5*sin(uv.x*16.0-uTime*4.0)*f; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
-  fragmentShader: `uniform sampler2D uTex; uniform vec3 uTint; uniform float uOp; uniform float uReveal; uniform float uRed; uniform float uEdgeL; uniform float uRad; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D uTex; uniform vec3 uTint; uniform float uOp; uniform float uReveal; uniform float uRed; uniform float uEdgeL; uniform float uRad; uniform float uCut; varying vec2 vUv;
     void main(){ float a=texture2D(uTex,vUv).a; float front=uReveal*1.3-0.1; a*=1.0-smoothstep(front-0.12,front,vUv.x);
-      a*=mix(1.0,smoothstep(0.0,0.16,vUv.x),uEdgeL); a*=mix(1.0,1.0-smoothstep(0.30,0.5,length((vUv-0.5)*vec2(1.0,1.25))),uRad); vec3 c=mix(uTint,vec3(1.0,0.2,0.14),uRed); gl_FragColor=vec4(c*a*uOp,1.0); }`
+      a*=mix(1.0,smoothstep(0.0,0.16,vUv.x),uEdgeL); a*=uCut>0.0?smoothstep(uCut-0.02,uCut+0.06,vUv.x):1.0; a*=mix(1.0,1.0-smoothstep(0.30,0.5,length((vUv-0.5)*vec2(1.0,1.25))),uRad); vec3 c=mix(uTint,vec3(1.0,0.2,0.14),uRed); gl_FragColor=vec4(c*a*uOp,1.0); }`
 });
 function mkSprite(tex, px, py, ppu, anchor, layers, edgeL = 0) {
   const w = px / ppu, h = py / ppu, g = new THREE.Group(); g.layers_ = []; g.anchorLocal = V3((anchor[0] / px - 0.5) * w, (0.5 - anchor[1] / py) * h, 0);
@@ -30,7 +30,7 @@ function mkSprite(tex, px, py, ppu, anchor, layers, edgeL = 0) {
 function put(sp, anchorWorld, alpha, t, o = {}) {
   const s = o.scale || 1, rz = o.rz || 0, a = sp.anchorLocal.clone().multiplyScalar(s).applyAxisAngle(V3(0, 0, 1), rz);
   sp.scale.setScalar(s); sp.rotation.z = rz; sp.position.copy(anchorWorld).sub(a); sp.visible = alpha > 0.003;
-  sp.layers_.forEach(m => { const u = m.material.uniforms; u.uOp.value = m.userData.base * alpha; u.uTime.value = t; u.uWave.value = o.wave || 0; u.uReveal.value = o.reveal ?? 1; u.uRed.value = o.red || 0; });
+  sp.layers_.forEach(m => { const u = m.material.uniforms; u.uOp.value = m.userData.base * alpha; u.uTime.value = t; u.uWave.value = o.wave || 0; u.uReveal.value = o.reveal ?? 1; u.uRed.value = o.red || 0; u.uCut.value = o.cut || 0; });
 }
 const hand = {real: mkSprite(TX.hand, 2000, 1000, 50, [1318, 415], [[0, BONE, 1.0], [-0.5, TL, 0.42], [-1.0, TL, 0.26]], 1),
   ghost: mkSprite(TX.hand, 2000, 1000, 50, [1318, 415], [[0, TL, 0.8], [-0.6, TL, 0.36]], 1),
@@ -65,7 +65,7 @@ stages.forEach((s, k) => {
       void main(){ vec3 d=vW-uT; float rr=length(d); float g=exp(-(rr*rr)/7.0);
         float y=vW.y+(vW.y-uT.y)*(-0.9*uPinch*g); float flow=lm(y+0.35*sin(vW.z*0.35+uTime)*g*uPinch,0.62,0.45);
         float ring=0.0; for(int i=0;i<5;i++){ float ph=fract(uTime*0.45+float(i)/5.0); float rad=ph*6.5; ring+=exp(-pow((rr-rad)/0.1,2.0))*(1.0-ph)*(0.18+0.55*uPinch); }
-        float edge=exp(-rr/uEdge); vec3 teal=vec3(0.12,0.9,0.78)*flow*0.4*edge*(0.35+0.8*uPinch); vec3 red=vec3(1.0,0.18,0.12)*(ring*0.85+g*0.35*uPinch+uFlare*exp(-rr*1.4)*1.1);
+        float edge=exp(-rr/uEdge)*(1.0-smoothstep(7.0,15.0,rr)); vec3 teal=vec3(0.12,0.9,0.78)*flow*0.4*edge*(0.35+0.8*uPinch); vec3 red=vec3(1.0,0.18,0.12)*(ring*0.85+g*0.35*uPinch+uFlare*exp(-rr*1.4)*1.1);
         gl_FragColor=vec4((teal+red)*uAmp,1.0); }`})); 
   f.position.copy(STAGE_T[k]).add(V3(0.3, 0, k === 0 ? 0 : -4)); f.rotation.y = k === 0 ? -1.05 : 0; f.renderOrder = 1; scene.add(f); s.field = f;
 });
@@ -74,7 +74,7 @@ const flow = new THREE.Mesh(new THREE.PlaneGeometry(160, 56, 2, 2), new THREE.Sh
   vertexShader: `varying vec3 vW; void main(){ vec4 wp=modelMatrix*vec4(position,1.0); vW=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
   fragmentShader: `uniform vec3 uT; uniform float uPull; uniform float uTime; uniform float uAmp; uniform float uOff; varying vec3 vW;
     float lm(float v,float sp,float w){ float x=v/sp; float d=abs(fract(x-0.5)-0.5)/max(fwidth(x),1e-4); return 1.0-clamp(d-w,0.0,1.0); }
-    void main(){ float dx=(vW.x-uT.x)/26.0; float g=exp(-dx*dx); float dy=vW.y-uT.y; float yw=vW.y-dy*0.62*uPull*g; yw+=0.9*sin(vW.x*0.18+uTime*0.8+vW.y*0.1)*(1.0-0.6*uPull*g);
+    void main(){ float dx=(vW.x-uT.x)/26.0; float g=exp(-dx*dx); float dy=vW.y-uT.y; float yw=vW.y-dy*0.62*uPull*g; yw+=0.35*sin(vW.x*0.12+uTime*0.5+vW.y*0.08)*(1.0-0.7*uPull*g);
       float l=lm(yw,0.8,0.42); float near=exp(-length(vec2(dx*26.0,dy))/22.0); float xo=vW.x-uOff; float edge=smoothstep(-30.0,-6.0,xo)*(1.0-smoothstep(52.0,70.0,xo));
       vec3 c=mix(vec3(0.1,0.8,0.7),vec3(1.0,0.2,0.14),near*uPull*0.55); gl_FragColor=vec4(c*l*(0.16+0.5*near*uPull)*edge*uAmp,1.0); }`}));
 flow.position.set(30, 2, -7); flow.renderOrder = 0; scene.add(flow);
@@ -127,13 +127,13 @@ function updateStream(s, head, vis) {
 const T1 = 3.2, F12 = [3.2, 3.9], T2 = [3.9, 8.2], F23 = [8.2, 8.9], T3 = [8.9, 13.0], F34 = [13.0, 13.7], T4 = [13.7, 17.0], FB = [17.0, 17.5], T3b = [17.5, 18.6], F51 = [18.6, 19.2];
 const KX = [[0, -4], [0.5, 6], [0.62, 6.4], [1.1, 18], [1.22, 18.4], [1.65, 28], [1.8, 28.6], [2.35, 33.15]];
 const tipX1 = t => { if (t <= KX[0][0]) return KX[0][1]; for (let i = 1; i < KX.length; i++) if (t <= KX[i][0]) return lerp(KX[i - 1][1], KX[i][1], sm((t - KX[i - 1][0]) / (KX[i][0] - KX[i - 1][0]))); return KX[KX.length - 1][1]; };
-const CAM = [[0, -2, 3, 52, 8, 2, 0, 44], [0.6, 6, 3.5, 50, 16, 2.2, 0, 42], [1.1, 16, 3.5, 40, 26, 2.2, 0, 38], [1.6, 24, 3, 30, 31, 2.2, 0, 34], [2.3, 27, 3, 26, 32.5, 2.2, 0, 31], [3.2, 22, 4, 44, 26, 2.4, 0, 40],
+const CAM = [[0, 25, 3, 52, 26, 2.2, 0, 42], [0.9, 25.4, 3, 51, 26, 2.2, 0, 41], [1.6, 25.8, 3, 50, 26.3, 2.2, 0, 40], [2.3, 26, 3, 49, 26.5, 2.2, 0, 39], [2.8, 26, 3.2, 49, 26.6, 2.3, 0, 39], [3.2, 26, 3.5, 50, 27, 2.4, 0, 40],
   [3.9, 96, 3, 56, 100, -1, 0, 42], [5.2, 97, 2.5, 48, 100, -1, 0, 40], [6.0, 98, 1, 40, 100, -1.5, 0, 38], [6.5, 100, -0.5, 30, 100, -1.2, 0, 32], [7.4, 100, -0.5, 32, 100, -1.2, 0, 34], [8.2, 100, 1, 44, 100, -1, 0, 40],
   [8.25, 198, 1, 62, 200, 0, 0, 42], [8.9, 198, 1, 62, 200, 0, 0, 42], [10.6, 200, 0, 56, 200, -2, 0, 40], [12.2, 206, -4, 52, 208, -8, 0, 40], [13.0, 208, -4, 52, 210, -8, 0, 42],
   [13.7, 298, 2, 66, 300, -2, 0, 42], [14.8, 298, 0, 58, 299, -3, 0, 40], [15.3, 298, -3, 38, 297, -5, 0, 34], [16.2, 298, -3, 34, 297, -5, 0, 34], [17.0, 300, 0, 60, 300, -2, 0, 40],
   [17.5, 198, 1, 58, 200, 0, 0, 40], [18.6, 200, 1, 62, 200, 0, 0, 42], [19.2, 22, 4, 46, 24, 2.4, 0, 42], [21.8, 20, 4, 44, 22, 2.4, 0, 40]];
 function camAt(t) { let i = 0; while (i < CAM.length - 2 && t > CAM[i + 1][0]) i++; const a = CAM[i], b = CAM[i + 1], u = sm((t - a[0]) / (b[0] - a[0])); return a.map((v, k) => lerp(v, b[k], u)); }
-const LINES = [[1.55, 3.3, 'big', 'YOUR BRAIN<br><em>CHEATS.</em>'], [4.1, 6.1, 'sm', 'TRY TO TICKLE YOURSELF.'], [6.5, 8.1, 'sm', 'EXPECTED TOUCH.<br>WEAKER RESPONSE.'], [9.1, 11.2, 'sm', 'MOVEMENT. PREDICTION. TOUCH.'],
+const LINES = [[1.8, 3.3, 'big', 'YOUR BRAIN<br><em>CHEATS.</em>'], [4.1, 6.1, 'sm', 'TRY TO TICKLE YOURSELF.'], [6.5, 8.1, 'sm', 'EXPECTED TOUCH.<br>WEAKER RESPONSE.'], [9.1, 11.2, 'sm', 'MOVEMENT. PREDICTION. TOUCH.'],
   [13.9, 15.2, 'sm', 'SOMEONE ELSE.'], [15.4, 17.0, 'sm', 'LESS PREDICTABLE.<br><em>MORE SURPRISING.</em>'], [17.6, 18.6, 'sm', 'THAT’S WHY IT <em>TICKLES.</em>'], [19.5, 21.8, 'sm', 'BUT YOU CAN’T MAKE IT A <em>SURPRISE.</em>']];
 const wf = document.getElementById('wf');
 function waveSVG(t, strengthUn, tin, tout) {
@@ -158,18 +158,17 @@ window.renderAt = async (tReal) => {
   cores.forEach(c0 => c0.material.opacity = 0);
   const hide = o => (o.visible = false); [hand.real, hand.ghost, ...hand.tr, palm, macro, brain, other, own].forEach(hide); rings.forEach(hide); sparkGeo.attributes.position.array.fill(0); updateBurst(V3(0, 0, 0), -1, 0);
   updateStream(sCmd, -1, 0); updateStream(sPrd, -1, 0); updateStream(sBr, clamp((tReal - 8.0) / 2.2), 1 - sm((tReal - 10.4) / 0.6));
-  // ===== stage 1 (hook, and loop return) =====
+  // ===== stage 1 (hook, and loop return): static camera, ghost already at the target, stepping stones, one smooth approach =====
   const hookT = t < T1 + 0.2 ? t : (t >= F51[0] ? Math.max(0.05, 0.5 + (t - F51[1]) * 0.9) : -1);
   if (hookT >= 0) {
-    const S = stages[0], u = hookT, lead = tipX1(u + LEAD), cur = tipX1(u), conv = sm((u - 1.75) / 0.5), sep = 1 - conv, bob = 0.012 * Math.sin(u * 2.2), wave = 0.5 * Math.exp(-Math.pow((u - 0.9) / 0.6, 2));
-    const pinch = sm((u - 0.35) / 1.15) * (1 - 0.25 * sm((u - 2.6) / 0.6)), flare = Math.exp(-Math.max(0, u - 1.5) / 0.22) * (u > 1.5 ? 1 : 0) * 0.8 + Math.exp(-Math.max(0, u - 2.0) / 0.3) * (u > 2.0 ? 1 : 0);
-    const fadeAll = t < 0.3 ? 0.25 + 0.75 * sm(t / 0.25) : 1;
-    flow.material.uniforms.uPull.value = sm((u - 0.15) / 1.6); flow.material.uniforms.uTime.value = u; flow.material.uniforms.uAmp.value = 1 - sm((u - 2.6) / 0.6);
-    put(hand.real, V3(cur, 1.9, 0), fadeAll, u, {wave, rz: bob}); put(hand.ghost, V3(lead, 2.2 + 3.4 * sep, -3.2 * sep), 0.85 * (1 - 0.75 * conv) * fadeAll, u, {wave: wave * 1.2, rz: bob});
-    put(hand.tr[0], V3(tipX1(u + LEAD + 0.18), 2.2 + 3.4 * sep, -3.2 * sep), 0.8 * (1 - conv), u, {wave, rz: bob}); put(hand.tr[1], V3(tipX1(u + LEAD + 0.36), 2.2 + 3.4 * sep, -3.2 * sep), 0.7 * (1 - conv), u, {wave, rz: bob});
-    const pf = sm((u - 0.35) / 0.5) * (1 - 0.92 * sm((u - 1.15) / 0.5)); S.planes.forEach(p => { p.material.uniforms.uPinch.value = pinch; p.material.uniforms.uTime.value = u; p.material.uniforms.uFade.value = pf; });
+    const S = stages[0], u = hookT, e = sm((u - 0.2) / 2.1), realX = lerp(4, 33.15, e), yAt = x => lerp(0.6, 2.0, (x - 4) / 29.15), conv = sm((u - 2.15) / 0.45), fadeAll = t < 0.3 ? 0.35 + 0.65 * sm(t / 0.25) : 1, bob = 0.008 * Math.sin(u * 2.0), SC0 = 0.78;
+    put(hand.real, V3(realX, yAt(realX), 0), fadeAll, u, {rz: bob, scale: SC0});
+    put(hand.ghost, V3(33.15, 2.0, 0), 1.0 * sm((u - 0.3) / 0.5) * (1 - conv) * fadeAll, u, {rz: bob, scale: SC0, cut: 0.4});
+    [15.5, 22, 28].forEach((sx, i) => { const pass = sm((realX - sx + 4) / 3.5); put(hand.tr[i], V3(sx, yAt(sx), 0), 2.3 * sm((u - (0.4 + 0.2 * i)) / 0.25) * (1 - pass), u, {rz: bob, scale: SC0, cut: 0.52}); });
+    flow.material.uniforms.uPull.value = sm((u - 0.5) / 1.3); flow.material.uniforms.uTime.value = u; flow.material.uniforms.uAmp.value = fadeAll * (1 - sm((u - 2.8) / 0.6));
+    const pinch = sm((u - 0.7) / 1.0) * (1 - 0.25 * sm((u - 2.8) / 0.6)), flare = Math.exp(-Math.max(0, u - 2.3) / 0.25) * (u > 2.3 ? 1 : 0);
     S.field.material.uniforms.uPinch.value = pinch; S.field.material.uniforms.uFlare.value = flare; S.field.material.uniforms.uTime.value = u;
-    const ps = 1 + 3.5 * flare + 0.8 * pinch; cores[0].scale.setScalar(0.9 + ps * 0.55); cores[0].material.opacity = 0.3 + 0.35 * pinch + 0.25 * flare;
+    const ps = 1 + 3.5 * flare + 0.8 * pinch; cores[0].scale.setScalar(0.9 + ps * 0.55); cores[0].material.opacity = (0.15 + 0.5 * pinch + 0.3 * flare) * sm((u - 0.5) / 0.4);
   }
   // ===== stage 2 (palm, predicted path, damped contact) =====
   if (t >= F12[0] + 0.3 && t < F23[1]) {
