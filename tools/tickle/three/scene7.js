@@ -128,7 +128,7 @@ function updateStream(s, head, vis) {
 // ---------- OPENING v3: time-offset ghost, time ribbon, layered depth, orbiting camera ----------
 const TGT = V3(33.15, 2.0, 0), LEADT = 0.6, SC0 = 0.78;
 const tipPath = s => { const u = clamp((s - 0.15) / 2.1), e = u * u * (3 - 2 * u); return V3(lerp(-6, TGT.x, e), lerp(-7, TGT.y, e) + 3.2 * Math.sin(Math.PI * e) * (1 - e), 0); };
-const slope = s => { const a = tipPath(s - 0.04), b = tipPath(s + 0.04); return Math.atan2(b.y - a.y, b.x - a.x) * 0.7; };
+const slope = s => { const q = Math.min(s, 2.2), a = tipPath(q - 0.04), b = tipPath(q + 0.04); return Math.atan2(b.y - a.y, b.x - a.x) * 0.7; };   // hold the last real heading once the path ends (no snap to 0)
 const NR = 30, NS = 41, ribbons = [];
 for (let i = 0; i < NR; i++) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NS * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(NS * 3), 3)); const l = new THREE.Line(g, new THREE.LineBasicMaterial({vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthTest: false})); l.renderOrder = 5; l.frustumCulled = false; scene.add(l); ribbons.push(l); }
 const flowF = flow.clone(); flowF.material = flow.material.clone(); flowF.position.set(30, 2, 10); scene.add(flowF);
