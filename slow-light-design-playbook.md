@@ -26,7 +26,7 @@ Scope: **Format A**, the wordless "light and scale" reels (Red Sprites, The Sun 
 | The Sun Vanishes | Light and gravity both take 8 min 20 s | `sun_vanishes_v3_yt.mp4` (14 s, YouTube recut with stronger sound) | posted IG/FB; YouTube copy in `sun-vanishes-reel.md` |
 | Night Sky "the past" | Every light you see is old; Andromeda sees our past | v4 approved (19 s, sound reference); **v8.1 final** `night_sky_past_v81_A.mp4` (19.2 s) | copy ready: `night-sky-v81-publish-copy.md` |
 | Scale Ladder | Earth to the observable universe, ends "YOU ARE HERE." | **`scale_ladder_3d_v4_A/B.mp4`** (26 s, hooks A and B) | copy ready: `scale-ladder-publish-copy.md` |
-| Why can't you tickle yourself? (Format B) | The brain predicts self-touch; the shadow arrives first | spec `tickle-reel.md`; style frames in `tools/tickle/styleframes/` | style B approved; build next |
+| Why can't you tickle yourself? (Format B) | The brain predicts self-touch; the shadow arrives first | spec `tickle-reel.md`; style frames in `tools/tickle/styleframes/` | **FROZEN v3** (23.2 s, voice + synthesised sound); see `tickle-reel.md` |
 
 Specs and notes per reel: `night-sky-past-reel.md` (v1-v4), `night-sky-v5-notes.md` (v5-v7), `night-sky-v8-spec.md` (v8 frozen plan + v8.1 pass), `scale-ladder-reel.md`.
 
@@ -197,8 +197,11 @@ Iteration history (why it ended up here):
 | Tickle reel built as a code-rendered 2.5D vector explainer, not anime and not a game look | idea reads best as editorial graphics; AI footage is costly and morphs hands |
 | Style B chosen from three frames (A flat, B cinematic editorial, C anime-leaning) | rim-lit hand, teal-edged shadow as the prediction, grain and vignette looked most premium |
 | No Higgsfield SFX; sound is synthesised or CC0 from Freesound | owner is credit-limited |
-| Voiceover tried in two versions (owner's voice vs a commanding ElevenLabs voice) | choose by listening, then by retention |
+| Voiceover: single ElevenLabs take, preset voice Fraser (deepest of the male presets by measured pitch), owner's voice not used | owner asked for a more captivating voice; credit-limited, so no A/B generation |
 | RunPod pod stopped whenever not generating | credit budget |
+| Tickle reel look moved from flat vector to teal contour-line 3D (Meta art as sprites) | owner's Meta frames and PDF direction; flat vector and photoreal plates read as generic or off-style |
+| Opening redesign: ghost is the hand's own path 0.6 s ahead, lands once and stays; heading held at path end | ghost snapped flat at contact (atan2(0,0)) and slid at the merge; owner flagged both |
+| Tickle reel v3 FROZEN | owner: 'solid AF, no changes' |
 
 ## 10. Backlog and open questions
 - Night Sky hook B ("THIS LIGHT IS OLD.") for v8.1 is overlay-only if we want to A/B.
@@ -220,7 +223,7 @@ Second visual language for Slow Light, beside the cinematic Format A. Source: th
 ### 11.2 What the reference does (measured from the video)
 36 s, 30 fps, voiceover continuous (about -14.5 LUFS integrated, true peak -1.3 dBFS, speech dips only at sentence pauses, no big hits). About 18 caption cards of roughly 2 s, synced to the voice, each with one keyword on a red chip. Layout: brand mark and italic serif label top-left, clock icon top-right, subject in the upper half with red crosshair reticles tracking the key point and 3-4 ghost-echo trails behind moving parts, a dashed band at about 60% height, captions just under it, and a step-line graph in the bottom third (stepped red line = the thing that is held/felt, smooth gold line = the thing that moves). Split-screen panels with small red/yellow tag labels compare two conditions. Story shape: surprising claim -> slow-motion mechanism with a HOLD marker -> split-screen comparison -> experiment -> second subject -> open question that loops.
 
-### 11.3 Locked look: "style B" (approved from three test frames)
+### 11.3 Early look "style B" (SUPERSEDED by the contour-line 3D look, see 11.8)
 Frames: `tools/tickle/styleframes/` (`index.html?v=A|B|C`, `shot.js`). B wins; A (flat) is the fallback look; C (anime) contributes only an impact starburst for the single reveal beat.
 - **Canvas:** 1080x1920 native (vector, no upscaling). Background `#0e0906` with a warm radial wall light (cone `#e8c58a` at 22%), 60 px grid at 6% cream, film grain (overlay, about 20%), vignette to 75% black.
 - **Colour semantics (do not break):** cream `#e8e4d0` text and subject; **teal `#4fb3a9` / `#6fd6cb` = the brain's prediction** (the shadow's edge); **gold `#e3b04b` = the real thing / what moves**; **red `#d63e30` = accent only** (reticles, caption chips, graph step line, rim light, the spike). No other hues.
@@ -253,3 +256,10 @@ Frames: `tools/tickle/styleframes/` (`index.html?v=A|B|C`, `shot.js`). B wins; A
 - Label tag: "simplified illustration" (the shadow-leads-the-hand device is a metaphor, not literal physics).
 - Never repeat artwork across reels or copy the reference video's art or branding.
 - Test the format: publish the tickle pilot, then compare stayed-to-watch at 2 s, average view duration, completion, rewatches, comments, and production time before making a series.
+
+### 11.8 What the tickle reel taught us (final Format B grammar, frozen 15 Oct 2026)
+The flat-vector style B and the AI-photoreal plates were both abandoned. The final look is teal contour-line art (Meta-generated, extracted to alpha PNGs) animated as layered sprites in one three.js world with an orbiting camera. Rules: bone white = real movement, teal = prediction, red = contact/surprise only. Full grammar in `tickle-reel.md` (time-offset ghost that lands once and never moves, held heading, depth stack, match-move transitions, the surprise as an absence). Production notes:
+- Wan I2V (14B) is fine for background texture but cannot keep a white hand and a teal ghost in sync or hold dense line art (it fills the lines); keep synced motion in code. The Wan opening takes cost about 0.15 USD each run on an A40 and are not part of the final.
+- Higgsfield is used only for the ElevenLabs voice (one generation, cost-checked first); no Higgsfield SFX.
+- A reusable converter turns any clean outline-only hand into the master dense-contour style (`tools/tickle/contour/outline_to_contours.py`).
+- The local http.server and test pods die between tool calls: restart the server before blaming the scene, and stop every pod right after generation.
