@@ -1,7 +1,7 @@
 // "Why do dreams feel real" v4 (motion-first, first three worlds): the dreamer's red tick is a real moving object; the camera rides it; the red trail is where it has been.
 // Each world is split into parts that animate on their own (figure peels out of the bed, nodes fire, logic lobe switches OFF); signals travel through the contour lines themselves.
 import * as THREE from 'three';
-const QP = new URLSearchParams(location.search); const W = +(QP.get('w') || 1080), H = +(QP.get('h') || 1920), DUR = +(QP.get('dur') || 29.9);
+const QP = new URLSearchParams(location.search); const W = +(QP.get('w') || 1080), H = +(QP.get('h') || 1920), DUR = +(QP.get('dur') || 30.0);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), sm = x => { x = clamp(x); return x * x * (3 - 2 * x); }, lerp = (a, b, t) => a + (b - a) * t;
 const ease = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }, easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -40,10 +40,11 @@ const partMat = (tex, dep, ds, d0, asp) => new THREE.ShaderMaterial({
 const worlds = [];
 const WD = [{k: 'sleep', w: 14, A: 0.0, D: 3.0, ds: 3}, {k: 'bedfall', w: 14, A: 3.0, D: 1.6, ds: 3}, {k: 'brain', w: 13, A: 4.6, D: 2.2, ds: 2.2}, {k: 'head', w: 22, A: 6.8, D: 2.2, ds: 3},
   {k: 'island', w: 12.5, A: 9.0, D: 1.9, ds: 3.5}, {k: 'stairs', w: 30, A: 10.9, D: 1.9, ds: 3}, {k: 'rem', w: 20, A: 12.8, D: 2.1, ds: 2.5}, {k: 'ship', w: 17, A: 14.9, D: 1.9, ds: 3}, {k: 'wave', w: 14, A: 16.8, D: 2.3, ds: 3},
-  {k: 'corridor', w: 36, A: 19.1, D: 1.8, ds: 6}, {k: 'ribbon', w: 24, A: 20.9, D: 1.6, ds: 3}, {k: 'whalecity', w: 36, A: 22.5, D: 1.7, ds: 5}, {k: 'web', w: 30, A: 24.2, D: 1.6, ds: 3}, {k: 'eye', w: 11, A: 25.8, D: 1.6, ds: 3}, {k: 'lucid', w: 20, A: 27.4, D: 2.5, ds: 3}];
+  {k: 'corridor', w: 36, A: 19.1, D: 1.8, ds: 6}, {k: 'ribbon', w: 24, A: 20.9, D: 1.6, ds: 3}, {k: 'whalecity', w: 36, A: 22.5, D: 1.7, ds: 5}, {k: 'web', w: 30, A: 24.2, D: 1.3, ds: 3}, {k: 'eye', w: 11, A: 25.5, D: 1.4, ds: 3}, {k: 'lucid', w: 20, A: 26.9, D: 1.8, ds: 3}, {k: 'bedend', w: 14, A: 28.7, D: 1.3, ds: 3}];
 // part boxes in image coords (u0,v0,u1,v1; v down)
 const PARTS = {
   island: {fig: [0.43, 0.80, 0.52, 0.99]}, stairs: {}, rem: {brain: [0.33, 0.03, 0.68, 0.46]}, ship: {}, wave: {boat: [0.64, 0.44, 0.72, 0.60]},
+  bedend: {fig: [0.365, 0.083, 0.575, 0.517], frames: [0.01, 0.125, 0.43, 0.842], bed: [0.45, 0.417, 0.85, 0.942]},
   corridor: {fig: [0.435, 0.36, 0.485, 0.97]}, ribbon: {whale: [0.80, 0.08, 1.0, 0.46]}, whalecity: {whale: [0.35, 0.03, 0.72, 0.56]}, web: {}, eye: {}, lucid: {},
   sleep: {bed: [0.20, 0.38, 0.80, 0.97], objs: [0.0, 0.0, 0.80, 0.45]},
   bedfall: {fig: [0.365, 0.083, 0.575, 0.517], frames: [0.01, 0.125, 0.43, 0.842], bed: [0.45, 0.417, 0.85, 0.942]},
@@ -102,6 +103,10 @@ SPEC.eye = {tick: [[0, 0.5, 0.52, 0.4], [1.6, 0.5, 0.52, 0.4]], dist: [[0, 18], 
   fx: (w, lt, op, H) => { H.setAll(u => { u.uSpark.value = 0.8; u.uRed.value = 1 + 1.6 * H.pulse(7); }); w.base.scale.setScalar(1 + 0.12 * lt); }};
 SPEC.lucid = {tick: [[0, 0.55, 0.51, 0.3], [2.5, 0.55, 0.51, 0.3]], dist: [[0, 20], [1.0, 16], [2.5, 15]],
   fx: (w, lt, op, H) => { H.setAll(u => { u.uReg.value.set(...toTex([0.44, 0.22, 0.64, 0.58])); u.uRegG.value.set(1 + 2.0 * H.pulse(3) * sm(lt / 0.6), 1); u.uRev.value.set(0.52, 0.5, 0.05 + 1.2 * sm(lt / 0.9)); }); }};
+SPEC.bedend = {tick: [[0, 0.545, 0.425, 0.95], [1.1, 0.60, 0.62, 0.5]], dist: [[0, 17], [1.3, 12]],
+  fx: (w, lt, op, H) => { const q = sm(lt / 1.1); H.setAll(u => { u.uRed.value = 1.2 + 1.4 * H.pulse(7); u.uPulse.value.set(0.55, 0.5, ((lt * 0.9) % 1) * 0.7, 0.4); }); w.base.material.uniforms.uTeal.value = 0.4; w.base.material.uniforms.uRed.value = 0.2;
+    const F = w.parts.fig.material.uniforms; H.pr('fig', {s: 1.25 * (1 - 0.45 * q), p: V3(0.8 * q, -1.9 * q, 0), rz: 0.6 * q}); F.uTeal.value = 1.7; F.uOp.value *= 1 - sm((lt - 0.7) / 0.5);
+    w.parts.frames.material.uniforms.uTeal.value = 1.4; H.pr('frames', {p: V3(0.1 * lt, 0.5 * lt - 0.5, 0)}); w.parts.bed.material.uniforms.uTeal.value = 1.0 + 0.4 * sm((lt - 0.6) / 0.5) + 0.25 * Math.sin(lt * 3.2); }};
 const stairsEchoes = [0, 1, 2].map(() => { const e = new THREE.Mesh(WK.stairs.base.geometry, WK.stairs.base.material.clone()); e.frustumCulled = false; e.renderOrder = 2; scene.add(e); return e; });
 
 // ---------- the dreamer's red tick: a real path through the whole fall ----------
@@ -167,7 +172,7 @@ toggle.renderOrder = 8; toggle.children.forEach(c => c.renderOrder = 8); scene.a
 // ---------- captions ----------
 const CAPS = [[0.1, 1.0, 'YOU FALL <em>ASLEEP.</em>'], [1.1, 2.5, 'THIS IS A <em>DREAM.</em>'], [2.7, 4.3, 'IT FEELS <em>REAL.</em>'], [4.8, 6.6, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [7.0, 8.9, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>'],
   [9.2, 10.8, 'NO REALITY CHECK.<br>NO <em>QUESTIONS.</em>'], [11.1, 12.7, 'IMPOSSIBLE PLACES<br>FEEL <em>BELIEVABLE.</em>'], [13.0, 14.7, 'YOUR BODY IS <em>LOCKED.</em><br>YOUR MIND ISN’T.'], [15.0, 19.0, 'THE FEAR, THE JOY,<br>THE LOSS: <em>ALL REAL.</em>'],
-  [19.3, 24.0, 'BUILT FROM<br><em>YOUR MEMORIES.</em>'], [24.3, 25.8, 'YOUR BRAIN <em>WEAVES</em><br>IT ALL IN REAL TIME.'], [26.0, 27.4, 'NOT REAL.<br>BUT <em>FELT REAL.</em>'], [27.6, 29.9, 'AND SOMETIMES<br>YOU <em>REALISE.</em>']];
+  [19.3, 24.0, 'BUILT FROM<br><em>YOUR MEMORIES.</em>'], [24.3, 25.4, 'YOUR BRAIN <em>WEAVES</em><br>IT ALL IN REAL TIME.'], [25.6, 26.8, 'NOT REAL.<br>BUT <em>FELT REAL.</em>'], [27.0, 28.6, 'AND SOMETIMES<br>YOU <em>REALISE.</em>'], [28.8, 30.0, 'YOU WAKE UP.<br>IT ALL <em>FELT REAL.</em>']];
 const elCap = document.getElementById('cap'), elFlash = document.getElementById('flash'), elBar = document.getElementById('bar'), elTitle = document.getElementById('title');
 
 // ---------- camera ----------
