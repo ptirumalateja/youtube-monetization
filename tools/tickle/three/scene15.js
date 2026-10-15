@@ -170,9 +170,9 @@ const toggle = new THREE.Group(); { const pill = new THREE.Shape(); const rw = 0
 toggle.renderOrder = 8; toggle.children.forEach(c => c.renderOrder = 8); scene.add(toggle);
 
 // ---------- captions ----------
-const CAPS = [[0.1, 1.0, 'YOU FALL <em>ASLEEP.</em>'], [1.1, 2.5, 'THIS IS A <em>DREAM.</em>'], [2.7, 4.3, 'IT FEELS <em>REAL.</em>'], [4.8, 6.6, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [7.0, 8.9, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>'],
-  [9.2, 10.8, 'NO REALITY CHECK.<br>NO <em>QUESTIONS.</em>'], [11.1, 12.7, 'IMPOSSIBLE PLACES<br>FEEL <em>BELIEVABLE.</em>'], [13.0, 14.7, 'YOUR BODY IS <em>LOCKED.</em><br>YOUR MIND ISN’T.'], [15.0, 19.0, 'THE FEAR, THE JOY,<br>THE LOSS: <em>ALL REAL.</em>'],
-  [19.3, 24.0, 'BUILT FROM<br><em>YOUR MEMORIES.</em>'], [24.3, 25.4, 'YOUR BRAIN <em>WEAVES</em><br>IT ALL IN REAL TIME.'], [25.6, 26.8, 'NOT REAL.<br>BUT <em>FELT REAL.</em>'], [27.0, 28.6, 'AND SOMETIMES<br>YOU <em>REALISE.</em>'], [28.8, 30.0, 'YOU WAKE UP.<br>IT ALL <em>FELT REAL.</em>']];
+const CAPS = [[0.1, 1.0, 'YOU FALL <em>ASLEEP.</em>'], [1.1, 2.5, 'THIS IS A <em>DREAM.</em>'], [2.7, 4.5, 'IT FEELS <em>REAL.</em>'], [4.8, 6.9, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [7.2, 9.1, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>'],
+  [9.3, 11.2, 'NO REALITY CHECK.<br>NO <em>QUESTIONS.</em>'], [11.3, 13.3, 'IMPOSSIBLE PLACES<br>FEEL <em>BELIEVABLE.</em>'], [13.4, 15.9, 'YOUR BODY IS <em>LOCKED.</em><br>YOUR MIND ISN’T.'], [16.0, 19.7, 'THE FEAR, THE JOY,<br>THE LOSS: <em>ALL REAL.</em>'],
+  [19.8, 22.8, 'BUILT FROM<br><em>YOUR MEMORIES.</em>'], [23.0, 25.9, 'YOUR BRAIN <em>WEAVES</em><br>IT ALL IN REAL TIME.'], [26.0, 28.3, 'AND SOMETIMES<br>YOU <em>REALISE.</em>'], [28.5, 30.0, 'YOU WAKE UP.<br>IT ALL <em>FELT REAL.</em>']];
 const elCap = document.getElementById('cap'), elFlash = document.getElementById('flash'), elBar = document.getElementById('bar'), elTitle = document.getElementById('title');
 
 // ---------- camera ----------
