@@ -71,3 +71,7 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+## Tickle reel ("Why can't you tickle yourself?", cut v3)
+- Voiceover: ElevenLabs via Higgsfield (preset voice Fraser). Generated speech, one generation, 0.9 credits. Not a Freesound file.
+- All sound effects are synthesised (numpy). No Freesound, Uppbeat or other third-party audio is used in this reel.
