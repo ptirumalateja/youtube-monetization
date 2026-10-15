@@ -10,7 +10,7 @@ document.body.appendChild(renderer.domElement); document.body.style.width = W + 
 const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 1400);
 const M3 = await (await fetch('./assets/dreams/v3_meta.json')).json();
 const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
-const AXY = 0.9, S = 34, TR = 0.55;
+const AXY = 0.9, S = 10, TR = 0.55;
 
 // ---------- part material: contour art with local gains, travelling pulse, radial reveal, sparkle ----------
 const partMat = (tex, dep, ds, d0, asp) => new THREE.ShaderMaterial({
@@ -75,6 +75,9 @@ function figOffset(i, tl) {
   return V3(0.05 * Math.sin(tl * 1.6), -0.38 * tl, 0);
 }
 function tickLocal(i, tl) { if (i === 0) { const rise = 0.9 * sm((tl - 1.0) / 0.7); return WSl.P(0.37, 0.46).add(V3(0, 0.9 + rise + 0.1 * Math.sin(tl * 3), 0)); } if (i === 1) { const q = clamp((tl - 0.5) / 1.6), a = WS.P(0.276, 0.655).add(V3(0, 0.12 * Math.sin(tl * 3), 0)), b = WS.P(0.795, 0.17).add(soulOff(tl)).add(V3(0, 0.9, 0)); return a.lerp(b, ease(q)); } const o = figOffset(i, tl); const base = i === 1 ? WS.P(0.64, 0.40) : i === 2 ? WB.P(0.545, 0.425) : i === 3 ? WBr.P(0.59, 0.60) : WH.P(0.51, 0.53); return base.add(o).add(V3(0, i === 1 ? 0.0 : i === 2 ? 0.95 : i === 3 ? 0.55 : 0.6, 0)); }
+const alignWorlds = () => { for (let k = 1; k < worlds.length; k++) { const a = tickLocal(k - 1, worlds[k - 1].D - TR), b = tickLocal(k, 0), dx = a.x - b.x, dy = a.y - b.y, w = worlds[k];
+  w.C.x += dx; w.C.y += dy; w.base.position.x += dx; w.base.position.y += dy; Object.values(w.parts).forEach(p => { p.userData.rest.x += dx; p.userData.rest.y += dy; p.position.copy(p.userData.rest); });
+  const pl = fieldMats[k].userData.plane; pl.position.x += dx; pl.position.y += dy; fieldMats[k].uniforms.uA.value.x += dx; fieldMats[k].uniforms.uA.value.y += dy; } };
 function tickAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
   const s = worlds[i], tl = t - s.A, last = i === worlds.length - 1, td = s.D - TR;
@@ -89,7 +92,7 @@ const fieldMats = worlds.map(s => { const mat = new THREE.ShaderMaterial({unifor
     float lm(float v,float sp,float w){ float x=v/sp; float d=abs(fract(x-0.5)-0.5)/max(fwidth(x),1e-4); return 1.0-clamp(d-w,0.0,1.0); }
     void main(){ vec2 d=vW.xy-uA.xy; float r=length(d); float g=exp(-r*r/38.0); float y=vW.y-d.y*0.4*g+0.5*sin(vW.x*0.22+uTime*0.7)*(1.0-0.8*g);
       float l=lm(y,0.36,0.55); float e=(0.08+0.18*g)*uOp*(1.0-smoothstep(10.0,26.0,r)); gl_FragColor=vec4(vec3(0.10,0.80,0.68)*l*e,1.0); }`});
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(60, 80, 2, 2), mat); p.position.set(s.C.x, s.C.y, s.z - 6); p.renderOrder = 0; p.frustumCulled = false; scene.add(p); return mat; });
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(60, 80, 2, 2), mat); p.position.set(s.C.x, s.C.y, s.z - 6); p.renderOrder = 0; p.frustumCulled = false; scene.add(p); mat.userData.plane = p; return mat; });
 const NF = 40, fp = [], faArr = []; const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 for (let i = 0; i < NF; i++) { const z = 40 - i * 3.1, size = 5.2 + 3.2 * ((i * 0.61803) % 1), red = i % 9 === 4 ? 1 : 0, ang = i * 0.21;
   for (let c = 0; c < 3; c++) { const s = size * (1 - c * 0.035); for (let e = 0; e < 4; e++) { const a = corners[e], b = corners[(e + 1) % 4]; fp.push(a[0] * s, a[1] * s, 0, b[0] * s, b[1] * s, 0); for (let q = 0; q < 2; q++) faArr.push(z, red, ang, 1 - c * 0.3); } } }
@@ -129,21 +132,25 @@ const elCap = document.getElementById('cap'), elFlash = document.getElementById(
 // ---------- camera ----------
 const keys = (arr, tl) => { for (let i = 0; i < arr.length - 1; i++) if (tl <= arr[i + 1][0]) return lerp(arr[i][1], arr[i + 1][1], sm((tl - arr[i][0]) / (arr[i + 1][0] - arr[i][0]))); return arr[arr.length - 1][1]; };
 const DIST = [[[0, 11], [1.0, 12.5], [1.15, 12.5]], [[0, 9], [0.7, 10.5], [1.9, 22], [2.05, 22]], [[0, 9], [0.6, 9.5], [1.9, 18], [2.3, 19], [2.45, 18]], [[0, 22], [1.0, 22], [2.05, 16], [2.2, 15]], [[0, 25], [1.2, 22], [2.6, 16]]];
+function distAt(i, tl) { return keys(DIST[i], tl); }
+function targetFor(i, tl, tick) { const tg = tick.clone();
+  if (i === 1) tg.lerp(WS.P(0.62, 0.42).add(soulOff(tl)), 0.65 * sm((tl - 0.9) / 0.9)); if (i === 3) tg.lerp(WBr.P(0.5, 0.5), 0.55 * (1 - sm(tl / 1.6))); if (i === 4) tg.lerp(WH.P(0.68, 0.23), 0.65 * sm((tl - 0.1) / 0.5) * (1 - sm((tl - 1.7) / 0.6)));
+  return tg; }
 function frameAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
-  const s = worlds[i], tl = t - s.A, last = i === worlds.length - 1, td = s.D - TR, tick = tickAt(t); let bump = 0;
-  const dist = keys(DIST[i], Math.min(tl, td)) + (!last && tl > td ? lerp(0, 3, sm((tl - td) / TR)) : 0); if (!last && tl > td) bump = Math.sin(Math.PI * (tl - td) / TR);
-  let target = tick.clone();
-  if (i === 1) target.lerp(WS.P(0.62, 0.42).add(soulOff(tl)), 0.65 * sm((tl - 0.9) / 0.9)); if (i === 3) target.lerp(WBr.P(0.5, 0.5), 0.55 * (1 - sm(tl / 1.6))); if (i === 4) target.lerp(WH.P(0.68, 0.23), 0.65 * sm((tl - 0.1) / 0.5) * (1 - sm((tl - 1.7) / 0.6)));
+  const s = worlds[i], tl = t - s.A, last = i === worlds.length - 1, td = s.D - TR, tick = tickAt(t); let bump = 0, dist, target;
+  if (!last && tl > td) { const u = ease((tl - td) / TR); bump = Math.sin(Math.PI * (tl - td) / TR); dist = lerp(distAt(i, td), distAt(i + 1, 0), u); target = targetFor(i, td, tick).lerp(targetFor(i + 1, 0, tick), u); }
+  else { dist = distAt(i, tl); target = targetFor(i, tl, tick); }
   return {i, s, tl, tick, target, dist, bump};
 }
 const beat = p => Math.exp(-p * 6.0);
+alignWorlds();
 window.renderAt = t => {
   t = clamp(t, 0, DUR); const f = frameAt(t), {s, tl, tick, bump} = f; const wob = f.i === 1 ? 1 : 1;
   // ---- parts ----
   const pr = (wi, name, o) => { const p = worlds[wi].parts[name]; p.position.copy(p.userData.rest).add(o.p || V3(0, 0, 0)); p.rotation.z = o.rz || 0; p.scale.setScalar(o.s || 1); return p; };
   worlds.forEach((w, wi) => {
-    const d = f.target.z + f.dist - w.z, lt = t - w.A, op = sm((d - 1.2) / 4) * (1 - sm((d - 33) / 6));
+    const d = f.target.z + f.dist - w.z, lt = t - w.A, op = sm((d - 1.2) / 4) * sm((t - (w.A - 0.55)) / 0.5) * (wi < worlds.length - 1 ? 1 - sm((t - (w.A + w.D - 0.15)) / 0.45) : 1);
     const U = w.base.material.uniforms; const all = [w.base, ...Object.values(w.parts)]; all.forEach(m => { const u = m.material.uniforms; u.uOp.value = op; u.uTime.value = t; m.visible = op > 0.004; u.uPulse.value.set(0.5, 0.5, -1, 0); u.uRev.value.set(0.5, 0.5, -1); u.uSpark.value = 0; u.uSplit.value.set(2, 1, 1); u.uReg.value.set(2, 2, 2, 2); u.uRegG.value.set(1, 1); u.uRed.value = 1; u.uTeal.value = 1; });
     const setAll = fn => all.forEach(m => fn(m.material.uniforms));
     if (wi === 0) {
@@ -179,7 +186,7 @@ window.renderAt = t => {
   camera.position.set(f.target.x + ox, f.target.y + oy, f.target.z + f.dist);
   camera.up.set(0, 1, 0); camera.lookAt(f.target.x, f.target.y, f.target.z); camera.rotateZ(0.02 * Math.sin(t * 0.8) + (f.i % 2 ? 1 : -1) * 0.4 * bump);
   const cz = camera.position.z; fmat.uniforms.uCamZ.value = cz; fmat.uniforms.uTime.value = t; fmat.uniforms.uAmp.value = 0.12 + 1.1 * bump; smat.uniforms.uCamZ.value = cz; smat.uniforms.uSpeed.value = bump;
-  worlds.forEach((w, wi) => { const d = f.target.z + f.dist - w.z; fieldMats[wi].uniforms.uOp.value = sm((d - 1.2) / 4) * (1 - sm((d - 34) / 7)); fieldMats[wi].uniforms.uTime.value = t; });
+  worlds.forEach((w, wi) => { const d = f.target.z + f.dist - w.z; fieldMats[wi].uniforms.uOp.value = sm((d - 1.2) / 4) * sm((t - (w.A - 0.55)) / 0.5) * (wi < worlds.length - 1 ? 1 - sm((t - (w.A + w.D - 0.15)) / 0.45) : 1); fieldMats[wi].uniforms.uTime.value = t; });
   // ---- tick + trail ----
   tickSp.position.copy(tick); tickSp.scale.setScalar(0.55 + 0.25 * (0.5 + 0.5 * Math.sin(t * 10)));
   const camDir = V3(0, 0, -1); for (let i = 0; i < NT; i++) { const tau = i / (NT - 1) * 1.8, p = tickAt(Math.max(0, t - tau)), q = tickAt(Math.max(0, t - tau - 0.03)), tan = p.clone().sub(q); tan.z *= 0.2; const side = V3(-tan.y, tan.x, 0).normalize(); if (!isFinite(side.x)) side.set(1, 0, 0);
