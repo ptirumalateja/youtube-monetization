@@ -28,15 +28,15 @@ def smin(a, b, k):
     h = np.maximum(k - np.abs(a - b), 0) / k
     return np.minimum(a, b) - h * h * k * 0.25
 
-# ---- hand definition (units ~ cm) ----
-FZ = [3.0, 1.0, -0.95, -2.75]                        # finger base z (index, middle, ring, pinky)
-FL = [[4.7, 2.8, 2.3], [5.2, 3.3, 2.5], [4.9, 3.1, 2.4], [3.9, 2.3, 2.1]]
-FR = [[1.05, 0.96, 0.86, 0.72], [1.1, 1.0, 0.88, 0.74], [1.04, 0.94, 0.84, 0.7], [0.9, 0.82, 0.72, 0.6]]
-PALM_X = 9.0
-TH = [(1.3, -0.5, 2.6), (4.3, -0.7, 4.9), (6.9, -0.7, 6.6), (8.9, -0.6, 7.9)]   # thumb joints
-THR = [1.35, 1.15, 1.0, 0.8]
+# ---- hand definition (units ~ cm; adult proportions: palm 10.2, middle finger 8.6, width ~8.5) ----
+PALM_X = 10.2
+FZ = [3.0, 1.0, -1.0, -2.9]                        # finger base z (index, middle, ring, pinky)
+FL = [[4.0, 2.3, 1.8], [4.5, 2.5, 1.9], [4.2, 2.3, 1.8], [3.3, 1.8, 1.6]]
+FR = [[0.88, 0.80, 0.72, 0.60], [0.92, 0.82, 0.74, 0.62], [0.86, 0.78, 0.70, 0.58], [0.76, 0.68, 0.6, 0.5]]
+TH = [(1.6, -0.6, 2.9), (4.4, -0.9, 5.0), (6.9, -0.9, 6.5), (8.8, -0.8, 7.6)]   # thumb joints
+THR = [1.45, 1.15, 0.95, 0.78]
 
-bones = []   # (a, b) segments in the neutral pose; index: 0 forearm, 1 palm, 2.. fingers (3 each), 14.. thumb (3)
+bones = []   # index: 0 forearm, 1 palm, 2.. fingers (3 each), 14.. thumb (3)
 bones.append(((-13, 0, 0), (0, 0, 0))); bones.append(((0, 0, 0), (PALM_X, 0, 0)))
 FJ = []
 for f in range(4):
@@ -46,16 +46,29 @@ for f in range(4):
     for j in range(3): bones.append((pts[j], pts[j + 1]))
 for j in range(3): bones.append((TH[j], TH[j + 1]))
 
+def ell(p, c, r):
+    q = (p - np.array(c)) / np.array(r)
+    return (np.linalg.norm(q, axis=1) - 1.0) * min(r)
+
 def sdf(P):
-    d = rc(P * np.array([1, 1.2, 1]), (-13, 0, 0), (0, 0, 0), 3.3, 2.3)                    # forearm (flattened)
-    d = smin(d, rbox(P, (4.6, -0.1, 0.1), (4.2, 0.6, 3.05), 1.0), 0.9)                       # palm
+    d = rc(P * np.array([1, 1.15, 1]), (-13, 0, 0), (0, 0, 0), 3.0, 2.15)                  # forearm -> slim wrist
+    d = smin(d, rbox(P, (PALM_X / 2 + 0.2, -0.1, 0.05), (PALM_X / 2 - 0.2, 0.55, 3.15), 1.0), 0.9)   # palm
+    d = smin(d, ell(P, (3.3, -0.95, 2.4), (3.4, 1.5, 1.9)), 1.0)                               # thenar (thumb ball)
+    d = smin(d, ell(P, (4.4, -0.75, -2.5), (3.0, 1.1, 1.2)), 0.8)                              # hypothenar
+    for f in range(4):                                                                         # knuckle bulges on the back
+        d = smin(d, ell(P, (PALM_X - 0.1, 0.55, FZ[f]), (1.0, 0.75, 0.95)), 0.5)
     for f in range(4):
         for j in range(3):
-            d = smin(d, rc(P, FJ[f][j], FJ[f][j + 1], FR[f][j], FR[f][j + 1]), 0.55)
-    for j in range(3): d = smin(d, rc(P, TH[j], TH[j + 1], THR[j], THR[j + 1]), 0.8)
+            d = smin(d, rc(P, FJ[f][j], FJ[f][j + 1], FR[f][j], FR[f][j + 1]), 0.5)
+        for j in (1, 2):                                                                       # finger joint swellings
+            d = smin(d, ell(P, (FJ[f][j][0], 0.0, FZ[f]), (0.55, FR[f][j] * 1.08, FR[f][j] * 1.08)), 0.25)
+        a2 = FJ[f][2]; L3 = FL[f][2]                                                           # fingernail on the back of the tip
+        d = smin(d, ell(P, (a2[0] + L3 * 0.52, FR[f][3] * 0.78, FZ[f]), (L3 * 0.42, 0.22, FR[f][3] * 0.78)), 0.12)
+    for j in range(3): d = smin(d, rc(P, TH[j], TH[j + 1], THR[j], THR[j + 1]), 0.7)
+    d = smin(d, ell(P, (TH[3][0] + 0.2, TH[3][1] + THR[3] * 0.75, TH[3][2] + 0.25), (0.8, 0.2, 0.62)), 0.12)   # thumbnail
     return d
 
-lo = np.array([-14, -4.0, -5.0]); hi = np.array([20, 4.0, 10.5])
+lo = np.array([-14, -4.0, -5.5]); hi = np.array([21, 4.5, 10.0])
 xs = np.arange(lo[0], hi[0], RES); ys = np.arange(lo[1], hi[1], RES); zs = np.arange(lo[2], hi[2], RES)
 G = np.stack(np.meshgrid(xs, ys, zs, indexing="ij"), -1).reshape(-1, 3)
 vol = sdf(G).reshape(len(xs), len(ys), len(zs))

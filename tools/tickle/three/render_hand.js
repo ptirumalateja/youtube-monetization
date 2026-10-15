@@ -7,7 +7,7 @@ const fs=require('fs');
   const p=await b.newPage({viewport:{width:1080,height:1350}});
   p.on('pageerror',e=>console.log('[err]',e.message.slice(0,400)));
   await p.goto('http://localhost:8792/three/index2.html?w=1080&h=1350'); await p.waitForFunction('window.ready===true',{timeout:120000});
-  const views=[['point',0,0.15],['point',0.7,0.25],['open',0,0.15],['open',0.7,0.45],['open',0,1.45]];
-  for(const [i,[pose,yaw,pitch]] of views.entries()){await p.evaluate(([a,y,q])=>window.renderHand(a,y,q,70),[pose,yaw,pitch]);await p.screenshot({path:`${out}/h${i}_${pose}.jpg`,type:'jpeg',quality:92});console.log('view',i);}
+  const views=[['point',0,0.15],['point',0.6,0.35],['reach',0,0.2],['reach',0.5,0.55],['reach',0.15,1.2]];
+  for(const [i,[pose,yaw,pitch]] of views.entries()){await p.evaluate(([a,y,q])=>window.renderHand(a,y,q,62),[pose,yaw,pitch]);await p.screenshot({path:`${out}/h${i}_${pose}.jpg`,type:'jpeg',quality:92});console.log('view',i);}
   await b.close();
 })();

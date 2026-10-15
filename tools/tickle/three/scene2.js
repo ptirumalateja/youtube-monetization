@@ -53,9 +53,9 @@ const lineMat = c => new THREE.ShaderMaterial({
     float lm(float v,float sp,float w){ float x=v/sp; float d=abs(fract(x-0.5)-0.5)/max(fwidth(x),1e-4); return 1.0-clamp(d-w,0.0,1.0); }
     void main(){
       float ndv=abs(dot(normalize(vN),normalize(vV))); float rim=pow(1.0-ndv,2.2);
-      float l1=lm(vA.x,0.30,0.45), l2=lm(vA.z,0.55,0.35)*0.6, l3=lm(vA.y,0.55,0.35)*0.45;
+      float l1=lm(vA.x,0.42,0.45), l2=lm(vA.z,0.7,0.35)*0.55, l3=lm(vA.y,0.7,0.35)*0.4;
       float lines=max(l1,max(l2,l3)); float arm=smoothstep(-13.0,-2.5,vA.x);
-      float a=(lines*(0.38+1.5*rim)+rim*0.42+0.025)*arm*uAlpha;
+      float a=(lines*(0.34+1.5*rim)+rim*0.55+0.07*(0.4+0.6*ndv))*arm*uAlpha;
       gl_FragColor=vec4(uColor*a,1.0); }`
 });
 function makeHand(color) {
@@ -136,8 +136,9 @@ window.renderAt = async (t) => {
   renderer.render(scene, camera); return true;
 };
 // ---- isolated hand debug: window.renderHand(poseName, yaw, pitch) ----
-const OPEN = {flex: [[0.1, 0.18, 0.08], [0.06, 0.14, 0.06], [0.1, 0.2, 0.08], [0.16, 0.24, 0.1]], spread: [0.3, 0.05, -0.2, -0.42], th: {abd: 0.5, f: [0.12, 0.08]}};
-const POSES = {point: POINT, open: OPEN};
+const OPEN_OLD = {flex: [[0.1, 0.18, 0.08], [0.06, 0.14, 0.06], [0.1, 0.2, 0.08], [0.16, 0.24, 0.1]], spread: [0.3, 0.05, -0.2, -0.42], th: {abd: 0.5, f: [0.12, 0.08]}};
+const REACH = {flex: [[0.1, 0.2, 0.1], [0.18, 0.28, 0.14], [0.26, 0.34, 0.18], [0.34, 0.42, 0.2]], spread: [0.18, 0.02, -0.14, -0.3], th: {abd: 0.45, f: [0.22, 0.16]}};
+const POSES = {point: POINT, open: REACH, reach: REACH};
 window.renderHand = async (poseName, yaw, pitch, dist = 46) => {
   [...planes, field, core, dust, ghost.pre, ghost.ln, trail1.pre, trail1.ln, trail2.pre, trail2.ln].forEach(o => o.visible = false);
   renderer.domElement.style.opacity = '1'; document.getElementById('title').innerHTML = '';
