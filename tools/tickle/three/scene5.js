@@ -7,6 +7,8 @@ const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}); renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.setClearColor(0x02050a, 1);
 document.body.appendChild(renderer.domElement);
 document.body.style.width = W + 'px'; document.body.style.height = H + 'px';
+const WAN = QP.get('wan') === '1'; let wanImg = null, wanIdx = -1;
+if (WAN) { wanImg = document.createElement('img'); wanImg.style.cssText = `position:absolute;left:0;top:0;width:${W}px;height:${H}px;z-index:1`; document.body.appendChild(wanImg); renderer.domElement.style.zIndex = 0; }
 const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 600);
 const BONE = new THREE.Color(1.3, 1.22, 1.05), TL = new THREE.Color(0.14, 0.95, 0.8), RD = new THREE.Color(1.0, 0.16, 0.12);
 const loadTex = async n => { const t = await new THREE.TextureLoader().loadAsync('./assets/' + n); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
@@ -216,7 +218,8 @@ window.renderAt = async (tReal) => {
   dust.position.x = camera.position.x - 2 - tReal * 0.5;
   const L = LINES.find(l => t >= l[0] && t < l[1]); const tt = document.getElementById('title');
   if (L) { const n = clamp((t - L[0]) / 0.35) * (1 - sm((t - (L[1] - 0.25)) / 0.25)); tt.className = L[2]; tt.innerHTML = `<div style="opacity:${n}">${L[3]}</div>`; } else tt.innerHTML = '';
-  renderer.domElement.style.opacity = String(t < 0.3 ? 0.25 + 0.75 * sm(t / 0.25) : 1);
+  renderer.domElement.style.opacity = String(WAN && tReal < 3.4 ? 0 : (t < 0.3 ? 0.25 + 0.75 * sm(t / 0.25) : 1));
+  if (WAN) { const wa = tReal < 3.5 ? 1 : 1 - sm((tReal - 3.5) / 0.5); wanImg.style.opacity = String(wa); if (wa > 0.001) { const idx = Math.min(124, Math.floor(tReal * 30) + 1); if (idx !== wanIdx) { wanImg.src = './assets/wan/w' + String(idx).padStart(5, '0') + '.jpg'; try { await wanImg.decode(); } catch (e) {} wanIdx = idx; } } }
   renderer.render(scene, camera); return true;
 };
 window.ready = true;

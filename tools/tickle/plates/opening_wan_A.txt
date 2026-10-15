@@ -1,0 +1,1 @@
+Wan take A (kept): start frame = scene5 frame at 0.7 s; seed 7; 640x800, 81 frames; prompt: bone-white contour-line hand glides right toward glowing red target ring while teal ghost fingertip rests on the ring; contour lines flow toward the ring; camera still; no morphing. Retimed 16->30 fps with ffmpeg minterpolate mci.
