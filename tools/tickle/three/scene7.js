@@ -129,6 +129,7 @@ function updateStream(s, head, vis) {
 const TGT = V3(33.15, 2.0, 0), LEADT = 0.6, SC0 = 0.78;
 const tipPath = s => { const u = clamp((s - 0.15) / 2.1), e = u * u * (3 - 2 * u); return V3(lerp(-6, TGT.x, e), lerp(-7, TGT.y, e) + 3.2 * Math.sin(Math.PI * e) * (1 - e), 0); };
 const slope = s => { const q = Math.min(s, 2.2), a = tipPath(q - 0.04), b = tipPath(q + 0.04); return Math.atan2(b.y - a.y, b.x - a.x) * 0.7; };   // hold the last real heading once the path ends (no snap to 0)
+const eP = s => { const u = clamp((s - 0.15) / 2.1); return u * u * (3 - 2 * u); }, OFFv = V3(0.6, 0.8, -3.2);   // ghost depth/height offset is part of its approach: it lands exactly on the contact point and never moves after
 const NR = 30, NS = 41, ribbons = [];
 for (let i = 0; i < NR; i++) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NS * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(NS * 3), 3)); const l = new THREE.Line(g, new THREE.LineBasicMaterial({vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthTest: false})); l.renderOrder = 5; l.frustumCulled = false; scene.add(l); ribbons.push(l); }
 const flowF = flow.clone(); flowF.material = flow.material.clone(); flowF.position.set(30, 2, 10); scene.add(flowF);
@@ -142,14 +143,14 @@ window.renderAt = async (E) => {
   cores.forEach(c0 => c0.material.opacity = 0); stages.forEach(s => { s.planes.forEach(p => p.material.uniforms.uFade.value = 0); s.field.material.uniforms.uPinch.value = 0; s.field.material.uniforms.uFlare.value = 0; s.field.material.uniforms.uAmp.value = 1; });
   const conv = sm((E - 2.1) / 0.45), sep = 1 - conv, fade = 0.35 + 0.65 * sm(E / 0.3), bob = 0.01 * Math.sin(E * 2);
   put(hand.real, tipPath(E), fade, E, {scale: SC0, rz: slope(E) + bob});
-  const gP = tipPath(E + LEADT).add(V3(0.6, 0.8, -3.2).multiplyScalar(sep));
+  const gP = tipPath(E + LEADT).add(OFFv.clone().multiplyScalar(1 - eP(E + LEADT)));
   put(hand.ghost, gP, 0.95 * sm((E - 0.1) / 0.4) * (1 - 0.9 * conv), E, {scale: SC0, rz: slope(E + LEADT) + bob});
-  for (let k = 0; k < 4; k++) { const f = (k + 1) / 5, p = tipPath(E + LEADT * f).add(V3(0.6 * f, 0.8 * f, -3.2 * f).multiplyScalar(sep)); put(hand.tr[k], p, 1.7 * sm((E - 0.2) / 0.4) * (1 - conv) * (1 - f * 0.5), E, {scale: SC0, rz: slope(E + LEADT * f), cut: 0.5}); }
+  for (let k = 0; k < 4; k++) { const f = (k + 1) / 5, s2 = E + LEADT * f, p = tipPath(s2).add(OFFv.clone().multiplyScalar(1 - eP(s2))); put(hand.tr[k], p, 1.7 * sm((E - 0.2) / 0.4) * (1 - conv) * (1 - f * 0.5), E, {scale: SC0, rz: slope(E + LEADT * f), cut: 0.5}); }
   // time ribbon: thin lines stretch from the real fingertip to the ghost fingertip, collapse when they meet
   const rv = (QP.get('rib') === '0' ? 0 : 1) * sm((E - 0.2) / 0.4) * (1 - 0.9 * sm((E - 2.2) / 0.4));
   ribbons.forEach((l, i) => { const P = l.geometry.attributes.position.array, C = l.geometry.attributes.color.array, m = i / (NR - 1) - 0.5;
-    for (let j = 0; j < NS; j++) { const f = j / (NS - 1), p = tipPath(E + LEADT * f), w = Math.pow(Math.sin(Math.PI * f), 0.8);
-      P.set([p.x + 0.6 * f * sep, p.y + 0.8 * f * sep + m * 2.8 * w * (0.4 + 0.6 * sep), -3.2 * f * sep + m * 1.6 * w * sep], j * 3);
+    for (let j = 0; j < NS; j++) { const f = j / (NS - 1), p = tipPath(E + LEADT * f), w = Math.pow(Math.sin(Math.PI * f), 0.8), sf = 1 - eP(E + LEADT * f);
+      P.set([p.x + 0.6 * sf, p.y + 0.8 * sf + m * 2.8 * w * (0.4 + 0.6 * sf), -3.2 * sf + m * 1.6 * w * sf], j * 3);
       const a = rv * w * (0.18 + 0.5 * (1 - Math.abs(m) * 2)); C.set([0.12 * a, 0.95 * a, 0.8 * a], j * 3); }
     l.geometry.attributes.position.needsUpdate = l.geometry.attributes.color.needsUpdate = true; });
   // depth layers: background field, foreground fine lines, faint glass layers behind the hand
