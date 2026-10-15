@@ -1,7 +1,7 @@
 // "Why do dreams feel real" v4 (motion-first, first three worlds): the dreamer's red tick is a real moving object; the camera rides it; the red trail is where it has been.
 // Each world is split into parts that animate on their own (figure peels out of the bed, nodes fire, logic lobe switches OFF); signals travel through the contour lines themselves.
 import * as THREE from 'three';
-const QP = new URLSearchParams(location.search); const W = +(QP.get('w') || 1080), H = +(QP.get('h') || 1920), DUR = +(QP.get('dur') || 10.4);
+const QP = new URLSearchParams(location.search); const W = +(QP.get('w') || 1080), H = +(QP.get('h') || 1920), DUR = +(QP.get('dur') || 10.8);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), sm = x => { x = clamp(x); return x * x * (3 - 2 * x); }, lerp = (a, b, t) => a + (b - a) * t;
 const ease = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }, easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -36,10 +36,10 @@ const partMat = (tex, dep, ds, d0, asp) => new THREE.ShaderMaterial({
       gl_FragColor=vec4(c*f*st*a*uOp,1.0); }`
 });
 const worlds = [];
-const WD = [{k: 'sleeper', w: 11, A: 0.0, D: 2.2, ds: 2}, {k: 'bedfall', w: 14, A: 2.2, D: 3.0, ds: 3}, {k: 'brain', w: 13, A: 5.2, D: 2.6, ds: 2.2}, {k: 'head', w: 22, A: 7.8, D: 2.6, ds: 3}];
+const WD = [{k: 'soulpull', w: 14, A: 0.0, D: 2.6, ds: 3}, {k: 'bedfall', w: 14, A: 2.6, D: 3.0, ds: 3}, {k: 'brain', w: 13, A: 5.6, D: 2.6, ds: 2.2}, {k: 'head', w: 22, A: 8.2, D: 2.6, ds: 3}];
 // part boxes in image coords (u0,v0,u1,v1; v down)
 const PARTS = {
-  sleeper: {},
+  soulpull: {fig: [0.45, 0.11, 0.885, 0.70], objs: [0.17, 0.03, 0.80, 0.55]},
   bedfall: {fig: [0.365, 0.083, 0.575, 0.517], frames: [0.01, 0.125, 0.43, 0.842], bed: [0.45, 0.417, 0.85, 0.942]},
   brain: {fig: [0.545, 0.46, 0.64, 0.76]},
   head: {fig: [0.465, 0.43, 0.56, 0.66]},
@@ -61,17 +61,18 @@ for (let i = 0; i < WD.length; i++) {
   worlds.push(s);
 }
 const [WS, WB, WBr, WH] = worlds;
-const soul = new THREE.Mesh(WS.base.geometry, WS.base.material.clone()); soul.frustumCulled = false; soul.renderOrder = 4; scene.add(soul);
 
 // ---------- the dreamer's red tick: a real path through the whole fall ----------
 const startVec = WB.P(0.735, 0.47).sub(WB.P(0.545, 0.425));
+const soulStart = WS.P(0.40, 0.72).sub(WS.P(0.64, 0.40));
+const soulOff = tl => { const q = clamp((tl - 0.5) / 1.6); return V3(soulStart.x * (1 - ease(q)), soulStart.y * (1 - ease(q)) + 0.18 * Math.sin(tl * 2.1) * q, 0); };
 function figOffset(i, tl) {
-  if (i === 0) return V3(0.15 * Math.sin(tl * 2.4) * sm((tl - 0.6) / 0.5), 0.25 * sm(tl / 0.6) + 7.2 * sm((tl - 0.6) / 1.15), 0);
+  if (i === 0) return soulOff(tl);
   if (i === 1) return V3(0.08 * Math.sin(tl * 2.1), 1.6 * (1 - easeOut(tl / 0.9)) - 0.4 * Math.max(0, tl - 0.9) + 0.05 * Math.sin(tl * 3.1), 0);
   if (i === 2) return V3(0.1 * Math.sin(tl * 2.2), -0.9 * tl - 0.12 * tl * tl, 0);
   return V3(0.05 * Math.sin(tl * 1.6), -0.38 * tl, 0);
 }
-function tickLocal(i, tl) { const o = figOffset(i, tl); const base = i === 0 ? WS.P(0.5, 0.17) : i === 1 ? WB.P(0.545, 0.425) : i === 2 ? WBr.P(0.59, 0.60) : WH.P(0.51, 0.53); return base.add(o).add(V3(0, i === 0 ? 0.0 : i === 1 ? 0.95 : i === 2 ? 0.55 : 0.6, 0)); }
+function tickLocal(i, tl) { if (i === 0) { const q = clamp((tl - 0.5) / 1.6), a = WS.P(0.276, 0.655).add(V3(0, 0.12 * Math.sin(tl * 3), 0)), b = WS.P(0.795, 0.17).add(soulOff(tl)).add(V3(0, 0.9, 0)); return a.lerp(b, ease(q)); } const o = figOffset(i, tl); const base = i === 0 ? WS.P(0.64, 0.40) : i === 1 ? WB.P(0.545, 0.425) : i === 2 ? WBr.P(0.59, 0.60) : WH.P(0.51, 0.53); return base.add(o).add(V3(0, i === 0 ? 0.0 : i === 1 ? 0.95 : i === 2 ? 0.55 : 0.6, 0)); }
 function tickAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
   const s = worlds[i], tl = t - s.A, last = i === worlds.length - 1, td = s.D - TR;
@@ -120,18 +121,18 @@ const toggle = new THREE.Group(); { const pill = new THREE.Shape(); const rw = 0
 toggle.renderOrder = 8; toggle.children.forEach(c => c.renderOrder = 8); scene.add(toggle);
 
 // ---------- captions ----------
-const CAPS = [[0.1, 1.3, 'YOU FALL <em>ASLEEP.</em>'], [1.4, 2.4, 'THIS IS A <em>DREAM.</em>'], [2.6, 3.6, 'IT FEELS <em>REAL.</em>'], [5.4, 7.6, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [8.0, 10.4, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>']];
+const CAPS = [[0.1, 1.3, 'YOU FALL <em>ASLEEP.</em>'], [1.4, 2.5, 'THIS IS A <em>DREAM.</em>'], [2.7, 3.7, 'IT FEELS <em>REAL.</em>'], [5.8, 8.0, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [8.4, 10.8, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>']];
 const elCap = document.getElementById('cap'), elFlash = document.getElementById('flash'), elBar = document.getElementById('bar'), elTitle = document.getElementById('title');
 
 // ---------- camera ----------
 const keys = (arr, tl) => { for (let i = 0; i < arr.length - 1; i++) if (tl <= arr[i + 1][0]) return lerp(arr[i][1], arr[i + 1][1], sm((tl - arr[i][0]) / (arr[i + 1][0] - arr[i][0]))); return arr[arr.length - 1][1]; };
-const DIST = [[[0, 13], [0.8, 11.5], [1.7, 14]], [[0, 9], [0.6, 9.5], [1.9, 18], [2.3, 19], [2.45, 18]], [[0, 22], [1.0, 22], [2.05, 16], [2.2, 15]], [[0, 25], [1.2, 22], [2.6, 16]]];
+const DIST = [[[0, 9], [0.7, 10.5], [1.9, 22], [2.05, 22]], [[0, 9], [0.6, 9.5], [1.9, 18], [2.3, 19], [2.45, 18]], [[0, 22], [1.0, 22], [2.05, 16], [2.2, 15]], [[0, 25], [1.2, 22], [2.6, 16]]];
 function frameAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
   const s = worlds[i], tl = t - s.A, last = i === worlds.length - 1, td = s.D - TR, tick = tickAt(t); let bump = 0;
   const dist = keys(DIST[i], Math.min(tl, td)) + (!last && tl > td ? lerp(0, 3, sm((tl - td) / TR)) : 0); if (!last && tl > td) bump = Math.sin(Math.PI * (tl - td) / TR);
   let target = tick.clone();
-  if (i === 0) target.y -= 1.4 * sm((tl - 0.6) / 1.2); if (i === 2) target.lerp(WBr.P(0.5, 0.5), 0.55 * (1 - sm(tl / 1.6))); if (i === 3) target.lerp(WH.P(0.68, 0.23), 0.65 * sm((tl - 0.1) / 0.5) * (1 - sm((tl - 1.7) / 0.6)));
+  if (i === 0) target.lerp(WS.P(0.62, 0.42).add(soulOff(tl)), 0.65 * sm((tl - 0.9) / 0.9)); if (i === 2) target.lerp(WBr.P(0.5, 0.5), 0.55 * (1 - sm(tl / 1.6))); if (i === 3) target.lerp(WH.P(0.68, 0.23), 0.65 * sm((tl - 0.1) / 0.5) * (1 - sm((tl - 1.7) / 0.6)));
   return {i, s, tl, tick, target, dist, bump};
 }
 const beat = p => Math.exp(-p * 6.0);
@@ -144,11 +145,11 @@ window.renderAt = t => {
     const U = w.base.material.uniforms; const all = [w.base, ...Object.values(w.parts)]; all.forEach(m => { const u = m.material.uniforms; u.uOp.value = op; u.uTime.value = t; m.visible = op > 0.004; u.uPulse.value.set(0.5, 0.5, -1, 0); u.uRev.value.set(0.5, 0.5, -1); u.uSpark.value = 0; u.uSplit.value.set(2, 1, 1); u.uReg.value.set(2, 2, 2, 2); u.uRegG.value.set(1, 1); u.uRed.value = 1; u.uTeal.value = 1; });
     const setAll = fn => all.forEach(m => fn(m.material.uniforms));
     if (wi === 0) {
-      const q = sm((lt - 0.7) / 1.3), su = soul.material.uniforms;
-      setAll(u => { u.uTeal.value = 1.5 - 0.35 * sm((lt - 0.8) / 0.6); u.uRed.value = 2.2 + 1.4 * (0.5 + 0.5 * Math.sin(lt * 7)); const ph = (lt * 0.9) % 1; u.uPulse.value.set(0.5, 0.78, ph * 0.5, 0.35); });
-      w.base.scale.setScalar(1 + 0.01 * Math.sin(lt * 3.0)); w.base.rotation.z = 0.01 * Math.sin(lt * 1.3);
-      soul.position.set(w.base.position.x + 0.2 * Math.sin(lt * 2.4) * q, w.base.position.y + 7.2 * sm((lt - 0.6) / 1.15), w.base.position.z + 0.6); soul.scale.set(1 - 0.1 * q, 1 + 0.7 * q, 1); soul.rotation.z = 0.04 * Math.sin(lt * 1.9) * q;
-      su.uOp.value = op * 0.8 * sm((lt - 0.65) / 0.3) * (1 - sm((lt - 1.75) / 0.45)); su.uTeal.value = 2.0; su.uRed.value = 0.4; su.uTime.value = t; su.uPulse.value.set(0.5, 0.5, -1, 0); su.uSpark.value = 0; su.uRev.value.set(0.5, 0.5, -1); su.uReg.value.set(2, 2, 2, 2); su.uSplit.value.set(2, 1, 1); soul.visible = su.uOp.value > 0.004;
+      const q = clamp((lt - 0.5) / 1.6), e = ease(q), F = w.parts.fig.material.uniforms, O = w.parts.objs.material.uniforms;
+      w.base.material.uniforms.uTeal.value = 1.25 + 0.15 * Math.sin(lt * 3.0); w.base.material.uniforms.uRed.value = 1.5; // the sleeper breathes and stays
+      pr(0, 'fig', {p: soulOff(lt), s: lerp(0.8, 1, e), rz: lerp(-0.25, 0, e)});
+      F.uRev.value.set(0.64, 0.42, 0.04 + 0.9 * sm((lt - 0.45) / 1.2)); F.uOp.value *= sm((lt - 0.45) / 0.4); F.uTeal.value = 1.5; F.uPulse.value.set(0.5, 0.45, ((lt * 0.8) % 1) * 0.6, 0.45);
+      pr(0, 'objs', {p: V3(0.22 * lt, 0.45 * lt, 0), rz: 0.03 * lt}); O.uOp.value *= sm((lt - 1.0) / 0.6); O.uTeal.value = 1.4;
     } else if (wi === 1) {
       setAll(u => { u.uRed.value = 1.3 + 1.2 * (0.5 + 0.5 * Math.sin(lt * 8)); });
       WB.base.material.uniforms.uTeal.value = 0.12; WB.base.material.uniforms.uRed.value = 0.2; // drop the hatch panel; the action is in the parts
