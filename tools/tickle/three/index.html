@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>tickle 3D temporal sculpture</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;background:#04070a;overflow:hidden}
+canvas{position:absolute;left:0;top:0}
+#line{z-index:5;position:absolute;left:64px;width:952px;top:262px;font-family:'Liberation Sans Narrow','DejaVu Sans Condensed',sans-serif;font-weight:700;font-size:58px;letter-spacing:6px;color:#e8e4d0;text-transform:uppercase;line-height:1.1}
+#line em{font-style:normal;color:#ff4a3a}
+#brand{z-index:5;position:absolute;left:64px;top:150px;font-family:'Liberation Sans Narrow',sans-serif;font-weight:700;font-size:30px;letter-spacing:10px;color:#e8e4d0;opacity:.8}
+#brand em{font-style:normal;color:#d63e30}
+</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<div id="brand">SL<em>O</em>W LIGHT</div>
+<div id="line"></div>
+<script type="module" src="scene.js"></script>
+</body></html>
