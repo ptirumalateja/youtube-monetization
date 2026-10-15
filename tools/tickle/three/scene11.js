@@ -32,6 +32,11 @@ const ST = [
   {k: 'lucid', A: 26.2, w: 22, R: 18, ds: 3, px: 0, py: 0, nx: -1.0, ny: 0.3},
   {k: 'loopcard', A: 27.8, w: 24, R: 22, ds: 3, px: 0, py: 0, nx: 0.0, ny: 0.0},
 ];
+
+// backdrop plates: a second, related Meta world sits far behind each world (own depth, parallaxes against it); adjacent plates are visible ahead through the fall
+const BD = {bedfall: ['portal', 14, -4, 3, -12, .5], brain: ['face', 16, 4, 1, -12, .35], head: ['brainteal', 22, -3, -2, -13, .3], island: ['moon', 26, -4, 4, -14, .6], stairs: ['vortex', 22, 5, 2, -14, .4],
+  rem: ['throat', 28, 0, -2, -13, .4], ship: ['heart', 18, -3, 0, -13, .4], wave: ['clocks', 26, 0, 0, -13, .4], corridor: ['deja', 30, 0, 0, -12, .3], ribbon: ['collage', 40, 0, 0, -12, .4],
+  whalecity: ['train', 22, 4, -3, -14, .4], web: ['city', 28, 0, 1, -13, .18], morph: ['brainc', 20, -4, 2, -13, .35], eye: ['stairsc', 24, 3, -1, -13, .3], lucid: ['heaven', 14, 0, -3, -12, .5], loopcard: ['bed', 22, 0, -2, -12, .4]};
 const N = ST.length;
 ST.forEach((s, i) => { s.i = i; s.z = -S * i; s.D = (i < N - 1 ? ST[i + 1].A : DUR) - s.A; s.node = V3(s.nx, s.ny + AXY, s.z); s.roll0 = s.roll0 || 0; });
 
@@ -58,6 +63,12 @@ for (const s of ST) {
   s.mesh = new THREE.Mesh(new THREE.PlaneGeometry(s.w, h, sx, sy), s.mat); s.mesh.frustumCulled = false; s.mesh.renderOrder = 3; scene.add(s.mesh);
   s.mesh.position.set(s.node.x - (m.anchor[0] - 0.5) * s.w, s.node.y - (0.5 - m.anchor[1]) * h, s.z);
 }
+
+{ const MB = await (await fetch('./assets/dreams/v3b_meta.json')).json(); const gc = document.createElement('canvas'); gc.width = gc.height = 4; const gx = gc.getContext('2d'); gx.fillStyle = '#808080'; gx.fillRect(0, 0, 4, 4);
+  const flat = new THREE.CanvasTexture(gc); flat.colorSpace = THREE.NoColorSpace;
+  for (const s of ST) { const b = BD[s.k]; if (!b) continue; const [bk, bw, ox, oy, dz, op] = b, [pw, ph] = MB[bk]; const tex = await new THREE.TextureLoader().loadAsync(`./assets/dreams/v3b_${bk}.jpg`); tex.colorSpace = THREE.NoColorSpace; tex.anisotropy = 4;
+    const mat = worldMat(tex, flat, 0, 0.5); mat.uniforms.uTexel.value.set(0.25, 0.25); const m = new THREE.Mesh(new THREE.PlaneGeometry(bw, bw * ph / pw, 2, 2), mat); m.frustumCulled = false; m.renderOrder = 2; scene.add(m);
+    m.position.set(s.node.x + ox, s.node.y + oy, s.z + dz); s.bd = {m, op, dz, ox, oy}; } }
 // paradox: the stairs loop into themselves (echo meshes shrinking down the same axis)
 const stairs = ST.find(s => s.k === 'stairs'); const echoes = [0, 1, 2].map(n => { const e = new THREE.Mesh(stairs.mesh.geometry, stairs.mat.clone()); e.frustumCulled = false; e.renderOrder = 2; scene.add(e); return e; });
 
@@ -134,12 +145,14 @@ window.renderAt = t => {
   threadMat.uniforms.uCamZ.value = cz; threadMat.uniforms.uTime.value = t; threadMat.uniforms.uAmp.value = 0.8 + 0.6 * r.bump;
   let flash = 0;
   ST.forEach(s => {
-    const d = cz - s.z, lt = t - s.A, op = sm((d - 1.2) / 4.5) * (1 - sm((d - 40) / 20)), pulse = (f, p = 0) => 0.5 + 0.5 * Math.sin(lt * f + p), u = s.mat.uniforms;
+    const d = cz - s.z, lt = t - s.A, op = sm((d - 1.2) / 4.5) * (1 - sm((d - 58) / 30)), pulse = (f, p = 0) => 0.5 + 0.5 * Math.sin(lt * f + p), u = s.mat.uniforms;
     let red = 1.0 + 1.3 * pulse(7), teal = 1.0;
     switch (s.k) { case 'bedfall': red = 1.3 + 1.6 * pulse(8); break; case 'brain': red = 1.0 + 1.6 * pulse(7, 1); break; case 'island': red = 1.0 + 2.2 * pulse(10); break; case 'stairs': red = 1 + 2.2 * pulse(6); break;
       case 'moon': red = 0.8 + 0.3 * pulse(5); break; case 'wave': red = 1.1 + 1.6 * beat((t * 1.9) % 1); break; case 'web': red = 1.0 + 1.8 * pulse(9); break; case 'eye': red = 1.0 + 1.6 * pulse(7); break; case 'head': red = 1.0 + 1.4 * pulse(5); break; case 'rem': red = 1.0 + 1.6 * pulse(4); break; case 'ribbon': red = 1.0 + 1.5 * pulse(6); break; case 'morph': red = 1.0 + 1.6 * pulse(8); break; case 'lucid': red = 1.2 + 1.8 * pulse(3); break; case 'loopcard': red = 1.2 + 1.2 * pulse(5); break; }
     u.uOp.value = op; u.uRed.value = red; u.uTeal.value = teal; s.mesh.visible = op > 0.004;
     s.mesh.rotation.z = (s.k === 'bedfall' ? 0.02 * Math.sin(lt * 2) : 0); // slight sway
+    if (s.bd) { const dB = cz - (s.z + s.bd.dz), ob = sm((dB - 1.2) / 4.5) * (1 - sm((dB - 90) / 40)) * s.bd.op * 0.8, bu = s.bd.m.material.uniforms; bu.uOp.value = ob; bu.uRed.value = 0.9 + 0.7 * pulse(4, s.i); bu.uTeal.value = 0.9;
+      s.bd.m.rotation.z = 0.05 * Math.sin(lt * 0.9 + s.i); s.bd.m.scale.setScalar(1 + 0.03 * lt); s.bd.m.visible = ob > 0.004; }
     const f = s.field.uniforms; f.uOp.value = op * 0.9; f.uTime.value = t; f.uBend.value = 0.5 + 0.5 * Math.sin(lt * 2.0);
     const tk = ticks[s.i]; tk.material.opacity = op * (0.55 + 0.35 * pulse(9)); tk.scale.setScalar(0.9 + 0.35 * pulse(9)); tk.visible = op > 0.01;
     if (s.k === 'loopcard') { const w = sm((t - 28.5) / 0.1) * (1 - sm((t - 28.65) / 0.5)); flash = Math.max(flash, 0.12 * w); }
