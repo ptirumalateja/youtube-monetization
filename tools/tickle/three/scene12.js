@@ -64,7 +64,7 @@ const [WB, WBr, WH] = worlds;
 // ---------- the dreamer's red tick: a real path through the whole fall ----------
 const startVec = WB.P(0.735, 0.47).sub(WB.P(0.545, 0.425));
 function figOffset(i, tl) {
-  if (i === 0) { const e = ease(tl / 1.4); return V3(startVec.x * (1 - e), startVec.y * (1 - e) - 0.4 * Math.max(0, tl - 1.4) + 0.4 * Math.sin(Math.PI * clamp(tl / 1.4)), 0); }
+  if (i === 0) { const q = clamp((tl - 0.5) / 1.4), e = ease(q); return V3(startVec.x * (1 - e), startVec.y * (1 - e) - 0.4 * Math.max(0, tl - 1.9) + 0.4 * Math.sin(Math.PI * q) + 0.06 * Math.sin(tl * 3.1) * (1 - q), 0); }
   if (i === 1) return V3(0.1 * Math.sin(tl * 2.2), -0.9 * tl - 0.12 * tl * tl, 0);
   return V3(0.05 * Math.sin(tl * 1.6), -0.38 * tl, 0);
 }
@@ -117,12 +117,12 @@ const toggle = new THREE.Group(); { const pill = new THREE.Shape(); const rw = 0
 toggle.renderOrder = 8; toggle.children.forEach(c => c.renderOrder = 8); scene.add(toggle);
 
 // ---------- captions ----------
-const CAPS = [[0.15, 1.4, 'THIS IS A <em>DREAM.</em>'], [1.5, 2.9, 'AND IT FEELS <em>REAL.</em>'], [3.1, 5.4, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [5.8, 8.2, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>']];
+const CAPS = [[0.1, 1.0, 'YOU FALL <em>ASLEEP.</em>'], [1.1, 2.0, 'THIS IS A <em>DREAM.</em>'], [2.1, 2.95, 'IT FEELS <em>REAL.</em>'], [3.1, 5.4, 'SAME BRAIN.<br>DIFFERENT <em>STATE.</em>'], [5.8, 8.2, 'YOUR LOGIC CENTRE<br>SWITCHES <em>OFF.</em>']];
 const elCap = document.getElementById('cap'), elFlash = document.getElementById('flash'), elBar = document.getElementById('bar'), elTitle = document.getElementById('title');
 
 // ---------- camera ----------
 const keys = (arr, tl) => { for (let i = 0; i < arr.length - 1; i++) if (tl <= arr[i + 1][0]) return lerp(arr[i][1], arr[i + 1][1], sm((tl - arr[i][0]) / (arr[i + 1][0] - arr[i][0]))); return arr[arr.length - 1][1]; };
-const DIST = [[[0, 12], [1.4, 16], [2.3, 19], [2.45, 18]], [[0, 22], [1.0, 22], [2.05, 16], [2.2, 15]], [[0, 25], [1.2, 22], [2.6, 16]]];
+const DIST = [[[0, 9], [0.6, 9.5], [1.9, 18], [2.3, 19], [2.45, 18]], [[0, 22], [1.0, 22], [2.05, 16], [2.2, 15]], [[0, 25], [1.2, 22], [2.6, 16]]];
 function frameAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
   const s = worlds[i], tl = t - s.A, last = i === worlds.length - 1, td = s.D - TR, tick = tickAt(t); let bump = 0;
@@ -137,16 +137,16 @@ window.renderAt = t => {
   // ---- parts ----
   const pr = (wi, name, o) => { const p = worlds[wi].parts[name]; p.position.copy(p.userData.rest).add(o.p || V3(0, 0, 0)); p.rotation.z = o.rz || 0; p.scale.setScalar(o.s || 1); return p; };
   worlds.forEach((w, wi) => {
-    const d = f.target.z + f.dist - w.z, lt = t - w.A, op = sm((d - 1.2) / 4) * (1 - sm((d - 38) / 10));
+    const d = f.target.z + f.dist - w.z, lt = t - w.A, op = sm((d - 1.2) / 4) * (1 - sm((d - 33) / 6));
     const U = w.base.material.uniforms; const all = [w.base, ...Object.values(w.parts)]; all.forEach(m => { const u = m.material.uniforms; u.uOp.value = op; u.uTime.value = t; m.visible = op > 0.004; u.uPulse.value.set(0.5, 0.5, -1, 0); u.uRev.value.set(0.5, 0.5, -1); u.uSpark.value = 0; u.uSplit.value.set(2, 1, 1); u.uReg.value.set(2, 2, 2, 2); u.uRegG.value.set(1, 1); u.uRed.value = 1; u.uTeal.value = 1; });
     const setAll = fn => all.forEach(m => fn(m.material.uniforms));
     if (wi === 0) {
       setAll(u => { u.uRed.value = 1.3 + 1.2 * (0.5 + 0.5 * Math.sin(lt * 8)); });
       WB.base.material.uniforms.uTeal.value = 0.12; WB.base.material.uniforms.uRed.value = 0.2; // drop the hatch panel; the action is in the parts
       WB.parts.fig.material.uniforms.uTeal.value = 1.7; WB.parts.frames.material.uniforms.uTeal.value = 1.4;
-      const e = ease(lt / 1.4); pr(0, 'fig', {s: 1.25, p: figOffset(0, lt), rz: lerp(0.9, 0, e) + 0.06 * Math.sin(lt * 2.2)}); pr(0, 'frames', {p: V3(0.15 * lt, 0.7 * lt + 0.12 * Math.sin(lt * 1.7), 0), rz: -0.025 * lt}); pr(0, 'bed', {s: 1 + 0.008 * Math.sin(lt * 3), p: V3(0, 0, 0)});
+      const e = ease((lt - 0.5) / 1.4); pr(0, 'fig', {s: 1.25, p: figOffset(0, lt), rz: lerp(0.9, 0, e) + 0.06 * Math.sin(lt * 2.2)}); WB.parts.fig.material.uniforms.uRev.value.set(0.545, 0.575, 0.05 + 0.75 * sm((lt - 0.45) / 0.9)); WB.parts.fig.material.uniforms.uOp.value *= sm((lt - 0.42) / 0.25); WB.parts.frames.material.uniforms.uOp.value *= sm((lt - 1.0) / 0.7); pr(0, 'frames', {p: V3(0.15 * lt, 0.7 * lt + 0.12 * Math.sin(lt * 1.7), 0), rz: -0.025 * lt}); pr(0, 'bed', {s: 1 + 0.008 * Math.sin(lt * 3), p: V3(0, 0, 0)});
       // the sleeper stays: breathing glow on the bed while the dream body leaves
-      WB.parts.bed.material.uniforms.uTeal.value = 1.0 + 0.25 * Math.sin(lt * 3);
+      WB.parts.bed.material.uniforms.uTeal.value = 1.0 + 0.3 * Math.sin(lt * 3.2);
     } else if (wi === 1) {
       const U2 = w.base.material.uniforms; const sp = clamp((lt - 0.2) / 1.2);
       setAll(u => { u.uSplit.value.set(0.5, lerp(1.0, 1.9, sp), lerp(1.0, 0.7, sp)); u.uSpark.value = 0.9; const ph = (lt * 1.15) % 1; u.uPulse.value.set(0.5, 0.55, ph * 1.0, 0.55); });
@@ -163,7 +163,7 @@ window.renderAt = t => {
   camera.position.set(f.target.x + ox, f.target.y + oy, f.target.z + f.dist);
   camera.up.set(0, 1, 0); camera.lookAt(f.target.x, f.target.y, f.target.z); camera.rotateZ(0.02 * Math.sin(t * 0.8) + (f.i % 2 ? 1 : -1) * 0.4 * bump);
   const cz = camera.position.z; fmat.uniforms.uCamZ.value = cz; fmat.uniforms.uTime.value = t; fmat.uniforms.uAmp.value = 0.12 + 1.1 * bump; smat.uniforms.uCamZ.value = cz; smat.uniforms.uSpeed.value = bump;
-  worlds.forEach((w, wi) => { const d = f.target.z + f.dist - w.z; fieldMats[wi].uniforms.uOp.value = sm((d - 1.2) / 4) * (1 - sm((d - 40) / 12)); fieldMats[wi].uniforms.uTime.value = t; });
+  worlds.forEach((w, wi) => { const d = f.target.z + f.dist - w.z; fieldMats[wi].uniforms.uOp.value = sm((d - 1.2) / 4) * (1 - sm((d - 34) / 7)); fieldMats[wi].uniforms.uTime.value = t; });
   // ---- tick + trail ----
   tickSp.position.copy(tick); tickSp.scale.setScalar(0.55 + 0.25 * (0.5 + 0.5 * Math.sin(t * 10)));
   const camDir = V3(0, 0, -1); for (let i = 0; i < NT; i++) { const tau = i / (NT - 1) * 1.8, p = tickAt(Math.max(0, t - tau)), q = tickAt(Math.max(0, t - tau - 0.03)), tan = p.clone().sub(q); tan.z *= 0.2; const side = V3(-tan.y, tan.x, 0).normalize(); if (!isFinite(side.x)) side.set(1, 0, 0);
