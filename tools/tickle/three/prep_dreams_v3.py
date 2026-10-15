@@ -21,6 +21,7 @@ K = {
     "heaven": ("20261015_145928", None, (0.52, 0.35), 0.04),
     "eye": ("20261015_145844", None, (0.5, 0.52), 0.10),
     "bed": ("20261015_144811", None, (0.52, 0.30), 0.25),
+    "rest": ("rest0", None, (0.69, 0.22), 0.1),
     "sleep": ("20261015_164748", None, (0.37, 0.46), 0.2),
     "soulpull": ("20261015_165026", None, (0.64, 0.40), 0.5),
     "sleeper": ("20261015_144736", None, (0.5, 0.2), 0.3),
@@ -31,7 +32,7 @@ K = {
     "lucid": ("20261015_153812", None, (0.55, 0.51), 0.40),
     "loopcard": ("20261015_153807_1", None, (0.50, 0.45), 0.03),
 }
-MASK = {"bedfall": (0, 0, 0.09, 0.07)}
+MASK = {"bedfall": (0, 0, 0.09, 0.07), "rest": (0, 0, 0.12, 0.08)}
 s = ort.InferenceSession(model); mean = np.array([0.485, 0.456, 0.406]); std = np.array([0.229, 0.224, 0.225]); meta = json.load(open('assets/dreams/v3_meta.json')) if os.path.exists('assets/dreams/v3_meta.json') else {}
 ONLY = os.environ.get('ONLY')
 for k, (f, c, anc, fh) in K.items():
