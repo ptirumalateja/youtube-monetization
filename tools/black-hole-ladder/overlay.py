@@ -50,7 +50,8 @@ HOOKS = {'A': ("THIS IS OUR WHOLE", "SOLAR SYSTEM.", None),
          'B': ("ONE BLACK HOLE IS", "43x WIDER THAN THIS.", None),
          'C': ("A BLACK HOLE CAN BE", "CITY-SIZED.", "OR BIGGER THAN THIS."),
          'D': ("WHAT'S BIGGER THAN", "OUR SOLAR SYSTEM?", None),
-         'E': ("WHEN OUR SOLAR SYSTEM", "BECOMES A DOT.", None)}
+         'E': ("WHEN OUR SOLAR SYSTEM", "BECOMES A DOT.", None),
+         'F': ("BLACK HOLES VS", "OUR SOLAR SYSTEM", None)}
 HL1, HL2, HSUB = HOOKS[VAR]
 fHOOK = F(MB, min(78, int(940 / (0.6 * max(len(HL1), len(HL2))))))   # 78 px like part 1, shrunk only if a line would not fit
 fNOW = F(MB, 60); fHSUB = F(MB, 40); HOOK_Y = 410; HOOK_CPS = 44.0

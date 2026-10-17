@@ -18,11 +18,14 @@ Link the two parts: pin part 2 on part 1 and part 1 on part 2.
 
 ## YouTube Shorts
 **Title (pick one):**
-1. Our whole Solar System is a speck inside this. (Black hole scale)
-2. How big is a black hole? From a city to TON 618.
-3. A black hole 43x wider than our Solar System.
+1. When the Solar System Becomes a Dot 🤯 (ties to Part 1, "Earth is a dot"; the payoff is the ending, so use it as a title, not as the opening hook)
+2. The Terrifying Scale of Black Holes
+3. These Black Holes Make Our Solar System Look Tiny
+4. Black Holes vs Our Solar System: The Scale Is Terrifying
+5. Our whole Solar System is a speck inside this.
+Not for Shorts: "Cosmic Scale: Black Holes vs. Our Solar System" and "A Journey Through Cosmic Scale" (too long / generic; fine as a description lead). Keep the first ~40 characters carrying the hook.
 
-Recommended: option 1 (matches hook A and the ending).
+**On-screen hook test (Part 1 design, lowered):** C "A BLACK HOLE CAN BE CITY-SIZED. / OR BIGGER THAN THIS.", F "BLACK HOLES VS / OUR SOLAR SYSTEM", A (control) "THIS IS OUR WHOLE SOLAR SYSTEM.". Not used as an opening hook: E "WHEN OUR SOLAR SYSTEM BECOMES A DOT." (the first rung is city-sized, so the opening seems to say the opposite for ~10 s).
 
 **Description:**
 > Our whole Solar System, out to Neptune's orbit, is a speck next to the biggest black holes we have measured. Scale up from a black hole the size of a city.
