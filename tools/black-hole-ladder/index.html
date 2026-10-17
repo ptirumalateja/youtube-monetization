@@ -14,6 +14,7 @@ const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
 const FOV=50; const cam=new THREE.PerspectiveCamera(FOV,W/H,0.05,1e10); const TAN=Math.tan(FOV*Math.PI/360), HALF=H/2, ASP=W/H;
 function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
 const R=rnd(4242); const gauss=()=>{let u=0,v=0;while(!u)u=R();v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185*v)};
+const WARP=await (await fetch('warp.json')).json(); const warpT=(t)=>{ const i=t/WARP.dt; if(i<=0) return t; const n=WARP.T.length-1; if(i>=n) return WARP.T[n]+(t-n*WARP.dt); const k=Math.floor(i), f=i-k; return WARP.T[k]*(1-f)+WARP.T[k+1]*f; };
 const sm=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
 // ------------------------------------------------------------------ shared uniforms
 const U={uSide:{value:0},uTime:{value:0},uK:{value:HALF/TAN},uCam:{value:new THREE.Vector3()},uSplit:{value:1e30}};
@@ -370,8 +371,8 @@ function focusAt(t){ const mix=(A,B,u)=>A.clone().lerp(B,u);
   if(t<CUT) return mix(P[3],SPK,sm(4.6,6.2,t));
   if(t<=7.0) return P[0].clone(); if(t<=8.6) return mix(P[0],P[1],sm(7.0,8.6,t)); if(t<=12.4) return P[1].clone(); if(t<=14.6) return mix(P[1],P[2],sm(12.4,14.6,t)); if(t<=18.4) return P[2].clone(); if(t<=20.8) return mix(P[2],P[3],sm(18.4,20.8,t)); return P[3].clone(); }
 const ZSTOP=[12,260,4300,30000];
-function setT(t){ U.uTime.value=t; const inA=t<CUT; const Z=Math.exp(cr(inA?ZA:ZB,t)[0]); const o=cr(inA?OA:OB,t); const az=o[0], el=o[1]; const F=focusAt(t);
-  const shk=lin(SHK,t); const roll=0.05*Math.sin(t*0.4)+0.012*shk*Math.sin(t*37.0)*Math.sin(t*11.0); const wob=0.0030*Z+0.0007*Z*shk*(Math.sin(t*31.0)+0.7*Math.sin(t*53.0+1.0)); const ce=Math.cos(el);
+function setT(t){ U.uTime.value=t; const Tc=warpT(t); const inA=Tc<CUT; const Z=Math.exp(cr(inA?ZA:ZB,Tc)[0]); const o=cr(inA?OA:OB,Tc); const az=o[0], el=o[1]; const F=focusAt(Tc);
+  const shk=lin(SHK,Tc); const roll=0.05*Math.sin(t*0.4)+0.012*shk*Math.sin(t*37.0)*Math.sin(t*11.0); const wob=0.0030*Z+0.0007*Z*shk*(Math.sin(t*31.0)+0.7*Math.sin(t*53.0+1.0)); const ce=Math.cos(el);
   cam.position.set(F.x+Z*Math.sin(az)*ce+wob*Math.sin(t*0.9),F.y+Z*Math.sin(el)+wob*0.7*Math.cos(t*0.7),F.z+Z*Math.cos(az)*ce); cam.up.set(Math.sin(roll),Math.cos(roll),0); cam.lookAt(F); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
   U.uCam.value.copy(cam.position); U.uSplit.value=Z;
   sky.position.copy(cam.position);
@@ -413,7 +414,7 @@ function renderSide(side){ U.uSide.value=side; camB.position.copy(cam.position);
 function frame(){ renderSide(0); renderSide(1); renderer.setRenderTarget(rtC); renderer.render(quadScene,quadCam); renderer.setRenderTarget(null); comp.render(); }
 const c2=document.createElement('canvas'); c2.width=W; c2.height=H; const ctx=c2.getContext('2d');
 window.renderAt=(t,exp,nsub,shutter,fmt)=>{ nsub=nsub||2; shutter=shutter||(1/60); for(let i=0;i<nsub;i++){ const ts=t+shutter*((i+0.5)/nsub-0.5); setT(ts); frame(); ctx.globalAlpha=1/(i+1); ctx.drawImage(renderer.domElement,0,0); }
-  if(exp!==undefined&&exp<1){ ctx.globalAlpha=1-exp; ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); } const fl=Math.max(0,1-Math.abs(t-CUT)/0.14); if(fl>0){ ctx.globalAlpha=Math.min(0.85,fl*fl*1.1); ctx.fillStyle='#fff6e6'; ctx.fillRect(0,0,W,H); } ctx.globalAlpha=1; return fmt==='png'?c2.toDataURL('image/png'):c2.toDataURL('image/jpeg',0.94); };
+  if(exp!==undefined&&exp<1){ ctx.globalAlpha=1-exp; ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); } const fl=Math.max(0,1-Math.abs(warpT(t)-CUT)/0.14); if(fl>0){ ctx.globalAlpha=Math.min(0.85,fl*fl*1.1); ctx.fillStyle='#fff6e6'; ctx.fillRect(0,0,W,H); } ctx.globalAlpha=1; return fmt==='png'?c2.toDataURL('image/png'):c2.toDataURL('image/jpeg',0.94); };
 window.proj=(t)=>{ setT(t); const out={}; const pr=(v)=>{ const w=v.clone().project(cam); return [(w.x*0.5+0.5)*W,(1-(w.y*0.5+0.5))*H]; }; out.bh=P.map(pr); out.dist=P.map(p=>cam.position.distanceTo(p)); return out; };
 window.projAll=(t)=>{ setT(t); const pr=(v)=>{ const w=v.clone().project(cam); return [(w.x*0.5+0.5), 1-(w.y*0.5+0.5), w.z<1?1:0]; };
   const rPx=(R_,d)=>R_/Math.max(d,1e-6)/TAN*0.5; // radius as a fraction of frame height (half-height = 0.5)

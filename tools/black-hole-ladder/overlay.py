@@ -7,6 +7,13 @@ import subprocess, math, sys, json
 from PIL import Image, ImageDraw, ImageFont
 VAR, PJ_PATH, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 PJ = json.load(open(PJ_PATH))
+import os, numpy as np
+_WJ = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'warp.json')))
+_WT = np.array(_WJ['T']); _WDT = _WJ['dt']
+def warpT(tau):
+    i = tau / _WDT
+    if i >= len(_WT) - 1: return float(_WT[-1] + (tau - (len(_WT) - 1) * _WDT))
+    return float(np.interp(i, np.arange(len(_WT)), _WT))
 W, H, FPS = 1080, 1920, 30
 N = len(PJ)
 MB = "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"
@@ -96,7 +103,7 @@ def label(d, xy_target, xy_text, txt, a, col=CREAM, align='l'):
 proc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                          "-c:v", "png", "-pix_fmt", "rgba", OUT], stdin=subprocess.PIPE)
 for f in range(N):
-    t = f / FPS; pj = PJ[f]
+    t = warpT(f / FPS); pj = PJ[f]
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     # ---- hook (typed), then "STARTING SMALL." beat
     a_h = win(t, 0.0, 3.2, 0.05, 0.5)
