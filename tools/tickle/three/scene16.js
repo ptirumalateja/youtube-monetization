@@ -136,7 +136,7 @@ const trail = new THREE.Mesh(tg, new THREE.ShaderMaterial({transparent: true, de
 const CAPS = [[0.15, 2.7, 'WHERE DID THE LAST<br>THREE <em>HOURS</em> GO?'], [2.95, 4.45, 'WHEN YOU’RE<br><em>ABSORBED,</em>'], [4.55, 6.1, 'YOU PAY LESS<br>ATTENTION TO <em>TIME.</em>'], [6.25, 8.2, 'SO IN THE MOMENT,<br>IT <em>FLIES.</em>'],
   [8.35, 11.5, 'BUT LATER, YOUR BRAIN<br>COUNTS THE <em>MEMORIES</em><br>IT STORED.'], [11.7, 13.8, 'MORE NEW MOMENTS,<br>MORE <em>MEMORIES.</em>'], [14.0, 17.1, 'THE SAME HOURS<br>CAN FEEL <em>LONGER</em><br>LOOKING BACK.'], [17.3, 20.1, 'SAME CLOCK.<br>A DIFFERENT<br><em>EXPERIENCE.</em>'], [20.4, 22.0, 'WHERE DID THE LAST<br>THREE <em>HOURS</em> GO?']];
 const elCap = document.getElementById('cap'), elBar = document.getElementById('bar');
-function distAt(i, tl) { return keys(SPEC[worlds[i].k].dist, tl); }
+function distAt(i, tl) { return 1.12 * keys(SPEC[worlds[i].k].dist, tl); }
 function targetFor(i, tl, tick) { const sp = SPEC[worlds[i].k], tg2 = tick.clone(); if (sp.focus) tg2.lerp(worlds[i].P(sp.focus.uv[0], sp.focus.uv[1]), keys(sp.focus.w, tl)); return tg2; }
 function frameAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
