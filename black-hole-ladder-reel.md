@@ -71,3 +71,10 @@ Orbiting log-zoom as in Scale Ladder 3.3 A, with a different behaviour per stop:
 - Hook A vs B on YouTube: keep the same recommendation as Part 1 or test B there first?
 - Whether to add the "lower density than air" paradox as a second on-screen beat (adds a fact to verify; default is description only).
 - Not yet built or auditioned by ear.
+
+
+## BUILT (v2, 28.2 s): what actually shipped
+- **Timeline:** 0-1.5 zoom into our real Solar System (Sun, 8 lit planets, Saturn's rings, asteroid + Kuiper belts, comets with tails) | 1.5-4.8 hold/drift | 3.3-5.3 "NOW: THE SMALLEST ONE." + red ring and "60 KM BLACK HOLE" on a speck near Earth's orbit | 4.8-6.4 plunge into the speck | 6.4 flash cut | 6.5-8.6 stellar-mass (violent binary: teardrop companion star, stream, spiral arms, city under it) | 8.6-12.4 Sagittarius A* (hazy flow, 260 stars on Kepler orbits with trails, hot spot, stretched gas cloud, the Sun beside it, Mercury's orbit) | 14.6-18.4 M87* (knotted jet, golden swarm of old star clusters, Neptune's orbit in the shadow) | 20.8-25 TON 618 (dust torus, radial winds, flares, camera shake, shadow wider than the frame) | 25-27 dive back | 27-28.2 Solar System, "OUR SOLAR SYSTEM." Frame 28.2 == frame 0.
+- **Files:** scene `tools/black-hole-ladder/index.html` (three.js, analytic point-lens composite, two-sided lensed/unlensed particle passes, 1.45x overscanned lens layer); `render.js`/`shot.js`; `proj_all.js` + `overlay.py A|B` (text layer); `mix_bh.py` (sound); `with_server.sh`, `prev.sh` (fast low-res preview).
+- **Render:** 720x1280, 3 blur samples, 4 workers (~35 min), upscaled to 1080x1920. Sound after AAC: about -14.4 LUFS, true peak about -2.3 dBFS.
+- **Lessons:** (1) glow billboards and clamped point sprites read as beige fog even at tiny opacity (gamma lifts blacks): keep them near zero and dim clamped sprites. (2) lens sampling outside the frame smears edge pixels: render the lensed layer with margin. (3) draw a city as line segments, not points (points read as a rock). (4) frame-0 and last-frame equality needs the same camera pose, not just the same scene.

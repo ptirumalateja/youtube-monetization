@@ -144,7 +144,7 @@ for f in range(N):
             leader(d, (sx, sy + r), (sx, sy + 150), a); chip(d, sy + 150, "OUR SOLAR SYSTEM", fCHIP, int(255 * a))
     # held breath line (TON 618)
     a = win(t, 23.6, 25.2, 0.3, 0.4)
-    if a > 0.01: ctext(d, 1330, "LIGHT NEEDS 15 DAYS TO CROSS THIS.", fSUB, CREAM, int(255 * a), stroke=4)
+    if a > 0.01: ctext(d, 1440, "LIGHT NEEDS 15 DAYS TO CROSS THIS.", fSUB, CREAM, int(255 * a), stroke=4)
     # ---- left ladder
     a_l = win(t, 6.5, 25.4, 0.5, 0.6)
     if a_l > 0.01:

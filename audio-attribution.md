@@ -9,10 +9,10 @@ Paste the exact line into the description of any reel that uses the file.
 
 | File | Used in | Paste-ready credit line |
 |---|---|---|
-| 849772 Electric Sparks | Night Sky, Scale Ladder | "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
+| 849772 Electric Sparks | Night Sky, Scale Ladder, Black Hole Ladder | "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 | 19487 JacobsLadderSingle2.flac | Night Sky only | "JacobsLadderSingle2.flac" by Halleck, https://freesound.org/people/Halleck/sounds/19487/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 | 175183 5 Everyday Whooshes | Night Sky only | "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) |
-| 115555 synth_jet.wav | Night Sky, Scale Ladder | "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
+| 115555 synth_jet.wav | Night Sky, Scale Ladder, Black Hole Ladder | "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 | 722633 Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer) | Scale Ladder only | "Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer)" by chakong, https://freesound.org/people/chakong/sounds/722633/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 
 ### Description block: Night Sky
@@ -28,8 +28,14 @@ Paste the exact line into the description of any reel that uses the file.
 > - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer)" by chakong, https://freesound.org/people/chakong/sounds/722633/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
+### Description block: Black Hole Ladder (Scale Ladder part 2)
+> Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0.
+> - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
 ### Short form (Instagram / Facebook caption)
 - Night Sky: "Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY 4.0 / 3.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube."
+- Black Hole Ladder: "Sound: mikiko850 and vartioh via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube."
 - Scale Ladder: "Sound: mikiko850, vartioh and chakong via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube."
 
 ## 2. CC0 files (no credit required; optional courtesy line)
