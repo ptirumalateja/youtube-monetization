@@ -7,7 +7,8 @@ const ease = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true}); renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.setClearColor(0x02050a, 1);
 document.body.appendChild(renderer.domElement); document.body.style.width = W + 'px'; document.body.style.height = H + 'px';
-const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 1400);
+const WIN = {y: 478, h: 760}; renderer.setScissorTest(true);
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(40, W / WIN.h, 0.1, 1400);
 const MT = await (await fetch('./assets/dreams/tf_meta.json')).json();
 const loadImg = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = src; });
 const AXY = 0.9, S = 10, TR = 0.55;
@@ -79,7 +80,7 @@ SPEC.swirl = {tick: [[0, 0.5, 0.60, 0.5], [1.7, 0.5, 0.60, 0.5]], dist: [[0, 21]
 SPEC.strip = {tick: [[0, 0.55, 0.61, 0.4], [1.6, 0.72, 0.70, 0.4]], dist: [[0, 15], [1.6, 20]], focus: {uv: [0.5, 0.5], w: [[0, 0.7], [1.6, 0.4]]},
   fx: (w, lt, op, H) => { H.setAll(u => { u.uRed.value = 1 + 1.6 * H.pulse(6); u.uPulse.value.set(0.55, 0.6, ((lt * 0.8) % 1) * 0.7, 0.6); }); w.base.rotation.z = 0.04 * Math.sin(lt * 1.4); }};
 SPEC.ribbon = {tick: [[0, 0.125, 0.70, 0.3], [0.5, 0.27, 0.46, 0.3], [1.0, 0.50, 0.43, 0.3], [1.5, 0.68, 0.54, 0.3], [1.9, 0.73, 0.17, 0.3], [2.3, 0.90, 0.26, 0.3]], dist: [[0, 21], [2.3, 19]], focus: {uv: [0.5, 0.5], w: [[0, 0.5], [2.3, 0.5]]},
-  fx: (w, lt, op, H) => { const i = Math.min(5, Math.floor(lt / 0.4)), b = RIB_FR[i]; H.setAll(u => { u.uReg.value.set(...toTex(b)); u.uRegG.value.set(2.8, 2.2); u.uRed.value = 1 + 1.2 * H.pulse(6); }); }};
+  fx: (w, lt, op, H) => { const i = Math.min(5, Math.max(0, Math.floor(lt / 0.4))), b = RIB_FR[i]; H.setAll(u => { u.uReg.value.set(...toTex(b)); u.uRegG.value.set(2.8, 2.2); u.uRed.value = 1 + 1.2 * H.pulse(6); }); }};
 SPEC.geo = {tick: [[0, 0.22, 0.54, 0.3], [0.5, 0.22, 0.54, 0.3], [1.0, 0.35, 0.64, 0.3], [1.5, 0.50, 0.72, 0.3], [2.0, 0.64, 0.66, 0.3], [2.6, 0.78, 0.52, 0.3], [3.3, 0.88, 0.37, 0.3]], dist: [[0, 20], [1.0, 19], [3.3, 20]], focus: {uv: [0.5, 0.5], w: [[0, 0.4], [3.3, 0.4]]},
   fx: (w, lt, op, H) => { const i = Math.min(4, Math.max(0, Math.floor((lt - 0.4) / 0.6))); H.setAll(u => { u.uReg.value.set(...toTex(GEO_FR[i])); u.uRegG.value.set(2.6, 2.4); u.uRed.value = 1 + 1.4 * H.pulse(6); u.uPulse.value.set(0.5, 0.145, ((lt * 0.7) % 1) * 0.55, 0.5); }); }};
 SPEC.droste = {tick: [[0, 0.5, 0.54, 0.3], [1.5, 0.5, 0.73, 0.2]], dist: [[0, 20], [1.0, 14], [1.5, 6]], focus: {uv: [0.5, 0.6], w: [[0, 0.2], [1.5, 0.95]]},
@@ -136,7 +137,7 @@ const trail = new THREE.Mesh(tg, new THREE.ShaderMaterial({transparent: true, de
 const CAPS = [[0.15, 2.7, 'WHERE DID THE LAST<br>THREE <em>HOURS</em> GO?'], [2.95, 4.45, 'WHEN YOU’RE<br><em>ABSORBED,</em>'], [4.55, 6.1, 'YOU PAY LESS<br>ATTENTION TO <em>TIME.</em>'], [6.25, 8.2, 'SO IN THE MOMENT,<br>IT <em>FLIES.</em>'],
   [8.35, 11.5, 'BUT LATER, YOUR BRAIN<br>COUNTS THE <em>MEMORIES</em><br>IT STORED.'], [11.7, 13.8, 'MORE NEW MOMENTS,<br>MORE <em>MEMORIES.</em>'], [14.0, 17.1, 'THE SAME HOURS<br>CAN FEEL <em>LONGER</em><br>LOOKING BACK.'], [17.3, 20.1, 'SAME CLOCK.<br>A DIFFERENT<br><em>EXPERIENCE.</em>'], [20.4, 22.0, 'WHERE DID THE LAST<br>THREE <em>HOURS</em> GO?']];
 const elCap = document.getElementById('cap'), elBar = document.getElementById('bar');
-function distAt(i, tl) { return 1.12 * keys(SPEC[worlds[i].k].dist, tl); }
+function distAt(i, tl) { return 0.70 * keys(SPEC[worlds[i].k].dist, tl); }
 function targetFor(i, tl, tick) { const sp = SPEC[worlds[i].k], tg2 = tick.clone(); if (sp.focus) tg2.lerp(worlds[i].P(sp.focus.uv[0], sp.focus.uv[1]), keys(sp.focus.w, tl)); return tg2; }
 function frameAt(t) {
   let i = worlds.length - 1; for (let k = 0; k < worlds.length - 1; k++) if (t < worlds[k + 1].A) { i = k; break; }
@@ -155,17 +156,17 @@ window.renderAt = t => {
     w.base.rotation.z = 0; Object.values(w.parts).forEach(p => { p.rotation.z = 0; p.position.copy(p.userData.rest); p.scale.setScalar(1); });
     if (op > 0.004) SPEC[w.k].fx(w, lt, op, {setAll: fn => all.forEach(m => fn(m.material.uniforms)), pr: (name, o) => pr(wi, name, o), pulse: (fq, p = 0) => 0.5 + 0.5 * Math.sin(lt * fq + p)});
   });
-  const orb = Math.min(1, f.dist / 14); const ox = 1.6 * Math.sin(t * 0.95) * orb, oy = 0.6 * Math.sin(t * 0.7 + 1) * orb;
+  const orb = Math.min(1, f.dist / 10); const ox = 0.55 * Math.sin(t * 0.95) * orb, oy = 0.25 * Math.sin(t * 0.7 + 1) * orb;
   camera.fov = 40 + 10 * bump; camera.updateProjectionMatrix();
   camera.position.set(f.target.x + ox, f.target.y + oy, f.target.z + f.dist);
   camera.up.set(0, 1, 0); camera.lookAt(f.target.x, f.target.y, f.target.z); camera.rotateZ(0.02 * Math.sin(t * 0.8) + (f.i % 2 ? 1 : -1) * 0.35 * bump);
-  const cz = camera.position.z; fmat.uniforms.uCamZ.value = cz; fmat.uniforms.uTime.value = t; fmat.uniforms.uAmp.value = 0.12 + 1.1 * bump; smat.uniforms.uCamZ.value = cz; smat.uniforms.uSpeed.value = bump;
+  const cz = camera.position.z; fmat.uniforms.uCamZ.value = cz; fmat.uniforms.uTime.value = t; fmat.uniforms.uAmp.value = 0.03 + 0.9 * bump; smat.uniforms.uCamZ.value = cz; smat.uniforms.uSpeed.value = bump;
   worlds.forEach((w, wi) => { const d = f.target.z + f.dist - w.z; fieldMats[wi].uniforms.uOp.value = sm((d - 1.2) / 4) * sm((t - (w.A - 0.55)) / 0.5) * (wi < worlds.length - 1 ? 1 - sm((t - (w.A + w.D - 0.15)) / 0.45) : 1); fieldMats[wi].uniforms.uTime.value = t; });
   tickSp.position.copy(tick); tickSp.scale.setScalar(0.55 + 0.25 * (0.5 + 0.5 * Math.sin(t * 10)));
   for (let i = 0; i < NT; i++) { const tau = i / (NT - 1) * 1.8, p = tickAt(Math.max(0, t - tau)), q = tickAt(Math.max(0, t - tau - 0.03)), tan = p.clone().sub(q); tan.z *= 0.2; const side = V3(-tan.y, tan.x, 0).normalize(); if (!isFinite(side.x)) side.set(1, 0, 0);
     const dc = p.distanceTo(camera.position), wd = (0.0042 * dc) * (1 - tau / 1.8) + 0.004, a = Math.pow(1 - tau / 1.8, 1.4) * (t - tau > 0 ? 1 : 0) * 0.95 * sm((dc - 5) / 5); trailPos.set([p.x + side.x * wd, p.y + side.y * wd, p.z, p.x - side.x * wd, p.y - side.y * wd, p.z], i * 6); trailA[i * 2] = a; trailA[i * 2 + 1] = a; }
   tg.attributes.position.needsUpdate = true; tg.attributes.aA.needsUpdate = true;
-  renderer.render(scene, camera);
+  const vy = H - WIN.y - WIN.h; renderer.setViewport(0, vy, W, WIN.h); renderer.setScissor(0, vy, W, WIN.h); renderer.render(scene, camera);
   elBar.style.width = (100 * t / DUR).toFixed(2) + '%';
   let cs = ''; CAPS.forEach(([a, b, txt]) => { const k = sm((t - a) / 0.2) * (1 - sm((t - (b - 0.2)) / 0.2)); if (k > 0.01) cs += `<div style="opacity:${k.toFixed(3)};transform:translateY(${((1 - k) * 12).toFixed(1)}px)">${txt}</div>`; });
   elCap.innerHTML = cs;
