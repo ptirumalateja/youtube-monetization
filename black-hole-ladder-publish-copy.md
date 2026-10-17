@@ -1,6 +1,6 @@
 # Publishing copy: "The Black Hole Ladder" (Scale Ladder part 2, 28.2 s, no voiceover)
 
-Files: `BlackHoleLadder_A.mp4` (hook A, "THIS IS OUR WHOLE SOLAR SYSTEM.") and `BlackHoleLadder_B.mp4` (hook B, "ONE BLACK HOLE IS 43x WIDER THAN THIS."). 9:16, 1080x1920, loops: the last frame is the opening Solar System frame.
+Files: `BlackHoleLadder_A.mp4` (hook A, "THIS IS OUR WHOLE SOLAR SYSTEM.", control), `_C.mp4` (hook C, "A BLACK HOLE CAN BE CITY-SIZED. OR BIGGER THAN THIS."), `_D.mp4` (hook D, "WHAT'S BIGGER THAN OUR WHOLE SOLAR SYSTEM?") and `_B.mp4` (hook B, "ONE BLACK HOLE IS 43x WIDER THAN THIS.", older number-led version). The ratio chips now shrink after ~1.2 s. 9:16, 1080x1920, loops: the last frame is the opening Solar System frame.
 **Recommendation:** A on YouTube (curiosity + pairs with the ending line "OUR SOLAR SYSTEM."), B on Instagram/Facebook (number-led). Compare 2-second stayed-to-watch %, average view duration and completion per version, against Scale Ladder part 1 (770k views, 15k engagement).
 Link the two parts: pin part 2 on part 1 and part 1 on part 2.
 
@@ -30,7 +30,7 @@ Recommended: option 1 (matches hook A and the ending).
 > A stellar-mass black hole (~10 suns) is only about 60 km across.
 > Sagittarius A*, at the heart of our galaxy (~4.3 million suns), is about 430,000 times wider: roughly 25 million km, small enough to fit inside Mercury's orbit.
 > M87* (~6.5 billion suns) is about 1,500 times wider again: about 38 billion km, wider than Neptune's whole orbit.
-> TON 618 (up to ~66 billion suns, estimates vary) is about 10 times wider than that: about 390 billion km. Light needs about 15 days to cross it, and the Solar System out to Neptune's orbit would be a speck in its shadow.
+> TON 618 (up to ~66 billion suns, estimates vary) has an event horizon about 10 times wider than that: roughly 390 billion km across. Light needs about 15 days to cross that event-horizon diameter, and it is about 43 times wider than the Solar System out to Neptune's orbit (about 9 billion km across), which would be a speck in its shadow.
 >
 > A thought experiment: sizes in the video are compressed and not to scale. Visuals are AI-assisted and 3D-rendered.
 >

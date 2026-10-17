@@ -45,7 +45,15 @@ def typed(s, t, t0, cps=46):
 
 fBIG = F(MB, 124); fHOOK = F(MB, 60); fCHIP = F(MB, 46); fSUB = F(MB, 30); fLAB = F(MB, 32); fTAG = F(MR, 26); fRUNG = F(MB, 34); fRUNGA = F(MB, 40); fEND = F(MB, 72)
 
-HOOK = {'A': ["THIS IS OUR WHOLE", "SOLAR SYSTEM."], 'B': ["ONE BLACK HOLE IS", "43x WIDER THAN THIS."]}[VAR]
+HOOK = {'A': ["THIS IS OUR WHOLE", "SOLAR SYSTEM."], 'B': ["ONE BLACK HOLE IS", "43x WIDER THAN THIS."],
+        'C': ["A BLACK HOLE CAN BE CITY-SIZED.", "OR BIGGER THAN THIS."], 'D': ["WHAT'S BIGGER THAN OUR", "WHOLE SOLAR SYSTEM?"]}[VAR]
+_mx = max(len(HOOK[0]), len(HOOK[1])); fHOOK = F(MB, min(60, int(960 / (0.6 * _mx))))
+HOOK_CPS = max(70.0, (len(HOOK[0]) + len(HOOK[1])) / 0.65)
+_fc = {}
+def FB(sz):
+    sz = int(sz)
+    if sz not in _fc: _fc[sz] = F(MB, sz)
+    return _fc[sz]
 # stops: (label start, label end, ratio, name, sub)
 STOPS = [
     (6.5, 7.9, None, "STELLAR-MASS BLACK HOLE", "~10 SUNS · ~60 KM ACROSS"),
@@ -88,7 +96,7 @@ for f in range(N):
     a_h = win(t, 0.0, 3.2, 0.05, 0.5)
     if a_h > 0.01:
         l1, l2 = HOOK
-        s1 = typed(l1, t, 0.30, 70); s2 = typed(l2, t, 0.30 + len(l1) / 70.0, 70)
+        s1 = typed(l1, t, 0.30, HOOK_CPS); s2 = typed(l2, t, 0.30 + len(l1) / HOOK_CPS, HOOK_CPS)
         if s1: ctext(d, 215, s1, fHOOK, CREAM, int(255 * a_h), stroke=6)
         if s2: ctext(d, 292, s2, fHOOK, CREAM, int(255 * a_h), stroke=6)
     a_s = win(t, 3.3, 5.3, 0.3, 0.4)
@@ -113,7 +121,9 @@ for f in range(N):
         if a <= 0.01: continue
         A = int(255 * a); y = 230
         if ratio:
-            r_txt = typed(ratio, t, a0, 22); ctext(d, y, r_txt, fBIG, CREAM, A, stroke=8); y += 150
+            # big for the first ~1.2 s, then recede to a small tag so the horizon can take over
+            k = sstep(a0 + 1.25, a0 + 1.85, t); sz = 124 - 60 * k; r_txt = typed(ratio, t, a0, 22)
+            ctext(d, y, r_txt, FB(sz), CREAM, A, stroke=int(8 - 3 * k)); y += int(1.15 * sz + 10)
         n_txt = typed(name, t, a0 + 0.12, 40)
         if n_txt: chip(d, y, n_txt, fCHIP, A)
         if t - a0 > 0.5 + len(name) / 40: ctext(d, y + 74, sub, fSUB, CREAM, A, stroke=4)
