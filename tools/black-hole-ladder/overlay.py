@@ -43,12 +43,17 @@ def typed(s, t, t0, cps=46):
     n = int(max(0, (t - t0)) * cps)
     return s[:max(0, min(len(s), n))] if n > 0 else ''
 
-fBIG = F(MB, 124); fHOOK = F(MB, 60); fCHIP = F(MB, 46); fSUB = F(MB, 30); fLAB = F(MB, 32); fTAG = F(MR, 26); fRUNG = F(MB, 34); fRUNGA = F(MB, 40); fEND = F(MB, 72)
+fBIG = F(MB, 124); fHOOK = F(MB, 60); fCHIP = F(MB, 46); fSUB = F(MB, 30); fLAB = F(MB, 32); fTAG = F(MR, 26); fRUNG = F(MB, 34); fRUNGA = F(MB, 40); fEND = F(MB, 76)
 
-HOOK = {'A': ["THIS IS OUR WHOLE", "SOLAR SYSTEM."], 'B': ["ONE BLACK HOLE IS", "43x WIDER THAN THIS."],
-        'C': ["A BLACK HOLE CAN BE CITY-SIZED.", "OR BIGGER THAN THIS."], 'D': ["WHAT'S BIGGER THAN OUR", "WHOLE SOLAR SYSTEM?"]}[VAR]
-_mx = max(len(HOOK[0]), len(HOOK[1])); fHOOK = F(MB, min(60, int(960 / (0.6 * _mx))))
-HOOK_CPS = max(70.0, (len(HOOK[0]) + len(HOOK[1])) / 0.65)
+# hook (Scale Ladder part 1 design): line 1 cream with black stroke, line 2 in a red box, optional small sub line
+HOOKS = {'A': ("THIS IS OUR WHOLE", "SOLAR SYSTEM.", None),
+         'B': ("ONE BLACK HOLE IS", "43x WIDER THAN THIS.", None),
+         'C': ("A BLACK HOLE CAN BE", "CITY-SIZED.", "OR BIGGER THAN THIS."),
+         'D': ("WHAT'S BIGGER THAN", "OUR SOLAR SYSTEM?", None),
+         'E': ("WHEN OUR SOLAR SYSTEM", "BECOMES A DOT.", None)}
+HL1, HL2, HSUB = HOOKS[VAR]
+fHOOK = F(MB, min(78, int(940 / (0.6 * max(len(HL1), len(HL2))))))   # 78 px like part 1, shrunk only if a line would not fit
+fNOW = F(MB, 60); fHSUB = F(MB, 40); HOOK_Y = 410; HOOK_CPS = 44.0
 _fc = {}
 def FB(sz):
     sz = int(sz)
@@ -95,16 +100,22 @@ for f in range(N):
     # ---- hook (typed), then "STARTING SMALL." beat
     a_h = win(t, 0.0, 3.2, 0.05, 0.5)
     if a_h > 0.01:
-        l1, l2 = HOOK
-        s1 = typed(l1, t, 0.30, HOOK_CPS); s2 = typed(l2, t, 0.30 + len(l1) / HOOK_CPS, HOOK_CPS)
-        if s1: ctext(d, 215, s1, fHOOK, CREAM, int(255 * a_h), stroke=6)
-        if s2: ctext(d, 292, s2, fHOOK, CREAM, int(255 * a_h), stroke=6)
+        A_ = int(255 * a_h); n = int(max(0.0, t - 0.30) * HOOK_CPS)
+        s1 = HL1[:max(0, min(len(HL1), n))]; s2 = HL2[:max(0, min(len(HL2), n - len(HL1)))]
+        y1 = HOOK_Y; y2 = HOOK_Y + fHOOK.size + 18
+        if s1: ctext(d, y1, s1, fHOOK, CREAM, A_, stroke=6)
+        if s2:
+            x0 = (W - tw(d, HL2, fHOOK)) / 2; wp = tw(d, s2, fHOOK)
+            d.rectangle((x0 - 14, y2 - 6, x0 + wp + 14, y2 + fHOOK.size + 10), fill=RED + (int(A_ * 0.97),)); d.text((x0, y2), s2, font=fHOOK, fill=CREAM + (A_,))
+        if HSUB:
+            s3 = HSUB[:max(0, min(len(HSUB), n - len(HL1) - len(HL2)))]
+            if s3: ctext(d, y2 + fHOOK.size + 38, s3, fHSUB, CREAM, A_, stroke=5)
     a_s = win(t, 3.3, 5.3, 0.3, 0.4)
     if a_s > 0.01:
-        s = typed("NOW: THE SMALLEST ONE.", t, 3.3, 50); ctext(d, 236, s, fHOOK, CREAM, int(255 * a_s), stroke=6)
+        s = typed("NOW: THE SMALLEST ONE.", t, 3.3, 50); ctext(d, 236, s, fNOW, CREAM, int(255 * a_s), stroke=6)
     # tag (thought experiment)
-    a_t = win(t, 0.1, 2.6, 0.2, 0.5) + win(t, 26.6, 28.2, 0.2, 0.0)
-    if a_t > 0.01: ctext(d, 1495, "THOUGHT EXPERIMENT · NOT TO SCALE", fTAG, CREAM, int(190 * min(1, a_t)), stroke=4)
+    a_t = min(1.0, win(t, 0.1, 2.9, 0.2, 0.5) + win(t, 26.6, 28.2, 0.2, 0.0))
+    if a_t > 0.01: d.text((48, 1500), "THOUGHT EXPERIMENT  ·  NOT TO SCALE", font=F(MR, 24), fill=(235, 235, 235, int(140 * a_t)))
     # ---- the speck (60 km black hole) in the Solar System
     if 2.9 < t < 6.2:
         a = win(t, 2.9, 6.2, 0.4, 0.15)
@@ -170,7 +181,13 @@ for f in range(N):
     # ---- ending line
     a = win(t, 27.0, 28.2, 0.2, 0.0)
     if a > 0.01:
-        s = typed("OUR SOLAR SYSTEM.", t, 27.05, 24); ctext(d, 1290, s, fEND, CREAM, int(255 * a), stroke=7)
+        full = "OUR SOLAR SYSTEM."; pre = "OUR SOLAR "; n = int(max(0.0, t - 27.05) * 34); txt = full[:max(0, min(len(full), n))]; A_ = int(255 * a)
+        if txt:
+            if len(txt) <= len(pre): ctext(d, 1290, txt, fEND, CREAM, A_, stroke=6)
+            else:
+                x0 = (W - tw(d, full, fEND)) / 2; text(d, (x0, 1290), pre, fEND, CREAM, A_, 6)
+                xo = x0 + tw(d, pre, fEND); wo = tw(d, full[len(pre):len(txt)], fEND)
+                d.rectangle((xo - 12, 1284, xo + wo + 12, 1290 + fEND.size + 10), fill=RED + (int(A_ * 0.97),)); d.text((xo, 1290), full[len(pre):len(txt)], font=fEND, fill=CREAM + (A_,))
     proc.stdin.write(im.tobytes())
 proc.stdin.close(); proc.wait()
 print("overlay done", N)
