@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script></head>
+<body><script type="module">
+// Mosquito reel, beat 05 (5 s): lattice-point Earth, cool navy/teal, turns to Africa; red markers over the malaria-burden region; one hit; hold.
+// Markers are ILLUSTRATIVE: land points in tropical Africa south of the Sahara (WHO: ~95% of 2024 malaria deaths are in the WHO African Region). No per-country data is implied.
+import * as THREE from 'three';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x02050b);
+const cam=new THREE.PerspectiveCamera(30,W/H,.1,50);
+const land=await (await fetch('land.json')).json();
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}} const R=rnd(5);
+const ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
+const LAT0=3,LON0=20, tmp=new THREE.Vector3();
+function burdenP(lat,lon){if(!(lon>-18&&lon<=52&&(lat<12||lon<=38)))return 0;const n=1-ease((lat-7)/8),s=ease((lat+27)/9);return Math.max(0,Math.min(n,s))}
+const pos=[],kind=[],ph=[],dly=[];
+for(const [la,lo,L] of land){if(!L&&R()>.38)continue;const lat=la/100,lon=lo/100,a=lat*Math.PI/180,b=lon*Math.PI/180;
+  pos.push(Math.cos(a)*Math.sin(b),Math.sin(a),Math.cos(a)*Math.cos(b)); const m=L&&R()<burdenP(lat,lon); kind.push(m?2:L?1:0); ph.push(R()*6.28);
+  const d=Math.hypot(lat-LAT0,lon-LON0); dly.push(d/60);}
+const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('aK',new THREE.Float32BufferAttribute(kind,1));g.setAttribute('aPh',new THREE.Float32BufferAttribute(ph,1));g.setAttribute('aD',new THREE.Float32BufferAttribute(dly,1));
+const U={uT:{value:0},uRot:{value:new THREE.Matrix3()},uScale:{value:H/960},uIn:{value:0},uHit:{value:-9}};
+const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:U,
+ vertexShader:`attribute float aK,aPh,aD;uniform float uT,uScale,uIn,uHit;uniform mat3 uRot;varying vec3 vC;varying float vA;
+  void main(){vec3 p=uRot*position;float fac=p.z;vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;
+   float lit=.42+.58*clamp(dot(normalize(p),normalize(vec3(-.45,.5,.75))),0.,1.);float size=aK<.5?2.6:aK<1.5?4.2:5.4;vec3 c=aK<.5?vec3(.12,.42,.58)*.75:aK<1.5?vec3(.70,.92,.88)*1.05:vec3(1.,.22,.16)*1.3;c*=lit;float a=.95;
+   if(aK>1.5){float w=smoothstep(.0,.35,uT-1.0-aD*1.3);float pul=.75+.25*sin(uT*3.2+aPh);float hit=exp(-max(uT-uHit,0.)*5.)*step(uHit,uT);
+    size*=(1.+.35*hit)*w*pul+0.001;c=mix(vec3(.70,.92,.88)*lit,c,w)+vec3(1.,.55,.4)*hit*.9;a=1.;}
+   a*=smoothstep(.02,.28,fac)*uIn;vC=c;vA=a;gl_PointSize=size*uScale*(7./(-mv.z))*1.15;}`,
+ fragmentShader:`varying vec3 vC;varying float vA;void main(){vec2 d=gl_PointCoord-.5;float r=length(d);if(r>.5)discard;float s=smoothstep(.5,.1,r);gl_FragColor=vec4(vC*s,vA*s);}`});
+const earth=new THREE.Points(g,mat);scene.add(earth);
+// atmosphere rim
+const atm=new THREE.Mesh(new THREE.SphereGeometry(1.035,64,48),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uIn:U.uIn},
+ vertexShader:'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+ fragmentShader:'varying vec3 vN;uniform float uIn;void main(){float f=pow(clamp(1.+dot(vN,vec3(0,0,1)),0.,1.),3.5);gl_FragColor=vec4(vec3(.18,.55,.72)*f*1.2,f*uIn*.9);}'}));scene.add(atm);
+// stars
+{const sp=[];for(let i=0;i<700;i++){const v=new THREE.Vector3(R()*2-1,R()*2-1,R()*2-1).normalize().multiplyScalar(18);sp.push(v.x,v.y,v.z)}
+ const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));scene.add(new THREE.Points(sg,new THREE.PointsMaterial({size:.06,color:0x7f9fc8,transparent:true,opacity:.7,sizeAttenuation:true})))}
+const HIT=2.4;U.uHit.value=HIT;
+function frame(t){U.uT.value=t;U.uIn.value=ease(t/.5);
+ const lon=LON0-55*(1-ease(t/2.6)), lat=LAT0+8*(1-ease(t/2.6)), dist=7.6-.9*ease(t/5);
+ const qy=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),-lon*Math.PI/180),qx=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),lat*Math.PI/180);
+ const qq=qx.multiply(qy);earth.quaternion.identity();const m=new THREE.Matrix4().makeRotationFromQuaternion(qq);U.uRot.value.setFromMatrix4(m);
+ cam.position.set(0,.55,dist);cam.lookAt(0,.55,0);renderer.render(scene,cam)}
+window.renderAt=(t)=>{frame(t);return renderer.domElement.toDataURL('image/jpeg',.94)};window.ready=true;
+</script></body></html>
