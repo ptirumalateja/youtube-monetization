@@ -53,14 +53,19 @@ def paste(fr,im,cx,cy,sc=1.0,al=1.0):
     if al<1: im=im.copy(); im.putalpha(im.getchannel('A').point(lambda x:int(x*al)))
     fr.alpha_composite(im,(int(cx-im.width/2),int(cy-im.height/2)))
 # ------------------------------------------------------------------ counter (monotonic km/s odometer)
-VALUES=[('jet',0.25),('bullet',0.9),('earth',30.0),('parker',192.0),('light',299792.0)]
+VALUES=[('jet',900.0),('bullet',3200.0),('earth',107000.0),('parker',692000.0),('light',1079252849.0)]   # km/h: 900, ~3,200, 107,000 (29.78 km/s), 692,000 (192 km/s), 1,079,252,849 (299,792.458 km/s x 3600)
+ROLL=0.28
 def counter(t):
-    v=0.25
-    for (n0,v0),(n1,v1) in zip(VALUES,VALUES[1:]):
-        a=START[n1]+(0.12 if n1=='light' else 0.0); b=a+(0.3 if n1=='light' else 0.001)   # stops snap to their exact value on the cut; only the light leap rolls (0.3 s)
-        if t>=a: p=ease((t-a)/(b-a)); v=math.exp(math.log(v0)+(math.log(v1)-math.log(v0))*p)
+    """km/h odometer: on each cut it rolls from the previous value to this stop's value in 0.28 s (ease-out), then holds; the light leap rolls in 0.3 s; frame 0 starts at 0"""
+    v=0.0; prev=0.0
+    for n,vn in VALUES:
+        a=START[n]+(0.12 if n=='light' else 0.0); dur=0.3 if n=='light' else ROLL
+        if t>=a:
+            p=1-(1-min(1.0,(t-a)/dur))**3
+            v=vn*p if prev<=0 else math.exp(math.log(prev)+(math.log(vn)-math.log(prev))*p)
+        prev=vn
     return v
-def fmt(v): return f'{v:.2f}' if v<1 else f'{int(round(v)):,}'
+def fmt(v): return f'{int(round(v)):,}'
 # ------------------------------------------------------------------ vortex
 def stage(t):
     for i in range(len(STAGES)-1,-1,-1):
@@ -175,7 +180,7 @@ def draw(t):
     if vl is not None and not blackout: fr.alpha_composite(vl)
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(obj)
     PSC=1.0+0.03*pl
-    names={'jet':('AIRLINER','900 KM/H'),'bullet':('RIFLE BULLET','~3,200 KM/H'),'earth':('YOU, RIGHT NOW','AROUND THE SUN - 107,000 KM/H'),'parker':('PARKER SOLAR PROBE','FASTEST HUMAN-MADE OBJECT')}
+    names={'jet':('AIRLINER','CRUISING SPEED'),'bullet':('RIFLE BULLET','LEAVING THE BARREL (ABOUT)'),'earth':('YOU, RIGHT NOW','AROUND THE SUN'),'parker':('PARKER SOLAR PROBE','FASTEST HUMAN-MADE OBJECT')}
     # ---- hero objects with their field auras
     cur=None
     for n,(a,b) in STOPS.items():
@@ -185,22 +190,25 @@ def draw(t):
         a,b=STOPS[cur]; al=ease((t-LOOP_T[0])/(T-LOOP_T[0])) if t>=LOOP_T[0] else 1.0
         ts=(t-a) if t<LOOP_T[0] else 1.0
         ps=0.82+0.18*ease(ts/0.16)+0.10*math.exp(-max(0,ts)/0.08) if cur!='jet' or t>=LOOP_T[0] else 1.0
-        au,(ax,ay)=aura_layer(t,LVL[cur],THEME[cur],al=al,half=A0[cur]-30); obj.alpha_composite(au,(ax,ay))
+        mv={'bullet':900,'parker':520}.get(cur,0)
+        dxm=-(1-eout(min(1.0,ts/ROLL)))*mv + (16*max(0.0,ts-ROLL) if cur in ('bullet','parker') else 0)
+        au,(ax,ay)=aura_layer(t,LVL[cur],THEME[cur],cx=CX+dxm,al=al,half=A0[cur]-30); obj.alpha_composite(au,(ax,ay))
         if cur=='jet':
             for k in range(14): d.line((CX-300-k*34,CY+5,CX-300-(k+1)*34,CY+5),fill=R.STEEL+(int(140*(1-k/14)*al),),width=5)
             paste(obj,R.SPR['jet'],CX,CY,JS*PSC*ps,al)
         elif cur=='bullet':
-            for k in range(26): d.line((CX-250-k*20,CY+(k%5-2)*6,CX-250-(k+1)*20,CY+(k%5-2)*6),fill=(255,150,70,int(110*(1-k/26)*al)),width=4)
+            sm=26+int(30*(1-min(1.0,ts/ROLL)))
+            for k in range(sm): d.line((CX+dxm-250-k*20,CY+(k%5-2)*6,CX+dxm-250-(k+1)*20,CY+(k%5-2)*6),fill=(255,150,70,int(130*(1-k/sm)*al)),width=4)
             rd=np.random.default_rng(int(t*30)%7)
-            for k in range(12): px=CX-300-rd.uniform(0,420); py=CY+rd.uniform(-60,60); d.ellipse((px-2,py-2,px+2,py+2),fill=(255,190,110,int(140*rd.uniform(0.3,1)*al)))
-            paste(obj,R.SPR['bullet'],CX,CY,0.86*PSC*ps,al)
+            for k in range(12): px=CX+dxm-300-rd.uniform(0,420); py=CY+rd.uniform(-60,60); d.ellipse((px-2,py-2,px+2,py+2),fill=(255,190,110,int(140*rd.uniform(0.3,1)*al)))
+            paste(obj,R.SPR['bullet'],CX+dxm,CY,0.86*PSC*ps,al)
         elif cur=='earth':
             ring=Image.new('RGBA',(W,H),(0,0,0,0)); rd_=ImageDraw.Draw(ring)
             for q in range(3): rd_.ellipse((CX-470-q*14,CY-95-q*5,CX+470+q*14,CY+95+q*5),outline=(60,215,230,int(120*al*(1-q*0.3))),width=3)
             obj.alpha_composite(ring.filter(ImageFilter.GaussianBlur(1.5)))
             paste(obj,R.earth(0.5+(t-a)*0.35),CX,CY,0.9*PSC*ps,al)
         else:
-            paste(obj,R.SPR['parker'],CX-10,CY+2.5*math.sin(t*40),0.8*PSC*ps,al)
+            paste(obj,R.SPR['parker'],CX-10+dxm,CY+2.5*math.sin(t*40),0.8*PSC*ps,al)
     # ---- light beat
     if LIGHT_T[0]<=t<LIGHT_T[1]:
         u=t-LIGHT_T[0]; xb=-200+(W+400)*min(1,u/0.12); a0=int(255*(1-ease((u-0.12)/0.9)))
@@ -272,7 +280,7 @@ def draw(t):
     if (t<LAP_T[0] and not blackout) or t>=LOOP_T[0]:
         al=1.0 if t<LAP_T[0]-0.25 else ease((LAP_T[0]-t)/0.25)
         if t>=LOOP_T[0]: al=ease((t-LOOP_T[0])/(T-LOOP_T[0]))
-        if t>=LOOP_T[0] or t<LAP_T[0]: put(tx,row([fmt(counter(t) if t<LOOP_T[0] else 0.25),'#KM/S'],100),CX,1240,al)
+        if t>=LOOP_T[0] or t<LAP_T[0]: put(tx,row([fmt(counter(t) if t<LOOP_T[0] else 0.0),'#KM/H'],100),CX,1240,al)
         rn=['JET','BULLET','EARTH','PARKER','LIGHT']; act=0
         for i,nm in enumerate(rn):
             if t>=START[nm.lower()] and t<LAP_T[0]: act=i
