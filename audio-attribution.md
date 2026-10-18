@@ -71,3 +71,34 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+---
+
+## Speed Ladder (v12, 14.4 s): sound credits (added 18 Oct 2026)
+All files from Freesound, supplied by the owner; licences checked on the Freesound pages on 18 Oct 2026. Changes were made: the sounds were trimmed, layered, filtered, pitch/time-processed and mixed with synthesised sounds.
+
+### CC BY (credit required; paste into the description)
+> Sound credits (from Freesound). Changes were made: trimmed, layered, filtered and mixed. All other sounds used are CC0 or made for the reel.
+> - "Bullet_whiz_slowed.wav" by CGEffex, https://freesound.org/s/123223/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Heartbeat." by urupin, https://freesound.org/s/92036/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "FIREBurn_Campfire.Close.Long.Crackling.Flame roar.Squeack.Hiss.Artificial 1_EM" by newlocknew, https://freesound.org/s/730704/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "ONORO_Julian_2014_2015_Supersonic.wav" by univ_lyon3, https://freesound.org/s/250591/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Riser Quick 2", "Impact" and "Impact Cinematic" by original_sound, https://freesound.org/s/376576/ , https://freesound.org/s/376816/ , https://freesound.org/s/376817/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+
+Short form (Instagram / Facebook caption): "Sound: CGEffex, urupin, newlocknew, univ_lyon3 and original_sound via Freesound (CC BY 4.0 / 3.0), changes made, plus CC0 sounds. Full credits on YouTube."
+
+### CC0 (no credit needed)
+| File | Author | Used for |
+|---|---|---|
+| 352134 jet overhead | rachaelbuchanan | airliner |
+| 155142 terror ambience | burning-mir | bed and twist |
+| 397092 Soft Tonal Wind_02 | janbezouska | Earth, drop tail, twist |
+| 419748 Tinnitus 10kHz | Kinoton | quiet tail after the drop |
+| 219825, 207744, 568834 (creepy vinyl, high tone, swish) | Mattc90, SoundsExciting, JSilverSound | supplied, not used in the final mix |
+
+### NOT USED (CC BY-NC: never allowed in a monetised reel)
+- 124095 "02397 heartbeat slowing medium" by Robinhood76 (CC BY-NC 4.0), replaced by urupin's 92036
+- 506842 "Suspense Tension Build Up Sound Effect 5" by miksmusic (CC BY-NC 3.0)
+- 505667 "Dark Atmosphere Drone 2" by Mellau (CC BY-NC 4.0)
+- 171018 "spinning_noise" by klappacher (CC BY-NC 4.0)
+Replacements: synthesised circling air for the laps, riser quick for the probe, CC0 ambience and wind for the beds.
