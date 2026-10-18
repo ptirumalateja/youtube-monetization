@@ -79,3 +79,8 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 - Timeline (s): hook 0-1.35, jet 1.35-2.7, bullet 2.7-4.05, Earth 4.05-5.85, Parker 5.85-7.65, held breath 7.65-8.1, light/drop 8.1-10.35, laps 10.35-13.05, twist 13.05-14.85, loop 14.85-15.3.
 - Audio: frame-0 hit, tunnel whoosh and warp-tone sweep with three ring pings, a reverse suck into the first kick at 1.35 s; the rest is the v2 groove with whole beats removed. Measured: hook -17 dB, build -18 to -15, held breath -51, drop -11, laps -13, twist -26.
 - Earlier versions kept: `render_v3_montage.py`, `mix_v3_montage.py`, `render_v2_17s.py`, `mix_v2_17s.py`, `render_v1_14s.py`, `mix_v1_14s.py`.
+
+## v4b (option B, built 18 Oct 2026) and the new warp
+- Two hook versions are rendered from the same code (`HOOK=A` line-up, `HOOK=B` bullet punch; `render.py`, `mix.py`). v4b: the warp is already running at frame 0 with a huge bullet centred (scale 1.1 growing to 2.0), gold rings, "HOW FAST IS [FAST]?" on top; the bullet punches past the camera at 0.9 s (flash, small boom, air burst) and the airliner emerges from the tunnel and starts the ladder at 1.35 s. Loop: the last beat brings the warp and bullet back.
+- Warp look (both versions): a 3-D star field flying at the camera (perspective streaks, blue tails, white-hot heads, warm and cool chromatic fringe), perspective rings rushing outward, a hot core glow; intensity ramps with the beat.
+- Audio: B has the warp whoosh and tone sweep from frame 0 and a punch at 0.9 s; A keeps the line-up hit and tunnel at 0.45 s. Same groove and drop afterwards. Measured: v4a -14.1 LUFS / -1.6 dBFS, v4b -13.8 LUFS / -1.7 dBFS after AAC.

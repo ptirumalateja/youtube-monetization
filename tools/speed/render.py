@@ -2,6 +2,7 @@
 """Speed Ladder reel (14 s, 1080x1920, 30 fps), drawn in code with PIL. usage: render.py <out.mp4> [t0 t1 png_dir]
 2-D vector sprites + parallax speed streaks + glow; Earth is the lattice-point globe from ../mosquito/land.json. No AI footage."""
 import sys, math, json, subprocess, os
+MODE=os.environ.get('HOOK','A')   # A = line-up -> warp -> jet; B = huge bullet punches through the warp -> jet
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 W,H,FPS,T=1080,1920,30,15.3
@@ -179,31 +180,72 @@ def orbit_pt(th,cx,cy,rx=430,ry=118): return cx+rx*math.cos(th),cy+ry*math.sin(t
 JS=0.78
 def jet_pose(t):
     a=STOPS['jet'][0]
-    if t<0.9: return 0.0,0.60,1370
-    if t<a+0.35:  # tunnel beat: the jet leaves the line-up, rises to the centre and grows
-        u=ease((t-0.9)/(a+0.35-0.9)); return 0.0,0.60+(JS-0.60)*u,1370+(CY-1370)*u
+    if MODE=='B':
+        if t<0.9: return 0.0,0.2,TC[1]
+        if t<a+0.35: u=ease((t-0.9)/(a+0.35-0.9)); return 0.0,0.2+(JS-0.2)*u,TC[1]+(CY-TC[1])*u
+    else:
+        if t<0.9: return 0.0,0.60,1370
+        if t<a+0.35:  # tunnel beat: the jet leaves the line-up, rises to the centre and grows
+            u=ease((t-0.9)/(a+0.35-0.9)); return 0.0,0.60+(JS-0.60)*u,1370+(CY-1370)*u
     dx,sc,_=state(t,*STOPS['jet']); return dx,sc*JS,CY
 STACK=[('parker',720,0.50),('earth',930,0.34),('bullet',1140,0.70),('jet',1370,0.60)]   # four objects lined up one below another at the centre
 TC=(540,1000)
 def tunnel_i(t):
+    """warp intensity 0..1"""
+    if MODE=='B':
+        if t>=LOOP_T[0]: return 0.6*ease((t-LOOP_T[0])/0.45)
+        if t<0.9: return 0.6+0.4*ease(t/0.9)
+        return ease((1.5-t)/0.6) if t<1.5 else 0.0
     if t<0.4 or t>=HOOK_END+0.1: return 0.0
     return ease((t-0.4)/0.4) if t<0.8 else ease((1.35-t)/0.55)
+_zt_t=np.arange(0,T+0.01,1/600); _zt=np.cumsum([tunnel_i(x)/600 for x in _zt_t])
+def zt(t): return float(np.interp(t,_zt_t,_zt))
+_ws=np.random.default_rng(8); WST=np.column_stack([_ws.uniform(-1,1,1100),_ws.uniform(-1.6,1.6,1100),_ws.uniform(0.02,1.0,1100),_ws.uniform(0.7,1.3,1100)])
 def draw_tunnel(fr,t):
+    """real-warp look: a 3-D star field flying at the camera (perspective streaks, blue tails, warm heads, chromatic fringe), perspective rings, hot core"""
     I=tunnel_i(t)
     if I<=0: return
-    lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); r=np.random.default_rng(3)
-    for k in range(300):
-        a=r.uniform(0,6.283); r0=r.uniform(20,1100); br=r.uniform(0.4,1.0)
-        rad=(r0+3200*(t-0.4)*br)%1250+30; ln=40+560*I*(rad/1250)*br
-        x0=TC[0]+math.cos(a)*rad; y0=TC[1]+math.sin(a)*rad*1.55; x1=TC[0]+math.cos(a)*(rad+ln); y1=TC[1]+math.sin(a)*(rad+ln)*1.55
-        d.line((x0,y0,x1,y1),fill=CREAM+(int(255*I*min(1,rad/400)*br),),width=3 if rad<450 else 5)
-    for k in range(3):
-        u=(t-(0.45+0.22*k))/0.55
-        if 0<u<1: rr=60+820*eout(u); d.ellipse((TC[0]-rr,TC[1]-rr*1.1,TC[0]+rr,TC[1]+rr*1.1),outline=GOLD+(int(230*(1-u)),),width=5)
-    gl=Image.new('RGBA',(700,700),(0,0,0,0)); gd=ImageDraw.Draw(gl)
-    for q in range(330,0,-10): gd.ellipse((350-q,350-q,350+q,350+q),fill=(255,214,140,int(90*I*(1-q/330)**2)))
-    lay.alpha_composite(gl,(TC[0]-350,TC[1]-350)); fr.alpha_composite(lay)
-    if 0.42<=t<0.56: fr.alpha_composite(Image.new('RGBA',(W,H),(255,248,230,int(46*(1-(t-0.42)/0.14)))))
+    F=430.0; Z=zt(t); cx,cy=TC
+    z=(WST[:,2]-1.7*Z*WST[:,3])%1.0+0.012; dz=(0.025+0.23*I)*WST[:,3]; zp=np.minimum(z+dz,1.6)
+    x,y=WST[:,0],WST[:,1]
+    x1,y1=cx+x/z*F,cy+y/z*F; x0,y0=cx+x/zp*F,cy+y/zp*F
+    near=np.clip(1-z,0,1)
+    lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay)
+    for (sx,col,wa) in ((1.025,(255,150,90),70),(0.975,(90,190,255),70),(1.0,None,255)):   # chromatic fringe: warm and cool copies, then the white core
+        for k in range(len(z)):
+            a_=int(wa*(near[k]**0.6)*min(1,I*1.6))
+            if a_<6: continue
+            px1,py1=cx+(x1[k]-cx)*sx,cy+(y1[k]-cy)*sx; px0,py0=cx+(x0[k]-cx)*sx,cy+(y0[k]-cy)*sx
+            if not(-200<px1<W+200 and -200<py1<H+200): continue
+            w=1+int(5*near[k]**2)
+            if col is None:
+                d.line((px0,py0,px1,py1),fill=(150,195,255,int(a_*0.55)),width=w+2)   # blue tail glow
+                d.line((px0+(px1-px0)*0.35,py0+(py1-py0)*0.35,px1,py1),fill=(255,250,240,a_),width=w)   # hot head
+            else: d.line((px0,py0,px1,py1),fill=col+(a_,),width=w)
+    # perspective rings (tunnel walls) rushing outward
+    for k in range(6):
+        zr=(0.12+ (k/6.0) -1.2*Z*0.9)%1.0+0.03; rr=F*0.55/zr
+        if rr<1500: d.ellipse((cx-rr,cy-rr*1.15,cx+rr,cy+rr*1.15),outline=(232,184,96,int(150*I*max(0.0,1-zr)**1.2)),width=2+int(5*max(0.0,1-zr)))
+    # hot core
+    gl=Image.new('RGBA',(900,900),(0,0,0,0)); gd=ImageDraw.Draw(gl)
+    for q in range(440,0,-8): gd.ellipse((450-q,450-q,450+q,450+q),fill=(255,226,170,int(150*I*(1-q/440)**2.2)))
+    lay.alpha_composite(gl,(cx-450,cy-450)); fr.alpha_composite(lay)
+    if (MODE=='A' and 0.42<=t<0.56) or (MODE=='B' and 0.9<=t<1.04): fr.alpha_composite(Image.new('RGBA',(W,H),(255,248,230,int(50*(1-((t-0.42) if MODE=='A' else (t-0.9))/0.14)))))
+def bullet_hook(obj,t):
+    """B: one huge bullet punching at the camera through the warp; exits past the camera at 0.9-1.25 s; re-forms in the last beat for the loop"""
+    if t>=LOOP_T[0]: u=ease((t-LOOP_T[0])/0.45); al=u; sc=1.1
+    elif t<0.9: u=t/0.9; sc=1.1+0.9*u*u; al=1.0
+    else:
+        u=(t-0.9)/0.35
+        if u>=1: return
+        sc=2.0+2.4*u*u; al=max(0.0,1-u*2.4)
+    sh=3*math.sin(t*70) if t<0.9 else 0
+    spr=SPR['bullet']
+    d=ImageDraw.Draw(obj)
+    if t<0.9 or t>=LOOP_T[0]:
+        for k in range(4):
+            uu=((t*2.2+k*0.25)%1); rr=90+760*uu; d.ellipse((TC[0]-rr,TC[1]-rr,TC[0]+rr,TC[1]+rr),outline=GOLD+(int(200*(1-uu)*al),),width=4)
+    paste(obj,spr,TC[0]+30+sh,TC[1],sc,al)
 def stack_objs(obj,t):
     """beat 1: four objects lined up; beat 2: the three non-jet objects are pulled into the tunnel and fly past the camera; the loop re-assembles the line-up"""
     for nm,y,sc in STACK:
@@ -228,12 +270,14 @@ def draw(t):
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); tl=Image.new('RGBA',(W,H),(0,0,0,0))
     # ---- hero objects
     draw_tunnel(fr,t)
-    if t<0.95 or t>=LOOP_T[0]: stack_objs(obj,t)
+    if MODE=='A' and (t<0.95 or t>=LOOP_T[0]): stack_objs(obj,t)
+    if MODE=='B' and (t<1.3 or t>=LOOP_T[0]): bullet_hook(obj,t)
     if t<STOPS['jet'][1]+0.25:
         dx,sc,y=jet_pose(t); x=CX+dx
         d=ImageDraw.Draw(obj)
-        for k in range(14 if t>=0.9 else 0): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
-        paste(obj,SPR['jet'],x,y,sc)
+        for k in range(14 if t>=(1.1 if MODE=='B' else 0.9) else 0): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
+        if MODE=='B' and t<0.9: pass
+        else: paste(obj,SPR['jet'],x,y,sc,min(1.0,(t-0.9)/0.2) if MODE=='B' else 1.0)
     a,b=STOPS['bullet']; dx,sc,vis=state(t,a,b)
     if vis and a-0.2<=t<b+0.3:
         x=CX+dx; d=ImageDraw.Draw(obj); tipx=x+400*sc*0.78
