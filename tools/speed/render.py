@@ -4,7 +4,7 @@
 import sys, math, json, subprocess, os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-W,H,FPS,T=1080,1920,30,14.85
+W,H,FPS,T=1080,1920,30,15.3
 BEAT=0.45   # 133 BPM grid: every cut, ring and pulse lands on it
 CREAM=(247,238,220); GOLD=(232,184,96); TEAL=(96,196,196); RED=(214,62,48); DARK=(8,6,6); STEEL=(214,222,232)
 FM='/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
@@ -40,11 +40,11 @@ def put(fr,im,cx,y,al=1.0,crop=1.0):
     x=int(cx-(im.width if crop>=1 else im.width/crop)/2); fr.alpha_composite(im,(x,int(y)))
 def fade(t,a,b,fi=0.18,fo=0.15): return min(ease((t-a)/fi),ease((b-t)/fo)) if a<=t<b else 0.0
 # ------------------------------------------------------------------ timeline
-HOOK_END=0.9   # flash montage: text from frame 0, six unlabeled objects in random directions
-STOPS={'jet':(0.9,2.25),'bullet':(2.25,3.6),'earth':(3.6,5.4),'parker':(5.4,7.2)}   # jet/bullet 3 beats, earth/parker 4 beats
-LAND_T,LIGHT_T,LAP_T,TWIST_T,LOOP_T=(7.2,7.65),(7.65,9.9),(9.9,12.6),(12.6,14.4),(14.4,14.85)
+HOOK_END=1.35   # hook (3 beats): beat 1 stacked line-up, beat 2 warp tunnel, beat 3 the jet pulls out and starts the ladder
+STOPS={'jet':(1.35,2.7),'bullet':(2.7,4.05),'earth':(4.05,5.85),'parker':(5.85,7.65)}   # jet/bullet 3 beats, earth/parker 4 beats
+LAND_T,LIGHT_T,LAP_T,TWIST_T,LOOP_T=(7.65,8.1),(8.1,10.35),(10.35,13.05),(13.05,14.85),(14.85,15.3)
 VALUES=[('jet',0.25),('bullet',0.9),('earth',30.0),('parker',192.0),('light',299792.0)]
-START={'jet':0.9,'bullet':2.25,'earth':3.6,'parker':5.4,'light':7.65}
+START={'jet':1.35,'bullet':2.7,'earth':4.05,'parker':5.85,'light':8.1}
 def counter(t):
     """monotonic odometer value (km/s) or None while hidden; rolls to the next stop's value 0.8-1.3 s after it lands"""
     if t<START['jet']+0.7: return None
@@ -57,7 +57,7 @@ def fmt(v):
     if v<1: return f'{v:.2f}'
     return f'{int(round(v)):,}'
 # speed (px/s) of the background streaks, integrated for continuous parallax
-KEYS=[(0,2400),(0.9,700),(2.25,1000),(3.6,1700),(5.4,2800),(7.2,5200),(7.3,0),(7.6,0),(7.65,26000),(7.9,900),(9.9,200),(12.6,150),(14.2,150),(14.4,800),(14.85,800)]
+KEYS=[(0,500),(0.45,500),(0.9,3000),(1.35,700),(2.7,1000),(4.05,1700),(5.85,2800),(7.65,5200),(7.75,0),(8.05,0),(8.1,26000),(8.35,900),(10.35,200),(13.05,150),(14.65,150),(14.85,800),(15.3,800)]
 def vel(t):
     for (t0,v0),(t1,v1) in zip(KEYS,KEYS[1:]):
         if t0<=t<=t1: return v0+(v1-v0)*((t-t0)/(t1-t0) if t1>t0 else 1)
@@ -178,34 +178,43 @@ def pulse(t):
 def orbit_pt(th,cx,cy,rx=430,ry=118): return cx+rx*math.cos(th),cy+ry*math.sin(th)
 JS=0.78
 def jet_pose(t):
-    if t>=LOOP_T[0]:  # loop: flies back in from the left to the frame-0 pose
-        u=ease((t-LOOP_T[0])/0.45); return -1250*(1-u)-240*u,0.55*JS,640
+    a=STOPS['jet'][0]
+    if t<0.9: return 0.0,0.60,1370
+    if t<a+0.35:  # tunnel beat: the jet leaves the line-up, rises to the centre and grows
+        u=ease((t-0.9)/(a+0.35-0.9)); return 0.0,0.60+(JS-0.60)*u,1370+(CY-1370)*u
     dx,sc,_=state(t,*STOPS['jet']); return dx,sc*JS,CY
-def dirsprite(im,dx,dy):
-    from PIL import ImageOps
-    if dx<0: im=ImageOps.mirror(im); dx=-dx; dy=dy
-    ang=math.degrees(math.atan2(-dy,dx)) if dx>0 else (90 if dy<0 else -90)
-    return im.rotate(ang,expand=True,resample=Image.BICUBIC)
-# name, t0, t1, start, end, scale   (6 flashes crossing the middle band in different directions; frame 0 shows the jet in its loop pose)
-MONT=[('jet',0.00,0.30,(300,640),(760,700),0.43),('bullet',0.12,0.42,(1180,1250),(-150,980),0.62),('earth',0.24,0.54,(160,1450),(900,800),0.55),
-      ('parker',0.36,0.66,(950,560),(120,1000),0.55),('light',0.48,0.62,(-120,720),(1200,1350),1.0),('gal',0.54,0.90,(540,1050),(540,1050),1.0)]
-def montage(obj,t):
-    d=ImageDraw.Draw(obj)
-    for nm,a,b,p0,p1,sc in MONT:
-        if not a<=t<b: continue
-        u=(t-a)/(b-a); x=p0[0]+(p1[0]-p0[0])*u; y=p0[1]+(p1[1]-p0[1])*u; dx,dy=p1[0]-p0[0],p1[1]-p0[1]; L=math.hypot(dx,dy); al=min(1.0,min(u,1-u)*7+0.25)
-        if nm=='light':
-            for w_,c_,a_ in ((26,(232,184,96),70),(12,(255,244,214),160),(5,(255,255,255),255)):
-                d.line((x-dx/L*520,y-dy/L*520,x,y),fill=c_+(int(a_*al),),width=w_)
-            continue
-        if nm=='gal':
-            for i in range(14):
-                r=np.random.default_rng(40+i); ang=r.uniform(0,6.28); rr=r.uniform(60,420)*(0.3+1.2*u); paste(obj,GAL[i%3],x+math.cos(ang)*rr,y+math.sin(ang)*rr*0.9,1.5,al)
-            continue
-        for k in range(1,6): d.line((x-dx/L*60*k*sc,y-dy/L*60*k*sc,x-dx/L*60*(k+0.7)*sc,y-dy/L*60*(k+0.7)*sc),fill=CREAM+(int(150*(1-k/6)*al),),width=3)
+STACK=[('parker',720,0.50),('earth',930,0.34),('bullet',1140,0.70),('jet',1370,0.60)]   # four objects lined up one below another at the centre
+TC=(540,1000)
+def tunnel_i(t):
+    if t<0.4 or t>=HOOK_END+0.1: return 0.0
+    return ease((t-0.4)/0.4) if t<0.8 else ease((1.35-t)/0.55)
+def draw_tunnel(fr,t):
+    I=tunnel_i(t)
+    if I<=0: return
+    lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); r=np.random.default_rng(3)
+    for k in range(300):
+        a=r.uniform(0,6.283); r0=r.uniform(20,1100); br=r.uniform(0.4,1.0)
+        rad=(r0+3200*(t-0.4)*br)%1250+30; ln=40+560*I*(rad/1250)*br
+        x0=TC[0]+math.cos(a)*rad; y0=TC[1]+math.sin(a)*rad*1.55; x1=TC[0]+math.cos(a)*(rad+ln); y1=TC[1]+math.sin(a)*(rad+ln)*1.55
+        d.line((x0,y0,x1,y1),fill=CREAM+(int(255*I*min(1,rad/400)*br),),width=3 if rad<450 else 5)
+    for k in range(3):
+        u=(t-(0.45+0.22*k))/0.55
+        if 0<u<1: rr=60+820*eout(u); d.ellipse((TC[0]-rr,TC[1]-rr*1.1,TC[0]+rr,TC[1]+rr*1.1),outline=GOLD+(int(230*(1-u)),),width=5)
+    gl=Image.new('RGBA',(700,700),(0,0,0,0)); gd=ImageDraw.Draw(gl)
+    for q in range(330,0,-10): gd.ellipse((350-q,350-q,350+q,350+q),fill=(255,214,140,int(90*I*(1-q/330)**2)))
+    lay.alpha_composite(gl,(TC[0]-350,TC[1]-350)); fr.alpha_composite(lay)
+    if 0.42<=t<0.56: fr.alpha_composite(Image.new('RGBA',(W,H),(255,248,230,int(46*(1-(t-0.42)/0.14)))))
+def stack_objs(obj,t):
+    """beat 1: four objects lined up; beat 2: the three non-jet objects are pulled into the tunnel and fly past the camera; the loop re-assembles the line-up"""
+    for nm,y,sc in STACK:
+        if nm=='jet' and t<LOOP_T[0]: continue
         spr={'jet':SPR['jet'],'bullet':SPR['bullet'],'parker':SPR['parker'],'earth':earth(0.5)}[nm]
-        spr=spr if nm=='earth' else dirsprite(spr,dx,dy)
-        paste(obj,spr,x,y,sc,al)
+        if t>=LOOP_T[0]:
+            u=ease((t-LOOP_T[0])/0.45); paste(obj,spr,540,y,sc*(0.85+0.15*u),u); continue
+        if t<0.45: paste(obj,spr,540,y+2.5*math.sin(t*30+y),sc); continue
+        u=min(1.0,(t-0.45)/0.5)
+        if u>=1: continue
+        k=1+7*u*u; paste(obj,spr,TC[0]+(540-TC[0])*k,TC[1]+(y-TC[1])*k,sc*(1+3.5*u*u),1-ease(u))
 def draw(t):
     global PS
     pl=pulse(t); PS=1.0+0.03*pl+(0.06*math.exp(-(t-LIGHT_T[0])/0.12) if LIGHT_T[0]<=t<LIGHT_T[0]+0.6 else 0)
@@ -215,14 +224,15 @@ def draw(t):
     if ta>0: fr.alpha_composite(Image.new('RGBA',(W,H),tc+(int(255*ta*(0.8+0.5*pl)),)))
     light=LIGHT_T[0]<=t<LIGHT_T[1]; blackout=LAND_T[0]<=t<LIGHT_T[0]
     # ---- speed streaks
-    streaks(lay,t,power=0.0 if blackout else min(1.0,0.8+0.4*pl)); fr.alpha_composite(lay)
+    streaks(lay,t,power=0.0 if blackout else min(1.0,0.8+0.4*pl)*(1-tunnel_i(t))); fr.alpha_composite(lay)
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); tl=Image.new('RGBA',(W,H),(0,0,0,0))
     # ---- hero objects
-    if t<HOOK_END: montage(obj,t)
-    if STOPS['jet'][0]-0.2<=t<STOPS['jet'][1]+0.25 or t>=LOOP_T[0]:
+    draw_tunnel(fr,t)
+    if t<0.95 or t>=LOOP_T[0]: stack_objs(obj,t)
+    if t<STOPS['jet'][1]+0.25:
         dx,sc,y=jet_pose(t); x=CX+dx
         d=ImageDraw.Draw(obj)
-        for k in range(14): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
+        for k in range(14 if t>=0.9 else 0): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
         paste(obj,SPR['jet'],x,y,sc)
     a,b=STOPS['bullet']; dx,sc,vis=state(t,a,b)
     if vis and a-0.2<=t<b+0.3:

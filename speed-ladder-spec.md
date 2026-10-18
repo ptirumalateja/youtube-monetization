@@ -72,3 +72,10 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 - Loop: the last frame matches frame 0 (jet in its frame-0 pose, hook text fades back in over the final beat).
 - Trimmed by whole beats (0.45 s) so the groove stays aligned: jet and bullet 4 to 3 beats, twist 5 to 4 beats. Timeline (s): hook 0-0.9, jet 0.9-2.25, bullet 2.25-3.6, Earth 3.6-5.4, Parker 5.4-7.2, held breath 7.2-7.65, light/drop 7.65-9.9, laps 9.9-12.6, twist 12.6-14.4, loop 14.4-14.85.
 - Audio: the 17.1 s mix with the same whole beats cut out (10 ms crossfades); measured arc: hook -19 dB, build -18 to -15, held breath -50, drop -11, laps -13, twist -26. 17.1 s versions kept as `render_v2_17s.py` and `mix_v2_17s.py`.
+
+## v4 (15.3 s, built 18 Oct 2026): new hook (replaces the v3 flash montage)
+- Beat 1 (0-0.45 s): "HOW FAST IS [FAST]?" on screen from frame 0, with Parker probe, Earth, bullet and airliner lined up one below another at the centre. Beat 2 (0.45-0.9 s): warp tunnel (radial speed lines, gold rings, centre glow, short flash) pulls the probe, Earth and bullet past the camera. Beat 3 (0.9-1.35 s): the airliner rises to the centre, grows and starts moving; the ladder starts with it at 1.35 s.
+- Loop: the last beat re-assembles the line-up and fades the text back in, so the last frame matches frame 0.
+- Timeline (s): hook 0-1.35, jet 1.35-2.7, bullet 2.7-4.05, Earth 4.05-5.85, Parker 5.85-7.65, held breath 7.65-8.1, light/drop 8.1-10.35, laps 10.35-13.05, twist 13.05-14.85, loop 14.85-15.3.
+- Audio: frame-0 hit, tunnel whoosh and warp-tone sweep with three ring pings, a reverse suck into the first kick at 1.35 s; the rest is the v2 groove with whole beats removed. Measured: hook -17 dB, build -18 to -15, held breath -51, drop -11, laps -13, twist -26.
+- Earlier versions kept: `render_v3_montage.py`, `mix_v3_montage.py`, `render_v2_17s.py`, `mix_v2_17s.py`, `render_v1_14s.py`, `mix_v1_14s.py`.

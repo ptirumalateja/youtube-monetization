@@ -75,9 +75,13 @@ def ticks(t0,t1,n,g=0.05):
     for k in range(n):
         ts=t0+(t1-t0)*(k/n)**0.8; d=int(0.02*SR); tb=tt(d); place(sfx,fftf(noise(d),2500,9000)*np.exp(-tb/0.006),ts,g)
 # ---- hook 0-1.8: frame-0 hit + rising wind rush, groove not started yet
-boom(0.0,0.35)
-for k,ts in enumerate((0.0,0.12,0.24,0.36,0.48,0.54)):   # flash montage: one short rising whoosh + tick per object
-    rush(ts,0.16,500+380*k,900+450*k,0.26,[-0.6,0.6,-0.3,0.4,-0.5,0.0][k]); ping(ts+0.01,900+160*k,0.05,0.06)
+# hook (new coords 0-1.35): line-up with the frame-0 hit, warp tunnel punch at 0.45 (riser + tone sweep + ring pings), jet pulls out into the groove
+boom(0.0,0.5)
+n=int(0.95*SR); t=tt(n); p=np.linspace(0,1,n)
+place(sfx,(fftf(noise(n),300,1200)*(1-p)+fftf(noise(n),2500,9000)*p)*swell(n,0.8,1.5),0.4,0.34)           # tunnel whoosh, brightening
+f=200*2**(3.2*t/0.95); place(sfx,np.sin(2*np.pi*np.cumsum(f)/SR)*swell(n,0.85,1.3)*0.12,0.4,1.0)           # warp tone sweep
+for ts,fp in ((0.45,440),(0.67,554),(0.89,659)): ping(ts,fp,0.09,0.4)
+m_=int(0.3*SR); place(sfx,fftf(noise(m_),300,6000)*np.linspace(0,1,m_)**2.2,1.0,0.3)                      # reverse suck into the first beat
 # ---- groove 1.8-9.0: kick on every beat (rising level), hats from 3.6 (8ths) and 7.2 (16ths), claps on beats 2 and 4 from 5.4
 b=1.8; i=0
 while b<8.99:
@@ -89,7 +93,7 @@ while b<8.99:
     b+=BEAT
 # stop identity: pass-by whoosh + ring ping (pentatonic climb) + counter ticks
 for a,fr_,to,pf in ((1.8,400,900,660),(3.6,900,2200,784),(5.4,120,700,988),(7.2,300,1800,1175)):
-    rush(a-0.15,1.4,fr_,to,0.26); ping(a+0.35,pf,0.10); ticks(a+0.3,a+0.7,10,0.04)
+    rush(a-0.15 if a>1.8 else a,1.4,fr_,to,0.26); ping(a+0.35,pf,0.10); ticks(a+0.3,a+0.7,10,0.04)
 m=int(0.012*SR); place(sfx,fftf(noise(m),3000,11000)*np.exp(-tt(m)/0.003),3.75,0.4)                 # bullet crack
 n=int(1.8*SR); t=tt(n); place(bed,np.sin(2*np.pi*(70+30*t)*t)*swell(n,0.6,1.2)*0.5,5.4,0.12)        # earth: deep pad
 # riser into the drop 7.2-9.0: shepard + rising noise + 16th-note snare roll accelerating, then reverse suck
@@ -130,7 +134,7 @@ for tk in kick_t:
     i=int(tk*SR); j=min(N,i+int(0.2*SR))
     if j>i: duck[i:j]=np.minimum(duck[i:j],np.linspace(0.45,1,j-i))
 # ---- 15 s cut: remove whole beats from the 17.1 s grid so the groove stays aligned (hook 2 beats, jet 1, bullet 1, twist 1)
-CUTS=[(0.75,1.65),(2.7,3.15),(4.5,4.95),(15.75,16.2)]
+CUTS=[(1.35,1.8),(2.7,3.15),(4.5,4.95),(15.75,16.2)]
 def cutbus(x):
     keep=[]; p=0.0; X=int(0.01*SR)
     for a,b in CUTS: keep.append((p,a)); p=b
@@ -142,7 +146,7 @@ def cutbus(x):
         out=seg if out is None else np.concatenate([out,seg],axis=-1)
     return out
 hit,sfx,bed,air,duck=[cutbus(x) for x in (hit,sfx,bed,air,duck)]
-N=int(14.85*SR); hit,sfx,bed,air,duck=[x[...,:N] for x in (hit,sfx,bed,air,duck)]
+N=int(15.3*SR); hit,sfx,bed,air,duck=[x[...,:N] for x in (hit,sfx,bed,air,duck)]
 # ---- bass management: HPF everything but the hit bus at 90 Hz, mix, soft clip
 def hp(x): return np.stack([fftf(x[0],90,SR/2),fftf(x[1],90,SR/2)])
 mix=hit*0.95+(hp(sfx)*duck+hp(bed)*duck+hp(air))
