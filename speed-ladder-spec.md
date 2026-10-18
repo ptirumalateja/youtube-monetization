@@ -88,3 +88,9 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 ## v4c (hybrid hook, built 18 Oct 2026)
 - `HOOK=C`. 0-0.9 s: v4b (warp running at frame 0, huge bullet, "HOW FAST IS [FAST]?"). 0.9 s: the bullet punches past the camera (flash, boom, air burst) and the line-up (probe, Earth, bullet, airliner) pops in for one beat with three rising pings. 1.05-1.35 s: the probe, Earth and bullet are pulled into the tunnel with a whoosh; the airliner stays, rises to the centre and starts the ladder at 1.35 s. Loop: the bullet and warp re-form in the last beat. Total 15.3 s; measured -13.8 LUFS, true peak -1.6 dBFS after AAC.
 - Recommendation: ship v4c if it reads well; otherwise v4b (simplest, strongest first frame).
+
+## v5 (warp behind the whole ladder, built 18 Oct 2026)
+- Reason: the hook (v4b/v4c) had the long 3-D warp streaks, but the stops after it still used short horizontal dashes and thin radar rings, so the hook looked like a different video. Reference image (line-icon tier list on a gold/blue warp) confirmed: keep solid 3D icons, use the warp background.
+- Change: the warp now runs behind every stop with an intensity tied to speed (jet 0.18, bullet 0.26, Earth 0.36, Parker 0.5, drop 1.0 decaying, laps 0.3, twist 0.1); some streak heads are gold. Rings and the core glow are full-strength only in the hook and loop beat; the landing rings are halved; the horizontal dashes are a faint sideways cue. Held-breath beat stays pure black.
+- Not done on purpose: line icons (looks like an infographic) and a "glowing radar circles" version (the circles compete with the object). The km/s number already sits under each object as the counter.
+- Hook C audio is unchanged. Measured -13.8 LUFS, true peak -1.6 dBFS after AAC. Files: `render_v5_warp_bg.py`.

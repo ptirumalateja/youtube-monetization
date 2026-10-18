@@ -149,7 +149,7 @@ def rings(fr,t,t0,cx,cy):
     dr=ImageDraw.Draw(fr)
     for k in range(3):
         u=(t-t0-k*0.09)/0.55
-        if 0<u<1: r=60+760*eout(u); a=int(200*(1-u)); dr.ellipse((cx-r,cy-r,cx+r,cy+r),outline=CREAM+(a,),width=3)
+        if 0<u<1: r=60+760*eout(u); a=int(200*(1-u)); dr.ellipse((cx-r,cy-r,cx+r,cy+r),outline=CREAM+(a//2,),width=2)
 def state(t,a,b):
     """object offset/scale for a stop in [a,b]: enters from the right, exits to the left as the next one arrives"""
     u=(t-(a-0.15))/0.5; v=(t-(b-0.2))/0.45
@@ -194,8 +194,15 @@ def jet_pose(t):
     dx,sc,_=state(t,*STOPS['jet']); return dx,sc*JS,CY
 STACK=[('parker',720,0.50),('earth',930,0.34),('bullet',1140,0.70),('jet',1370,0.60)]   # four objects lined up one below another at the centre
 TC=(540,1000)
+BGW=[(0,0),(1.35,0.18),(2.7,0.26),(4.05,0.36),(5.85,0.5),(7.5,0.7),(7.62,0.0),(8.1,0.0),(8.14,1.0),(9.2,0.55),(10.35,0.3),(13.05,0.22),(13.6,0.1),(14.85,0.1),(15.3,0.1)]
+def bg_i(t):
+    for (a,u0),(b,u1) in zip(BGW,BGW[1:]):
+        if a<=t<=b: return u0+(u1-u0)*((t-a)/(b-a) if b>a else 1)
+    return 0.1
 def tunnel_i(t):
-    """warp intensity 0..1"""
+    return max(hook_i(t),bg_i(t) if t>=1.35 and t<LOOP_T[0] else 0.0)
+def hook_i(t):
+    """warp intensity 0..1 in the hook"""
     if BC:
         if t>=LOOP_T[0]: return 0.6*ease((t-LOOP_T[0])/0.45)
         if t<0.9: return 0.6+0.4*ease(t/0.9)
@@ -209,6 +216,7 @@ def draw_tunnel(fr,t):
     """real-warp look: a 3-D star field flying at the camera (perspective streaks, blue tails, warm heads, chromatic fringe), perspective rings, hot core"""
     I=tunnel_i(t)
     if I<=0: return
+    hf=1.0 if (t<1.6 or t>=LOOP_T[0]) else 0.3   # hook/loop: rings and core at full strength; ladder: subtle
     F=430.0; Z=zt(t); cx,cy=TC
     z=(WST[:,2]-1.7*Z*WST[:,3])%1.0+0.012; dz=(0.025+0.23*I)*WST[:,3]; zp=np.minimum(z+dz,1.6)
     x,y=WST[:,0],WST[:,1]
@@ -224,15 +232,15 @@ def draw_tunnel(fr,t):
             w=1+int(5*near[k]**2)
             if col is None:
                 d.line((px0,py0,px1,py1),fill=(150,195,255,int(a_*0.55)),width=w+2)   # blue tail glow
-                d.line((px0+(px1-px0)*0.35,py0+(py1-py0)*0.35,px1,py1),fill=(255,250,240,a_),width=w)   # hot head
+                d.line((px0+(px1-px0)*0.35,py0+(py1-py0)*0.35,px1,py1),fill=((255,214,140,a_) if k%3==0 else (255,250,240,a_)),width=w)   # hot head
             else: d.line((px0,py0,px1,py1),fill=col+(a_,),width=w)
     # perspective rings (tunnel walls) rushing outward
     for k in range(6):
         zr=(0.12+ (k/6.0) -1.2*Z*0.9)%1.0+0.03; rr=F*0.55/zr
-        if rr<1500: d.ellipse((cx-rr,cy-rr*1.15,cx+rr,cy+rr*1.15),outline=(232,184,96,int(150*I*max(0.0,1-zr)**1.2)),width=2+int(5*max(0.0,1-zr)))
+        if rr<1500: d.ellipse((cx-rr,cy-rr*1.15,cx+rr,cy+rr*1.15),outline=(232,184,96,int(150*hf*I*max(0.0,1-zr)**1.2)),width=2+int(5*max(0.0,1-zr)))
     # hot core
     gl=Image.new('RGBA',(900,900),(0,0,0,0)); gd=ImageDraw.Draw(gl)
-    for q in range(440,0,-8): gd.ellipse((450-q,450-q,450+q,450+q),fill=(255,226,170,int(150*I*(1-q/440)**2.2)))
+    for q in range(440,0,-8): gd.ellipse((450-q,450-q,450+q,450+q),fill=(255,226,170,int(150*hf*I*(1-q/440)**2.2)))
     lay.alpha_composite(gl,(cx-450,cy-450)); fr.alpha_composite(lay)
     if (MODE=='A' and 0.42<=t<0.56) or (BC and 0.9<=t<1.04): fr.alpha_composite(Image.new('RGBA',(W,H),(255,248,230,int(50*(1-((t-0.42) if MODE=='A' else (t-0.9))/0.14)))))
 def stack_c(obj,t):
@@ -279,7 +287,7 @@ def draw(t):
     if ta>0: fr.alpha_composite(Image.new('RGBA',(W,H),tc+(int(255*ta*(0.8+0.5*pl)),)))
     light=LIGHT_T[0]<=t<LIGHT_T[1]; blackout=LAND_T[0]<=t<LIGHT_T[0]
     # ---- speed streaks
-    streaks(lay,t,power=0.0 if blackout else min(1.0,0.8+0.4*pl)*(1-tunnel_i(t))); fr.alpha_composite(lay)
+    streaks(lay,t,power=0.0 if blackout else min(1.0,0.8+0.4*pl)*0.3*(1-tunnel_i(t))); fr.alpha_composite(lay)
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); tl=Image.new('RGBA',(W,H),(0,0,0,0))
     # ---- hero objects
     draw_tunnel(fr,t)
