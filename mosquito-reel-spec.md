@@ -1,6 +1,6 @@
 # Slow Light "What If" #4: What if every mosquito died tonight? (31 s, wordless)
 
-Status: PROPOSED frozen plan, awaiting owner sign-off. Nothing is built yet. Once approved, this plan is frozen (no redo's); build once, check frames against the table, then deliver.
+Status: APPROVED by the owner (18 Oct 2026). Nothing is built yet. This plan is frozen (no redo's); build once, check frames against the table, then deliver.
 
 Format: 9:16, 1080x1920, 31 s, no voiceover, loops. Visuals + sound design + a few words of on-screen text. Tagged "thought experiment" on screen.
 Idea: one wish everyone shares (no more bites), then the consequences nobody thinks about, ending on an open question. The reference video (a 98 s low-poly "what if we killed all mosquitoes") is inspiration for the *question only*. We do not copy its look, its stage UI, its button, its "would you press it" line or its Easter egg.
@@ -23,7 +23,7 @@ Status key: V = checked against a source on 18 Oct 2026; TO CHECK = must be veri
 | One bog orchid loses its pollinator | *Platanthera obtusata*: Aedes mosquitoes are the dominant pollinator of this orchid (PNAS 2020, Lahondere, Riffell et al.). Another ecologist calls mosquito pollination "relatively minor" overall, so say "one orchid", never "plants" | V, hedged |
 | Chocolate is safe | Cacao is pollinated by *Forcipomyia* midges (Ceratopogonidae), not mosquitoes | V |
 | "Something else moves in" / "hiccup" | Entomologist Joe Conlon in Nature 466:432 (2010, Janet Fang feature): ecosystems "will hiccup and then get on with life. Something better or worse would take over." Critics say that is overconfident (new vectors could fill the niche) | V (secondary sources; Nature is paywalled) |
-| Arctic swarms and caribou | Swarms push caribou to windy ridges and cost feeding time | TO CHECK (find a primary source; no "10,000 bites" number unless sourced) |
+| Arctic swarms and caribou | Biting-insect harassment cuts caribou feeding time and drives herds to windy ridges (Toupin et al. 1996, Rivière George herd: feeding 53% -> 30% of time; Russell & Nixon, Porcupine herd; Fancy 1983). Toupin found the energy-balance effect small, so say "swarms cost them feeding time", never "swarms kill caribou" and no "10,000 bites" number | V, hedged (abstracts only) |
 | Wingbeat about 400 Hz | Female Aedes ~400-600 Hz depending on species and temperature | TO CHECK, or leave off screen |
 | Dengue and Zika | Only some species carry them; wording is "mosquito-borne disease", not "all mosquitoes" | wording rule |
 | "Killed half of all humans who ever lived" | Popular but contested | CUT, do not use |
@@ -55,9 +55,16 @@ Monotonic counter: the ladder only moves forward NIGHT 1 -> WEEK 1 -> MONTH 1 ->
 - Licences: CC0, or CC BY with full credit and "changes were made". Never CC BY-NC. Synthesised whine and ticks are free. Record every file in `audio-attribution.md` and the reel's publish copy.
 
 ## What is needed from the owner before building
-1. Sign-off on this plan (or changes).
+1. ~~Sign-off on this plan~~ done (approved 18 Oct 2026).
 2. Stock clip choice: a macro mosquito landing/biting clip and optionally an orchid clip. I will list Pexels/Pixabay candidates and the licence of each; the owner approves.
 3. Permission before any spend: RunPod pod (only if a still must be animated with Wan, atmospheric motion only), ElevenLabs/Higgsfield (not needed for this reel, it is wordless).
+
+## Stock candidates (owner to approve; I could not view or download clips from this container)
+Pexels returns 403 to this environment, and no free mosquito *video* turned up on Pexels or Wikimedia Commons in search. Pixabay has two candidates by the same uploader (BlenderTimer / Daniel Roberts), both 3840x2160, 24 fps, MP4, "Free for use under the Pixabay Content License" (free commercial use, attribution not required, not CC0). Pages carry tags "Macro, Skin, Wildlife" but do not say what the mosquito is doing, and show no AI label:
+- https://pixabay.com/videos/mosquito-insect-pest-nature-274935/ (about 18 s)
+- https://pixabay.com/videos/mosquito-insect-pest-nature-274929/ (about 8 s)
+Owner: open both, say which (if either) shows a mosquito landing or biting skin in macro, and download it (or upload it to Drive). Fallback if neither works: the owner searches Pexels/Pixabay/Commons for another clip, or we build the hero mosquito procedurally in three.js (a designed look, no AI).
+Rule: record the clip's URL and licence in `audio-attribution.md`-style credits for the reel before posting. Also check any orchid footage the same way (not yet shortlisted).
 
 ## Build outline (after sign-off)
 1. `shot.js`-style test stills of each designed beat; one contact-sheet check.
