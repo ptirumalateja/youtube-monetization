@@ -1,0 +1,61 @@
+# Slow Light "Speed Ladder": how fast is fast? (14 s, wordless, loops)
+
+Status: PROPOSED, waiting for the owner's approval. Nothing is built yet. Once approved the plan is frozen: build once, check frames against the table, then deliver.
+
+Format: 9:16, 1080x1920, 14 s (target band 10-15 s), 30 fps, no voiceover, loops. Visuals and sound are 100% designed in code (three.js, no AI clips, no generation credits).
+Idea: a speed ladder in one unit. Five objects, each faster than the last, the previous one left behind, then a last twist that breaks the ladder. Origin: the Meta Creator Assistant's "comparison of speed" suggestion for the next space reel (bullet, jet, light, expansion of the universe). We keep the idea and fix the science (see guardrails).
+
+## Why this version
+- 14 s is the owner's 10-15 s ask; payoff (light) lands at about 9 s, the twist at about 11 s, the loop at 14 s.
+- Same stop pattern as the Scale Ladder (playbook 3.2): one recognisable object, rings sweep through, label and counter, slide out, next one ahead. About 1.7 s per stop.
+- One monotonic counter in one unit (km/s), so it can never jump backwards.
+- "YOU, RIGHT NOW" (Earth around the Sun) is the personal beat that makes people share it.
+
+## Fact guardrails (every number on screen)
+Status key: V = checked against a source on 18 Oct 2026; TO CHECK = verify before it goes on screen or into copy.
+
+| On screen | Fact | Status |
+|---|---|---|
+| Airliner about 0.25 km/s (900 km/h) | Typical jet airliner cruise, Mach 0.8-0.85, about 850-950 km/h depending on altitude | TO CHECK (aircraft maker or airline source); say "about" |
+| Rifle bullet about 0.9 km/s | Muzzle velocity varies by round (roughly 0.7-1.0 km/s); 5.56 mm NATO about 0.94 km/s | TO CHECK; say "about", label "rifle bullet" |
+| Earth around the Sun about 30 km/s (107,000 km/h) | Mean orbital speed 29.78 km/s (NASA Earth Fact Sheet). This is speed around the Sun, not through the galaxy | TO CHECK (NASA); label "EARTH AROUND THE SUN" |
+| Parker Solar Probe about 190 km/s (692,000 km/h) | 24 Dec 2024 perihelion, about 192.22 km/s; Guinness World Records "fastest spacecraft speed"; NASA says it is the fastest human-made object. Some sources round to 191 km/s, so use "about 190" | V ([Guinness](https://www.guinnessworldrecords.com/world-records/66135-fastest-spacecraft-speed)) |
+| Light 299,792 km/s | 299,792.458 km/s exactly by definition of the metre | V (definition) |
+| "About 1,560x faster than Parker" | Our arithmetic: 299,792 / 192.22 = 1,559.6 | V (arithmetic) |
+| "Far galaxies recede faster than light" | Standard result: beyond the Hubble sphere (distance c/H0) the recession velocity exceeds c; it is expansion of space, not motion through space, so relativity is not violated (Davis and Lineweaver 2004, "Expanding Confusion", PASA; [arXiv astro-ph/0310808](https://arxiv.org/abs/astro-ph/0310808)). Popular summary: [Universe Today](https://www.universetoday.com/articles/how-can-space-travel-faster-than-the-speed-of-light) | V (wording hedged) |
+
+Never say: "faster than light travel", "something moves faster than light" (say "recede"), "the universe expands at X km/s" (no single speed), "warp". Never claim Earth's total speed through space: only "around the Sun". Label the reel "NOT TO SCALE" at the end.
+
+## Shot plan (14 s)
+Grammar: sideways track, one hero object centred and small, rings sweep through the camera, object grows to 35-65% of frame width, label and counter land after about 1 s, object slides out and the next is already ahead. Left ladder rungs: JET, BULLET, EARTH, PARKER, LIGHT with a red marker climbing (the Scale Ladder device). Palette: charcoal/navy, cream text, gold/teal accents, red only for markers, chips and the odometer unit chip. Safe zone y 220-1570; fonts per playbook 3.7 (Liberation Mono Bold).
+
+| Time | Stop | Visual (designed) | Text | Counter (km/s) | Sound |
+|---|---|---|---|---|---|
+| 0-1.6 | **Hook** | Frame 0 is already moving: an airliner silhouette streaks across a dark sky, contrails | "HOW FAST IS [FAST]?" typed by 1.4 | 0 | Hit on frame 0 (small), rising wind-rush |
+| 1.6-3.4 | **Jet** | Airliner centred, rings sweep, grows | "AIRLINER" / "900 KM/H" | 0.25 | Doppler pass-by, low |
+| 3.4-5.0 | **Bullet** | Brass-and-copper rifle bullet, shock-cone, slow shimmer, passes jet | "RIFLE BULLET" / "~3,300 KM/H" | 0.9 | Crack pass-by, higher pitch |
+| 5.0-6.8 | **You** | Earth with its orbit line, the camera flies along the orbit | "YOU, RIGHT NOW" / "EARTH AROUND THE SUN" | 30 | Deep sustained whoosh (not a hit) |
+| 6.8-8.6 | **Parker** | Parker Solar Probe (heat shield disc, solar wings) diving past the Sun's limb, heat shimmer | "PARKER SOLAR PROBE" / "FASTEST HUMAN-MADE OBJECT" | 192 | Rising shepard sweep |
+| 8.6-9.1 | **Held breath** | Hard cut to black, one thin gold line | none | frozen | Near-silence (about -40 dB) |
+| 9.1-11.2 | **Light** | A single photon streak crosses the whole frame in one frame, leaving Parker as a dot; ratio chip | "LIGHT" / "~1,560X FASTER THAN PARKER" | 299,792 | HERO hit (biggest of the reel), sub wall, quiet |
+| 11.2-13.5 | **Twist** | Galaxies (points of light) with a light beam crossing between them; the farthest galaxies drift away faster than the beam | "FAR GALAXIES RECEDE FASTER THAN LIGHT." then "(SPACE ITSELF STRETCHES.)" | hidden | Thin stretching tone, no hit |
+| 13.5-14.0 | **Loop** | The jet from frame 0 flies back in from the left so the last frame matches frame 0 | "NOT TO SCALE" tag throughout the last beat | 0 | Rising rush into frame 0 |
+
+The script asserts frame by frame that the counter never decreases (as overlay8 does).
+
+## Sound plan
+- New family: air-rush and Doppler pass-bys (synthesised noise and pitch-swept tones), pitch and brightness rising with speed. Not the Ladder's brass, not Night Sky's v4 palette.
+- Hits only at frame 0 (small) and light (hero). Held breath before light. Everything else has a visual cause (pass-bys, ring crossings).
+- Phone rules: HPF 90 Hz on all buses except the hit bus; target -15 LUFS; true peak measured after AAC; soft clip on the single loudest transient. All sounds synthesised, so no licences.
+
+## Build plan
+`tools/speed/` mirroring `tools/mosquito/`: `scene.html` (three.js r0.170, headless SwiftShader render, motion-blur accumulation), `overlay.py` (counter, labels, ladder, chips), `mix.py`, `compose.sh`. Contact-sheet QA at 2 fps, true-peak check, loop check (last frame vs frame 0). No generation credits, no GPU rental.
+
+## Publish copy (written after the build)
+- Titles to test: "How fast is fast? Watch it climb", "You're moving at 30 km/s right now", "Light is not the fastest thing".
+- Description: sources line (Guinness / NASA for Parker, Davis and Lineweaver 2004 for recession), "Animated explainer, not to scale". Pinned comment: "What's the fastest thing you've seen?"
+
+## Open questions for the owner
+1. Unit: one counter in km/s (consistent, my recommendation) or km/h for the first three stops (more familiar, but the counter would switch units).
+2. Twist wording: "FAR GALAXIES RECEDE FASTER THAN LIGHT. (SPACE ITSELF STRETCHES.)" or the shorter "SPACE CAN STRETCH FASTER THAN LIGHT."
+3. Keep the "YOU, RIGHT NOW" Earth beat as stop 3 (recommended) or swap it for a faster Voyager beat.
