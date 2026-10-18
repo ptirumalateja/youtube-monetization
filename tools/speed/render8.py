@@ -118,6 +118,46 @@ def aura_layer(t,lvl,col,cx=CX,cy=CY,al=1.0,half=380):
     g=cv2.GaussianBlur(img,(0,0),6+7*lvl).astype(float); img=np.clip(img.astype(float)+g*(0.5+0.5*lvl),0,255).astype('uint8')
     a_=np.clip(img.max(axis=2).astype(float)*1.3,0,255).astype('uint8')
     return Image.fromarray(np.dstack([img[...,::-1],a_]),'RGBA'),(int(cx-ox),int(cy-oy))
+# ------------------------------------------------------------------ ideas borrowed from the Flow reference frames (all kept dim so the object leads)
+import colorsys
+def radial(w,h,col,peak,power=2.0):
+    yy,xx=np.mgrid[0:h,0:w]; d=np.sqrt(((xx-w/2)/(w/2))**2+((yy-h/2)/(h/2))**2); a=np.clip(1-d,0,1)**power*peak
+    arr=np.zeros((h,w,4),np.uint8); arr[...,0],arr[...,1],arr[...,2]=col; arr[...,3]=(a*255).astype(np.uint8); return Image.fromarray(arr,'RGBA')
+WASH={'jet':((60,110,200),0.10,(CX,CY)),'bullet':((210,100,40),0.13,(CX,CY)),'earth':((30,150,170),0.10,(CX,CY)),'parker':((255,150,40),0.30,(CX+330,CY+120)),
+      'light':((255,240,220),0.0,(CX,CY)),'lap':((220,170,90),0.08,(CX,CY)),'twist':((150,30,40),0.20,(CX,CY+60))}
+_wc={}
+def wash_layer(name,sz=1500):
+    k=(name,sz)
+    if k not in _wc: c,p,_=WASH[name]; _wc[k]=radial(sz,sz,c,p,1.6)
+    return _wc[k]
+def figure(h=300):
+    """human silhouette: near-black body with a thin cyan rim light"""
+    w=int(h*0.55); im=Image.new('RGBA',(w*2,h*2),(0,0,0,0)); d=ImageDraw.Draw(im); k=2; cx=w
+    P=lambda pts:[(x*k,y*k) for x,y in pts]
+    hh=h
+    body=[(cx/k-0.0,0)]
+    d.ellipse(((cx-0.085*hh*k),0.02*hh*k,(cx+0.085*hh*k),0.02*hh*k+0.17*hh*k),fill=(4,6,10,255),outline=(90,230,240,255),width=3)
+    d.polygon([(cx-0.17*hh*k,0.22*hh*k),(cx+0.17*hh*k,0.22*hh*k),(cx+0.13*hh*k,0.55*hh*k),(cx-0.13*hh*k,0.55*hh*k)],fill=(4,6,10,255),outline=(90,230,240,255))
+    for sx in (-1,1):
+        d.polygon([(cx+sx*0.17*hh*k,0.23*hh*k),(cx+sx*0.26*hh*k,0.5*hh*k),(cx+sx*0.21*hh*k,0.52*hh*k),(cx+sx*0.12*hh*k,0.30*hh*k)],fill=(4,6,10,255),outline=(90,230,240,255))
+        d.polygon([(cx+sx*0.02*hh*k,0.54*hh*k),(cx+sx*0.13*hh*k,0.54*hh*k),(cx+sx*0.12*hh*k,0.98*hh*k),(cx+sx*0.05*hh*k,0.98*hh*k)],fill=(4,6,10,255),outline=(90,230,240,255))
+    im=im.resize((w,h),Image.LANCZOS); g=Image.new('RGBA',im.size,(40,200,220,0)); g.putalpha(im.getchannel('A').filter(ImageFilter.GaussianBlur(7)).point(lambda v:int(v*0.55))); g.alpha_composite(im); return g
+FIG=figure(300)
+def ground_grid(al):
+    layer=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(layer); hz=1600
+    for i in range(1,14):
+        y=hz+int(250*((i/13)**1.7)); d.line((0,y,W,y),fill=(60,210,230,int(90*al*(0.3+0.7*i/13))),width=2)
+    for j in range(-9,10):
+        d.line((CX+j*20,hz,CX+j*150,H),fill=(60,210,230,int(80*al)),width=2)
+    return layer
+def rainbow_burst(u,cx=CX,cy=CY+120):
+    layer=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(layer); n=110
+    for i in range(n):
+        a=2*math.pi*i/n+0.13*math.sin(i*7.3); rr,gg,bb=colorsys.hsv_to_rgb((i/n*1.05)%1.0,0.55,1.0); L=(160+520*eout(min(1,u/0.5)))*(0.6+0.4*abs(math.sin(i*3.1)))
+        a0=40+60*u; al=int(215*math.exp(-u/0.9))
+        if al<4: continue
+        d.line((cx+math.cos(a)*a0,cy+math.sin(a)*a0*1.1,cx+math.cos(a)*(a0+L),cy+math.sin(a)*(a0+L)*1.1),fill=(int(rr*255),int(gg*255),int(bb*255),al),width=3 if i%3 else 5)
+    return layer.filter(ImageFilter.GaussianBlur(1.2))
 # ------------------------------------------------------------------ scene
 def pulse(t):
     for a,b in ((0.0,LAND_T[0]),(LIGHT_T[0],LAP_T[1])):
@@ -129,6 +169,9 @@ def draw(t):
     pl=pulse(t); fr=Image.new('RGBA',(W,H),(0,0,0,255))
     blackout=LAND_T[0]<=t<LIGHT_T[0]
     vl=vortex_layer(t)
+    stg=STAGES[stage(t)][1] if t<LOOP_T[0] else 'jet'
+    if stg in WASH and not blackout and WASH[stg][1]>0:
+        wl=wash_layer(stg); cx_,cy_=WASH[stg][2]; fr.alpha_composite(wl,(int(cx_-wl.width/2),int(cy_-wl.height/2)))
     if vl is not None and not blackout: fr.alpha_composite(vl)
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(obj)
     PSC=1.0+0.03*pl
@@ -147,8 +190,14 @@ def draw(t):
             for k in range(14): d.line((CX-300-k*34,CY+5,CX-300-(k+1)*34,CY+5),fill=R.STEEL+(int(140*(1-k/14)*al),),width=5)
             paste(obj,R.SPR['jet'],CX,CY,JS*PSC*ps,al)
         elif cur=='bullet':
+            for k in range(26): d.line((CX-250-k*20,CY+(k%5-2)*6,CX-250-(k+1)*20,CY+(k%5-2)*6),fill=(255,150,70,int(110*(1-k/26)*al)),width=4)
+            rd=np.random.default_rng(int(t*30)%7)
+            for k in range(12): px=CX-300-rd.uniform(0,420); py=CY+rd.uniform(-60,60); d.ellipse((px-2,py-2,px+2,py+2),fill=(255,190,110,int(140*rd.uniform(0.3,1)*al)))
             paste(obj,R.SPR['bullet'],CX,CY,0.86*PSC*ps,al)
         elif cur=='earth':
+            ring=Image.new('RGBA',(W,H),(0,0,0,0)); rd_=ImageDraw.Draw(ring)
+            for q in range(3): rd_.ellipse((CX-470-q*14,CY-95-q*5,CX+470+q*14,CY+95+q*5),outline=(60,215,230,int(120*al*(1-q*0.3))),width=3)
+            obj.alpha_composite(ring.filter(ImageFilter.GaussianBlur(1.5)))
             paste(obj,R.earth(0.5+(t-a)*0.35),CX,CY,0.9*PSC*ps,al)
         else:
             paste(obj,R.SPR['parker'],CX-10,CY+2.5*math.sin(t*40),0.8*PSC*ps,al)
@@ -188,6 +237,11 @@ def draw(t):
         bx=CX+180*u
         for k in range(10): d.line((bx-k*14,CY,bx-(k+1)*14,CY),fill=(255,250,235,int(255*(1-k/10))),width=6)
         d.ellipse((bx-10,CY-10,bx+10,CY+10),fill=(255,250,235,255)); put(obj,txt('LIGHT',34),bx,CY+26,ease(u/0.5))
+    if STOPS['earth'][0]<=t<STOPS['earth'][1]:
+        ea=min(ease((t-STOPS['earth'][0])/0.12),ease((STOPS['earth'][1]-t)/0.1)); fr.alpha_composite(ground_grid(ea*0.6)); paste(fr,FIG,CX,1600-6,0.95,ea)
+    if LIGHT_T[0]<=t<LIGHT_T[0]+1.7:
+        u=t-LIGHT_T[0]; fr.alpha_composite(rainbow_burst(u))
+        paste(fr,FIG,CX,CY+130,0.7,ease(min(1,u/0.12))*(1-ease((u-1.2)/0.5)))
     fr.alpha_composite(obj)
     # ---- hard-cut accents: colour flash + shake on every stop change
     for s0 in (0.9,1.8,3.6):
