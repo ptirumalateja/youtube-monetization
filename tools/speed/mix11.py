@@ -4,7 +4,7 @@ Timeline (s): jet 0-0.9 | bullet 0.9-1.8 | Earth 1.8-3.6 | probe 3.6-5.4 | held 
 Each stop adds a layer and about +3 dB over the last: jet quiet, bullet crack, Earth heartbeat, probe fire roar + big hit, light drop, then nearly silent."""
 import sys, os, subprocess, wave
 import numpy as np
-D=sys.argv[1]; SR=44100; T=14.4; N=int(T*SR)
+D=sys.argv[1]; SR=44100; T=15.0; N=int(T*SR)
 def clip(f,start,dur,db=0.0,lp=None,hp=None,rate=1.0,fi=0.01,fo=0.05):
     af=[]
     if rate!=1.0: af.append(f'asetrate={int(SR*rate)},aresample={SR}')
@@ -22,15 +22,17 @@ def synth_rotate(dur,f0,f1,g):
     """circling air: low-passed noise whose brightness and level swell and rotate (stereo, 3 Hz pan), no tones"""
     n=int(dur*SR); x=rng.standard_normal(n); X=np.fft.rfft(x); fr=np.fft.rfftfreq(n,1/SR); y=np.fft.irfft(X*(np.clip((fr-120)/60,0,1)*np.clip((f1-fr)/(f1*0.3),0,1)),n)
     env=np.sin(np.pi*np.linspace(0,1,n))**1.4; pan=np.sin(2*np.pi*2.4*tt(n)); return np.stack([y*env*g*(0.7+0.3*pan),y*env*g*(0.7-0.3*pan)]).astype(np.float32)
-def put(x,t0):
+def shift(t): return 0.45*(t>=0.3)+0.45*(t>=1.2)   # the jet and bullet stops are one beat (0.45 s) longer each
+def put(x,t0,anchor=None):
+    t0=t0+shift(t0 if anchor is None else anchor)
     i=int(round(t0*SR))
     if i<0: x=x[:,-i:]; i=0
     j=min(N,i+x.shape[1])
     if j>i: M[:,i:j]+=x[:,:j-i]
 # bed: dark drone under the whole ladder (low, steady), then fades before the held breath
-put(clip('terror_ambience_155142.mp3',40.0,5.4,-22,lp=1500,hp=60,fi=0.4,fo=0.1),0.0)
-put(clip('rarexport_4096.wav',8.0,5.4,+2,lp=1500,hp=40,fi=0.5,fo=0.1),0.0)
-put(clip('tonal_wind_397092.wav',30.0,5.4,+14,lp=600,hp=45,fi=0.5,fo=0.1),0.0)
+put(clip('terror_ambience_155142.mp3',40.0,6.3,-22,lp=1500,hp=60,fi=0.4,fo=0.1),0.0)
+put(clip('rarexport_4096.wav',8.0,6.3,+2,lp=1500,hp=40,fi=0.5,fo=0.1),0.0)
+put(clip('tonal_wind_397092.wav',30.0,6.3,+14,lp=600,hp=45,fi=0.5,fo=0.1),0.0)
 # frame-0 hit, small
 put(clip('impact_376816.wav',0.0,1.6,-21,lp=2500,hp=40),0.0)
 # riser into each cut
@@ -38,9 +40,9 @@ put(clip('riser_quick_376576.wav',3.0,0.5,-17,hp=200,fi=0.2,fo=0.01),0.4)
 put(clip('riser_quick_376576.wav',3.0,0.5,-15,hp=200,rate=0.92,fi=0.2,fo=0.01),1.3)
 put(clip('riser_quick_376576.wav',2.7,0.8,-13,hp=200,fi=0.4,fo=0.01),2.8)
 # --- jet 0-0.9: distant airliner
-put(clip('jet_overhead_352134.wav',8.8,1.6,-14,hp=60,lp=6000,fi=0.3,fo=0.5),0.0)
+put(clip('jet_overhead_352134.wav',8.4,2.0,-14,hp=60,lp=6000,fi=0.3,fo=0.6),0.0)
 # --- bullet 0.9: dry crack (owner's clip, transient at 0.8 s in the file) + low impact under it
-put(clip('bullet_whiz_123223.wav',0.0,2.6,-8,hp=60,fi=0.005,fo=0.6),0.1)
+put(clip('bullet_whiz_123223.wav',0.0,2.6,-8,hp=60,fi=0.005,fo=0.6),0.1,anchor=0.9)
 put(clip('impact_376816.wav',0.0,1.8,-14,lp=3500,hp=40),0.7)
 put(clip('supersonic_250591.wav',1.0,1.5,-12,hp=300,lp=6000,fi=0.3,fo=0.4),1.1)
 # --- Earth 1.8: heartbeat, wide low wind, a warm cinematic hit
@@ -70,7 +72,7 @@ put(clip('impact_376816.wav',0.0,1.8,-15,lp=2500,hp=40),12.7)
 put(clip('tonal_wind_397092.wav',36.0,1.7,+16,lp=700,hp=50,fi=0.3,fo=1.0),12.7)
 # a short riser into the question
 put(clip('riser_quick_376576.wav',2.9,0.6,-15,hp=200,fi=0.3,fo=0.01),12.1)
-gate=np.ones(N,np.float32); gate[int(5.40*SR):int(5.75*SR)]=0.0; gate[int(5.36*SR):int(5.40*SR)]=np.linspace(1,0,int(5.40*SR)-int(5.36*SR)); M*=gate
+gate=np.ones(N,np.float32); gate[int(6.30*SR):int(6.65*SR)]=0.0; gate[int(6.26*SR):int(6.30*SR)]=np.linspace(1,0,int(6.30*SR)-int(6.26*SR)); M*=gate
 # ---- master: soft limit, then set the level
 M=np.tanh(0.9*M)/np.tanh(0.9)
 fade=np.ones(N,np.float32); fade[:int(0.004*SR)]=np.linspace(0,1,int(0.004*SR)); fade[-int(0.5*SR):]=np.linspace(1,0,int(0.5*SR)); M*=fade

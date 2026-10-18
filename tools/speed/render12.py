@@ -7,23 +7,23 @@ import numpy as np, cv2
 from PIL import Image, ImageDraw, ImageFilter, ImageChops, ImageFont
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import render as R   # sprites (airliner, bullet, probe), the lattice Earth and galaxy glints; its old backdrop code is not used here
-W,H,FPS,T=1080,1920,30,14.4
+W,H,FPS,T=1080,1920,30,15.0
 BEAT=0.45
 CX,CY=540,700
 ease,eout,ein=R.ease,R.eout,R.ein
 WHITE=(255,255,255); RED=(224,32,32); GOLD=(255,205,100)
 BEB=os.path.join(os.path.dirname(os.path.abspath(__file__)),'fonts','BebasNeue.ttf')
 # ------------------------------------------------------------------ timeline (s): every cut on the 133 BPM grid
-STOPS={'jet':(0.0,0.9),'bullet':(0.9,1.8),'earth':(1.8,3.6),'parker':(3.6,5.4)}
-LAND_T,LIGHT_T,LAP_T,TWIST_T=(5.4,5.85),(5.85,8.1),(8.1,10.8),(10.8,12.6)
-Q_T=(12.6,14.4)   # closing question holds to the last frame (no loop)
+STOPS={'jet':(0.0,1.35),'bullet':(1.35,2.7),'earth':(2.7,4.5),'parker':(4.5,6.3)}   # jet and bullet get one extra beat so they can travel in from the left
+LAND_T,LIGHT_T,LAP_T,TWIST_T=(6.3,6.75),(6.75,9.0),(9.0,11.7),(11.7,13.5)
+Q_T=(13.5,15.0)   # closing question holds to the last frame (no loop)
 LOOP_T=(99.0,99.0)   # loop beat removed
-START={'jet':0.0,'bullet':0.9,'earth':1.8,'parker':3.6,'light':5.85}
+START={'jet':0.0,'bullet':1.35,'earth':2.7,'parker':4.5,'light':6.75}
 THEME={'jet':(70,150,255),'bullet':(255,128,36),'earth':(40,225,235),'parker':(255,205,100),'light':(255,246,228),'lap':(255,200,110),'twist':(150,110,235)}
 # stage -> (twist, forward speed, brightness, arms): jet barely twisted, bullet 3x the twist, probe a full wormhole spin
 VP={'jet':(0.06,0.7,0.55,10),'bullet':(0.18,1.8,0.72,14),'earth':(0.30,2.8,0.80,16),'parker':(0.46,4.4,0.92,20),'black':(0.0,0.0,0.0,10),
     'light':(0.62,6.5,0.88,24),'lap':(0.30,2.2,0.55,16),'twist':(0.24,0.9,0.55,14)}
-STAGES=[(0.0,'jet'),(0.9,'bullet'),(1.8,'earth'),(3.6,'parker'),(5.4,'black'),(5.85,'light'),(8.1,'lap'),(10.8,'twist')]
+STAGES=[(0.0,'jet'),(1.35,'bullet'),(2.7,'earth'),(4.5,'parker'),(6.3,'black'),(6.75,'light'),(9.0,'lap'),(11.7,'twist')]
 LVL={'jet':0.30,'bullet':0.52,'earth':0.76,'parker':1.0}   # field strength = speed on a log-ish scale
 # ------------------------------------------------------------------ text (Bebas Neue, heavier via stroke)
 _tc={}
@@ -209,14 +209,14 @@ def draw(t,bgarr=None):
         a,b=STOPS[cur]; al=ease((t-LOOP_T[0])/(T-LOOP_T[0])) if t>=LOOP_T[0] else 1.0
         ts=(t-a) if t<LOOP_T[0] else 1.0
         ps=0.82+0.18*ease(ts/0.16)+0.10*math.exp(-max(0,ts)/0.08) if cur!='jet' or t>=LOOP_T[0] else 1.0
-        mv={'bullet':900,'parker':520}.get(cur,0)
-        dxm=-(1-eout(min(1.0,ts/ROLL)))*mv + (16*max(0.0,ts-ROLL) if cur in ('bullet','parker') else 0)
+        mv,dur_,dr_={'jet':(640,0.6,0),'bullet':(960,0.5,14),'parker':(520,0.28,16)}.get(cur,(0,ROLL,0))
+        dxm=-(1-eout(min(1.0,ts/dur_)))*mv + dr_*max(0.0,ts-dur_)
         au,(ax,ay)=aura_layer(t,LVL[cur],THEME[cur],cx=CX+dxm,al=al,half=A0[cur]-30); obj.alpha_composite(au,(ax,ay))
         if cur=='jet':
-            for k in range(14): d.line((CX-300-k*34,CY+5,CX-300-(k+1)*34,CY+5),fill=R.STEEL+(int(140*(1-k/14)*al),),width=5)
-            paste(obj,R.SPR['jet'],CX,CY,JS*PSC*ps,al)
+            for k in range(14+int(14*(1-min(1.0,ts/0.6)))): d.line((CX+dxm-300-k*34,CY+5,CX+dxm-300-(k+1)*34,CY+5),fill=R.STEEL+(int(140*(1-k/14)*al) if k<14 else int(60*al),),width=5)
+            paste(obj,R.SPR['jet'],CX+dxm,CY,JS*PSC*ps,al)
         elif cur=='bullet':
-            sm=26+int(30*(1-min(1.0,ts/ROLL)))
+            sm=26+int(40*(1-min(1.0,ts/0.5)))
             for k in range(sm): d.line((CX+dxm-250-k*20,CY+(k%5-2)*6,CX+dxm-250-(k+1)*20,CY+(k%5-2)*6),fill=(255,150,70,int(130*(1-k/sm)*al)),width=4)
             rd=np.random.default_rng(int(t*30)%7)
             for k in range(12): px=CX+dxm-300-rd.uniform(0,420); py=CY+rd.uniform(-60,60); d.ellipse((px-2,py-2,px+2,py+2),fill=(255,190,110,int(140*rd.uniform(0.3,1)*al)))
@@ -237,11 +237,11 @@ def draw(t,bgarr=None):
         paste(obj,R.SPR['parker'],300-120*ease(u/1.5),CY+130,0.16,ease((u-0.2)/0.3))
     # ---- laps
     if LAP_T[0]<=t<LAP_T[1]:
-        u=t-LAP_T[0]; e=ease(u/0.35); uu=u-0.3; laps=7.5*max(0.0,min(1.0,uu/1.0)); th=2*math.pi*laps; fo=ease((LAP_T[1]-t)/0.3)
+        u=t-LAP_T[0]; e=ease(u/0.35); uu=u-0.3; th=2*math.pi*7.5*max(0.0,uu); fo=ease((LAP_T[1]-t)/0.3)   # keeps circling at 7.5 laps per second until the stop ends
         def op(a,rx=430,ry=118): return CX+rx*math.cos(a),CY+ry*math.sin(a)
         d.ellipse((CX-430,CY-118,CX+430,CY+118),outline=GOLD+(int(70*e*fo),),width=3); pts=[]
         if uu>=0:
-            span=1.65 if uu<1.0 else 0.0
+            span=1.65
             for k in range(110):
                 a=th-span*k/109 if span>0 else th-0.05*k; x,y=op(a); pts.append((x,y,max(0.0,1-k/109),math.sin(a)))
         for x,y,w,sn in pts:
@@ -271,7 +271,7 @@ def draw(t,bgarr=None):
         paste(fr,FIG,CX,CY+130,0.7,ease(min(1,u/0.12))*(1-ease((u-1.2)/0.5)))
     fr.alpha_composite(obj)
     # ---- hard-cut accents: colour flash + shake on every stop change
-    for s0 in (0.9,1.8,3.6):
+    for s0 in (1.35,2.7,4.5):
         if s0<=t<s0+0.12:
             c=THEME[[n for n,(a,b) in STOPS.items() if a==s0][0]]; fr.alpha_composite(Image.new('RGBA',(W,H),c+(int(70*(1-(t-s0)/0.12)),)))
     # ---- text
@@ -315,7 +315,7 @@ def draw(t,bgarr=None):
     fr.alpha_composite(tx)
     # ---- screen shake: small on each cut, big on the drop
     sh=0.0
-    for s0,amp in ((0.9,7),(1.8,7),(3.6,7),(LIGHT_T[0],16)):
+    for s0,amp in ((1.35,7),(2.7,7),(4.5,7),(LIGHT_T[0],16)):
         if s0<=t<s0+0.4: sh=max(sh,amp*math.exp(-(t-s0)/0.1))
     if sh>0.3: fr=ImageChops.offset(fr,int(sh*math.sin(t*95)),int(sh*math.cos(t*83)))
     return fr.convert('RGB')
