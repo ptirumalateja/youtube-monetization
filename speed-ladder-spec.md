@@ -94,3 +94,9 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 - Change: the warp now runs behind every stop with an intensity tied to speed (jet 0.18, bullet 0.26, Earth 0.36, Parker 0.5, drop 1.0 decaying, laps 0.3, twist 0.1); some streak heads are gold. Rings and the core glow are full-strength only in the hook and loop beat; the landing rings are halved; the horizontal dashes are a faint sideways cue. Held-breath beat stays pure black.
 - Not done on purpose: line icons (looks like an infographic) and a "glowing radar circles" version (the circles compete with the object). The km/s number already sits under each object as the counter.
 - Hook C audio is unchanged. Measured -13.8 LUFS, true peak -1.6 dBFS after AAC. Files: `render_v5_warp_bg.py`.
+
+## v6 (deep-space backdrop, built 18 Oct 2026)
+- Owner ask: a dark, semi-transparent space background that feels intimidating, immersive and enchanting.
+- Backdrop (built once in `make_space()`, `render_v6_space.py`): dim nebula veils (teal, violet, ember) from layered noise, a faint diagonal Milky Way band with dust and dense tiny stars, 2,600 depth stars plus 46 brighter glowing stars with thin crosses, strong vignette, and a looming dark planet horizon in the lower third with a warm rim light. The canvas is 1.16x and drifts slowly so the sky is never static. Kept dim (nebula under about 30% brightness) so the objects and text still pop; the warp streaks run on top.
+- The held-breath beat before the drop dims the whole backdrop to near-black so the drop hits harder. Bokeh circles are hidden in that beat.
+- Output encoded at crf 22 with a 12 Mbps cap (23 MB for 15.3 s); v6 is the current build. Audio unchanged (-13.8 LUFS, true peak -1.6 dBFS).

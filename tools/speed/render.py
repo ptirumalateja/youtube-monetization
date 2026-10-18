@@ -74,6 +74,46 @@ def make_bg():
     a*= (1-0.35*np.clip(xx**2+yy**2-0.3,0,1)); a=np.clip(a,0,255).astype('uint8')
     return Image.fromarray(a,'RGB').convert('RGBA')
 BG=make_bg()
+def make_space():
+    """deep-space backdrop, built once: dim nebula veils (teal, violet, ember), a faint Milky Way band, depth stars, a looming dark planet rim. Canvas is 1.16x so it can drift slowly."""
+    SW,SH=int(W*1.16),int(H*1.16); r=np.random.default_rng(77); bw,bh=SW//4,SH//4
+    def fbm(seed,oct=6,base=3):
+        g=np.random.default_rng(seed); acc=np.zeros((bh,bw)); amp=1.0; tot=0
+        for o in range(oct):
+            n=base*(2**o); a=g.random((int(n*bh/bw)+2,n+2)); im=Image.fromarray((a*255).astype('uint8')).resize((bw,bh),Image.BICUBIC)
+            acc+=np.asarray(im,float)/255*amp; tot+=amp; amp*=0.52
+        return acc/tot
+    A,B,C=fbm(1),fbm(2,base=2),fbm(3,5,4)
+    ne=lambda x,lo,k,p:np.clip((x-lo)*k,0,1)**p
+    col=(ne(A,0.46,2.4,1.5)[...,None]*np.array([16,74,112])+ne(B,0.50,2.6,1.6)[...,None]*np.array([84,36,118])+ne(C,0.60,3.2,1.8)[...,None]*np.array([150,72,38])*0.8)
+    yy,xx=np.mgrid[0:bh,0:bw]; d=((xx/bw-0.5)*0.62+(yy/bh-0.5)*0.78)   # diagonal Milky Way band
+    band=np.exp(-(d/0.11)**2)*(0.35+0.9*fbm(4,6,6))
+    col+=band[...,None]*np.array([70,78,112])*0.55
+    vy=np.linspace(-1,1,bh)[:,None]; vx=np.linspace(-1,1,bw)[None,:]; vig=np.clip(1-0.55*(vx**2*0.9+vy**2*1.0),0.05,1)**1.8
+    col*= (0.78*vig)[...,None]
+    neb=Image.fromarray(np.clip(col,0,255).astype('uint8')).resize((SW,SH),Image.BICUBIC).filter(ImageFilter.GaussianBlur(3))
+    arr=np.asarray(neb).astype(float)
+    n=2600; sx=r.uniform(0,SW,n); sy=r.uniform(0,SH,n)
+    dd=((sx/SW-0.5)*0.62+(sy/SH-0.5)*0.78); keep=r.random(n)<(0.35+0.65*np.exp(-(dd/0.14)**2)); sx,sy=sx[keep],sy[keep]
+    br=(r.random(len(sx))**3.2)*210+35
+    for x_,y_,b_ in zip(sx,sy,br):
+        xi,yi=int(x_),int(y_); arr[yi,xi]=np.minimum(255,arr[yi,xi]+b_*np.array([0.95,0.97,1.0]))
+        if b_>150 and xi+1<SW: arr[yi,xi+1]=np.minimum(255,arr[yi,xi+1]+b_*0.4)
+    im=Image.fromarray(np.clip(arr,0,255).astype('uint8')).convert('RGBA'); dr=ImageDraw.Draw(im)
+    for _ in range(46):   # brighter stars with a soft glow and a thin cross
+        x_,y_=r.uniform(40,SW-40),r.uniform(40,SH-40); c=[(255,246,226),(190,215,255),(255,214,160)][int(r.integers(0,3))]; q=r.uniform(0.5,1)
+        for rad,a_ in ((6,18),(3.5,55),(1.6,210)): dr.ellipse((x_-rad,y_-rad,x_+rad,y_+rad),fill=c+(int(a_*q),))
+        dr.line((x_-12*q,y_,x_+12*q,y_),fill=c+(int(70*q),),width=1); dr.line((x_,y_-12*q,x_,y_+12*q),fill=c+(int(70*q),),width=1)
+    # looming dark planet limb, lower left: black disc with a thin warm rim light
+    pl=Image.new('RGBA',(SW,SH),(0,0,0,0)); pd=ImageDraw.Draw(pl); cx,cy,R_=-260,SH+1080,1750
+    for k in range(28,0,-1): pd.ellipse((cx-R_-k*2,cy-R_-k*2,cx+R_+k*2,cy+R_+k*2),fill=(214,150,84,int(5+2.2*(28-k)*0.0+ (28-k)*0.9*0+ (1.0*(1-k/28)*26))) if False else (232,170,96,int(2.6*(29-k))))
+    pd.ellipse((cx-R_,cy-R_,cx+R_,cy+R_),fill=(2,3,6,255))
+    pl=pl.filter(ImageFilter.GaussianBlur(5)); im.alpha_composite(pl)
+    return im
+SPACE=make_space(); SPW,SPH=SPACE.size
+def space_bg(t):
+    ox=int((SPW-W)/2+22*math.sin(t*0.18)-t*3.0); oy=int((SPH-H)/2+14*math.cos(t*0.13)); ox=max(0,min(SPW-W,ox)); oy=max(0,min(SPH-H,oy))
+    return SPACE.crop((ox,oy,ox+W,oy+H))
 def sprite_finish(im,glow_col,gr=14,ga=0.55):
     """add a soft coloured glow under a finished RGBA sprite"""
     pad=gr*3; big=Image.new('RGBA',(im.width+2*pad,im.height+2*pad),(0,0,0,0)); big.alpha_composite(im,(pad,pad))
@@ -281,8 +321,12 @@ def stack_objs(obj,t):
 def draw(t):
     global PS
     pl=pulse(t); PS=1.0+0.03*pl+(0.06*math.exp(-(t-LIGHT_T[0])/0.12) if LIGHT_T[0]<=t<LIGHT_T[0]+0.6 else 0)
-    fr=BG.copy(); lay=Image.new('RGBA',(W,H),(0,0,0,0))
-    bx0=int((off(t)*0.06)%W); fr.alpha_composite(BOKEH.crop((bx0,0,bx0+W,H)))
+    fr=space_bg(t)
+    dim=0.12 if LAND_T[0]+0.04<=t<LIGHT_T[0] else 1.0
+    if dim<1: fr=Image.eval(fr,lambda v:int(v*dim)).convert('RGBA')
+    lay=Image.new('RGBA',(W,H),(0,0,0,0))
+    bx0=int((off(t)*0.06)%W)
+    if dim>=1: fr.alpha_composite(BOKEH.crop((bx0,0,bx0+W,H)))
     tc,ta=tint(t)
     if ta>0: fr.alpha_composite(Image.new('RGBA',(W,H),tc+(int(255*ta*(0.8+0.5*pl)),)))
     light=LIGHT_T[0]<=t<LIGHT_T[1]; blackout=LAND_T[0]<=t<LIGHT_T[0]
