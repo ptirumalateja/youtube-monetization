@@ -1,17 +1,50 @@
-# Speed Ladder: publish copy (17.1 s)
+# Speed Ladder: publish copy (15 s, v15)
 
-Titles to test (pick one per platform):
-- "You're moving at 30 km/s right now"
-- "How fast is fast? Watch it climb"
-- "Light isn't the fastest thing (sort of)"
+Before posting: check the three "to check" numbers against a source (airliner cruise about 900 km/h, rifle bullet about 3,200 km/h, Earth's equator 40,075 km). Visuals include AI-generated backgrounds, so turn on the AI-content label where the platform asks.
 
-Description:
-How fast is fast? An airliner, a rifle bullet, you (around the Sun), the fastest spacecraft ever, and light, all on one speed ladder. Then light circling the Earth 7.5 times in one second. Then the twist: far galaxies recede faster than light, because space itself stretches, and nothing breaks relativity.
-Animated explainer, not to scale. Speeds are approximate.
-Sources: Parker Solar Probe record (about 192 km/s, 24 Dec 2024): Guinness World Records / NASA. Earth's orbital speed: NASA Earth Fact Sheet. Superluminal recession: Davis and Lineweaver 2004, "Expanding Confusion" (PASA, arXiv astro-ph/0310808).
+## YouTube Shorts
+**Title:** You're moving 107,000 km/h right now
 
-Pinned comment: "What's the fastest thing you've ever seen? Tell me below."
+**Description:**
+How fast is fast? From an airliner to a rifle bullet, to you around the Sun, to the fastest spacecraft ever, to light. Then the twist: far galaxies recede faster than light, because space itself stretches.
 
-Before posting: confirm the TO CHECK rows in `speed-ladder-spec.md` (airliner about 900 km/h, rifle bullet about 0.9 km/s, Earth 29.78 km/s, Earth equator 40,075 km) against a source.
+So is there really a speed limit? Tell me what you think.
 
-Audio: all sounds are synthesised in code (`tools/speed/mix.py`), so no licences or credits are needed. Visuals are drawn in code (no AI footage), so no AI label is required.
+Animated explainer, not to scale. AI-assisted visuals. Speeds are approximate.
+Sources: Parker Solar Probe about 192 km/s (NASA / Guinness World Records, Dec 2024); Earth's orbital speed (NASA Earth Fact Sheet); recession faster than light: Davis and Lineweaver 2004, "Expanding Confusion".
+
+Sound credits (Freesound). Changes were made: trimmed, layered, filtered and mixed.
+- "Bullet_whiz_slowed.wav" by CGEffex, https://freesound.org/s/123223/ , CC BY 4.0
+- "Heartbeat." by urupin, https://freesound.org/s/92036/ , CC BY 4.0
+- "FIREBurn_Campfire...roar" by newlocknew, https://freesound.org/s/730704/ , CC BY 4.0
+- "ONORO_Julian_2014_2015_Supersonic.wav" by univ_lyon3, https://freesound.org/s/250591/ , CC BY 4.0
+- "Processed Sitar Riser.wav" by jdagenet, https://freesound.org/s/403662/ , CC BY 4.0
+- "Rising Horror Climax [static].wav" by Headphaze, https://freesound.org/s/235205/ , CC BY 4.0
+- "Ringing in the Ears" by hykenfreak, https://freesound.org/s/218050/ , CC BY 4.0
+- "rarexport-05.wav" by plagasul, https://freesound.org/s/4096/ , CC BY 4.0
+- "Riser Quick 2", "Impact", "Impact Cinematic" by original_sound, https://freesound.org/s/376576/ , /376816/ , /376817/ , CC BY 3.0
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ | CC BY 3.0: https://creativecommons.org/licenses/by/3.0/
+
+**Tags/hashtags:** #shorts #space #physics #science #speedoflight #parkersolarprobe
+
+**Pinned comment:** Is there really a speed limit? Tell me what you think.
+
+## Facebook Reel
+How fast is fast? Airliner, rifle bullet, you around the Sun, the fastest spacecraft ever, then light, which circles the Earth 7.5 times every second. And far galaxies recede faster than light, because space itself stretches.
+
+So is there really a speed limit? Tell me what you think.
+
+Animated explainer, not to scale. AI-assisted visuals.
+Sound: CGEffex, urupin, newlocknew, univ_lyon3, jdagenet, Headphaze, hykenfreak, plagasul and original_sound via Freesound (CC BY 4.0 / 3.0), changes made. Full credits on YouTube.
+
+#space #science #physics #speedoflight
+
+## Instagram Reel
+You're moving 107,000 km/h right now. 🚀
+
+Airliner, rifle bullet, you, the fastest spacecraft ever, then light. And galaxies that recede faster than light. So is there really a speed limit? Tell me below 👇
+
+Animated, not to scale. AI-assisted visuals.
+Sound: CGEffex, urupin, newlocknew, univ_lyon3, jdagenet, Headphaze, hykenfreak, plagasul, original_sound via Freesound (CC BY), changes made. Full credits on YouTube.
+
+#space #physics #science #speedoflight #didyouknow #astronomy
