@@ -48,3 +48,21 @@ Start frames: stills from our own render (`mosquito_style_ref_0006.png` hero, `m
 
 ## Beat 05 data globe, built in code (18 Oct 2026)
 `tools/mosquito/globe.html` (three.js, Natural Earth land from `land.json`): dot-matrix Earth in cool navy/teal, turns to Africa over 2.6 s, red markers light in a wave from 1.0 s, one flash at 2.4 s (the hero hit), then holds to 5 s. Top third of the frame is left empty for the number and captions. Render: `PAGE=globe.html node tools/mosquito/render.js <playwright-core dir> 1080 1920 <out> 0 150`. The red region is ILLUSTRATIVE (land points in tropical Africa, south of the Sahara, soft edges): WHO says about 95% of 2024 malaria deaths are in the WHO African Region; no per-country data is implied. Add "(illustrative)" to the spec/credits if the owner prefers.
+
+## Clip selection after the Drive review (18 Oct 2026, owner folder `v2` = `1abqpZPLHLlfhFo2jXknTrLCt7LalRciC`)
+All Flow/Canva clips are 1080x1920 at 24 fps with a Gemini sparkle at about x 864-936, y 1704-1776 (remove with `delogo=x=852:y=1692:w=96:h=96`), no baked text. Download: `curl -L "https://drive.usercontent.google.com/download?id=<id>&export=download&confirm=t"`. Windows below are source seconds.
+
+| Beat | Use this file (Drive id) | Window | Notes |
+|---|---|---|---|
+| 01-02 hook: swarm, glow, flash, dust | `Mosquito_swarm_glowing_and_bursting_20261018133707.mp4` (`1aePgfAEb-DsWvnSWbJw66q014qdAcElp`) | 0.0-3.2 s | Redesigned mosquito (banded abdomen, banded legs, glossy face). Swarm glows gold from 1.2 s, white flash 1.55 s, dust 1.85-2.2 s, glowing particles over the sunset 2.2-3.2 s, no mosquitoes left. Add a digital pull-back (scale 1.3 to 1.0 over the first 1.0 s) for the "macro then reveal" feel. Bass hit on the flash at 1.55 s. |
+| 03 Earth + pulse | `Light_pulse_spreading_across_Earth_20261018114259.mp4` (`17x7noFhpqP5Q8Ti6uiYPKscK0pxUEjuT`) | 0.5-3.5 s | Night Earth, amber rim, ring pulse at 1.0-2.0 s. |
+| 04 WEEK 1 tundra | `Caribou_grazing_on_tundra_1080p_20261018114933.mp4` (`1rF-40_BotRMU0yDjdXTccoLzIOqyhiKL`) | 0.4-6.0 s | Starts inside a cloud wipe (use it as the Earth-to-tundra dissolve), then calm herd, clear air. |
+| 05 data globe | built in code (`tools/mosquito/globe.html`) or owner-generated | 5 s | |
+| 06 predator | `Bird_standing_in_water_1080p_20261018121819.mp4` (`12ceZOSHla65LXQkYyh2QWJtTpvKzSZMT`) | 0-3.0 s only | After about 3.5 s the bird seems to catch something and the head distorts. |
+| 07 food webs | `Fish_swimming_in_amber_water_20261018122522.mp4` (`1cKEvUATD744nQFv2sPCPsJ-XNnS2T2F6`) | any 3 s, e.g. 4.6-7.6 s | Fish plus aquatic insects, amber/teal. |
+| 08 orchid | `Mosquito_dissolving_into_dust_ne..._20261018123713.mp4` (`1X-aKN3SlwyZ1YjsnIVaifyLsis2pX1Vi`) | 0-5.5 s | Right orchid. The dissolve looks like smoke wisps, not fine dust; acceptable. Sky shifts amber to teal. |
+| 09 Year 10 | `Caribou_grazing_in_Arctic_tundra_20261018131204.mp4` (`1Jl2DKIXsPOwffBRADbR4GFTLmklG480s`) | 3.0-8.0 s | Haze of glowing insects thickens over the herd. |
+| 10 closing Earth | `Sun_rising_over_planet_1080p_20261018131501.mp4` (`15v0TEnfw24Kp0u1gtDM6BpghUSwHUf29`) | 0-7.0 s | Earth lights up as the sun rises, space for the question below. |
+| 11 loop | `Mosquito_landing_on_human_skin_20261018131718.mp4` (`1Gj9hrstip4MZ4Ea-RNOoF8RwZkBK-z5C`) | 0-4.5 s | Mosquito already on skin; wings fold. Loop by hard cut to frame 0 with the whine. |
+
+Not used: `Swarm_disintegrating_into_glowin..._115421` (central white sphere and shockwave ring, black after), `Mosquito_swarm_disintegrating_in..._120947` (central starburst; tiny mosquitoes still drift after the blast), `Mosquito_swarm_vanishes_overnight_093746` (baked text, different mosquito design), `The entire mosquito swarm ... radial` (1366x768 landscape, central glow only). Images in the folder (Earth start frames, caribou, swarm) are start frames only.
