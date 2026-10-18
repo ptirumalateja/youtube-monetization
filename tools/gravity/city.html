@@ -1,0 +1,94 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#cfe6f5}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// Slow Light "What if gravity switched off?": soft clay-like low-poly Hyderabad-style avenue (generic city), flat shaded, pastel.
+// Physics: when gravity switches off, every unattached object keeps its velocity (inertia) and the ground curves away beneath it:
+// lift h = a t^2 / 2 with a = w^2 R cos^2(lat) = 0.03089 m/s^2 at Hyderabad (17.385 deg N). Buildings and anything fixed to the ground stay.
+import * as THREE from 'three';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene(); const FOG=0xd7e9f6; scene.fog=new THREE.Fog(FOG,110,520);
+{const c=document.createElement('canvas');c.width=4;c.height=256;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#8fc4ec');g.addColorStop(.55,'#c4e0f3');g.addColorStop(1,'#e9f3fa');x.fillStyle=g;x.fillRect(0,0,4,256);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;scene.background=t}
+const cam=new THREE.PerspectiveCamera(40,W/H,0.2,900);
+function rnd(s){s=s>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}} const R=rnd(2026), U=(a,b)=>a+(b-a)*R();
+const ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
+// ---- constants
+const A_LIFT=0.03089, G=9.8, T_OFF=1.8, T_SWITCH_END=2.2, LAPSE=2.7;
+// world time tau(ts): real time until the switch beat ends (2.2 s), then a time-lapse (x2.7) with a short 0.4 s ramp
+function tau(ts){ if(ts<=2.2) return ts; const d=ts-2.2, RAMP=0.4; if(d<=RAMP){return 2.2+d+(LAPSE-1)*d*d/(2*RAMP)} return 2.2+RAMP+(LAPSE-1)*RAMP/2+(d-RAMP)*LAPSE }
+const tg=ts=>Math.max(0,tau(ts)-T_OFF), lift=ts=>0.5*A_LIFT*tg(ts)*tg(ts);
+window.stateAt=ts=>({tau:tau(ts),tg:tg(ts),h:lift(ts)});
+// ---- lights
+scene.add(new THREE.HemisphereLight(0xf2f8ff,0xe6dccd,2.0));
+const sun=new THREE.DirectionalLight(0xfff4e4,1.55); sun.position.set(40,70,30); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-60,right:60,top:70,bottom:-70,near:1,far:260}); sun.shadow.bias=-0.0006; sun.shadow.radius=4; scene.add(sun); scene.add(sun.target);
+const mat=(c,o={})=>new THREE.MeshLambertMaterial(Object.assign({color:c},o));
+// ---- buildings with pastel window textures
+function winTex(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,128,128);x.fillStyle='#bcd8ee';for(let i=0;i<2;i++)for(let j=0;j<2;j++)x.fillRect(14+i*62,18+j*62,36,30);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}
+const WT=winTex(); const PAL=[0xfaf3e8,0xf1e8da,0xfffaf0,0xe3eef7,0xeef3f7,0xf6ede0,0xf8e6da];
+function building(cx,cz,w,d,h,color){const g=new THREE.BoxGeometry(w,h,d); const uv=g.attributes.uv; // faces: px,nx,py,ny,pz,nz (4 verts each)
+ const dims=[[d,h],[d,h],[0,0],[0,0],[w,h],[w,h]];
+ for(let f=0;f<6;f++)for(let v=0;v<4;v++){const i=f*4+v; if(f===2||f===3){uv.setXY(i,0.02,0.02)} else uv.setXY(i,uv.getX(i)*dims[f][0]/6,uv.getY(i)*dims[f][1]/6)}
+ const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color,map:WT})); m.position.set(cx,h/2,cz); m.castShadow=true; m.receiveShadow=true; scene.add(m); return m}
+for(const side of[-1,1]){let z=70; while(z>-760){const d=U(18,30),w=U(16,26),h=U(30,125); building(side*(15.5+w/2),z-d/2,w,d,h,PAL[Math.floor(R()*PAL.length)]); z-=d+U(0.4,1.6)}}
+// ---- ground
+const road=new THREE.Mesh(new THREE.PlaneGeometry(21,900),mat(0xb3bcc9)); road.rotation.x=-Math.PI/2; road.position.set(0,0,-200); road.receiveShadow=true; scene.add(road);
+for(const s of[-1,1]){const sw=new THREE.Mesh(new THREE.PlaneGeometry(5,900),mat(0xece5da)); sw.rotation.x=-Math.PI/2; sw.position.set(s*13,0.02,-200); sw.receiveShadow=true; scene.add(sw)}
+{const dash=new THREE.BoxGeometry(0.25,0.02,3); const im=new THREE.InstancedMesh(dash,mat(0xf6efdf),130); const m=new THREE.Matrix4(); for(let i=0;i<130;i++){m.makeTranslation(0,0.03,60-i*6);im.setMatrixAt(i,m)} im.receiveShadow=true; scene.add(im)}
+for(const zc of[-9,-70]){const st=new THREE.BoxGeometry(0.55,0.02,3.2); const im=new THREE.InstancedMesh(st,mat(0xf6efdf),14); const m=new THREE.Matrix4(); for(let i=0;i<14;i++){m.makeTranslation(-9.1+i*1.4,0.03,zc);im.setMatrixAt(i,m)} im.receiveShadow=true; scene.add(im)}
+// trees (attached to the ground): lollipops
+const trunkG=new THREE.CylinderGeometry(0.12,0.16,2.2,6), crownG=new THREE.IcosahedronGeometry(1.5,0);
+for(const s of[-1,1])for(let i=0;i<24;i++){const z=48-i*11+(s>0?3:0),x=s*14.6; const t=new THREE.Mesh(trunkG,mat(0xb89f86)); t.position.set(x,1.1,z); t.castShadow=true; scene.add(t); const c=new THREE.Mesh(crownG,mat(i%3?0xa9d3a2:0xbfdca0)); c.position.set(x,3.2,z); c.castShadow=true; scene.add(c)}
+// fountain on the median (attached basin)
+const basin=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.8,0.5,16),mat(0xe6e0d4)); basin.position.set(0,0.25,-28); basin.castShadow=basin.receiveShadow=true; scene.add(basin);
+const pool=new THREE.Mesh(new THREE.CircleGeometry(2.3,16),mat(0xa9d6f2)); pool.rotation.x=-Math.PI/2; pool.position.set(0,0.51,-28); scene.add(pool);
+// ---- people
+const SKIN=[0xf3d9c4]; const PC=[0xa793d8,0x92d0a0,0xf6f6f6,0xf3a79c,0xf4dc8e,0x93bbe8,0xe7b4d8];
+const bodyG=new THREE.BoxGeometry(0.44,0.62,0.26), headG=new THREE.IcosahedronGeometry(0.15,0), legG=new THREE.BoxGeometry(0.17,0.82,0.17), armG=new THREE.BoxGeometry(0.12,0.6,0.12);
+legG.translate(0,-0.41,0); armG.translate(0,-0.3,0);
+const people=[]; const NP=96;
+for(let i=0;i<NP;i++){const c=PC[i%PC.length]; const m=mat(c); const g=new THREE.Group();
+ const body=new THREE.Mesh(bodyG,m); body.position.y=1.12; const head=new THREE.Mesh(headG,m); head.position.y=1.58;
+ const lL=new THREE.Mesh(legG,m); lL.position.set(-0.11,0.82,0); const lR=new THREE.Mesh(legG,m); lR.position.set(0.11,0.82,0);
+ const aL=new THREE.Mesh(armG,m); aL.position.set(-0.29,1.4,0); const aR=new THREE.Mesh(armG,m); aR.position.set(0.29,1.4,0);
+ for(const p of[body,head,lL,lR,aL,aR]){p.castShadow=true; g.add(p)} scene.add(g);
+ const cross=i%3===0; const side=R()<.5?-1:1; const dir=R()<.5?-1:1; const sp=U(0.6,1.0);
+ const P={g,lL,lR,aL,aR,s:U(1.3,1.55),ph:U(0,6.28)};
+ if(cross){P.x0=U(-8,8);P.z0=-9+U(-1.5,1.5)+(i%2?22:0);P.vx=dir*sp;P.vz=0;P.face=dir>0?Math.PI/2:-Math.PI/2; if(Math.abs(P.vx)>0){P.x0=-P.vx*U(-6,6)}}
+ else{P.x0=side*U(11,14.2);P.z0=U(16,-42);P.vx=0;P.vz=dir*sp;P.face=dir>0?Math.PI:0}
+ P.spread=U(0.5,1.1); P.lean=U(-0.1,0.1); people.push(P)}
+function setPerson(P,ts){const t=tau(ts), tw=Math.min(t,T_OFF), tgs=tg(ts); const x=P.x0+P.vx*t, z=P.z0+P.vz*t, y=lift(ts);
+ const walk=1-ease(tgs/0.5); const w=Math.sin((tw*3.6+P.ph)*1.8*Math.PI)*0.55*walk; const relax=ease(tgs/3.0);
+ P.g.position.set(x,y,z); P.g.rotation.y=P.face; P.g.scale.setScalar(P.s);
+ P.lL.rotation.x=w*(1-relax)+0.25*relax*P.lean; P.lR.rotation.x=-w*(1-relax)-0.2*relax; P.aL.rotation.x=-w*0.8*(1-relax); P.aR.rotation.x=w*0.8*(1-relax);
+ P.aL.rotation.z=-relax*P.spread; P.aR.rotation.z=relax*P.spread; P.g.rotation.z=relax*P.lean*0.6}
+// ---- cars
+const CC=[0xe8d9bf,0xcfd8e3,0xf0b8a8,0xbfe0c8,0xf3e6a8,0xd9c8ec]; const cars=[]; const wheelG=new THREE.CylinderGeometry(0.34,0.34,0.26,10); wheelG.rotateZ(Math.PI/2);
+for(let i=0;i<22;i++){const g=new THREE.Group(); const m=mat(CC[i%CC.length]); const lane=i%2?3.6:-3.6;
+ const b=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.7,4.2),m); b.position.y=0.62; const c=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.62,2.2),mat(0xdbe6ef)); c.position.set(0,1.28,-0.15);
+ b.castShadow=c.castShadow=true; g.add(b,c); const wh=[]; for(const sx of[-1,1])for(const sz of[-1.4,1.4]){const w=new THREE.Mesh(wheelG,mat(0x56606b)); w.position.set(sx*0.95,0.34,sz); w.castShadow=true; g.add(w); wh.push(w)}
+ scene.add(g); cars.push({g,wh,x:lane+U(-0.4,0.4),z0:U(16,-48),v:(lane>0?1:-1)*U(2,4.2),dir:lane>0?1:-1})}
+// cars in the +x lane drive toward +z (toward camera), -x lane away
+function setCar(C,ts){const t=tau(ts); const tw=Math.min(t,T_OFF); const z=C.z0+C.v*t; C.g.position.set(C.x,lift(ts),z); C.g.rotation.y=C.v>0?0:Math.PI; for(const w of C.wh)w.rotation.x=(C.z0+C.v*tw)/0.34*(C.v>0?1:-1)*0+ (tw*Math.abs(C.v)/0.34)*(C.v>0?1:-1)}
+// ---- fountain drops, thrown ball, loose items
+const ND=150, PER=2.2, dropG=new THREE.IcosahedronGeometry(0.11,0); const drops=new THREE.InstancedMesh(dropG,new THREE.MeshLambertMaterial({color:0xc2e4ff,emissive:0x5aa5d8,emissiveIntensity:0.25}),ND); drops.castShadow=true; scene.add(drops);
+const dv=[]; for(let k=0;k<ND;k++){const a=U(0,6.28),r=U(0.2,1.0),sp=U(1.0,2.6); dv.push({b:U(0,PER),x0:Math.cos(a)*r*0.8,z0:-28+Math.sin(a)*r*0.8,vx:Math.cos(a)*sp,vz:Math.sin(a)*sp,vy:U(7,10.5)})}
+const mtx=new THREE.Matrix4(), q0=new THREE.Quaternion(), s1=new THREE.Vector3(1,1,1);
+function setDrops(ts){const t=tau(ts), L=lift(ts); for(let k=0;k<ND;k++){const d=dv[k]; let n=Math.floor((t-d.b)/PER); if(n<0) n=0; let b=d.b+n*PER; let age=t-b; let y,x,z;
+  const gt=Math.max(0,Math.min(t,T_OFF)-b); const vy1=d.vy-G*gt; y=0.55+d.vy*gt-0.5*G*gt*gt+vy1*(age-gt); x=d.x0+d.vx*age; z=d.z0+d.vz*age;
+  if(t<=T_OFF && y<0.5){mtx.makeScale(0.001,0.001,0.001)} else if(age<0){mtx.makeScale(0.001,0.001,0.001)} else {mtx.compose(new THREE.Vector3(x,y+L,z),q0,s1)} drops.setMatrixAt(k,mtx)} drops.instanceMatrix.needsUpdate=true}
+const ball=new THREE.Mesh(new THREE.IcosahedronGeometry(0.14,1),mat(0xf08a7a)); ball.castShadow=true; scene.add(ball);
+function setBall(ts){const t=tau(ts); const tb=1.3; if(t<tb){ball.position.set(5.2,-5,14);return} const age=t-tb, gt=Math.max(0,Math.min(t,T_OFF)-tb), v1=10-G*gt; const y=1.5+10*gt-0.5*G*gt*gt+v1*(age-gt); ball.position.set(5.2,y+lift(ts),14)}
+const sheetG=new THREE.PlaneGeometry(0.32,0.42), boxG=new THREE.BoxGeometry(0.42,0.34,0.34), NL=170; const loose=[]; const sheets=new THREE.InstancedMesh(sheetG,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),NL), boxes=new THREE.InstancedMesh(boxG,mat(0xdcbf9f),NL);
+sheets.castShadow=boxes.castShadow=true; scene.add(sheets,boxes);
+for(let i=0;i<NL;i++){const side=R()<.5; const x=side?U(-9,9):(R()<.5?-1:1)*U(10.5,14.5); loose.push({x,z:U(14,-34),ry:U(0,6.28),rz:U(-.3,.3),rx:-Math.PI/2+U(-.25,.25)})}
+const eu=new THREE.Euler(), qq=new THREE.Quaternion(), vp=new THREE.Vector3();
+function setLoose(ts){const L=lift(ts); for(let i=0;i<NL;i++){const o=loose[i]; eu.set(o.rx,o.ry,o.rz); qq.setFromEuler(eu); vp.set(o.x,0.06+L,o.z); mtx.compose(vp,qq,s1); sheets.setMatrixAt(i,mtx); eu.set(0,o.ry,0); qq.setFromEuler(eu); vp.set(o.x+1.2,0.17+L,o.z+0.8); mtx.compose(vp,qq,s1); boxes.setMatrixAt(i,mtx)}
+ sheets.instanceMatrix.needsUpdate=boxes.instanceMatrix.needsUpdate=true}
+// ---- camera: street level dolly, then a crane up and back to the tall canyon view
+function camAt(ts){const z=30-0.5*ts; let y=2.7, tz=-60, ty=14, fz=z; if(ts>10.8){const u=ease((ts-10.8)/3.4); y=2.7+u*58; fz=z+u*34; ty=14-u*11.4; tz=-60+u*30}
+ cam.position.set(0,y,fz); cam.lookAt(0,ty+ (ts>10.8?0:0),tz); cam.fov=40+ (ts>10.8?ease((ts-10.8)/3.4)*8:0); cam.updateProjectionMatrix(); sun.target.position.set(0,0,fz-45); sun.position.set(40,70,fz-45+30)}
+window.renderAt=ts=>{ for(const P of people) setPerson(P,ts); for(const C of cars) setCar(C,ts); setDrops(ts); setBall(ts); setLoose(ts); camAt(ts); renderer.render(scene,cam); return renderer.domElement.toDataURL('image/jpeg',.93)};
+window.ready=true;
+</script></body></html>
