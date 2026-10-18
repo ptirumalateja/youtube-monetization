@@ -1,3 +1,5 @@
+> **Current status and handoff: read `HANDOFF.md` first.**
+
 # STANDING RULES FOR ALL SLOW LIGHT WORK (read first)
 
 1. **Before doing any video, sound or publishing work, read `slow-light-design-playbook.md` in full.** It is the source of truth for design decisions, camera grammar (Scale Ladder orbiting log-zoom; Night Sky single-axis tunnel), depth/parallax/motion, exposure, palette, info-layer sizes, sound design, QA checklist, lessons log and backlog. Then read the per-reel spec (`night-sky-v8-spec.md`, `scale-ladder-reel.md`) and the publish copy for the reel you touch.
