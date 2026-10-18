@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import render as R   # sprites (airliner, bullet, probe), the lattice Earth and galaxy glints; its old backdrop code is not used here
 W,H,FPS,T=1080,1920,30,15.0
 BEAT=0.45
+NO_TITLE=False   # thumbnails switch this on
 CX,CY=540,700
 ease,eout,ein=R.ease,R.eout,R.ein
 WHITE=(255,255,255); RED=(224,32,32); GOLD=(255,205,100)
@@ -329,7 +330,7 @@ def draw(t,bgarr=None):
     tx=Image.new('RGBA',(W,H),(0,0,0,0))
     title_al=1.0 if t<LAND_T[0]-0.15 else ease((LAND_T[0]-t)/0.15)
     if t>=LOOP_T[0]: title_al=ease((t-LOOP_T[0])/(T-LOOP_T[0]))
-    if (t<LAND_T[0] or t>=LOOP_T[0]) and title_al>0: put(tx,row(['HOW FAST IS','#FAST','?'],104),CX,215,title_al)
+    if (t<LAND_T[0] or t>=LOOP_T[0]) and title_al>0 and not NO_TITLE: put(tx,row(['HOW FAST IS','#FAST','?'],104),CX,215,title_al)
     for n,(a,b) in STOPS.items():
         al=(1.0 if t>=a+0.04 else ease((t-a)/0.04))*(ease((b-t)/0.06) if t>b-0.06 else 1.0) if a<=t<b else 0.0
         if n=='jet' and t<b-0.06: al=1.0
