@@ -100,3 +100,11 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 - Backdrop (built once in `make_space()`, `render_v6_space.py`): dim nebula veils (teal, violet, ember) from layered noise, a faint diagonal Milky Way band with dust and dense tiny stars, 2,600 depth stars plus 46 brighter glowing stars with thin crosses, strong vignette, and a looming dark planet horizon in the lower third with a warm rim light. The canvas is 1.16x and drifts slowly so the sky is never static. Kept dim (nebula under about 30% brightness) so the objects and text still pop; the warp streaks run on top.
 - The held-breath beat before the drop dims the whole backdrop to near-black so the drop hits harder. Bokeh circles are hidden in that beat.
 - Output encoded at crf 22 with a 12 Mbps cap (23 MB for 15.3 s); v6 is the current build. Audio unchanged (-13.8 LUFS, true peak -1.6 dBFS).
+
+## v7 (twisted-corridor background, built 18 Oct 2026)
+- Owner pick: option A, the twisted corridor (from the grid / neon-tunnel / contour reference screenshots, "paradox: twists and plays with the mind"). `render_v7_corridor.py`.
+- The corridor (`corridor_layer()`): a square corridor receding to the centre, with every ring rotated a little more than the one in front of it (a spiral staircase for the eye). Parameters change over time (`CKEYS`): twist 0.10 at the jet to 0.24 at Parker (the spiral tightens with speed), a full gold vortex on the drop (twist 0.36, fast forward motion, full brightness), slower behind the laps, violet and rolling a quarter turn through the galaxy twist ("faster than light" beat), then back to the frame-0 pose for the loop. Per-stop line colours: teal, amber, blue, gold, white-gold, violet. The held-breath beat stays black.
+- The space nebula is kept but dimmed to 50% underneath. The hook keeps the 3-D star warp; the ladder no longer has the warp streaks (a short burst on the drop only), so the corridor carries the background.
+- Audio unchanged: -13.8 LUFS, true peak -1.6 dBFS after AAC; 21 MB.
+- Not built: contour-line (B) and dot-vortex (C) backgrounds (`bg_concepts.py` has the mockups).
+- Lesson: never run two ffmpeg encodes to the same output file, and never `pkill -f ffmpeg` from the same shell (it kills the shell).

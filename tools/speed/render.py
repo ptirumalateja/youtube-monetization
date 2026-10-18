@@ -111,6 +111,40 @@ def make_space():
     pl=pl.filter(ImageFilter.GaussianBlur(5)); im.alpha_composite(pl)
     return im
 SPACE=make_space(); SPW,SPH=SPACE.size
+_sp=np.asarray(SPACE).astype(float); _sp[...,:3]*=0.5; SPACE=Image.fromarray(_sp.astype('uint8'),'RGBA')
+import cv2
+# (t, twist, forward speed, brightness, roll, line colour RGB): the spiral tightens with speed, peaks on the drop, rolls through the galaxy twist
+CKEYS=[(0,0.14,1.2,0.45,0.0,(90,170,230)),(1.35,0.10,1.0,0.40,0.0,(70,170,230)),(2.7,0.13,1.4,0.42,0.0,(230,140,70)),(4.05,0.17,1.8,0.44,0.0,(70,140,230)),
+       (5.85,0.21,2.2,0.48,0.0,(240,160,70)),(7.6,0.24,2.6,0.55,0.0,(255,200,120)),(7.7,0.24,0.0,0.0,0.0,(255,200,120)),(8.06,0.24,0.0,0.0,0.0,(255,230,170)),
+       (8.14,0.36,4.5,1.0,0.0,(255,236,190)),(9.2,0.30,3.0,0.8,0.0,(255,214,150)),(10.35,0.22,1.6,0.55,0.0,(232,184,96)),(13.05,0.22,1.2,0.5,0.0,(150,110,230)),
+       (14.85,0.30,0.8,0.55,math.pi/2,(150,110,230)),(15.3,0.14,1.2,0.45,math.pi/2,(90,170,230))]
+def cparams(t):
+    for a,b in zip(CKEYS,CKEYS[1:]):
+        if a[0]<=t<=b[0]:
+            u=(t-a[0])/(b[0]-a[0]) if b[0]>a[0] else 1.0; u=u*u*(3-2*u)
+            return [a[i]+(b[i]-a[i])*u for i in range(1,5)]+[tuple(a[5][k]+(b[5][k]-a[5][k])*u for k in range(3))]
+    return list(CKEYS[-1][1:5])+[CKEYS[-1][5]]
+_cz_t=np.arange(0,T+0.01,1/300); _cz=np.cumsum([cparams(x)[1]/300 for x in _cz_t])
+def corridor_layer(t):
+    """twisted square corridor: every ring is rotated a bit more than the one in front of it, so the eye reads a spiral staircase that keeps turning"""
+    tw,sp,br,roll,col=cparams(t)
+    if br<=0.01: return None
+    img=np.zeros((H,W,3),np.uint8); F=640.0; cx,cy=TC; Z=float(np.interp(t,_cz_t,_cz)); rgb=np.array(col,float)[::-1]; gold=np.array((232,184,96),float)[::-1]
+    def rot(x,y,a): c,s_=math.cos(a),math.sin(a); return x*c-y*s_,x*s_+y*c
+    for k in range(42):
+        z=((k*0.34-Z*1.0)%14.28)+0.35; a=roll+tw*(14.0-z)*0.55; sz=F/z
+        pts=np.array([(cx+x,cy+y*1.3) for x,y in (rot(sx*sz,sy*sz,a) for sx,sy in ((-1,-1),(1,-1),(1,1),(-1,1)))],np.int32)
+        al=max(0.0,1-z/14.0)**0.9*min(1.0,z/0.9)*br
+        c=(rgb if k%2 else gold)*al
+        cv2.polylines(img,[pts],True,tuple(int(v) for v in c),2,cv2.LINE_AA)
+    for j in range(8):
+        ang=j*math.pi/4+math.pi/4; ex,ey=math.cos(ang),math.sin(ang); m=1/max(abs(ex),abs(ey)); pts=[]
+        for z in np.linspace(0.35,14.3,42):
+            a=roll+tw*(14.0-z)*0.55; r_=F/z; x,y=rot(ex*m*r_,ey*m*r_,a); pts.append((cx+x,cy+y*1.3))
+        cv2.polylines(img,[np.array(pts,np.int32)],False,tuple(int(v) for v in (rgb*0.75*br)),2,cv2.LINE_AA)
+    img=np.clip(img.astype(float)+cv2.GaussianBlur(img,(0,0),9).astype(float)*1.5,0,255).astype('uint8')
+    a=img.max(axis=2); rgba=np.dstack([img[...,::-1],np.clip(a.astype(float)*1.4,0,255).astype('uint8')])
+    return Image.fromarray(rgba,'RGBA')
 def space_bg(t):
     ox=int((SPW-W)/2+22*math.sin(t*0.18)-t*3.0); oy=int((SPH-H)/2+14*math.cos(t*0.13)); ox=max(0,min(SPW-W,ox)); oy=max(0,min(SPH-H,oy))
     return SPACE.crop((ox,oy,ox+W,oy+H))
@@ -234,7 +268,7 @@ def jet_pose(t):
     dx,sc,_=state(t,*STOPS['jet']); return dx,sc*JS,CY
 STACK=[('parker',720,0.50),('earth',930,0.34),('bullet',1140,0.70),('jet',1370,0.60)]   # four objects lined up one below another at the centre
 TC=(540,1000)
-BGW=[(0,0),(1.35,0.18),(2.7,0.26),(4.05,0.36),(5.85,0.5),(7.5,0.7),(7.62,0.0),(8.1,0.0),(8.14,1.0),(9.2,0.55),(10.35,0.3),(13.05,0.22),(13.6,0.1),(14.85,0.1),(15.3,0.1)]
+BGW=[(0,0),(8.1,0),(8.14,0.8),(8.8,0.0),(15.3,0)]
 def bg_i(t):
     for (a,u0),(b,u1) in zip(BGW,BGW[1:]):
         if a<=t<=b: return u0+(u1-u0)*((t-a)/(b-a) if b>a else 1)
@@ -327,6 +361,8 @@ def draw(t):
     lay=Image.new('RGBA',(W,H),(0,0,0,0))
     bx0=int((off(t)*0.06)%W)
     if dim>=1: fr.alpha_composite(BOKEH.crop((bx0,0,bx0+W,H)))
+    cl=corridor_layer(t)
+    if cl is not None and dim>=1: fr.alpha_composite(cl)
     tc,ta=tint(t)
     if ta>0: fr.alpha_composite(Image.new('RGBA',(W,H),tc+(int(255*ta*(0.8+0.5*pl)),)))
     light=LIGHT_T[0]<=t<LIGHT_T[1]; blackout=LAND_T[0]<=t<LIGHT_T[0]
