@@ -27,6 +27,8 @@ Scope: the wordless "light and scale" reels (Red Sprites, The Sun Vanishes, Nigh
 | Night Sky "the past" | Every light you see is old; Andromeda sees our past | v4 approved (19 s, sound reference); **v8.1 final** `night_sky_past_v81_A.mp4` (19.2 s) | copy ready: `night-sky-v81-publish-copy.md` |
 | Scale Ladder | Earth to the observable universe, ends "YOU ARE HERE." | **`scale_ladder_3d_v4_A/B.mp4`** (26 s, hooks A and B) | copy ready: `scale-ladder-publish-copy.md` |
 
+| Mosquito "What if" | What if every mosquito died tonight? (31 s, wordless, time ladder NIGHT 1 to YEAR 10) | none yet | spec proposed, awaiting sign-off: `mosquito-reel-spec.md` |
+
 Specs and notes per reel: `night-sky-past-reel.md` (v1-v4), `night-sky-v5-notes.md` (v5-v7), `night-sky-v8-spec.md` (v8 frozen plan + v8.1 pass), `scale-ladder-reel.md`.
 
 ## 3. The design system (decisions that now apply to every reel)
