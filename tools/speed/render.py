@@ -4,7 +4,8 @@
 import sys, math, json, subprocess, os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-W,H,FPS,T=1080,1920,30,14.0
+W,H,FPS,T=1080,1920,30,17.1
+BEAT=0.45   # 133 BPM grid: every cut, ring and pulse lands on it
 CREAM=(247,238,220); GOLD=(232,184,96); TEAL=(96,196,196); RED=(214,62,48); DARK=(8,6,6); STEEL=(214,222,232)
 FM='/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
 rng=np.random.default_rng(11)
@@ -39,10 +40,11 @@ def put(fr,im,cx,y,al=1.0,crop=1.0):
     x=int(cx-(im.width if crop>=1 else im.width/crop)/2); fr.alpha_composite(im,(x,int(y)))
 def fade(t,a,b,fi=0.18,fo=0.15): return min(ease((t-a)/fi),ease((b-t)/fo)) if a<=t<b else 0.0
 # ------------------------------------------------------------------ timeline
-STOPS={'jet':(1.6,3.4),'bullet':(3.4,5.0),'earth':(5.0,6.8),'parker':(6.8,8.6)}
-LAND_T,LIGHT_T,TWIST_T,LOOP_T=(8.6,9.1),(9.1,11.2),(11.2,13.5),(13.5,14.0)
+HOOK_END=1.8
+STOPS={'jet':(1.8,3.6),'bullet':(3.6,5.4),'earth':(5.4,7.2),'parker':(7.2,9.0)}
+LAND_T,LIGHT_T,LAP_T,TWIST_T,LOOP_T=(9.0,9.45),(9.45,11.7),(11.7,14.4),(14.4,16.65),(16.65,17.1)
 VALUES=[('jet',0.25),('bullet',0.9),('earth',30.0),('parker',192.0),('light',299792.0)]
-START={'jet':1.6,'bullet':3.4,'earth':5.0,'parker':6.8,'light':9.1}
+START={'jet':1.8,'bullet':3.6,'earth':5.4,'parker':7.2,'light':9.45}
 def counter(t):
     """monotonic odometer value (km/s) or None while hidden; rolls to the next stop's value 0.8-1.3 s after it lands"""
     if t<START['jet']+0.7: return None
@@ -55,7 +57,7 @@ def fmt(v):
     if v<1: return f'{v:.2f}'
     return f'{int(round(v)):,}'
 # speed (px/s) of the background streaks, integrated for continuous parallax
-KEYS=[(0,700),(1.6,700),(3.4,1000),(5.0,1700),(6.8,2800),(8.6,5200),(8.7,0),(9.0,0),(9.1,26000),(9.35,900),(11.2,150),(13.0,150),(13.5,800),(14.0,800)]
+KEYS=[(0,700),(1.8,700),(3.6,1000),(5.4,1700),(7.2,2800),(9.0,5200),(9.1,0),(9.4,0),(9.45,26000),(9.7,900),(11.7,200),(14.4,150),(16.4,150),(16.65,800),(17.1,800)]
 def vel(t):
     for (t0,v0),(t1,v1) in zip(KEYS,KEYS[1:]):
         if t0<=t<=t1: return v0+(v1-v0)*((t-t0)/(t1-t0) if t1>t0 else 1)
@@ -146,26 +148,49 @@ def state(t,a,b):
     u=(t-(a-0.15))/0.5; v=(t-(b-0.2))/0.45
     dx=(1-eout(u))*950-ein(v)*1250; sc=0.55+0.45*ease(u)
     return dx,sc,(0 if u<0 or v>1 else 1)
+PS=1.0
 def paste(fr,im,cx,cy,sc=1.0,al=1.0):
+    sc=sc*PS
     if sc!=1.0: im=im.resize((max(1,int(im.width*sc)),max(1,int(im.height*sc))),Image.BICUBIC)
     if al<1: im=im.copy(); im.putalpha(im.getchannel('A').point(lambda x:int(x*al)))
     fr.alpha_composite(im,(int(cx-im.width/2),int(cy-im.height/2)))
 CX,CY=540,900
+def make_bokeh():
+    r=np.random.default_rng(21); im=Image.new('RGBA',(W*2,H),(0,0,0,0)); d=ImageDraw.Draw(im)
+    for _ in range(46):
+        x=r.uniform(0,2*W); y=r.uniform(200,1700); rad=r.uniform(14,60); c=[GOLD,TEAL,CREAM][int(r.integers(0,3))]
+        d.ellipse((x-rad,y-rad,x+rad,y+rad),fill=c+(int(r.uniform(10,26)),))
+    return im.filter(ImageFilter.GaussianBlur(9))
+BOKEH=make_bokeh()
+def tint(t):
+    for (a,b),c in (((STOPS['jet'][0],STOPS['jet'][1]),(40,150,170)),((STOPS['bullet'][0],STOPS['bullet'][1]),(220,120,60)),((STOPS['earth'][0],STOPS['earth'][1]),(60,130,200)),((STOPS['parker'][0],STOPS['parker'][1]),(240,130,40)),(LIGHT_T,(255,230,170)),(LAP_T,(230,190,100)),(TWIST_T,(90,90,190))):
+        if a<=t<b: return c,ease(min((t-a)/0.3,(b-t)/0.3,1.0))*0.10
+    return (0,0,0),0.0
+def pulse(t):
+    for a,b in ((STOPS['jet'][0],LAND_T[0]),(LIGHT_T[0],LAP_T[1])):
+        if a<=t<b: return math.exp(-((t-a)%BEAT)/0.09)
+    return 0.0
+def orbit_pt(th,cx,cy,rx=430,ry=118): return cx+rx*math.cos(th),cy+ry*math.sin(th)
 JS=0.78
 def jet_pose(t):
-    if t<2.3:  # hook: already moving, flies in to the centre
-        u=ease(t/2.3); return -240*(1-u),(0.55+0.45*u)*JS,640+260*u
+    if t<2.5:  # hook: already moving, flies in to the centre
+        u=ease(t/2.5); return -240*(1-u),(0.55+0.45*u)*JS,640+260*u
     if t>=LOOP_T[0]:  # loop: flies back in from the left to the frame-0 pose
-        u=ease((t-LOOP_T[0])/0.5); return -1250*(1-u)-240*u,0.55*JS,640
+        u=ease((t-LOOP_T[0])/0.45); return -1250*(1-u)-240*u,0.55*JS,640
     dx,sc,_=state(t,*STOPS['jet']); return dx,sc*JS,CY
 def draw(t):
+    global PS
+    pl=pulse(t); PS=1.0+0.03*pl+(0.06*math.exp(-(t-LIGHT_T[0])/0.12) if LIGHT_T[0]<=t<LIGHT_T[0]+0.6 else 0)
     fr=BG.copy(); lay=Image.new('RGBA',(W,H),(0,0,0,0))
+    bx0=int((off(t)*0.06)%W); fr.alpha_composite(BOKEH.crop((bx0,0,bx0+W,H)))
+    tc,ta=tint(t)
+    if ta>0: fr.alpha_composite(Image.new('RGBA',(W,H),tc+(int(255*ta*(0.8+0.5*pl)),)))
     light=LIGHT_T[0]<=t<LIGHT_T[1]; blackout=LAND_T[0]<=t<LIGHT_T[0]
     # ---- speed streaks
-    streaks(lay,t,power=0.0 if blackout else 1.0); fr.alpha_composite(lay)
+    streaks(lay,t,power=0.0 if blackout else min(1.0,0.8+0.4*pl)); fr.alpha_composite(lay)
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); tl=Image.new('RGBA',(W,H),(0,0,0,0))
     # ---- hero objects
-    if t<3.65 or t>=LOOP_T[0]:
+    if t<STOPS['jet'][1]+0.25 or t>=LOOP_T[0]:
         dx,sc,y=jet_pose(t); x=CX+dx
         d=ImageDraw.Draw(obj)
         for k in range(14): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
@@ -214,6 +239,26 @@ def draw(t):
         d.ellipse((bx-10,CY-10,bx+10,CY+10),fill=(255,250,235,255))
         fr.alpha_composite(obj); obj=Image.new('RGBA',(W,H),(0,0,0,0))
         put(fr,txt('LIGHT',30,CREAM),bx,CY+26,ease(u/0.5))
+    if LAP_T[0]<=t<LAP_T[1]:
+        u=t-LAP_T[0]; e=ease(u/0.35); uu=u-0.3; laps=7.5*max(0.0,min(1.0,uu/1.0)); th=2*math.pi*laps
+        cx,cy=CX,CY; d=ImageDraw.Draw(obj)
+        fadeout=ease((LAP_T[1]-t)/0.3)
+        # faint full ring + back half of the comet
+        d.ellipse((cx-430,cy-118,cx+430,cy+118),outline=GOLD+(int(70*e*fadeout),),width=3)
+        pts=[]
+        if 0<=uu:
+            span=1.65 if uu<1.0 else 0.0   # radians swept since the last frame (motion blur at 7.5 laps/s)
+            for k in range(110):
+                a=th-span*k/109 if span>0 else th-0.05*k; x,y=orbit_pt(a,cx,cy); pts.append((x,y,max(0.0,1-k/109),math.sin(a)))
+        for x,y,w,sn in pts:
+            if sn<0: r=2+8*w; d.ellipse((x-r,y-r,x+r,y+r),fill=(255,244,214,int(150*w*e*fadeout)))
+        paste(obj,earth(0.5+(t-STOPS['earth'][0])*0.35),cx,cy,0.62+0.33*e,fadeout)
+        for x,y,w,sn in pts:
+            if sn>=0: r=2+9*w; d.ellipse((x-r,y-r,x+r,y+r),fill=(255,244,214,int(175*w*e*fadeout)))
+        if pts:
+            hx,hy=pts[0][0],pts[0][1]; gl=Image.new('RGBA',(120,120),(0,0,0,0)); gd=ImageDraw.Draw(gl)
+            for r_,a_ in ((52,40),(30,90),(14,200),(6,255)): gd.ellipse((60-r_,60-r_,60+r_,60+r_),fill=(255,236,190,int(a_*e*fadeout)))
+            obj.alpha_composite(gl,(int(hx-60),int(hy-60)))
     fr.alpha_composite(obj)
     # ---- rings on landing
     rl=Image.new('RGBA',(W,H),(0,0,0,0))
@@ -222,9 +267,9 @@ def draw(t):
     rings(rl,t,LIGHT_T[0]+0.0,CX,CY); fr.alpha_composite(rl)
     # ---- text layer
     tx=Image.new('RGBA',(W,H),(0,0,0,0))
-    if t<1.6: 
+    if t<HOOK_END: 
         hk1=txt('HOW FAST',112); hk2=row(['IS','#FAST','?'],112,0.3); f=min(1,t/1.1); 
-        al=fade(t,0,1.6,0.01,0.2); put(tx,hk1,CX,250,al,min(1,f*2)); put(tx,hk2,CX,250+150,al,max(0.04,min(1,(f-0.5)*2)) if f>0.5 else 0.0001)
+        al=fade(t,0,HOOK_END,0.01,0.2); put(tx,hk1,CX,250,al,min(1,f*2)); put(tx,hk2,CX,250+150,al,max(0.04,min(1,(f-0.5)*2)) if f>0.5 else 0.0001)
     names={'jet':('AIRLINER','900 KM/H'),'bullet':('RIFLE BULLET','~3,200 KM/H'),'earth':('YOU, RIGHT NOW','AROUND THE SUN - 107,000 KM/H'),'parker':('PARKER SOLAR PROBE','FASTEST HUMAN-MADE OBJECT')}
     for n,(a,b) in STOPS.items():
         al=fade(t,a+0.45,b-0.05,0.15,0.15)
@@ -236,18 +281,28 @@ def draw(t):
         put(tx,txt('FAR GALAXIES RECEDE',76),CX,250,fade(t,TWIST_T[0]+0.2,TWIST_T[1]-0.1)); put(tx,txt('FASTER THAN LIGHT.',76),CX,250+98,fade(t,TWIST_T[0]+0.2,TWIST_T[1]-0.1))
         put(tx,txt('(SPACE ITSELF STRETCHES.)',44,GOLD),CX,250+215,fade(t,TWIST_T[0]+1.0,TWIST_T[1]-0.05))
     if t>=TWIST_T[0]+0.5: put(tx,txt('NOT TO SCALE',34),CX,1500,fade(t,TWIST_T[0]+0.5,LOOP_T[0]+0.1,0.3,0.25))
+    if LAP_T[0]<=t<LAP_T[1]:
+        u=t-LAP_T[0]; uu=max(0.0,u-0.3); laps=7.5*min(1.0,uu/1.0); al=fade(t,LAP_T[0]+0.15,LAP_T[1]-0.05,0.2,0.2)
+        put(tx,txt('LIGHT CIRCLES EARTH',62),CX,250,al)
+        put(tx,txt('EQUATOR: 40,075 KM' if uu<1.0 else 'IN ONE SECOND.',40,GOLD),CX,250+104,al)
+        shown='7.5' if uu>=1.0 else str(int(laps))
+        put(tx,row([shown,'#LAPS'],130,0.35),CX,1230,al)
+        put(tx,txt(f'{min(uu,1.0):.2f} S',48,CREAM),CX,1230+190,al)
     # counter and ladder
     v=counter(t)
-    if v is not None and not blackout and t<TWIST_T[0]:
-        al=min(ease((t-(START['jet']+0.7))/0.2),1.0 if t<TWIST_T[0]-0.25 else ease((TWIST_T[0]-t)/0.25)); put(tx,row([fmt(v),'#KM/S'],120,0.35),CX,1230,al)
+    if v is not None and not blackout and t<LAP_T[0]:
+        al=min(ease((t-(START['jet']+0.7))/0.2),1.0 if t<LAP_T[0]-0.25 else ease((LAP_T[0]-t)/0.25)); put(tx,row([fmt(v),'#KM/S'],120,0.35),CX,1230,al)
         rn=['JET','BULLET','EARTH','PARKER','LIGHT']; act=0
         for i,nm in enumerate(rn):
-            if t>=START.get(nm.lower(),9.1): act=i
+            if t>=START[nm.lower()]: act=i
         for i,nm in enumerate(rn):
             yy=960-i*80; on=i==act; im=txt(nm,38 if on else 30,CREAM if on else (150,150,160))
             tx.alpha_composite(im,(64,int(yy)));
             if on: d=ImageDraw.Draw(tx); d.ellipse((30,yy+im.height//2-9,48,yy+im.height//2+9),fill=RED+(255,))
     fr.alpha_composite(tx)
+    if LIGHT_T[0]<=t<LIGHT_T[0]+0.5:
+        a=14*math.exp(-(t-LIGHT_T[0])/0.12); from PIL import ImageChops
+        fr=ImageChops.offset(fr,int(a*math.sin(t*95)),int(a*math.cos(t*83)))
     out=fr.convert('RGB')
     if light and (t-LIGHT_T[0])<0.35: pass
     return out
