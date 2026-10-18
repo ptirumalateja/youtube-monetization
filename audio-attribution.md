@@ -83,9 +83,13 @@ All files from Freesound, supplied by the owner; licences checked on the Freesou
 > - "Heartbeat." by urupin, https://freesound.org/s/92036/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "FIREBurn_Campfire.Close.Long.Crackling.Flame roar.Squeack.Hiss.Artificial 1_EM" by newlocknew, https://freesound.org/s/730704/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "ONORO_Julian_2014_2015_Supersonic.wav" by univ_lyon3, https://freesound.org/s/250591/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Processed Sitar Riser.wav" by jdagenet, https://freesound.org/s/403662/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Rising Horror Climax [static].wav" by Headphaze, https://freesound.org/s/235205/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Ringing in the Ears" by hykenfreak, https://freesound.org/s/218050/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "rarexport-05.wav" by plagasul, https://freesound.org/s/4096/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "Riser Quick 2", "Impact" and "Impact Cinematic" by original_sound, https://freesound.org/s/376576/ , https://freesound.org/s/376816/ , https://freesound.org/s/376817/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
 
-Short form (Instagram / Facebook caption): "Sound: CGEffex, urupin, newlocknew, univ_lyon3 and original_sound via Freesound (CC BY 4.0 / 3.0), changes made, plus CC0 sounds. Full credits on YouTube."
+Short form (Instagram / Facebook caption): "Sound: CGEffex, urupin, newlocknew, univ_lyon3, jdagenet, Headphaze, hykenfreak, plagasul and original_sound via Freesound (CC BY 4.0 / 3.0), changes made, plus CC0 sounds. Full credits on YouTube."
 
 ### CC0 (no credit needed)
 | File | Author | Used for |
@@ -93,7 +97,8 @@ Short form (Instagram / Facebook caption): "Sound: CGEffex, urupin, newlocknew, 
 | 352134 jet overhead | rachaelbuchanan | airliner |
 | 155142 terror ambience | burning-mir | bed and twist |
 | 397092 Soft Tonal Wind_02 | janbezouska | Earth, drop tail, twist |
-| 419748 Tinnitus 10kHz | Kinoton | quiet tail after the drop |
+| 434098 Wind Turbine | DeVern | the circling air in the laps |
+| 419748 Tinnitus 10kHz | Kinoton | supplied, not used in v13 (the ringing clip replaced it) |
 | 219825, 207744, 568834 (creepy vinyl, high tone, swish) | Mattc90, SoundsExciting, JSilverSound | supplied, not used in the final mix |
 
 ### NOT USED (CC BY-NC: never allowed in a monetised reel)
@@ -102,3 +107,5 @@ Short form (Instagram / Facebook caption): "Sound: CGEffex, urupin, newlocknew, 
 - 505667 "Dark Atmosphere Drone 2" by Mellau (CC BY-NC 4.0)
 - 171018 "spinning_noise" by klappacher (CC BY-NC 4.0)
 Replacements: synthesised circling air for the laps, riser quick for the probe, CC0 ambience and wind for the beds.
+
+v13 (18 Oct 2026): after the NC files were removed the owner supplied CC0/CC BY replacements (all licences checked on their Freesound pages): 403662, 235205, 218050 and 4096 are CC BY 4.0 (credits added above), 434098 is CC0.

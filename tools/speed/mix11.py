@@ -28,7 +28,8 @@ def put(x,t0):
     j=min(N,i+x.shape[1])
     if j>i: M[:,i:j]+=x[:,:j-i]
 # bed: dark drone under the whole ladder (low, steady), then fades before the held breath
-put(clip('terror_ambience_155142.mp3',40.0,5.4,-19,lp=1500,hp=60,fi=0.4,fo=0.1),0.0)
+put(clip('terror_ambience_155142.mp3',40.0,5.4,-22,lp=1500,hp=60,fi=0.4,fo=0.1),0.0)
+put(clip('rarexport_4096.wav',8.0,5.4,+2,lp=1500,hp=40,fi=0.5,fo=0.1),0.0)
 put(clip('tonal_wind_397092.wav',30.0,5.4,+14,lp=600,hp=45,fi=0.5,fo=0.1),0.0)
 # frame-0 hit, small
 put(clip('impact_376816.wav',0.0,1.6,-21,lp=2500,hp=40),0.0)
@@ -48,20 +49,22 @@ put(clip('tonal_wind_397092.wav',30.0,1.8,+17,lp=900,hp=60,fi=0.4,fo=0.4),1.8)
 put(clip('impact_cinematic_376817.wav',0.0,3.0,-9,lp=4000,hp=40),1.3)
 # --- probe 3.6: fire roar building, suspense rising, the biggest hit of the ladder
 put(clip('fire_roar_730704.wav',86.0,1.8,+16,lp=6000,hp=80,fi=1.2,fo=0.15),3.6)
-put(clip('riser_quick_376576.wav',1.7,1.8,-5,hp=150,fi=0.8,fo=0.05),3.6)
+put(clip('sitar_riser_403662.wav',12.3,1.8,-4,hp=120,fi=0.6,fo=0.05),3.6)
+put(clip('horror_climax_235205.wav',3.0,1.8,+3,hp=120,lp=6000,fi=0.9,fo=0.05),3.6)
 put(clip('impact_376816.wav',0.0,1.8,-7,lp=4500,hp=40),3.6)
 # --- held breath 5.4-5.85: silence (the layers above end at 5.4); thin tone returns after the drop
 # --- light drop 5.85: cinematic impact aligned so its peak (0.5 s into the file) lands on 5.85, plus the low impact; then it falls hollow
 put(clip('impact_cinematic_376817.wav',0.4,3.0,0,lp=6000,hp=40,fi=0.02),5.75)
 put(clip('impact_376816.wav',0.0,2.5,-3,lp=5000,hp=40),5.75)
 put(clip('tonal_wind_397092.wav',33.0,2.4,+18,lp=700,hp=50,fi=0.2,fo=0.6),5.9)
-put(clip('tinnitus_419748.wav',3.0,1.9,-36,fi=0.6,fo=0.8),6.2)
+put(clip('ringing_218050.wav',2.0,1.9,-34,lp=5000,fi=0.6,fo=0.8),6.2)
 # --- laps 8.1-10.8: spinning noise as the circling bed (low-passed), a weight at 7.5 laps (9.4)
-put(synth_rotate(2.6,150,3600,0.22),8.1)
+put(clip('wind_turbine_434098.wav',3.2,2.6,-6,hp=100,lp=4500,fi=0.4,fo=0.6),8.1)
 put(clip('impact_376816.wav',0.0,1.6,-9,lp=3000,hp=40),9.35)
 # --- twist 10.8-12.6: dark, unresolved
 put(clip('terror_ambience_155142.mp3',43.0,3.6,-9,lp=3000,hp=80,fi=0.6,fo=1.4),10.8)
-put(clip('tonal_wind_397092.wav',31.0,3.6,+16,lp=700,hp=45,fi=0.6,fo=1.4),10.8)
+put(clip('tonal_wind_397092.wav',31.0,3.6,+14,lp=700,hp=45,fi=0.6,fo=1.4),10.8)
+put(clip('rarexport_4096.wav',40.0,3.6,+2,lp=1500,hp=40,fi=0.6,fo=1.4),10.8)
 # the question lands: one soft low hit and a hollow tail, then the drone hangs and fades out unresolved
 put(clip('impact_376816.wav',0.0,1.8,-15,lp=2500,hp=40),12.7)
 put(clip('tonal_wind_397092.wav',36.0,1.7,+16,lp=700,hp=50,fi=0.3,fo=1.0),12.7)
