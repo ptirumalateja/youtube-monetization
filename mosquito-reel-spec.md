@@ -32,6 +32,7 @@ Never say: "ecosystems collapse", "mosquitoes are useless", "malaria would end" 
 
 ## Revision log
 - 18 Oct 2026, owner change: the hook now opens on a mosquito SWARM (under 2 s), the swarm vanishes on a bass impact into silence, smash cut to Earth. The single stock macro mosquito moves to the loop ending. Hook wording changed from "died" to "vanished" (matches the Sun-vanishes thought-experiment tone). All later beats shift +0.5 s; the YEAR 1 reveal now lands at 13.3 s (still before 15 s). No other beat changed.
+- Flow clip plan, transitions and prompts: `mosquito-flow-prompts.md`.
 - Owner confirmed both Pixabay clips are the same close-up of a mosquito biting skin. Use the longer one (https://pixabay.com/videos/mosquito-insect-pest-nature-274935/). The file is not in Drive yet; I need it uploaded (Drive or chat).
 
 ## Shot plan (31 s)
