@@ -2,7 +2,8 @@
 """Speed Ladder reel (14 s, 1080x1920, 30 fps), drawn in code with PIL. usage: render.py <out.mp4> [t0 t1 png_dir]
 2-D vector sprites + parallax speed streaks + glow; Earth is the lattice-point globe from ../mosquito/land.json. No AI footage."""
 import sys, math, json, subprocess, os
-MODE=os.environ.get('HOOK','A')   # A = line-up -> warp -> jet; B = huge bullet punches through the warp -> jet
+MODE=os.environ.get('HOOK','A')   # A = line-up -> warp -> jet; B = huge bullet punches through the warp -> jet; C = B, then a 0.45 s line-up flash, then the jet starts the ladder
+BC=MODE in ('B','C')
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 W,H,FPS,T=1080,1920,30,15.3
@@ -180,6 +181,9 @@ def orbit_pt(th,cx,cy,rx=430,ry=118): return cx+rx*math.cos(th),cy+ry*math.sin(t
 JS=0.78
 def jet_pose(t):
     a=STOPS['jet'][0]
+    if MODE=='C':
+        if t<1.1: return 0.0,0.60,1370
+        if t<a+0.35: u=ease((t-1.1)/(a+0.35-1.1)); return 0.0,0.60+(JS-0.60)*u,1370+(CY-1370)*u
     if MODE=='B':
         if t<0.9: return 0.0,0.2,TC[1]
         if t<a+0.35: u=ease((t-0.9)/(a+0.35-0.9)); return 0.0,0.2+(JS-0.2)*u,TC[1]+(CY-TC[1])*u
@@ -192,7 +196,7 @@ STACK=[('parker',720,0.50),('earth',930,0.34),('bullet',1140,0.70),('jet',1370,0
 TC=(540,1000)
 def tunnel_i(t):
     """warp intensity 0..1"""
-    if MODE=='B':
+    if BC:
         if t>=LOOP_T[0]: return 0.6*ease((t-LOOP_T[0])/0.45)
         if t<0.9: return 0.6+0.4*ease(t/0.9)
         return ease((1.5-t)/0.6) if t<1.5 else 0.0
@@ -230,13 +234,22 @@ def draw_tunnel(fr,t):
     gl=Image.new('RGBA',(900,900),(0,0,0,0)); gd=ImageDraw.Draw(gl)
     for q in range(440,0,-8): gd.ellipse((450-q,450-q,450+q,450+q),fill=(255,226,170,int(150*I*(1-q/440)**2.2)))
     lay.alpha_composite(gl,(cx-450,cy-450)); fr.alpha_composite(lay)
-    if (MODE=='A' and 0.42<=t<0.56) or (MODE=='B' and 0.9<=t<1.04): fr.alpha_composite(Image.new('RGBA',(W,H),(255,248,230,int(50*(1-((t-0.42) if MODE=='A' else (t-0.9))/0.14)))))
+    if (MODE=='A' and 0.42<=t<0.56) or (BC and 0.9<=t<1.04): fr.alpha_composite(Image.new('RGBA',(W,H),(255,248,230,int(50*(1-((t-0.42) if MODE=='A' else (t-0.9))/0.14)))))
+def stack_c(obj,t):
+    """C: after the bullet punches out, the line-up pops in for one beat; the probe, Earth and bullet are pulled into the tunnel, the jet stays"""
+    for nm,y,sc in STACK:
+        if nm=='jet': continue
+        spr={'bullet':SPR['bullet'],'parker':SPR['parker'],'earth':earth(0.5)}[nm]
+        if t<1.05: u=ease((t-0.9)/0.1); paste(obj,spr,540,y,sc*(0.85+0.15*u),u); continue
+        u=min(1.0,(t-1.05)/0.3)
+        if u>=1: continue
+        k=1+7*u*u; paste(obj,spr,TC[0]+(540-TC[0])*k,TC[1]+(y-TC[1])*k,sc*(1+3.5*u*u),1-ease(u))
 def bullet_hook(obj,t):
     """B: one huge bullet punching at the camera through the warp; exits past the camera at 0.9-1.25 s; re-forms in the last beat for the loop"""
     if t>=LOOP_T[0]: u=ease((t-LOOP_T[0])/0.45); al=u; sc=1.1
     elif t<0.9: u=t/0.9; sc=1.1+0.9*u*u; al=1.0
     else:
-        u=(t-0.9)/0.35
+        u=(t-0.9)/(0.35 if MODE=='B' else 0.2)
         if u>=1: return
         sc=2.0+2.4*u*u; al=max(0.0,1-u*2.4)
     sh=3*math.sin(t*70) if t<0.9 else 0
@@ -271,13 +284,14 @@ def draw(t):
     # ---- hero objects
     draw_tunnel(fr,t)
     if MODE=='A' and (t<0.95 or t>=LOOP_T[0]): stack_objs(obj,t)
-    if MODE=='B' and (t<1.3 or t>=LOOP_T[0]): bullet_hook(obj,t)
+    if BC and (t<1.3 or t>=LOOP_T[0]): bullet_hook(obj,t)
+    if MODE=='C' and 0.9<=t<1.4: stack_c(obj,t)
     if t<STOPS['jet'][1]+0.25:
         dx,sc,y=jet_pose(t); x=CX+dx
         d=ImageDraw.Draw(obj)
-        for k in range(14 if t>=(1.1 if MODE=='B' else 0.9) else 0): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
-        if MODE=='B' and t<0.9: pass
-        else: paste(obj,SPR['jet'],x,y,sc,min(1.0,(t-0.9)/0.2) if MODE=='B' else 1.0)
+        for k in range(14 if t>=({'B':1.1,'C':1.3}.get(MODE,0.9)) else 0): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
+        if BC and t<0.9: pass
+        else: paste(obj,SPR['jet'],x,y,sc,min(1.0,(t-0.9)/(0.2 if MODE=='B' else 0.1)) if BC else 1.0)
     a,b=STOPS['bullet']; dx,sc,vis=state(t,a,b)
     if vis and a-0.2<=t<b+0.3:
         x=CX+dx; d=ImageDraw.Draw(obj); tipx=x+400*sc*0.78

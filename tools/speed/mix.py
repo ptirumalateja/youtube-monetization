@@ -77,13 +77,16 @@ def ticks(t0,t1,n,g=0.05):
 # ---- hook 0-1.8: frame-0 hit + rising wind rush, groove not started yet
 # hook (new coords 0-1.35): line-up with the frame-0 hit, warp tunnel punch at 0.45 (riser + tone sweep + ring pings), jet pulls out into the groove
 import os
-if os.environ.get('HOOK','A')=='B':
+if os.environ.get('HOOK','A') in ('B','C'):
     # B: the warp is already running at frame 0 (boom + continuous brightening whoosh), the bullet punches out at 0.9 (small boom + air burst), reverse suck into the first beat
     boom(0.0,0.55)
     n=int(1.1*SR); t=tt(n); p=np.linspace(0,1,n)
     place(sfx,(fftf(noise(n),250,1000)*(1-p)+fftf(noise(n),2500,10000)*p)*swell(n,0.85,1.3),0.0,0.34)
     f=180*2**(3.4*t/1.1); place(sfx,np.sin(2*np.pi*np.cumsum(f)/SR)*swell(n,0.9,1.3)*0.12,0.0,1.0)
     for ts,fp in ((0.15,440),(0.45,554),(0.75,659)): ping(ts,fp,0.08,0.4)
+    if os.environ.get('HOOK')=='C':   # line-up flash: three quick pops, then the probe, Earth and bullet are pulled into the tunnel
+        for ts,fp in ((0.92,880),(1.0,1175),(1.08,1568)): ping(ts,fp,0.09,0.2)
+        rush(1.05,0.3,500,3200,0.30)
     boom(0.9,0.45); m_=int(0.35*SR); place(sfx,fftf(noise(m_),1500,12000)*np.exp(-tt(m_)/0.09),0.9,0.3)
 else:
     boom(0.0,0.5)
