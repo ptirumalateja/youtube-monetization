@@ -75,7 +75,9 @@ def ticks(t0,t1,n,g=0.05):
     for k in range(n):
         ts=t0+(t1-t0)*(k/n)**0.8; d=int(0.02*SR); tb=tt(d); place(sfx,fftf(noise(d),2500,9000)*np.exp(-tb/0.006),ts,g)
 # ---- hook 0-1.8: frame-0 hit + rising wind rush, groove not started yet
-boom(0.0,0.35); rush(0.0,1.8,500,1100,0.30)
+boom(0.0,0.35)
+for k,ts in enumerate((0.0,0.12,0.24,0.36,0.48,0.54)):   # flash montage: one short rising whoosh + tick per object
+    rush(ts,0.16,500+380*k,900+450*k,0.26,[-0.6,0.6,-0.3,0.4,-0.5,0.0][k]); ping(ts+0.01,900+160*k,0.05,0.06)
 # ---- groove 1.8-9.0: kick on every beat (rising level), hats from 3.6 (8ths) and 7.2 (16ths), claps on beats 2 and 4 from 5.4
 b=1.8; i=0
 while b<8.99:
@@ -127,6 +129,20 @@ duck[int(8.55*SR):a_]=np.linspace(1,0.02,a_-int(8.55*SR)) if False else duck[int
 for tk in kick_t:
     i=int(tk*SR); j=min(N,i+int(0.2*SR))
     if j>i: duck[i:j]=np.minimum(duck[i:j],np.linspace(0.45,1,j-i))
+# ---- 15 s cut: remove whole beats from the 17.1 s grid so the groove stays aligned (hook 2 beats, jet 1, bullet 1, twist 1)
+CUTS=[(0.75,1.65),(2.7,3.15),(4.5,4.95),(15.75,16.2)]
+def cutbus(x):
+    keep=[]; p=0.0; X=int(0.01*SR)
+    for a,b in CUTS: keep.append((p,a)); p=b
+    keep.append((p,N/SR)); out=None
+    for (a,b) in keep:
+        seg=x[...,int(a*SR):int(b*SR)].copy(); L=seg.shape[-1]
+        if L>2*X:
+            seg[...,:X]*=np.linspace(0,1,X); seg[...,-X:]*=np.linspace(1,0,X)
+        out=seg if out is None else np.concatenate([out,seg],axis=-1)
+    return out
+hit,sfx,bed,air,duck=[cutbus(x) for x in (hit,sfx,bed,air,duck)]
+N=int(14.85*SR); hit,sfx,bed,air,duck=[x[...,:N] for x in (hit,sfx,bed,air,duck)]
 # ---- bass management: HPF everything but the hit bus at 90 Hz, mix, soft clip
 def hp(x): return np.stack([fftf(x[0],90,SR/2),fftf(x[1],90,SR/2)])
 mix=hit*0.95+(hp(sfx)*duck+hp(bed)*duck+hp(air))

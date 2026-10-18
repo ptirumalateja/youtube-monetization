@@ -66,3 +66,9 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 - Beat: 133 BPM (0.45 s grid). Kick on every beat from 1.8 s (rising level), hats from 3.6 s, claps from 5.4 s, snare roll and riser 7.2-9.0 s, near-silence 9.0-9.45 s, drop at 9.45 s (hero hit, crash, kick every beat, off-beat sub bass), one rising ping per lap, groove stops at 14.4 s into a quiet pad for the twist, rush into frame 0.
 - Picture: objects pulse 3% on each kick, parallax bokeh layer, per-stop colour tint, screen shake on the drop.
 - Timeline (s): hook 0-1.8, jet 1.8-3.6, bullet 3.6-5.4, Earth 5.4-7.2, Parker 7.2-9.0, held breath 9.0-9.45, light 9.45-11.7, laps 11.7-14.4, twist 14.4-16.65, loop 16.65-17.1.
+
+## v3 (14.85 s, built 18 Oct 2026): faster hook and 15 s cut
+- Hook: "HOW FAST IS [FAST]?" is fully on screen from frame 0 (no typing). 0-0.9 s is a flash montage of six unlabeled objects crossing in random directions (jet, bullet, Earth, Parker probe, light streak, galaxies), one short whoosh per object. The jet stop starts at 0.9 s instead of 1.8 s.
+- Loop: the last frame matches frame 0 (jet in its frame-0 pose, hook text fades back in over the final beat).
+- Trimmed by whole beats (0.45 s) so the groove stays aligned: jet and bullet 4 to 3 beats, twist 5 to 4 beats. Timeline (s): hook 0-0.9, jet 0.9-2.25, bullet 2.25-3.6, Earth 3.6-5.4, Parker 5.4-7.2, held breath 7.2-7.65, light/drop 7.65-9.9, laps 9.9-12.6, twist 12.6-14.4, loop 14.4-14.85.
+- Audio: the 17.1 s mix with the same whole beats cut out (10 ms crossfades); measured arc: hook -19 dB, build -18 to -15, held breath -50, drop -11, laps -13, twist -26. 17.1 s versions kept as `render_v2_17s.py` and `mix_v2_17s.py`.

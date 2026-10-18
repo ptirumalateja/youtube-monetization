@@ -4,7 +4,7 @@
 import sys, math, json, subprocess, os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-W,H,FPS,T=1080,1920,30,17.1
+W,H,FPS,T=1080,1920,30,14.85
 BEAT=0.45   # 133 BPM grid: every cut, ring and pulse lands on it
 CREAM=(247,238,220); GOLD=(232,184,96); TEAL=(96,196,196); RED=(214,62,48); DARK=(8,6,6); STEEL=(214,222,232)
 FM='/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
@@ -40,11 +40,11 @@ def put(fr,im,cx,y,al=1.0,crop=1.0):
     x=int(cx-(im.width if crop>=1 else im.width/crop)/2); fr.alpha_composite(im,(x,int(y)))
 def fade(t,a,b,fi=0.18,fo=0.15): return min(ease((t-a)/fi),ease((b-t)/fo)) if a<=t<b else 0.0
 # ------------------------------------------------------------------ timeline
-HOOK_END=1.8
-STOPS={'jet':(1.8,3.6),'bullet':(3.6,5.4),'earth':(5.4,7.2),'parker':(7.2,9.0)}
-LAND_T,LIGHT_T,LAP_T,TWIST_T,LOOP_T=(9.0,9.45),(9.45,11.7),(11.7,14.4),(14.4,16.65),(16.65,17.1)
+HOOK_END=0.9   # flash montage: text from frame 0, six unlabeled objects in random directions
+STOPS={'jet':(0.9,2.25),'bullet':(2.25,3.6),'earth':(3.6,5.4),'parker':(5.4,7.2)}   # jet/bullet 3 beats, earth/parker 4 beats
+LAND_T,LIGHT_T,LAP_T,TWIST_T,LOOP_T=(7.2,7.65),(7.65,9.9),(9.9,12.6),(12.6,14.4),(14.4,14.85)
 VALUES=[('jet',0.25),('bullet',0.9),('earth',30.0),('parker',192.0),('light',299792.0)]
-START={'jet':1.8,'bullet':3.6,'earth':5.4,'parker':7.2,'light':9.45}
+START={'jet':0.9,'bullet':2.25,'earth':3.6,'parker':5.4,'light':7.65}
 def counter(t):
     """monotonic odometer value (km/s) or None while hidden; rolls to the next stop's value 0.8-1.3 s after it lands"""
     if t<START['jet']+0.7: return None
@@ -57,7 +57,7 @@ def fmt(v):
     if v<1: return f'{v:.2f}'
     return f'{int(round(v)):,}'
 # speed (px/s) of the background streaks, integrated for continuous parallax
-KEYS=[(0,700),(1.8,700),(3.6,1000),(5.4,1700),(7.2,2800),(9.0,5200),(9.1,0),(9.4,0),(9.45,26000),(9.7,900),(11.7,200),(14.4,150),(16.4,150),(16.65,800),(17.1,800)]
+KEYS=[(0,2400),(0.9,700),(2.25,1000),(3.6,1700),(5.4,2800),(7.2,5200),(7.3,0),(7.6,0),(7.65,26000),(7.9,900),(9.9,200),(12.6,150),(14.2,150),(14.4,800),(14.85,800)]
 def vel(t):
     for (t0,v0),(t1,v1) in zip(KEYS,KEYS[1:]):
         if t0<=t<=t1: return v0+(v1-v0)*((t-t0)/(t1-t0) if t1>t0 else 1)
@@ -125,7 +125,12 @@ SPR={'jet':jet(),'bullet':bullet(),'parker':parker()}
 GAL=[mkgal(CREAM),mkgal(GOLD),mkgal(TEAL)]
 LAND=np.array(json.load(open(os.path.join(os.path.dirname(__file__),'..','mosquito','land.json'))),float)
 LAT=np.radians(LAND[:,0]/100.0); LON=np.radians(LAND[:,1]/100.0)
+_ec={}
 def earth(lon0,R=330):
+    k=round(lon0,2)
+    if k not in _ec: _ec[k]=_earth(lon0,R)
+    return _ec[k]
+def _earth(lon0,R=330):
     S=R*2+60; im=Image.new('RGBA',(S,S),(0,0,0,0)); d=ImageDraw.Draw(im); c=S/2
     for i in range(R,0,-6): g=i/R; d.ellipse((c-i,c-i,c+i,c+i),fill=(int(10+22*g),int(24+40*g),int(60+70*g),255))
     lam=LON-lon0; x=np.cos(LAT)*np.sin(lam); y=np.sin(LAT); z=np.cos(LAT)*np.cos(lam); m=z>0.02
@@ -173,11 +178,34 @@ def pulse(t):
 def orbit_pt(th,cx,cy,rx=430,ry=118): return cx+rx*math.cos(th),cy+ry*math.sin(th)
 JS=0.78
 def jet_pose(t):
-    if t<2.5:  # hook: already moving, flies in to the centre
-        u=ease(t/2.5); return -240*(1-u),(0.55+0.45*u)*JS,640+260*u
     if t>=LOOP_T[0]:  # loop: flies back in from the left to the frame-0 pose
         u=ease((t-LOOP_T[0])/0.45); return -1250*(1-u)-240*u,0.55*JS,640
     dx,sc,_=state(t,*STOPS['jet']); return dx,sc*JS,CY
+def dirsprite(im,dx,dy):
+    from PIL import ImageOps
+    if dx<0: im=ImageOps.mirror(im); dx=-dx; dy=dy
+    ang=math.degrees(math.atan2(-dy,dx)) if dx>0 else (90 if dy<0 else -90)
+    return im.rotate(ang,expand=True,resample=Image.BICUBIC)
+# name, t0, t1, start, end, scale   (6 flashes crossing the middle band in different directions; frame 0 shows the jet in its loop pose)
+MONT=[('jet',0.00,0.30,(300,640),(760,700),0.43),('bullet',0.12,0.42,(1180,1250),(-150,980),0.62),('earth',0.24,0.54,(160,1450),(900,800),0.55),
+      ('parker',0.36,0.66,(950,560),(120,1000),0.55),('light',0.48,0.62,(-120,720),(1200,1350),1.0),('gal',0.54,0.90,(540,1050),(540,1050),1.0)]
+def montage(obj,t):
+    d=ImageDraw.Draw(obj)
+    for nm,a,b,p0,p1,sc in MONT:
+        if not a<=t<b: continue
+        u=(t-a)/(b-a); x=p0[0]+(p1[0]-p0[0])*u; y=p0[1]+(p1[1]-p0[1])*u; dx,dy=p1[0]-p0[0],p1[1]-p0[1]; L=math.hypot(dx,dy); al=min(1.0,min(u,1-u)*7+0.25)
+        if nm=='light':
+            for w_,c_,a_ in ((26,(232,184,96),70),(12,(255,244,214),160),(5,(255,255,255),255)):
+                d.line((x-dx/L*520,y-dy/L*520,x,y),fill=c_+(int(a_*al),),width=w_)
+            continue
+        if nm=='gal':
+            for i in range(14):
+                r=np.random.default_rng(40+i); ang=r.uniform(0,6.28); rr=r.uniform(60,420)*(0.3+1.2*u); paste(obj,GAL[i%3],x+math.cos(ang)*rr,y+math.sin(ang)*rr*0.9,1.5,al)
+            continue
+        for k in range(1,6): d.line((x-dx/L*60*k*sc,y-dy/L*60*k*sc,x-dx/L*60*(k+0.7)*sc,y-dy/L*60*(k+0.7)*sc),fill=CREAM+(int(150*(1-k/6)*al),),width=3)
+        spr={'jet':SPR['jet'],'bullet':SPR['bullet'],'parker':SPR['parker'],'earth':earth(0.5)}[nm]
+        spr=spr if nm=='earth' else dirsprite(spr,dx,dy)
+        paste(obj,spr,x,y,sc,al)
 def draw(t):
     global PS
     pl=pulse(t); PS=1.0+0.03*pl+(0.06*math.exp(-(t-LIGHT_T[0])/0.12) if LIGHT_T[0]<=t<LIGHT_T[0]+0.6 else 0)
@@ -190,7 +218,8 @@ def draw(t):
     streaks(lay,t,power=0.0 if blackout else min(1.0,0.8+0.4*pl)); fr.alpha_composite(lay)
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); tl=Image.new('RGBA',(W,H),(0,0,0,0))
     # ---- hero objects
-    if t<STOPS['jet'][1]+0.25 or t>=LOOP_T[0]:
+    if t<HOOK_END: montage(obj,t)
+    if STOPS['jet'][0]-0.2<=t<STOPS['jet'][1]+0.25 or t>=LOOP_T[0]:
         dx,sc,y=jet_pose(t); x=CX+dx
         d=ImageDraw.Draw(obj)
         for k in range(14): d.line((x-380*sc-k*30*sc,y+6,x-380*sc-(k+1)*30*sc,y+6),fill=STEEL+(int(150*(1-k/14)),),width=max(2,int(6*sc)))   # contrail
@@ -267,9 +296,8 @@ def draw(t):
     rings(rl,t,LIGHT_T[0]+0.0,CX,CY); fr.alpha_composite(rl)
     # ---- text layer
     tx=Image.new('RGBA',(W,H),(0,0,0,0))
-    if t<HOOK_END: 
-        hk1=txt('HOW FAST',112); hk2=row(['IS','#FAST','?'],112,0.3); f=min(1,t/1.1); 
-        al=fade(t,0,HOOK_END,0.01,0.2); put(tx,hk1,CX,250,al,min(1,f*2)); put(tx,hk2,CX,250+150,al,max(0.04,min(1,(f-0.5)*2)) if f>0.5 else 0.0001)
+    hal=(1.0 if t<HOOK_END-0.1 else ease((HOOK_END+0.15-t)/0.25)) if t<HOOK_END+0.15 else (ease((t-LOOP_T[0])/0.4) if t>=LOOP_T[0] else 0.0)
+    if hal>0: put(tx,txt('HOW FAST',112),CX,250,hal); put(tx,row(['IS','#FAST','?'],112,0.3),CX,250+150,hal)
     names={'jet':('AIRLINER','900 KM/H'),'bullet':('RIFLE BULLET','~3,200 KM/H'),'earth':('YOU, RIGHT NOW','AROUND THE SUN - 107,000 KM/H'),'parker':('PARKER SOLAR PROBE','FASTEST HUMAN-MADE OBJECT')}
     for n,(a,b) in STOPS.items():
         al=fade(t,a+0.45,b-0.05,0.15,0.15)
