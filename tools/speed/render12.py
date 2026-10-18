@@ -184,6 +184,48 @@ def rainbow_burst(u,cx=CX,cy=CY+120):
         if al<4: continue
         d.line((cx+math.cos(a)*a0,cy+math.sin(a)*a0*1.1,cx+math.cos(a)*(a0+L),cy+math.sin(a)*(a0+L)*1.1),fill=(int(rr*255),int(gg*255),int(bb*255),al),width=3 if i%3 else 5)
     return layer.filter(ImageFilter.GaussianBlur(1.2))
+# ------------------------------------------------------------------ air-tear effects (airliner and bullet)
+def travel(cur,ts):
+    mv,dur_,dr_={'jet':(640,0.6,0),'bullet':(960,0.5,14),'parker':(520,0.28,16)}.get(cur,(0,ROLL,0))
+    return -(1-eout(min(1.0,ts/dur_)))*mv + dr_*max(0.0,ts-dur_)
+def ripple(fr,xn,yn,t,amp,reach=520):
+    """refraction ripple: the background is pushed outward from the nose in travelling waves, so the air looks torn and shimmering"""
+    x0=int(max(0,xn-reach-300)); x1=int(min(W,xn+260)); y0=int(max(0,yn-330)); y1=int(min(H,yn+330))
+    if x1-x0<20 or y1-y0<20 or amp<=0.2: return fr
+    a=np.asarray(fr); crop=a[y0:y1,x0:x1]
+    ys,xs=np.mgrid[y0:y1,x0:x1].astype(np.float32); dx_=xs-xn; dy_=(ys-yn)*0.7; r=np.hypot(dx_,dy_)+1.0
+    amp_l=amp*np.exp(-r/(reach*0.9))*np.clip(r/50.0,0,1); ph=np.sin(0.075*r-38.0*t)
+    mx=xs-x0+(dx_/r)*amp_l*ph; my=ys-y0+(dy_/r)*amp_l*ph*1.3
+    out=cv2.remap(crop,mx.astype(np.float32),my.astype(np.float32),cv2.INTER_LINEAR,borderMode=cv2.BORDER_REFLECT)
+    a=a.copy(); a[y0:y1,x0:x1]=out; return Image.fromarray(a,'RGBA')
+def glowline(d,p0,p1,col,al,w=3):
+    d.line((p0,p1),fill=col+(int(al*0.35),),width=w+6); d.line((p0,p1),fill=col+(int(al),),width=w)
+def jet_tear(d,cx,cy,t,al,arr):
+    """wind streaks ripping backward past the fuselage and two wingtip vortex ribbons"""
+    rg=np.random.default_rng(3)
+    for i in range(64):
+        yo=rg.uniform(-215,215)*(0.45+0.55*rg.random()); ln=rg.uniform(200,620); v=rg.uniform(1000,1900)
+        x=(cx+340-((t*v+rg.uniform(0,1400))%1500)); a_=int(235*rg.uniform(0.4,1.0)*al)
+        for k in range(6):
+            f=1-k/6; d.line((x-ln*k/6,cy+yo,x-ln*(k+1)/6,cy+yo),fill=(240,248,255,int(a_*f*(1.0 if abs(yo)<130 else 0.65))),width=3 if abs(yo)<130 else 2)
+    for k in range(4):   # pressure arcs ahead of the nose
+        ph=((t*2.6+k/4.0)%1.0); r_=30+ph*150; d.arc((cx+345-r_*0.5,cy-r_,cx+345+r_*0.5,cy+r_),-70,70,fill=(200,225,255,int(210*(1-ph)*al)),width=3)
+    for sgn,(wx,wy) in ((1,(cx-110,cy+92)),(-1,(cx+10,cy-38))):
+        pts=[(wx-560*u,wy+sgn*16*u*math.sin(15*u+9*t)) for u in np.linspace(0,1,40)]
+        for k in range(len(pts)-1):
+            f=1-k/len(pts); d.line((pts[k],pts[k+1]),fill=(150,200,255,int(120*f*al)),width=9); d.line((pts[k],pts[k+1]),fill=(255,255,255,int(245*f*al)),width=4)
+def bullet_tear(d,cx,cy,t,al):
+    """shock cone from the nose, shock rings encircling the trail"""
+    xn=cx+385
+    for ang,aa,w in ((0.40,230,4),(0.22,140,3)):
+        L=620
+        for sgn in (1,-1):
+            glowline(d,(xn,cy),(xn-L*math.cos(ang),cy+sgn*L*math.sin(ang)),(255,205,140),aa*al,w)
+    for k in range(8):
+        ph=((t*3.2+k/8.0)%1.0); x=xn-60-ph*620; ry=60+ph*210; rx=8+ph*26; a_=int(210*(1-ph)**1.2*al)
+        d.ellipse((x-rx,cy-ry,x+rx,cy+ry),outline=(255,200,130,a_),width=3)
+    for k in range(10):
+        ph=((t*1.9+k/10.0)%1.0); x=xn-ph*620; d.line((x,cy-12*math.sin(40*t+k),x-90,cy+14*math.sin(33*t+k)),fill=(255,230,190,int(150*(1-ph)*al)),width=2)
 # ------------------------------------------------------------------ scene
 def pulse(t):
     for a,b in ((0.0,LAND_T[0]),(LIGHT_T[0],LAP_T[1])):
@@ -199,6 +241,13 @@ def draw(t,bgarr=None):
     if blackout: fr=Image.new('RGBA',(W,H),(0,0,0,255))
     obj=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(obj)
     PSC=1.0+0.03*pl
+    cur2=None
+    for n_,(a_,b_) in STOPS.items():
+        if a_<=t<b_ and n_ in ('jet','bullet'): cur2=n_
+    if cur2:
+        ts2=t-STOPS[cur2][0]; cx2=CX+travel(cur2,ts2); nose=cx2+(330 if cur2=='jet' else 385)
+        k_=min(1.0,ts2/0.25)*min(1.0,(STOPS[cur2][1]-t)/0.15+0.001); amp=(6.0 if cur2=='jet' else 11.0)*max(0.0,k_)
+        fr=ripple(fr,nose,CY,t,amp,520 if cur2=='jet' else 600)
     names={'jet':('AIRLINER','CRUISING SPEED'),'bullet':('RIFLE BULLET','LEAVING THE BARREL (ABOUT)'),'earth':('YOU, RIGHT NOW','AROUND THE SUN'),'parker':('PARKER SOLAR PROBE','FASTEST HUMAN-MADE OBJECT')}
     # ---- hero objects with their field auras
     cur=None
@@ -213,9 +262,11 @@ def draw(t,bgarr=None):
         dxm=-(1-eout(min(1.0,ts/dur_)))*mv + dr_*max(0.0,ts-dur_)
         au,(ax,ay)=aura_layer(t,LVL[cur],THEME[cur],cx=CX+dxm,al=al,half=A0[cur]-30); obj.alpha_composite(au,(ax,ay))
         if cur=='jet':
+            jet_tear(d,CX+dxm,CY,t,al,None)
             for k in range(14+int(14*(1-min(1.0,ts/0.6)))): d.line((CX+dxm-300-k*34,CY+5,CX+dxm-300-(k+1)*34,CY+5),fill=R.STEEL+(int(140*(1-k/14)*al) if k<14 else int(60*al),),width=5)
             paste(obj,R.SPR['jet'],CX+dxm,CY,JS*PSC*ps,al)
         elif cur=='bullet':
+            bullet_tear(d,CX+dxm,CY,t,al)
             sm=26+int(40*(1-min(1.0,ts/0.5)))
             for k in range(sm): d.line((CX+dxm-250-k*20,CY+(k%5-2)*6,CX+dxm-250-(k+1)*20,CY+(k%5-2)*6),fill=(255,150,70,int(130*(1-k/sm)*al)),width=4)
             rd=np.random.default_rng(int(t*30)%7)
