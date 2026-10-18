@@ -1,33 +1,33 @@
-# Mosquito reel: Google Flow clip list and prompts (A-F)
+# Mosquito reel v2: shot list and Google Flow prompts (A-I)
 
-Decisions (18 Oct 2026): photoreal Flow plates plus a designed data layer. No ChatGPT three.js (it cannot run our render/overlay/mix chain; designed beats are built locally). Six Flow generations (A-F), 2 variants each, 9:16, maximum length. Timeline 31 s x 30 fps = 930 frames; Flow is 24 fps and is conformed to 30 fps. Use Flow "Frames to Video" so clip E starts on clip B's last frame. Never use a clip with baked text; a leftover sparkle is removed with `delogo=x=852:y=1692:w=96:h=96`. Spec: `mosquito-reel-spec.md`.
+Authoritative shot list and clip prompts as of 18 Oct 2026 (supersedes the table in `mosquito-reel-spec.md`, which stays as history). Owner decisions: opening = macro mosquito, pull back to the swarm, vanish; middle = the ChatGPT storyboard's rhythm with balanced, sourced facts. Photoreal Flow plates plus a designed data layer; no ChatGPT three.js. Timeline 31 s x 30 fps = 930 frames; Flow is 24 fps and is conformed to 30. Use Flow "Frames to Video" so clip E starts on clip B's last frame. Remove any leftover sparkle with `delogo=x=852:y=1692:w=96:h=96`; never use a clip with baked text.
 
-## Timeline and transitions (final)
-| Time | Beat | Source | Transition out |
-|---|---|---|---|
-| 0-1.2 | Swarm toward camera, NIGHT 1 | Flow A | in-clip: bass hit, whole swarm bursts to dust |
-| 1.2-2.0 | Vanish, silence | Flow A | smash cut on silence (pattern interrupt at 2.0 s) |
-| 2.0-3.5 | Earth + one pulse (my overlay) | Flow B 0-1.5 s | continuous push-in, no cut |
-| 3.5-7.5 | WEEK 1: plunge through cloud to calm tundra, herd grazing | Flow B 1.5-5.5 s | camera drops to ground level, grass rack-focuses to the orchid |
-| 7.5-10.5 | MONTH 1: orchid, mosquito dissolves, flower left alone | Flow C | cut on light match (same dusk teal) |
-| 10.5-12.5 | Cacao pod, midge on flower, "SAFE" chip | Flow D | hard cut to black |
-| 12.5-13.3 | Held breath (near silence) | black | Earth fades up from black |
-| 13.3-19.5 | YEAR 1: photoreal Earth (B frame, Africa-centred) dissolves in 6 frames into my designed lattice data globe; red markers wink out; 610,000 number, hero hit | designed (mine) | pull away from Africa, plunge back through cloud (same motion as B) |
-| 19.5-26 | YEAR 10: same tundra, new small insects in the air | Flow E (start frame = B's last frame) | rack focus from the air insects to one mosquito |
-| 26-29.5 | End line; single mosquito hovers, wings start to buzz | Flow F | mosquito bursts to dust |
-| 29.5-31 | Dust re-forms into the swarm = frame 0 (loop) | Flow A played in reverse | hard cut to frame 0 |
+## Final shot list (about 31 s, wordless, loops)
+| # | Time | Visual | Text (top of frame, cream; red chip where marked) | Sound | Source | Transition out |
+|---|---|---|---|---|---|---|
+| 01 | 0-1.0 | Macro: mosquito about to bite, glistening skin | "WHAT IF EVERY [MOSQUITO]" typed by 1.0 | whine hit on frame 0 | Flow A | fast pull-back |
+| 02 | 1.0-2.4 | Pull-back reveals hundreds of mosquitoes; at 1.5 s all burst to dust; silence | "VANISHED?" lands on the bass hit | bass impact, then absolute silence | Flow A (A1+A2 if one shot fails) | smash cut at 2.4 |
+| 03 | 2.4-5.0 | Night city, glowing swarm dots lift away; cut to Earth at night, one pulse | "OVERNIGHT. ALL GONE." then "EVERYWHERE ON EARTH." | silence, soft low pulse | existing `vanishes.mp4` 2.9-3.9 s + Flow B Earth | continuous push-in |
+| 04 | 5.0-8.5 | Plunge through cloud to a calm tundra, herd grazing (relief) | "ARCTIC SWARMS: GONE" | plunge whoosh, calm wind | Flow B | cut to black |
+| -- | 8.5-9.2 | Held breath | none | near-silence | black | Earth fades up |
+| 05 | 9.2-14.0 | Photoreal Earth (Africa-centred) dissolves into my designed lattice data globe; markers wink out; number lands | "~610,000 DEATHS FROM MALARIA, 2024 (WHO)" then "ONE EVERY ~52 SECONDS. MOSTLY CHILDREN UNDER 5." | HERO hit (bigger than the vanish) | designed (mine) + Flow B frame | cut |
+| 06 | 14.0-16.5 | Wetland at dusk, a bird snaps at empty air | "BUT NATURE NOTICES." / "SOME PREDATORS LOSE A MEAL. MOST WOULD SWITCH." | wind, water | Flow G | cut |
+| 07 | 16.5-19.0 | Underwater: fish and aquatic insects | "FOOD WEBS MIGHT SHIFT." | muffled underwater bed | Flow H (optional) | cut |
+| 08 | 19.0-22.0 | Bog orchid; a mosquito dissolves before landing; flower left alone; then 1 s cacao "SAFE" | "ONE ORCHID DEPENDS ON THEM." then "CHOCOLATE? SAFE. MIDGES POLLINATE IT." | soft ticks, small chime | Flow C, Flow D (optional) | cut |
+| 09 | 22.0-25.5 | Same tundra, ten years on, small new insects in the air (start frame = Flow B last frame) | "YEAR 10. SOMETHING ELSE MOVES IN." / "ONE SMALL CREATURE. A BIGGER WEB." | thin new insect hum | Flow E | pull back |
+| 10 | 25.5-28.5 | Earth with sunrise, slow pull-back | "WOULD EARTH BE [BETTER] WITHOUT THEM?" "THOUGHT EXPERIMENT" tag | held tone | Flow I | cut |
+| 11 | 28.5-31 | One mosquito hovers, wings start to buzz, lands on skin about to bite = frame 0 | none | whine rises into frame 0 | Flow F | loop |
 
-## Flow prompts (paste each; generate 2 variants)
-Prefix for every prompt: "Photorealistic cinematic footage, 35 mm lens, natural muted colour, deep navy and teal night tones with faint warm highlights, subtle film grain, vertical 9:16. No text, no captions, no subtitles, no logos, no watermark, no UI, no graphics, no overlays, no glowing lines or wireframes, no music, no speech."
-
-**A. Hook swarm + vanish (8 s):** "A dense swarm of hundreds of Aedes mosquitoes flies straight toward the camera through warm humid dusk air, backlit by a faint teal glow, extreme shallow depth of field, fine legs and beating wings visible, slight handheld shake. At about 1.5 seconds every mosquito disintegrates at the same instant into fine glowing dust that scatters outward in one burst, leaving completely empty dark air with a few drifting motes. Locked camera, one continuous shot." Fallback A2: swarm only, no vanish (I do the burst in post).
-
-**B. Earth to tundra (8-10 s):** "Earth from space, centred on Africa and Europe, thin atmosphere glow, black star field, slow smooth push-in. The camera dives through layers of white cloud, descends over the Arctic and settles low over a calm summer tundra at dusk with shallow pools and cotton grass, about thirty caribou grazing peacefully across the plain. The air is clear and still; no insects anywhere. One continuous smooth shot." Save B's final frame as E's start frame.
-
-**C. Orchid (5 s):** "Extreme macro of a small wild bog orchid, blunt-leaf orchid Platanthera obtusata: a slender spike of tiny pale green-white flowers with one blunt basal leaf, in a damp northern bog at dusk, soft navy-teal background. A single mosquito hovers in front of the flowers, then dissolves into fine pale dust that drifts away, leaving the orchid alone and still. Shallow depth of field, locked camera."
-
-**D. Cacao (4 s):** "Macro of a cacao tree trunk with a cluster of tiny pink-white cacao flowers growing directly from the bark and one ripe yellow-orange cacao pod beside them. A tiny dark midge, not a mosquito, lands on a flower. Soft warm light against a dark green-navy background, shallow depth of field, slow push-in."
-
-**E. Year 10 tundra (8 s, Frames to Video, start frame = B's last frame):** "The same tundra plain ten years later at dusk, caribou still grazing, and the air now holds a thin drifting haze of tiny non-biting flies and midges rising from the pools. Camera drifts slowly forward. No mosquitoes, no text, no overlays."
-
-**F. Hovering mosquito (6 s):** "A single mosquito hovers facing the camera against a dark navy background, wings beating in a blur, fine legs hanging, slight breathing push-in of the camera, shallow depth of field. Photorealistic, no text." (needs 2.5+ s clean.)
+## Flow clips to generate (paste; 2 variants each)
+Prompt prefix for all: "Photorealistic cinematic footage, 35 mm lens, natural muted colour, deep navy and teal night tones with faint warm highlights, subtle film grain, vertical 9:16. No text, no captions, no subtitles, no logos, no watermark, no UI, no graphics, no overlays, no glowing lines or wireframes, no music, no speech."
+Required: **A** macro-to-swarm-to-vanish, **B** Earth-to-tundra, **C** bog orchid, **E** tundra year 10 (Frames to Video, start = B's last frame), **F** hover-and-land, **G** wetland bird, **I** Earth sunrise. Optional: **D** cacao, **H** underwater.
+- **A (8 s):** "Extreme macro of an Aedes mosquito about to bite glistening skin, then the camera pulls back fast to reveal hundreds of mosquitoes in warm humid dusk air, backlit by a faint teal glow, fine legs and beating wings visible. At about 1.5 seconds after the pull-back every mosquito disintegrates at the same instant into fine glowing dust that scatters outward in one burst, leaving empty dark air. One continuous shot." Fallback: A1 = macro about to bite; A2 = swarm toward camera then burst.
+- **B (8-10 s):** "Earth from space centred on Africa and Europe, thin atmosphere glow, black star field, slow smooth push-in. The camera dives through white cloud, descends over the Arctic and settles low over a calm summer tundra at dusk with shallow pools and cotton grass, about thirty caribou grazing peacefully. The air is clear and still, no insects. One continuous smooth shot."
+- **C (5 s):** "Extreme macro of a small wild bog orchid, blunt-leaf orchid Platanthera obtusata: a slender spike of tiny pale green-white flowers with one blunt basal leaf, in a damp northern bog at dusk, soft navy-teal background. A single mosquito hovers in front of the flowers, then dissolves into fine pale dust that drifts away, leaving the orchid alone and still. Shallow depth of field, locked camera."
+- **E (8 s, start frame = B's last frame):** "The same tundra plain ten years later at dusk, caribou still grazing, and the air now holds a thin drifting haze of tiny non-biting flies and midges rising from the pools. Camera drifts slowly forward. No mosquitoes."
+- **F (6 s):** "A single mosquito hovers facing the camera against a dark background, wings beating in a blur, then slowly descends and lands on glistening skin, legs touching down, about to bite. Shallow depth of field, slight push-in."
+- **G (5 s):** "A wading bird in a wetland at dusk, wings half open, snapping its beak at empty air over still water; clear air, no insects; soft teal-navy light, shallow depth of field."
+- **I (5 s):** "Earth from space with a slow pull-back as the sun rises over the horizon, thin atmosphere glow, black star field, city lights on the night side. Smooth, no overlays."
+- **D (4 s, optional):** "Macro of a cacao tree trunk with tiny pink-white cacao flowers growing from the bark and one ripe yellow-orange pod; a tiny dark midge, not a mosquito, lands on a flower. Soft warm light, dark green-navy background, slow push-in."
+- **H (5 s, optional):** "Underwater in a calm pond, small fish feeding near the surface among aquatic insects, teal-green light, shallow depth of field, slow drift."
+Existing clips reused: `vanishes.mp4` 2.9-3.9 s (city dots). Do not use: `earth.mp4` 0-1.3 s (wrong red overlay), `pollinator.mp4` orchid (moth orchid, baked text), and any window with baked text.

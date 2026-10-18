@@ -30,6 +30,18 @@ Status key: V = checked against a source on 18 Oct 2026; TO CHECK = must be veri
 
 Never say: "ecosystems collapse", "mosquitoes are useless", "malaria would end" (other vectors and a changed ecology are not modelled here). Say: "scientists disagree", "one expert predicted".
 
+## Revision v2 (18 Oct 2026): storyboard merge
+Owner shared a 10-panel ChatGPT storyboard. Decisions: opening = macro mosquito, pull back to reveal the swarm, vanish; middle = storyboard rhythm with balanced facts. The authoritative shot list and Flow prompts are now in `mosquito-flow-prompts.md`; the shot-plan table below is kept as history.
+Keeps: the 10-beat rhythm, big stat panel ("~610,000 deaths from malaria in 2024 (WHO)"), the closing question, the final mosquito that loops, text at the top of frame with the subject below, "MOSQUITO" as a red word.
+Changes (science and rules):
+- **"MILLIONS OF LIVES COULD CHANGE"** is unsourced -> replaced by the WHO stat only.
+- **Bird catching nothing / "FOOD WEBS WOULD CHANGE" / "SOME PLANTS DEPEND ON THEM"** overstate the science (predators mostly switch prey; mosquito pollination is minor; the only verified case is one bog orchid) -> hedged wording below.
+- **AI-drawn world map** invents shapes (rule: never let AI draw maps) -> the malaria map is designed from `tools/mosquito/land.json` with sub-Saharan markers; the storyboard's worldwide red scatter is not the malaria burden.
+- **The pink daisy-like flower** is not the bog orchid -> regenerate (Flow C).
+- Red only as chips/markers (palette rule): "MOSQUITO" and "BETTER" become red chips.
+- Time ladder dropped (storyboard puts malaria before the nature beats, which would break the monotonic rule); the only time label left is "YEAR 10".
+- Wording rules for the nature beats (Nature 2010, Fang feature: predators could switch to other prey): say "some predators lose a meal, most would switch", "food webs might shift", "one orchid depends on them". Never "food webs would change" or "some plants depend on them".
+
 ## Revision log
 - 18 Oct 2026, owner change: the hook now opens on a mosquito SWARM (under 2 s), the swarm vanishes on a bass impact into silence, smash cut to Earth. The single stock macro mosquito moves to the loop ending. Hook wording changed from "died" to "vanished" (matches the Sun-vanishes thought-experiment tone). All later beats shift +0.5 s; the YEAR 1 reveal now lands at 13.3 s (still before 15 s). No other beat changed.
 - Flow clip plan, transitions and prompts: `mosquito-flow-prompts.md`.
