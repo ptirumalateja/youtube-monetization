@@ -84,9 +84,10 @@ _Z=np.cumsum([p[1]/300 for p in _P]); _S=np.cumsum([p[1]*0.5/300 for p in _P])
 def vortex_layer(t):
     (tw,sp,br,na),col=vparams_loop(t)
     if br<=0.01: return None
+    VB=0.34 if t<LIGHT_T[0] or t>=LAP_T[0] else 0.5   # vortex dimmed a lot (the objects are the focus); the light stage keeps a little more
     img=np.zeros((H,W,3),np.uint8); F=520.0; cx,cy=CX,960; Z=float(np.interp(t,_ts,_Z)); S=float(np.interp(t,_ts,_S)); rgb=np.array(col,float)[::-1]
     for k in range(36):   # rings rushing outward
-        z=((k*0.38-Z)%13.7)+0.32; r=F/z; al=max(0.0,1-z/14.0)**1.1*min(1.0,z/0.8)*br
+        z=((k*0.38-Z)%13.7)+0.32; r=F/z; al=max(0.0,1-z/14.0)**1.1*min(1.0,z/0.8)*br*VB
         if al<0.02: continue
         cv2.ellipse(img,(cx,cy),(int(r),int(r*1.25)),0,0,360,tuple(int(v*al) for v in rgb),2,cv2.LINE_AA)
     n=int(round(na)); zs=np.geomspace(0.32,14.0,50)
@@ -94,18 +95,18 @@ def vortex_layer(t):
         ph=2*math.pi*j/n+S; pts=[]
         for z in zs:
             th=ph+tw*(14.0-z)*0.9; r=F/z; pts.append((cx+r*math.cos(th),cy+r*math.sin(th)*1.25))
-        a_=br*0.85
+        a_=br*0.85*VB
         cv2.polylines(img,[np.array(pts,np.int32)],False,tuple(int(v*a_) for v in rgb),2,cv2.LINE_AA)
     g=cv2.GaussianBlur(img,(0,0),8).astype(float)
-    img=np.clip(img.astype(float)+g*1.6,0,255).astype('uint8')
-    a=np.clip(img.max(axis=2).astype(float)*1.5,0,255).astype('uint8')
+    img=np.clip(img.astype(float)+g*0.9,0,255).astype('uint8')
+    a=np.clip(img.max(axis=2).astype(float)*1.4,0,255).astype('uint8')
     return Image.fromarray(np.dstack([img[...,::-1],a]),'RGBA')
 # ------------------------------------------------------------------ magnetic-field aura
 A0={'jet':380,'bullet':410,'earth':330,'parker':380,None:380}
 def aura_layer(t,lvl,col,cx=CX,cy=CY,al=1.0,half=380):
     """magnetic-field loops: nested lens-shaped lines joining the object's nose and tail (like field lines between two poles), plus wider outer loops;
     faster object = more loops, taller, brighter, thicker and more distorted"""
-    RW,RH=1200,900; img=np.zeros((RH,RW,3),np.uint8); rgb=np.array(col,float)[::-1]; ox,oy=RW/2,RH/2
+    RW,RH=1200,900; img=np.zeros((RH,RW,3),np.uint8); c_=np.array(col,float); c_=(0.7*c_+0.3*c_.mean())*(0.50+0.14*lvl); rgb=c_[::-1]; ox,oy=RW/2,RH/2   # softer, less saturated and dimmer
     nl=3+int(round(6*lvl)); bmax=90+190*lvl; amp=0.02+0.30*lvl**2; w=2+int(2*lvl); om=1.0+4.0*lvl
     tt=np.linspace(0,2*math.pi,160)
     for k in range(nl):
@@ -114,8 +115,8 @@ def aura_layer(t,lvl,col,cx=CX,cy=CY,al=1.0,half=380):
         fall=(0.40+0.60*(1-u*0.6))*(0.55+0.45*lvl)*al
         p=np.stack([ox+x,oy+y],1).astype(np.int32)
         cv2.polylines(img,[p],True,tuple(int(v*fall) for v in rgb),w,cv2.LINE_AA)
-    g=cv2.GaussianBlur(img,(0,0),6+7*lvl).astype(float); img=np.clip(img.astype(float)+g*(1.1+1.0*lvl),0,255).astype('uint8')
-    a_=np.clip(img.max(axis=2).astype(float)*1.5,0,255).astype('uint8')
+    g=cv2.GaussianBlur(img,(0,0),6+7*lvl).astype(float); img=np.clip(img.astype(float)+g*(0.5+0.5*lvl),0,255).astype('uint8')
+    a_=np.clip(img.max(axis=2).astype(float)*1.3,0,255).astype('uint8')
     return Image.fromarray(np.dstack([img[...,::-1],a_]),'RGBA'),(int(cx-ox),int(cy-oy))
 # ------------------------------------------------------------------ scene
 def pulse(t):
