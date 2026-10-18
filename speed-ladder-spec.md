@@ -1,4 +1,4 @@
-# Slow Light "Speed Ladder": how fast is fast? (14 s, wordless, loops)
+# Slow Light "Speed Ladder": how fast is fast? (17.1 s, wordless, loops)
 
 Status: BUILT v1 (18 Oct 2026) with the recommended picks (km/s counter, long twist wording, Earth beat kept). Build notes: rendered with PIL 2-D vector sprites + parallax streaks instead of three.js (faster and clearer for flat silhouettes); the Earth is the lattice-point globe from `tools/mosquito/land.json`. Bullet label corrected to ~3,200 KM/H (0.9 km/s x 3600 = 3,240). Earth label shows 107,000 KM/H. Code: `tools/speed/render.py`, `tools/speed/mix.py`.
 
@@ -59,3 +59,10 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 1. Unit: one counter in km/s (consistent, my recommendation) or km/h for the first three stops (more familiar, but the counter would switch units).
 2. Twist wording: "FAR GALAXIES RECEDE FASTER THAN LIGHT. (SPACE ITSELF STRETCHES.)" or the shorter "SPACE CAN STRETCH FASTER THAN LIGHT."
 3. Keep the "YOU, RIGHT NOW" Earth beat as stop 3 (recommended) or swap it for a faster Voyager beat.
+
+## v2 additions (17.1 s, built 18 Oct 2026)
+- Status: BUILT v2. The 14 s v1 is kept as `tools/speed/render_v1_14s.py` and `mix_v1_14s.py`.
+- Lap beat 11.7-14.4 s, after the light hit: Earth with a light beam circling its equator 7.5 times in 1.00 s (equator 40,075 km; 299,792 / 40,075 = 7.48). Lap counter 0 to 7.5 and a 0.00 to 1.00 S timer. Text: "LIGHT CIRCLES EARTH", "EQUATOR: 40,075 KM", then "IN ONE SECOND.". The equatorial circumference is TO CHECK against NASA before posting.
+- Beat: 133 BPM (0.45 s grid). Kick on every beat from 1.8 s (rising level), hats from 3.6 s, claps from 5.4 s, snare roll and riser 7.2-9.0 s, near-silence 9.0-9.45 s, drop at 9.45 s (hero hit, crash, kick every beat, off-beat sub bass), one rising ping per lap, groove stops at 14.4 s into a quiet pad for the twist, rush into frame 0.
+- Picture: objects pulse 3% on each kick, parallax bokeh layer, per-stop colour tint, screen shake on the drop.
+- Timeline (s): hook 0-1.8, jet 1.8-3.6, bullet 3.6-5.4, Earth 5.4-7.2, Parker 7.2-9.0, held breath 9.0-9.45, light 9.45-11.7, laps 11.7-14.4, twist 14.4-16.65, loop 16.65-17.1.
