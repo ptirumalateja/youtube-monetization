@@ -1,79 +1,113 @@
 <!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
 <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
 <body><script type="module">
-// Mosquito reel, beats 01-02 (0-2.4 s): macro mosquito -> pull-back reveals the swarm -> all vanish in one burst -> empty air.
+// Mosquito reel, beats 01-02 (0-2.4 s), v2 look: macro mosquito -> pull-back reveals the swarm -> one burst -> empty air.
+// Backlit dusk, physically based body, depth of field with a focus pull, bloom, grade. Text and sound are added later.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
-const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
-renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=.9;
 const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x2a0f12,25,170);
-const cam=new THREE.PerspectiveCamera(38,W/H,0.05,400);
+const cam=new THREE.PerspectiveCamera(36,W/H,0.3,400);
 function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}} const R=rnd(77), U=(a,b)=>a+(b-a)*R();
-const ease=x=>x<0?0:x>1?1:x*x*(3-2*x), easeIn=x=>{x=Math.min(1,Math.max(0,x));return x*x*x};
-// ---- sky: dusk gradient, amber band at the horizon, navy above, near-black below; uDim fades it after the vanish
+const ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
+// ---- sky: dusk gradient, low sun glow behind the swarm (rim light for everything), navy above. uDim fades it after the vanish
 const skyU={uDim:{value:1}};
-scene.add(new THREE.Mesh(new THREE.SphereGeometry(200,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
  vertexShader:'varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:'varying vec3 vP;uniform float uDim;void main(){float y=vP.y;vec3 top=vec3(.018,.03,.07),hor=vec3(.50,.17,.10),low=vec3(.03,.012,.012);'+
- 'vec3 c=y>0.?mix(hor,top,smoothstep(0.,.55,y)):mix(hor,low,smoothstep(0.,.35,-y));c*=1.+.35*exp(-pow((y+.02)*5.,2.));gl_FragColor=vec4(c*uDim,1.);}'})));
-scene.add(new THREE.HemisphereLight(0x6f86b8,0x2a0f0a,.55));
-const key=new THREE.DirectionalLight(0xffb070,3.4); key.position.set(-4,3,-6); scene.add(key);
-const fill=new THREE.DirectionalLight(0x6f8fc8,.9); fill.position.set(3,1,6); scene.add(fill);
-// ---- mosquito geometry (local: +z forward, +y up, +x right), baked into one merged mesh with vertex colours
-function col(g,hex,fn){const c=new THREE.Color(hex),n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){const k=fn?fn(g.attributes.position,i):c;const cc=k.isColor?k:c;a[i*3]=cc.r;a[i*3+1]=cc.g;a[i*3+2]=cc.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g}
-function bodyGeom(seg){const P=[],dark=0x2b1b14,cream=0xe3d2ac;
- let g=new THREE.SphereGeometry(.085,seg,seg/2);g.translate(0,0,.42);P.push(col(g,0x1d130f));                       // head
- g=new THREE.SphereGeometry(.15,seg,seg/2);g.scale(.95,1,1.25);g.translate(0,.03,.22);P.push(col(g,0x3a271b));       // thorax
- g=new THREE.CapsuleGeometry(.075,.62,6,seg);g.rotateX(Math.PI/2);g.translate(0,-.02,-.30);                           // abdomen, banded
- P.push(col(g,dark,(p,i)=>((Math.floor((p.getZ(i)+.7)*11)%2)?new THREE.Color(cream):new THREE.Color(dark))));
- g=new THREE.CylinderGeometry(.011,.007,.42,6);g.rotateX(Math.PI/2);g.rotateX(.28);g.translate(0,-.06,.62);P.push(col(g,0x120c09)); // proboscis, tilted down
- for(const s of[-1,1]){g=new THREE.CylinderGeometry(.004,.004,.3,4);g.rotateX(Math.PI/2);g.rotateY(s*.35);g.rotateX(-.3);g.translate(s*.05,.07,.55);P.push(col(g,0x2b1b14))} // antennae
- const legs=[[0,.24],[1,.14],[2,.05]];                                                                        // 3 pairs, trailing back in flight
- for(const sd of[-1,1])for(const [k,bz] of legs){const c=new THREE.CatmullRomCurve3([new THREE.Vector3(sd*.06,-.05,bz),new THREE.Vector3(sd*.22,-.10,bz-.22-.08*k),new THREE.Vector3(sd*.31,-.27,bz-.6-.1*k),new THREE.Vector3(sd*.33,-.44,bz-.98-.12*k)]);
-  g=new THREE.TubeGeometry(c,10,.0062,5);P.push(col(g,0x241710))}
- return mergeGeometries(P.map(x=>x.toNonIndexed()))}
-function wingGeom(){const sh=new THREE.Shape();sh.moveTo(0,0);sh.bezierCurveTo(.2,.1,.55,.14,.82,.05);sh.bezierCurveTo(.88,0,.86,-.07,.78,-.1);sh.bezierCurveTo(.5,-.16,.2,-.12,0,0);return new THREE.ShapeGeometry(sh,12).rotateX(-Math.PI/2)}
-const wc=document.createElement('canvas');wc.width=256;wc.height=96;{const x=wc.getContext('2d');x.fillStyle='rgba(255,215,160,0.22)';x.fillRect(0,0,256,96);x.strokeStyle='rgba(255,230,190,0.9)';x.lineWidth=2;
- for(let i=0;i<5;i++){x.beginPath();x.moveTo(0,48);x.lineTo(250,14+i*17);x.stroke()}x.strokeStyle='rgba(255,236,205,1)';x.lineWidth=4;x.strokeRect(2,2,252,92)}
-const wtex=new THREE.CanvasTexture(wc);
+ fragmentShader:'varying vec3 vP;uniform float uDim;void main(){float y=vP.y;vec3 top=vec3(.0016,.0035,.012),hor=vec3(.26,.04,.012),low=vec3(.003,.0012,.0012);'+
+ 'vec3 c=y>0.?mix(hor,top,smoothstep(0.,.6,y)):mix(hor,low,smoothstep(0.,.4,-y));c*=1.+.3*exp(-pow((y+.02)*5.,2.));'+
+ 'vec3 sd=normalize(vec3(-.2,-.05,-1.));float d=max(dot(vP,sd),0.);c+=vec3(1.,.62,.28)*(pow(d,1400.)*5.+pow(d,120.)*.45+pow(d,14.)*.05);gl_FragColor=vec4(c*uDim,1.);}'});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(200,48,24),skyMat); scene.add(sky);
+const pm=new THREE.PMREMGenerator(renderer); const envS=new THREE.Scene(); envS.add(new THREE.Mesh(new THREE.SphereGeometry(200,48,24),skyMat)); scene.environment=pm.fromScene(envS,.03).texture; scene.environmentIntensity=.5;
+const rim=new THREE.DirectionalLight(0xff9a4a,3.6); rim.position.set(.5,.8,-9); scene.add(rim);
+const key=new THREE.DirectionalLight(0xffd8b0,2.8); key.position.set(-5,4,7); scene.add(key);
+scene.add(new THREE.HemisphereLight(0x7a92c8,0x3a1208,.5));
+// ---- mosquito geometry (+z forward, +y up, +x right), merged with vertex colours
+function col(g,hex){const c=new THREE.Color(hex),n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g}
+function colFn(g,fn){const n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){const c=new THREE.Color(fn(i));a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g}
+function bodyGeom(hi){const S=hi?32:8,T=hi?24:4,RS=hi?8:3,P=[],dark=0x1c1410,cream=0xeadcbf,brown=0x33221a;
+ let g;
+ g=new THREE.SphereGeometry(.07,S,S/2);g.scale(.95,1,1);g.translate(0,0,.43);P.push(col(g,brown));                                  // head
+ for(const s of[-1,1]){g=new THREE.SphereGeometry(.046,S,S/2);g.translate(s*.04,.012,.445);P.push(col(g,0x0b0706))}                  // compound eyes
+ g=new THREE.CylinderGeometry(.0035,.011,.46,hi?10:4);g.rotateX(Math.PI/2);g.translate(0,0,.23);g.rotateX(.2);g.translate(0,-.045,.62);P.push(col(g,0x120c09)); // proboscis, tapered
+ for(const s of[-1,1]){g=new THREE.CylinderGeometry(.005,.007,.16,5);g.rotateX(Math.PI/2);g.translate(0,0,.08);g.rotateY(s*.12);g.translate(s*.03,-.03,.5);P.push(col(g,0x2b1b14));            // palps
+  g=new THREE.CylinderGeometry(.0025,.004,.34,4);g.rotateX(Math.PI/2);g.translate(0,0,.17);g.rotateY(s*.3);g.rotateX(-.22);g.translate(s*.035,.05,.5);P.push(col(g,0x2b1b14))}  // antennae
+ g=new THREE.SphereGeometry(.14,S,S/2);g.scale(.95,1.0,1.35);g.translate(0,.035,.2);P.push(col(g,brown));                           // thorax
+ for(const s of[-1,1]){g=new THREE.SphereGeometry(.018,8,6);g.scale(.5,.4,5);g.translate(s*.03,.175,.2);P.push(col(g,cream))}       // scutum stripes
+ for(let i=0;i<7;i++){const z=-.02-i*.088,r=.082-i*.0045+(i==0?-.01:0);                                                             // banded abdomen
+  g=new THREE.SphereGeometry(r,S,S/2);g.scale(1,.95,1.2);g.translate(0,-.005-i*i*.0016,z);P.push(col(g,dark));
+  g=new THREE.TorusGeometry(r*.97,.0105,6,hi?20:8);g.translate(0,0,0);g.translate(0,-.005-i*i*.0016,z+.045);P.push(col(g,cream))}
+ const legSets=[[.26,0],[.18,1],[.1,2]];                                                                                             // 3 pairs, trailing back in flight
+ for(const sd of[-1,1])for(const [bz,k] of legSets){const c=new THREE.CatmullRomCurve3([new THREE.Vector3(sd*.07,-.04,bz),new THREE.Vector3(sd*.25,.05,bz-.12-.07*k),new THREE.Vector3(sd*.38,-.14,bz-.5-.1*k),new THREE.Vector3(sd*.41,-.36,bz-.82-.12*k),new THREE.Vector3(sd*.42,-.58,bz-1.05-.14*k)]);
+  g=new THREE.TubeGeometry(c,T,.0058,RS);const rs=RS+1;P.push(colFn(g,i=>{const u=Math.floor(i/rs)/T;return(u>.36&&u<.42)||(u>.7&&u<.76)||u>.93?cream:0x2a1b13}))}
+ for(const s of[-1,1]){g=new THREE.CylinderGeometry(.004,.01,.07,5);g.translate(0,0,0);g.rotateX(Math.PI/2);g.rotateY(s*.8);g.translate(s*.06,.09,.02);P.push(col(g,cream))}        // halteres
+ return mergeGeometries(P.map(x=>x.index?x.toNonIndexed():x))}
+function wingGeom(){const sh=new THREE.Shape();sh.moveTo(0,0);sh.bezierCurveTo(.2,.1,.55,.14,.84,.05);sh.bezierCurveTo(.9,0,.88,-.07,.8,-.1);sh.bezierCurveTo(.5,-.16,.2,-.12,0,0);return new THREE.ShapeGeometry(sh,14).rotateX(-Math.PI/2)}
+const wc=document.createElement('canvas');wc.width=512;wc.height=192;{const x=wc.getContext('2d');x.fillStyle='rgba(255,205,150,0.16)';x.fillRect(0,0,512,192);
+ const gr=x.createLinearGradient(0,0,512,0);gr.addColorStop(0,'rgba(255,230,190,.5)');gr.addColorStop(1,'rgba(255,190,130,.05)');x.fillStyle=gr;x.fillRect(0,0,512,192);
+ x.strokeStyle='rgba(255,236,200,0.95)';for(let i=0;i<6;i++){x.lineWidth=i==0?4:2;x.beginPath();x.moveTo(0,96);x.quadraticCurveTo(250,40+i*20,500,18+i*30);x.stroke()}
+ x.strokeStyle='rgba(255,225,180,.55)';x.lineWidth=1.5;for(let i=0;i<14;i++){x.beginPath();x.moveTo(60+i*30,60+Math.abs(i-7)*6);x.lineTo(70+i*30,130-Math.abs(i-7)*5);x.stroke()}
+ x.strokeStyle='rgba(255,240,215,1)';x.lineWidth=5;x.strokeRect(3,3,506,186)}
+const wtex=new THREE.CanvasTexture(wc); wtex.anisotropy=4;
 const wingMat=new THREE.MeshBasicMaterial({map:wtex,transparent:true,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,color:0xffddb0,fog:true});
-const bodyMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.05});
-bodyMat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n float fr=pow(1.-abs(dot(normalize(normal),normalize(vViewPosition))),2.4); totalEmissiveRadiance+=vec3(1.,.6,.3)*fr*.45;')};
-const WG=wingGeom(); // pivot at the root; tip along +x, trailing edge towards -z
+const bodyMat=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.42,metalness:0,clearcoat:.6,clearcoatRoughness:.28,sheen:.6,sheenColor:new THREE.Color(0xffa860),sheenRoughness:.5});
+bodyMat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n float fr=pow(1.-abs(dot(normalize(normal),normalize(vViewPosition))),2.6); totalEmissiveRadiance+=vec3(1.,.58,.26)*fr*.55;')};
+const WG=wingGeom();
 // ---- hero (detailed, individually posed)
-const heroBody=new THREE.Mesh(bodyGeom(28),bodyMat), wR=new THREE.Mesh(WG,wingMat), wL=new THREE.Mesh(WG,wingMat); wL.scale.x=-1;
-const hero=new THREE.Group(); hero.add(heroBody,wR,wL); wR.position.set(.05,.17,.2); wL.position.set(-.05,.17,.2); hero.rotation.set(-.15,.55,0); scene.add(hero);
-// ---- swarm (instanced)
-const N=380, bodyG=bodyGeom(10), swarmBody=new THREE.InstancedMesh(bodyG,bodyMat,N), swarmWing=new THREE.InstancedMesh(WG,wingMat,N*2);
+const heroBody=new THREE.Mesh(bodyGeom(true),bodyMat), wR=new THREE.Mesh(WG,wingMat), wL=new THREE.Mesh(WG,wingMat); wL.scale.x=-1;
+const hero=new THREE.Group(); hero.add(heroBody,wR,wL); wR.position.set(.05,.19,.2); wL.position.set(-.05,.19,.2); hero.rotation.set(-.1,.62,.08); scene.add(hero);
+// ---- swarm (instanced, lower detail)
+const N=360, swarmBody=new THREE.InstancedMesh(bodyGeom(false),bodyMat,N), swarmWing=new THREE.InstancedMesh(WG,wingMat,N*2);
 swarmBody.frustumCulled=swarmWing.frustumCulled=false; scene.add(swarmBody,swarmWing);
 const M=[]; for(let i=0;i<N;i++){const near=i>=N*.9;let z=near?U(-9,2):U(-75,-9),x=U(-16,16)*(1+(-z)/45),y=U(-22,22)*(1+(-z)/45);if(near){x=Math.sign(x||1)*U(7,16);}
  const lat=U(-1,1),up=U(-.3,.3);const dir=new THREE.Vector3(lat,up,U(.2,1)).normalize();
  M.push({near,p:new THREE.Vector3(x,y,z),dir,sp:U(1.2,3.2),s:U(1.2,1.8)*(1+Math.max(0,-z)/40),ph:U(0,6.28),f:U(12,16),roll:U(-.5,.5),wob:U(.3,1.1)})}
-const tb=1.75; // vanish time
-const m4=new THREE.Matrix4(),mb=new THREE.Matrix4(),mw=new THREE.Matrix4(),q4=new THREE.Quaternion(),e4=new THREE.Euler(),sv=new THREE.Vector3(),zz=new THREE.Vector3(0,0,1);
+const tb=1.75;
+const m4=new THREE.Matrix4(),mb=new THREE.Matrix4(),mw=new THREE.Matrix4(),q4=new THREE.Quaternion(),sv=new THREE.Vector3(),zz=new THREE.Vector3(0,0,1),tr=new THREE.Matrix4(),fx=new THREE.Matrix4().makeScale(-1,1,1);
 function posAt(m,t){return new THREE.Vector3(m.p.x+Math.sin(t*2.1+m.ph)*m.wob*.15,m.p.y+Math.sin(t*2.7+m.ph*1.3)*m.wob*.15,m.p.z+m.sp*t)}
-function placeSwarm(t){const hide=t>=tb;for(let i=0;i<N;i++){const m=M[i];const p=posAt(m,t);q4.setFromUnitVectors(zz,m.dir);const r=new THREE.Quaternion().setFromAxisAngle(zz,m.roll);q4.multiply(r);
+function placeSwarm(t){const hide=t>=tb;for(let i=0;i<N;i++){const m=M[i];const p=posAt(m,t);q4.setFromUnitVectors(zz,m.dir);q4.multiply(new THREE.Quaternion().setFromAxisAngle(zz,m.roll));
   const s=hide?0:m.s*(m.near?ease((t-.8)/.6):1);sv.set(s,s,s);mb.compose(p,q4,sv);swarmBody.setMatrixAt(i,mb);
-  const fl=Math.sin(t*6.283*m.f+m.ph)*.7;for(let k=0;k<2;k++){const sd=k?-1:1;mw.makeRotationZ(sd*(.25+fl));const tr=new THREE.Matrix4().makeTranslation(sd*.05,.17,.2);if(sd<0)mw.premultiply(new THREE.Matrix4().makeScale(-1,1,1));
-   mw.premultiply(tr);m4.multiplyMatrices(mb,mw);swarmWing.setMatrixAt(i*2+k,m4)}}
+  const fl=Math.sin(t*6.283*m.f+m.ph)*.7;for(let k=0;k<2;k++){const sd=k?-1:1;mw.makeRotationZ(sd*(.25+fl));if(sd<0)mw.premultiply(fx);tr.makeTranslation(sd*.05,.19,.2);mw.premultiply(tr);m4.multiplyMatrices(mb,mw);swarmWing.setMatrixAt(i*2+k,m4)}}
  swarmBody.instanceMatrix.needsUpdate=swarmWing.instanceMatrix.needsUpdate=true}
-// ---- burst particles
-const PER=12,NP=(N+1)*PER; const pg=new THREE.BufferGeometry(),pp=new Float32Array(NP*3),pv=new Float32Array(NP*3),p0=new Float32Array(NP*3);pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
-const sc=document.createElement('canvas');sc.width=sc.height=64;{const x=sc.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,236,200,1)');g.addColorStop(.35,'rgba(255,200,130,.7)');g.addColorStop(1,'rgba(255,160,80,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}
-const pmat=new THREE.PointsMaterial({size:.5,map:new THREE.CanvasTexture(sc),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:0xffe2b8,fog:false});
+// ---- floating dust motes (real geometry so depth of field turns the near ones into bokeh discs)
+const NM=420,motes=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,.95,.5),transparent:true,opacity:.75,fog:false,depthWrite:false,blending:THREE.AdditiveBlending}),NM);motes.frustumCulled=false;scene.add(motes);
+const MP=[];for(let i=0;i<NM;i++)MP.push({p:new THREE.Vector3(U(-14,14),U(-20,20),U(-70,6)),s:U(.012,.045)*(1+Math.max(0,-0)),ph:U(0,6.28),v:U(.1,.5)});
+function placeMotes(t){const a=Math.max(0,1-Math.max(0,t-tb)/.35);for(let i=0;i<NM;i++){const m=MP[i];const s=m.s*(1+Math.max(0,-m.p.z)/25)*a;sv.set(s,s,s);q4.identity();
+  mb.compose(new THREE.Vector3(m.p.x+Math.sin(t*m.v+m.ph)*.4,m.p.y+Math.cos(t*m.v*1.3+m.ph)*.4,m.p.z),q4,sv);motes.setMatrixAt(i,mb)}motes.instanceMatrix.needsUpdate=true}
+// ---- burst: hot sparks + embers + a shockwave ring
+const PER=14,NP=(N+1)*PER; const pg=new THREE.BufferGeometry(),pp=new Float32Array(NP*3),pv=new Float32Array(NP*3),p0=new Float32Array(NP*3);pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+const sc=document.createElement('canvas');sc.width=sc.height=64;{const x=sc.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,244,220,1)');g.addColorStop(.3,'rgba(255,204,130,.75)');g.addColorStop(1,'rgba(255,150,70,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}
+const pmat=new THREE.PointsMaterial({size:.5,map:new THREE.CanvasTexture(sc),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,color:new THREE.Color(1.5,1.25,.9),fog:false});
 const parts=new THREE.Points(pg,pmat);parts.frustumCulled=false;scene.add(parts);
 {let k=0;const all=[...M.map(m=>posAt(m,tb)),new THREE.Vector3(0,0,0)];all.forEach((p,i)=>{for(let j=0;j<PER;j++){p0.set([p.x+U(-.3,.3),p.y+U(-.3,.3),p.z+U(-.3,.3)],k*3);
- const d=new THREE.Vector3(p.x,p.y,U(-.4,.4)*Math.abs(p.z)*.2+U(-3,3));if(i==N)d.set(U(-1,1),U(-1,1),U(-1,1));d.normalize().multiplyScalar(U(6,34));pv.set([d.x,d.y,d.z],k*3);k++}})}
-function placeParts(t){const dt=t-tb;if(dt<0){pmat.opacity=0;return}const kd=3.2;const f=(1-Math.exp(-kd*dt))/kd;for(let i=0;i<NP;i++){pp[i*3]=p0[i*3]+pv[i*3]*f;pp[i*3+1]=p0[i*3+1]+pv[i*3+1]*f;pp[i*3+2]=p0[i*3+2]+pv[i*3+2]*f}
- pg.attributes.position.needsUpdate=true;pmat.opacity=Math.max(0,1-dt/.75);pmat.size=.45+.5*(1-Math.min(1,dt/.6))}
-// ---- camera path: slow macro push, accelerating pull-back (0.7-1.65 s), hold
+ const d=new THREE.Vector3(p.x,p.y,U(-.4,.4)*Math.abs(p.z)*.2+U(-3,3));if(i==N)d.set(U(-1,1),U(-1,1),U(-1,1));d.normalize().multiplyScalar(U(6,36));pv.set([d.x,d.y,d.z],k*3);k++}})}
+function placeParts(t){const dt=t-tb;if(dt<0){pmat.opacity=0;ring.visible=false;return}const kd=3.2;const f=(1-Math.exp(-kd*dt))/kd;for(let i=0;i<NP;i++){pp[i*3]=p0[i*3]+pv[i*3]*f;pp[i*3+1]=p0[i*3+1]+pv[i*3+1]*f;pp[i*3+2]=p0[i*3+2]+pv[i*3+2]*f}
+ pg.attributes.position.needsUpdate=true;pmat.opacity=Math.max(0,1-dt/.8);pmat.size=.5+.55*(1-Math.min(1,dt/.6));
+ ring.visible=dt<.5;const rs=3+dt*95;ring.scale.set(rs,rs,1);ring.material.opacity=Math.max(0,.55*(1-dt/.5));ring.position.set(0,0,cam.position.z-22);ring.quaternion.copy(cam.quaternion)}
+const ring=new THREE.Mesh(new THREE.RingGeometry(.93,1,96),new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,1.1,.7),transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));ring.visible=false;scene.add(ring);
+// ---- camera: slow macro push, accelerating pull-back (0.7-1.65 s), hold; focus pulls from the hero to the swarm
 function camAt(t){const push=Math.min(t,.7)/.7;let z=3.5-.35*ease(push);if(t>.7)z=3.15+(34-3.15)*ease((t-.7)/.95);
- const sh=(t<tb?1:Math.exp(-(t-tb)*9))*.03; cam.position.set(Math.sin(t*37)*sh,.02+Math.sin(t*29)*sh,z);cam.lookAt(0,0,-10); cam.rotateZ(Math.sin(t*1.3)*.02)}
-function heroAt(t){hero.position.set(0,Math.sin(t*5)*.03,0.0);hero.visible=t<tb;const fl=Math.sin(t*6.283*14)*.7;wR.rotation.z=.25+fl;wL.rotation.z=-(.25+fl)}
-function frame(t){scene.fog.far=26+150*ease((t-.55)/1.1);camAt(t);heroAt(t);placeSwarm(t);placeParts(t);skyU.uDim.value=t<tb?1:Math.max(.12,1-(t-tb)*1.6)*(t>tb+.5?1:1);renderer.render(scene,cam)}
+ const sh=(t<tb?1:Math.exp(-(t-tb)*9))*.03;cam.position.set(Math.sin(t*37)*sh,.02+Math.sin(t*29)*sh,z);cam.lookAt(0,0,-10);cam.rotateZ(Math.sin(t*1.3)*.02)}
+function heroAt(t){hero.position.set(0,Math.sin(t*5)*.03,0);hero.visible=t<tb;const fl=Math.sin(t*6.283*14)*.7;wR.rotation.z=.25+fl;wL.rotation.z=-(.25+fl)}
+// ---- post: depth of field, bloom, tone map, grade (teal shadows / warm highlights, vignette, tiny chromatic aberration)
+const comp=new EffectComposer(renderer);comp.setSize(W,H);comp.addPass(new RenderPass(scene,cam));
+const bokeh=new BokehPass(scene,cam,{focus:3.2,aperture:.0016,maxblur:.02});comp.addPass(bokeh);
+comp.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),.3,.6,.85));comp.addPass(new OutputPass());
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+ fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec2 d=vUv-.5;float r=dot(d,d);vec2 o=d*r*.012;vec3 c=vec3(texture2D(tDiffuse,vUv+o).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-o).b);'+
+ 'float l=dot(c,vec3(.299,.587,.114));c*=mix(vec3(.93,1.0,1.1),vec3(1.06,1.0,.92),smoothstep(.1,.7,l));c=mix(vec3(l),c,1.08);c*=1.-1.3*r;gl_FragColor=vec4(c,1.);}'});comp.addPass(grade);
+function frame(t){scene.fog.far=26+150*ease((t-.55)/1.1);camAt(t);heroAt(t);placeSwarm(t);placeMotes(t);placeParts(t);skyU.uDim.value=t<tb?1:Math.max(.1,1-(t-tb)*1.7);
+ bokeh.uniforms['focus'].value=3.2+(cam.position.z-3.2)*ease((t-.7)/.4)+Math.min(1,Math.max(0,(t-1.05)/.5))*30;comp.render()}
 const cv=document.createElement('canvas');cv.width=W;cv.height=H;const c2=cv.getContext('2d');document.body.appendChild(cv);
-window.renderAt=(t,n=6,shutter=1/60)=>{c2.clearRect(0,0,W,H);for(let k=0;k<n;k++){frame(t+(n>1?(k/(n-1)-.5):0)*shutter);c2.globalAlpha=1/(k+1);c2.drawImage(renderer.domElement,0,0)}c2.globalAlpha=1;
- const fl=t>=tb&&t<tb+.14?.14*(1-(t-tb)/.14):0;if(fl>0){c2.fillStyle=`rgba(255,240,215,${fl})`;c2.fillRect(0,0,W,H)}return cv.toDataURL('image/jpeg',.93)};
+window.renderAt=(t,n=4,shutter=1/60)=>{c2.clearRect(0,0,W,H);for(let k=0;k<n;k++){frame(t+(n>1?(k/(n-1)-.5):0)*shutter);c2.globalAlpha=1/(k+1);c2.drawImage(renderer.domElement,0,0)}c2.globalAlpha=1;
+ const fl=t>=tb&&t<tb+.14?.16*(1-(t-tb)/.14):0;if(fl>0){c2.fillStyle=`rgba(255,240,215,${fl})`;c2.fillRect(0,0,W,H)}return cv.toDataURL('image/jpeg',.94)};
 window.ready=true;
 </script></body></html>
