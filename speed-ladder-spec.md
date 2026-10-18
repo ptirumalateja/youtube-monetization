@@ -1,6 +1,6 @@
 # Slow Light "Speed Ladder": how fast is fast? (14 s, wordless, loops)
 
-Status: PROPOSED, waiting for the owner's approval. Nothing is built yet. Once approved the plan is frozen: build once, check frames against the table, then deliver.
+Status: BUILT v1 (18 Oct 2026) with the recommended picks (km/s counter, long twist wording, Earth beat kept). Build notes: rendered with PIL 2-D vector sprites + parallax streaks instead of three.js (faster and clearer for flat silhouettes); the Earth is the lattice-point globe from `tools/mosquito/land.json`. Bullet label corrected to ~3,200 KM/H (0.9 km/s x 3600 = 3,240). Earth label shows 107,000 KM/H. Code: `tools/speed/render.py`, `tools/speed/mix.py`.
 
 Format: 9:16, 1080x1920, 14 s (target band 10-15 s), 30 fps, no voiceover, loops. Visuals and sound are 100% designed in code (three.js, no AI clips, no generation credits).
 Idea: a speed ladder in one unit. Five objects, each faster than the last, the previous one left behind, then a last twist that breaks the ladder. Origin: the Meta Creator Assistant's "comparison of speed" suggestion for the next space reel (bullet, jet, light, expansion of the universe). We keep the idea and fix the science (see guardrails).
@@ -33,7 +33,7 @@ Grammar: sideways track, one hero object centred and small, rings sweep through 
 |---|---|---|---|---|---|
 | 0-1.6 | **Hook** | Frame 0 is already moving: an airliner silhouette streaks across a dark sky, contrails | "HOW FAST IS [FAST]?" typed by 1.4 | 0 | Hit on frame 0 (small), rising wind-rush |
 | 1.6-3.4 | **Jet** | Airliner centred, rings sweep, grows | "AIRLINER" / "900 KM/H" | 0.25 | Doppler pass-by, low |
-| 3.4-5.0 | **Bullet** | Brass-and-copper rifle bullet, shock-cone, slow shimmer, passes jet | "RIFLE BULLET" / "~3,300 KM/H" | 0.9 | Crack pass-by, higher pitch |
+| 3.4-5.0 | **Bullet** | Brass-and-copper rifle bullet, shock-cone, slow shimmer, passes jet | "RIFLE BULLET" / "~3,200 KM/H" | 0.9 | Crack pass-by, higher pitch |
 | 5.0-6.8 | **You** | Earth with its orbit line, the camera flies along the orbit | "YOU, RIGHT NOW" / "EARTH AROUND THE SUN" | 30 | Deep sustained whoosh (not a hit) |
 | 6.8-8.6 | **Parker** | Parker Solar Probe (heat shield disc, solar wings) diving past the Sun's limb, heat shimmer | "PARKER SOLAR PROBE" / "FASTEST HUMAN-MADE OBJECT" | 192 | Rising shepard sweep |
 | 8.6-9.1 | **Held breath** | Hard cut to black, one thin gold line | none | frozen | Near-silence (about -40 dB) |
@@ -49,7 +49,7 @@ The script asserts frame by frame that the counter never decreases (as overlay8 
 - Phone rules: HPF 90 Hz on all buses except the hit bus; target -15 LUFS; true peak measured after AAC; soft clip on the single loudest transient. All sounds synthesised, so no licences.
 
 ## Build plan
-`tools/speed/` mirroring `tools/mosquito/`: `scene.html` (three.js r0.170, headless SwiftShader render, motion-blur accumulation), `overlay.py` (counter, labels, ladder, chips), `mix.py`, `compose.sh`. Contact-sheet QA at 2 fps, true-peak check, loop check (last frame vs frame 0). No generation credits, no GPU rental.
+`tools/speed/`: `render.py` (PIL sprites, streaks, counter, ladder, chips; asserts the counter never decreases), `mix.py`. Compose: pic + mix with +2.3 dB and `alimiter ... level=disabled`, AAC 192k. Contact-sheet QA at 2 fps, true-peak check, loop check (last frame vs frame 0). No generation credits, no GPU rental.
 
 ## Publish copy (written after the build)
 - Titles to test: "How fast is fast? Watch it climb", "You're moving at 30 km/s right now", "Light is not the fastest thing".
