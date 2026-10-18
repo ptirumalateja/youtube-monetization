@@ -14,7 +14,7 @@ import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
 const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=.9;
-const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x2a0f12,25,170);
+const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x4a1608,9,170);
 const cam=new THREE.PerspectiveCamera(36,W/H,0.3,400);
 function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}} const R=rnd(77), U=(a,b)=>a+(b-a)*R();
 const ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
@@ -28,27 +28,31 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
 const sky=new THREE.Mesh(new THREE.SphereGeometry(200,48,24),skyMat); scene.add(sky);
 const pm=new THREE.PMREMGenerator(renderer); const envS=new THREE.Scene(); envS.add(new THREE.Mesh(new THREE.SphereGeometry(200,48,24),skyMat)); scene.environment=pm.fromScene(envS,.03).texture; scene.environmentIntensity=.5;
 const rim=new THREE.DirectionalLight(0xff9a4a,3.6); rim.position.set(.5,.8,-9); scene.add(rim);
-const key=new THREE.DirectionalLight(0xffd8b0,2.8); key.position.set(-5,4,7); scene.add(key);
-scene.add(new THREE.HemisphereLight(0x7a92c8,0x3a1208,.5));
+const key=new THREE.DirectionalLight(0xffe2c0,4.2); key.position.set(-4,5,8); scene.add(key);
+scene.add(new THREE.HemisphereLight(0x8aa2d8,0x4a1a0c,.8));const fill2=new THREE.DirectionalLight(0x7f9fe0,1.3);fill2.position.set(5,-3,6);scene.add(fill2);
 // ---- mosquito geometry (+z forward, +y up, +x right), merged with vertex colours
 function col(g,hex){const c=new THREE.Color(hex),n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g}
 function colFn(g,fn){const n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){const c=new THREE.Color(fn(i));a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g}
-function bodyGeom(hi){const S=hi?32:8,T=hi?24:4,RS=hi?8:3,P=[],dark=0x1c1410,cream=0xeadcbf,brown=0x33221a;
- let g;
- g=new THREE.SphereGeometry(.07,S,S/2);g.scale(.95,1,1);g.translate(0,0,.43);P.push(col(g,brown));                                  // head
- for(const s of[-1,1]){g=new THREE.SphereGeometry(.046,S,S/2);g.translate(s*.04,.012,.445);P.push(col(g,0x0b0706))}                  // compound eyes
- g=new THREE.CylinderGeometry(.0035,.011,.46,hi?10:4);g.rotateX(Math.PI/2);g.translate(0,0,.23);g.rotateX(.2);g.translate(0,-.045,.62);P.push(col(g,0x120c09)); // proboscis, tapered
- for(const s of[-1,1]){g=new THREE.CylinderGeometry(.005,.007,.16,5);g.rotateX(Math.PI/2);g.translate(0,0,.08);g.rotateY(s*.12);g.translate(s*.03,-.03,.5);P.push(col(g,0x2b1b14));            // palps
-  g=new THREE.CylinderGeometry(.0025,.004,.34,4);g.rotateX(Math.PI/2);g.translate(0,0,.17);g.rotateY(s*.3);g.rotateX(-.22);g.translate(s*.035,.05,.5);P.push(col(g,0x2b1b14))}  // antennae
- g=new THREE.SphereGeometry(.14,S,S/2);g.scale(.95,1.0,1.35);g.translate(0,.035,.2);P.push(col(g,brown));                           // thorax
- for(const s of[-1,1]){g=new THREE.SphereGeometry(.018,8,6);g.scale(.5,.4,5);g.translate(s*.03,.175,.2);P.push(col(g,cream))}       // scutum stripes
- for(let i=0;i<7;i++){const z=-.02-i*.088,r=.082-i*.0045+(i==0?-.01:0);                                                             // banded abdomen
-  g=new THREE.SphereGeometry(r,S,S/2);g.scale(1,.95,1.2);g.translate(0,-.005-i*i*.0016,z);P.push(col(g,dark));
-  g=new THREE.TorusGeometry(r*.97,.0105,6,hi?20:8);g.translate(0,0,0);g.translate(0,-.005-i*i*.0016,z+.045);P.push(col(g,cream))}
- const legSets=[[.26,0],[.18,1],[.1,2]];                                                                                             // 3 pairs, trailing back in flight
- for(const sd of[-1,1])for(const [bz,k] of legSets){const c=new THREE.CatmullRomCurve3([new THREE.Vector3(sd*.07,-.04,bz),new THREE.Vector3(sd*.25,.05,bz-.12-.07*k),new THREE.Vector3(sd*.38,-.14,bz-.5-.1*k),new THREE.Vector3(sd*.41,-.36,bz-.82-.12*k),new THREE.Vector3(sd*.42,-.58,bz-1.05-.14*k)]);
-  g=new THREE.TubeGeometry(c,T,.0058,RS);const rs=RS+1;P.push(colFn(g,i=>{const u=Math.floor(i/rs)/T;return(u>.36&&u<.42)||(u>.7&&u<.76)||u>.93?cream:0x2a1b13}))}
- for(const s of[-1,1]){g=new THREE.CylinderGeometry(.004,.01,.07,5);g.translate(0,0,0);g.rotateX(Math.PI/2);g.rotateY(s*.8);g.translate(s*.06,.09,.02);P.push(col(g,cream))}        // halteres
+function bodyGeom(hi){const S=hi?40:8,T=hi?32:4,RS=hi?10:3,P=[],dark=0x2a1c15,cream=0xf2e6c8,brown=0x4a3225;
+ let g; const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ g=new THREE.SphereGeometry(.07,S,S/2);g.scale(.95,1,1);g.translate(0,0,.43);P.push(col(g,0x3a271c));                                  // head
+ for(const s of[-1,1]){g=new THREE.SphereGeometry(.05,S,S/2);g.translate(s*.042,.014,.447);P.push(col(g,0x120a08))}                  // compound eyes
+ g=new THREE.CylinderGeometry(.0045,.0135,.5,hi?12:4);g.rotateX(Math.PI/2);g.translate(0,0,.25);g.rotateX(.2);g.translate(0,-.045,.62);P.push(col(g,0x1a110d)); // proboscis, tapered
+ for(const s of[-1,1]){g=new THREE.CylinderGeometry(.006,.009,.18,6);g.rotateX(Math.PI/2);g.translate(0,0,.09);g.rotateY(s*.12);g.translate(s*.035,-.035,.5);P.push(col(g,0x3a271c));            // palps
+  const A=new THREE.Vector3(s*.3,.2,.55).normalize(),base=V(s*.04,.06,.5);
+  g=new THREE.CylinderGeometry(.003,.005,.38,6);g.translate(0,.19,0);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V(0,1,0),A));g.translate(base.x,base.y,base.z);P.push(col(g,0x3a271c)); // antenna
+  if(hi)for(let i=0;i<14;i++){const u=.04+i*.026,pt=base.clone().addScaledVector(A,u*1.0),ang=i*1.7;g=new THREE.CylinderGeometry(.0013,.0013,.055,3);g.translate(0,.0275,0);g.rotateZ(1.2);g.rotateY(ang);g.translate(pt.x,pt.y,pt.z);P.push(col(g,0x2a1c15))}}  // antenna hairs
+ g=new THREE.SphereGeometry(.145,S,S/2);g.scale(.95,1.0,1.38);g.translate(0,.035,.2);P.push(col(g,brown));                           // thorax
+ if(hi){for(const s of[-1,1]){const c=new THREE.CatmullRomCurve3([V(s*.062,.1,.32),V(s*.075,.15,.25),V(s*.055,.172,.17),V(s*.03,.168,.1)]);g=new THREE.TubeGeometry(c,16,.0075,6);P.push(col(g,cream))}       // lyre arcs
+   g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(0,.155,.33),V(0,.178,.2),V(0,.17,.08)]),12,.0065,6);P.push(col(g,cream))}                                                           // median stripe
+ else for(const s of[-1,1]){g=new THREE.SphereGeometry(.018,8,6);g.scale(.5,.4,5);g.translate(s*.03,.175,.2);P.push(col(g,cream))}
+ for(let i=0;i<7;i++){const z=-.02-i*.088,r=.084-i*.0045+(i==0?-.01:0),yy=-.005-i*i*.0016;                                           // banded abdomen
+  g=new THREE.SphereGeometry(r,S,S/2);g.scale(1,.95,1.2);g.translate(0,yy,z);P.push(col(g,dark));
+  g=new THREE.TorusGeometry(r*.985,.0135,8,hi?28:8);g.translate(0,yy,z+.047);P.push(col(g,cream))}
+ const legSets=[[.26,0],[.18,1],[.1,2]];const lr=hi?.0088:.0062;                                                                      // 3 pairs, trailing back in flight
+ for(const sd of[-1,1])for(const [bz,k] of legSets){const c=new THREE.CatmullRomCurve3([V(sd*.07,-.04,bz),V(sd*.26,.06,bz-.12-.07*k),V(sd*.4,-.14,bz-.5-.1*k),V(sd*.43,-.36,bz-.82-.12*k),V(sd*.44,-.58,bz-1.05-.14*k)]);
+  g=new THREE.TubeGeometry(c,T,lr,RS);const rs=RS+1;P.push(colFn(g,i=>{const u=Math.floor(i/rs)/T;return(u>.33&&u<.4)||(u>.66&&u<.72)||u>.92?cream:0x3a281d}))}
+ for(const s of[-1,1]){g=new THREE.CylinderGeometry(.004,.011,.075,6);g.rotateX(Math.PI/2);g.rotateY(s*.8);g.translate(s*.06,.09,.02);P.push(col(g,cream))}        // halteres
  return mergeGeometries(P.map(x=>x.index?x.toNonIndexed():x))}
 function wingGeom(){const sh=new THREE.Shape();sh.moveTo(0,0);sh.bezierCurveTo(.2,.1,.55,.14,.84,.05);sh.bezierCurveTo(.9,0,.88,-.07,.8,-.1);sh.bezierCurveTo(.5,-.16,.2,-.12,0,0);return new THREE.ShapeGeometry(sh,14).rotateX(-Math.PI/2)}
 const wc=document.createElement('canvas');wc.width=512;wc.height=192;{const x=wc.getContext('2d');x.fillStyle='rgba(255,205,150,0.16)';x.fillRect(0,0,512,192);
@@ -58,12 +62,14 @@ const wc=document.createElement('canvas');wc.width=512;wc.height=192;{const x=wc
  x.strokeStyle='rgba(255,240,215,1)';x.lineWidth=5;x.strokeRect(3,3,506,186)}
 const wtex=new THREE.CanvasTexture(wc); wtex.anisotropy=4;
 const wingMat=new THREE.MeshBasicMaterial({map:wtex,transparent:true,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,color:0xffddb0,fog:true});
-const bodyMat=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.42,metalness:0,clearcoat:.6,clearcoatRoughness:.28,sheen:.6,sheenColor:new THREE.Color(0xffa860),sheenRoughness:.5});
-bodyMat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n float fr=pow(1.-abs(dot(normalize(normal),normalize(vViewPosition))),2.6); totalEmissiveRadiance+=vec3(1.,.58,.26)*fr*.55;')};
+const bc=document.createElement('canvas');bc.width=bc.height=256;{const x=bc.getContext('2d');const im=x.createImageData(256,256);for(let i=0;i<256*256;i++){const v=110+Math.random()*90+((i%256)%7<1?30:0);im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255}x.putImageData(im,0,0)}
+const btex=new THREE.CanvasTexture(bc);btex.wrapS=btex.wrapT=THREE.RepeatWrapping;btex.repeat.set(3,3);
+const bodyMat=new THREE.MeshPhysicalMaterial({vertexColors:true,bumpMap:btex,bumpScale:.9,roughness:.42,metalness:0,clearcoat:.6,clearcoatRoughness:.28,sheen:.6,sheenColor:new THREE.Color(0xffa860),sheenRoughness:.5});
+bodyMat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n float fr=pow(1.-abs(dot(normalize(normal),normalize(vViewPosition))),2.6); totalEmissiveRadiance+=vec3(1.,.58,.26)*fr*.3;')};
 const WG=wingGeom();
 // ---- hero (detailed, individually posed)
 const heroBody=new THREE.Mesh(bodyGeom(true),bodyMat), wR=new THREE.Mesh(WG,wingMat), wL=new THREE.Mesh(WG,wingMat); wL.scale.x=-1;
-const hero=new THREE.Group(); hero.add(heroBody,wR,wL); wR.position.set(.05,.19,.2); wL.position.set(-.05,.19,.2); hero.rotation.set(-.1,.62,.08); scene.add(hero);
+const hero=new THREE.Group(); hero.add(heroBody,wR,wL); wR.position.set(.05,.19,.2); wL.position.set(-.05,.19,.2); hero.rotation.set(.5,.85,.12); scene.add(hero);
 // ---- swarm (instanced, lower detail)
 const N=360, swarmBody=new THREE.InstancedMesh(bodyGeom(false),bodyMat,N), swarmWing=new THREE.InstancedMesh(WG,wingMat,N*2);
 swarmBody.frustumCulled=swarmWing.frustumCulled=false; scene.add(swarmBody,swarmWing);
@@ -94,18 +100,18 @@ function placeParts(t){const dt=t-tb;if(dt<0){pmat.opacity=0;ring.visible=false;
  ring.visible=dt<.5;const rs=3+dt*95;ring.scale.set(rs,rs,1);ring.material.opacity=Math.max(0,.55*(1-dt/.5));ring.position.set(0,0,cam.position.z-22);ring.quaternion.copy(cam.quaternion)}
 const ring=new THREE.Mesh(new THREE.RingGeometry(.93,1,96),new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,1.1,.7),transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));ring.visible=false;scene.add(ring);
 // ---- camera: slow macro push, accelerating pull-back (0.7-1.65 s), hold; focus pulls from the hero to the swarm
-function camAt(t){const push=Math.min(t,.7)/.7;let z=3.5-.35*ease(push);if(t>.7)z=3.15+(34-3.15)*ease((t-.7)/.95);
+function camAt(t){const push=Math.min(t,.7)/.7;let z=4.4-.5*ease(push);if(t>.7)z=3.9+(34-3.9)*ease((t-.7)/.95);
  const sh=(t<tb?1:Math.exp(-(t-tb)*9))*.03;cam.position.set(Math.sin(t*37)*sh,.02+Math.sin(t*29)*sh,z);cam.lookAt(0,0,-10);cam.rotateZ(Math.sin(t*1.3)*.02)}
-function heroAt(t){hero.position.set(0,Math.sin(t*5)*.03,0);hero.visible=t<tb;const fl=Math.sin(t*6.283*14)*.7;wR.rotation.z=.25+fl;wL.rotation.z=-(.25+fl)}
+function heroAt(t){hero.position.set(-.16,Math.sin(t*5)*.03-.05,0);hero.visible=t<tb;const fl=Math.sin(t*6.283*(t<.7?4.5:9))*.55;wR.rotation.z=.3+fl;wL.rotation.z=-(.3+fl)}
 // ---- post: depth of field, bloom, tone map, grade (teal shadows / warm highlights, vignette, tiny chromatic aberration)
 const comp=new EffectComposer(renderer);comp.setSize(W,H);comp.addPass(new RenderPass(scene,cam));
-const bokeh=new BokehPass(scene,cam,{focus:3.2,aperture:.0016,maxblur:.02});comp.addPass(bokeh);
+const bokeh=new BokehPass(scene,cam,{focus:4.9,aperture:.0013,maxblur:.018});comp.addPass(bokeh);
 comp.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),.3,.6,.85));comp.addPass(new OutputPass());
 const grade=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec2 d=vUv-.5;float r=dot(d,d);vec2 o=d*r*.012;vec3 c=vec3(texture2D(tDiffuse,vUv+o).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-o).b);'+
  'float l=dot(c,vec3(.299,.587,.114));c*=mix(vec3(.93,1.0,1.1),vec3(1.06,1.0,.92),smoothstep(.1,.7,l));c=mix(vec3(l),c,1.08);c*=1.-1.3*r;gl_FragColor=vec4(c,1.);}'});comp.addPass(grade);
-function frame(t){scene.fog.far=26+150*ease((t-.55)/1.1);camAt(t);heroAt(t);placeSwarm(t);placeMotes(t);placeParts(t);skyU.uDim.value=t<tb?1:Math.max(.1,1-(t-tb)*1.7);
- bokeh.uniforms['focus'].value=3.2+(cam.position.z-3.2)*ease((t-.7)/.4)+Math.min(1,Math.max(0,(t-1.05)/.5))*30;comp.render()}
+function frame(t){scene.fog.far=24+150*ease((t-.55)/1.1);camAt(t);heroAt(t);placeSwarm(t);placeMotes(t);placeParts(t);skyU.uDim.value=t<tb?1:Math.max(.1,1-(t-tb)*1.7);
+ bokeh.uniforms['focus'].value=cam.position.z+Math.min(1,Math.max(0,(t-1.05)/.5))*30;comp.render()}
 const cv=document.createElement('canvas');cv.width=W;cv.height=H;const c2=cv.getContext('2d');document.body.appendChild(cv);
 window.renderAt=(t,n=4,shutter=1/60)=>{c2.clearRect(0,0,W,H);for(let k=0;k<n;k++){frame(t+(n>1?(k/(n-1)-.5):0)*shutter);c2.globalAlpha=1/(k+1);c2.drawImage(renderer.domElement,0,0)}c2.globalAlpha=1;
  const fl=t>=tb&&t<tb+.14?.16*(1-(t-tb)/.14):0;if(fl>0){c2.fillStyle=`rgba(255,240,215,${fl})`;c2.fillRect(0,0,W,H)}return cv.toDataURL('image/jpeg',.94)};
