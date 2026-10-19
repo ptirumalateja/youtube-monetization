@@ -46,24 +46,49 @@ while tp<5.3:
     nn=int(0.22*SR); x=np.arange(nn)/SR; add(at(np.sin(2*np.pi*55*x)*np.exp(-x/0.07)*0.35*(0.5+0.5*(tp-2.7)/2.6),tp),0); tp+=0.95-0.55*(tp-2.7)/2.6
 # time-lapse acceleration: a rising airy sweep as the rate climbs, 5.6-9.0
 ac=np.clip((t-5.6)/3.4,0,1); an=noise(); acc=(bp(an,400,1800)*(1-ac)+bp(an,1500,8000)*ac)*ac**1.2*win(5.6,9.2,0.3,0.5); acc/=np.abs(acc).max()+1e-9; add(acc*0.22,0)
-# 5. "one metre" chime at 5.4
+# 5. "one metre" marker at 5.4 (a single cold bell)
 def bell(f,d=2.0,g=0.12):
     n=int(d*SR); x=np.arange(n)/SR; return sum(np.sin(2*np.pi*f*m*x)*a*np.exp(-x/(d/3.2)/(1+0.4*i)) for i,(m,a) in enumerate([(1,1),(2.76,0.5),(5.4,0.25)]))*g
-b=at(bell(880,2.4,0.14),5.4); add(b,-0.2); add(reverb(b,2.0,0.5),0)
-# 6. the float 5.4-15: pad, air, whooshes, pings, sub drone
-fl=win(5.4,TF+0.05,1.6,0.04)
-pad=sum(np.sin(2*np.pi*f*t+k)*a for k,(f,a) in enumerate([(220,.5),(277.2,.35),(329.6,.4),(493.9,.22),(659.3,.12)]))*fl*(0.8+0.2*np.sin(2*np.pi*0.22*t))*0.07
-add(pad,-0.1); add(reverb(pad,2.4,0.6),0.1)
-add(np.sin(2*np.pi*55*t)*fl*0.10,0); add(bp(noise(),500,3500)*fl*0.05,-0.3); add(bp(noise(),500,3500)*fl*0.05,0.3)
+b=at(bell(622.3,2.4,0.10),5.4); add(b,-0.2); add(reverb(b,2.0,0.5),0)
+# 6. the float 5.4-15: TENSION. Dissonant string-like cluster that tightens upward, a racing heartbeat, a Shepard-style endless rise,
+#    ticking that accelerates with the time-lapse, distorted whooshes, then a 0.2 s hole of silence before gravity returns.
+fl=win(5.4,TF-0.2,1.2,0.03); u=np.clip((t-5.4)/(TF-5.4),0,1)
+def saw(f,vib=0.0):
+    ph=np.cumsum(f*(1+vib*np.sin(2*np.pi*5.5*t)))/SR; return 2*(ph%1)-1
+# minor-second / tritone cluster on a low drone, slowly creeping up in pitch and getting brighter and louder
+base=82.4*(1+0.22*u**1.3)
+clu=(saw(base,0.004)+saw(base*1.0595,0.004)*0.9+saw(base*1.4142,0.005)*0.6+saw(base*2.0*1.01,0.006)*0.5)
+clu=(lp(clu,600)*(1-u)+lp(clu,2200)*u*0.8+lp(clu,5000)*u**2*0.5)*fl*(0.12+0.55*u**1.4)*(0.75+0.25*np.sin(2*np.pi*(5+9*u)*t))   # tremolo speeds up
+add(clu*0.30,-0.15); add(reverb(clu*0.12,1.8,1.0),0.15)
+# high strained "screech" glissando, entering around 9 s
+hi=np.sin(2*np.pi*np.cumsum(1100+1900*u**2+30*np.sin(2*np.pi*7*t))/SR)*win(9.0,TF-0.2,2.0,0.03)*0.05*u; add(hi,0.3)
+# Shepard-like rising tone: octave-spaced partials gliding up together under a bell-shaped weighting
+sh=np.zeros(N); 
+for k in range(6):
+    f=55*(2.0**((k+ (u*2.0))%6)); wgt=np.exp(-0.5*((np.log2(f/700))/1.2)**2); sh+=np.sin(2*np.pi*np.cumsum(f)/SR)*wgt
+add(sh*fl*0.05*(0.3+u),0)
+# heartbeat: lub-dub, 70 -> 160 bpm
+tp=5.5
+while tp<TF-0.25:
+    bpm=70+90*((tp-5.4)/(TF-5.4))**1.2; per=60/bpm
+    for off,g in((0,1.0),(0.17*per/0.85*0.85,0.65)):
+        nn=int(0.20*SR); x=np.arange(nn)/SR; add(at(np.sin(2*np.pi*(48+30*np.exp(-x/0.03))*x)*np.exp(-x/0.07)*g*(0.35+0.65*((tp-5.4)/(TF-5.4))),tp+off),0)
+    tp+=per
+# ticking: a dry clock/geiger tick whose rate climbs with the time-lapse
+tk=5.6
+while tk<TF-0.22:
+    rate=2+10*((tk-5.6)/(TF-5.6))**1.6; nn=int(0.012*SR); add(at(hp(noise(nn),3000)*np.exp(-np.arange(nn)/SR/0.0025)*0.12,tk),rng.uniform(-.6,.6)); tk+=1/rate
+# distorted whooshes sweeping past, denser and louder as you climb
 tw=5.9
-while tw<14.6:
-    d=rng.uniform(0.7,1.3); n=int(d*SR); x=np.arange(n)/SR; w=noise(n); c=rng.uniform(600,2400)
-    w=bp(w,c*0.5,c*2.2)*np.sin(np.pi*x/d)**2*0.25*(0.5+0.5*(tw-5.9)/8.7)
-    p=rng.choice([-0.8,0.8]); s=np.linspace(p,-p,n); i=int(tw*SR)
-    Lp=np.zeros(N); Rp=np.zeros(N); Lp[i:i+n]=w*(0.5-s*0.5); Rp[i:i+n]=w*(0.5+s*0.5); L+=Lp*1.4; R+=Rp*1.4
-    tw+=rng.uniform(0.55,1.2)
-for k in range(14):
-    f=rng.choice([1319,1760,1976,2637,3136]); add(at(bell(f,1.4,0.035),6.3+k*0.62+rng.uniform(0,0.2)),rng.uniform(-.8,.8))
+while tw<TF-0.4:
+    d=rng.uniform(0.5,1.0); n=int(d*SR); x=np.arange(n)/SR; c=rng.uniform(500,3000)
+    w=np.tanh(2.5*bp(noise(n),c*0.5,c*2.4))*np.sin(np.pi*x/d)**2*0.20*(0.4+0.8*((tw-5.9)/(TF-5.9)))
+    p=rng.choice([-0.8,0.8]); s=np.linspace(p,-p,n); i=int(tw*SR); Lp=np.zeros(N); Rp=np.zeros(N); m=min(n,N-i)
+    Lp[i:i+m]=w[:m]*(0.5-s[:m]*0.5); Rp[i:i+m]=w[:m]*(0.5+s[:m]*0.5); L+=Lp*1.4; R+=Rp*1.4
+    tw+=rng.uniform(0.35,0.8)*(1-0.55*((tw-5.9)/(TF-5.9)))
+# sub dread, building
+add(np.sin(2*np.pi*(40+8*u)*t)*fl*(0.10+0.25*u),0)
+
 # 7. gravity back on at 15.0: whomp, then falling wind that grows with speed
 n=int(1.2*SR); tt=np.arange(n)/SR; wh=np.sin(2*np.pi*np.cumsum(60+90*np.exp(-tt/0.09))/SR)*np.exp(-tt/0.4); wh=np.tanh(1.6*wh)*0.85+bp(noise(n),200,5000)*np.exp(-tt/0.12)*0.6
 add(at(wh,TF),0); add(reverb(at(wh,TF),1.6,0.35),0)
