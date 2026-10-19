@@ -11,7 +11,7 @@ SW, TF, TI = 2.2, st[0]['tf'], st[0]['ti']; TG_END, PHI_END = st[NF - 1]['tg'], 
 T1M = next(i / FPS for i, x in enumerate(st) if x['h'] >= 1.0); Q0 = TI + 2.5
 SF = '/usr/share/fonts/truetype/liberation/LiberationSerif-'
 def font(n, s): return ImageFont.truetype(SF + n + '.ttf', s)
-fT, fSub, fLab, fNum, fSm, fIt, fIt2, fQ = font('Regular', 100), font('Regular', 34), font('Regular', 31), font('Regular', 88), font('Regular', 28), font('Italic', 74), font('Italic', 56), font('Regular', 82)
+fT, fSub, fLab, fNum, fSm, fIt, fIt2, fQ = font('Regular', 100), font('Regular', 34), font('Regular', 26), font('Regular', 68), font('Regular', 24), font('Italic', 74), font('Italic', 56), font('Regular', 82)
 def ease(x): x = max(0, min(1, x)); return x * x * (3 - 2 * x)
 def tw(d, s, f, sp): return sum(d.textlength(c, font=f) + sp for c in s) - sp
 def tracked(d, xy, s, f, sp, fill):
@@ -45,16 +45,16 @@ for i in range(NF):
     fa = ease(ts / 0.3) * (1 - ease((ts - TI - 1.6) / 0.5))     # left block
     if fa > 0:
         g = gval(ts); gs = '0 m/s²' if g <= 0.001 else f'{g:.1f} m/s²'
-        put(L, 36, 1000, 'GRAVITY', fLab, 4, fa * .95); put(L, 36, 1044, gs, fNum, 1, fa)
-        put(L, 36, 1150, 'SWITCHED OFF' if SW + 0.3 <= ts < TF else ('EARTH NORMAL' if ts < SW else 'BACK ON'), fSm, 4, fa * .8)
+        put(L, 72, 920, 'GRAVITY', fLab, 4, fa * .95); put(L, 72, 958, gs, fNum, 1, fa)
+        put(L, 72, 1034, 'SWITCHED OFF' if SW + 0.3 <= ts < TF else ('EARTH NORMAL' if ts < SW else 'BACK ON'), fSm, 4, fa * .8)
         if ts >= SW:
             ka = ease((ts - SW) / 0.4) * fa; fall = ts > TF
-            put(L, 36, 560, 'TIME FALLING' if fall else 'TIME WITHOUT GRAVITY', fLab, 4, ka * .95)
-            put(L, 36, 604, f'{phi:.1f} s' if fall else f'{tg:.1f} s', fNum, 1, ka)
-            put(L, 36, 710, 'SHOWN IN REAL TIME' if fall else f'SHOWN IN TIME-LAPSE ×{rate:.1f}', fSm, 4, ka * .8)
+            put(L, 72, 560, 'TIME FALLING' if fall else 'TIME WITHOUT GRAVITY', fLab, 4, ka * .95)
+            put(L, 72, 598, f'{phi:.1f} s' if fall else f'{tg:.1f} s', fNum, 1, ka)
+            put(L, 72, 672, 'SHOWN IN REAL TIME' if fall else f'SHOWN IN TIME-LAPSE ×{rate:.1f}', fSm, 4, ka * .8)
             hs = f'{h:.2f} m' if h < 10 else f'{h:.1f} m'
-            put(L, 36, 780, 'YOUR HEIGHT', fLab, 4, ka * .95); put(L, 36, 824, hs, fNum, 1, ka)
-            put(L, 36, 930, f'FALL SPEED {vf * 3.6:.0f} km/h' if fall else 'ABOVE THE STREET', fSm, 4, ka * .8)
+            put(L, 72, 740, 'YOUR HEIGHT', fLab, 4, ka * .95); put(L, 72, 778, hs, fNum, 1, ka)
+            put(L, 72, 852, f'FALL SPEED {vf * 3.6:.0f} km/h' if fall else 'ABOVE THE STREET', fSm, 4, ka * .8)
         if SW <= ts < TI + 0.5: put(L, 0, 1530, 'HYDERABAD · 17.4° N · IGNORING AIR AND WATER', fSm, 4, fa * .75, True)
     caps = [(T1M - 0.1, T1M + 1.6, 'ONE METRE OFF THE GROUND', fLab, 5), (7.6, 11.0, 'People. Cars. Water. You.', fIt, 0), (11.4, 14.8, 'Buildings stay. Everything else leaves.', fIt2, 0),
             (TF + 0.1, TF + 1.9, 'Gravity is back.', fIt, 0), (TI + 1.0, TI + 2.5, f'You floated {TG_END:.0f} seconds. You fell {PHI_END:.1f}.', fIt2, 0)]
