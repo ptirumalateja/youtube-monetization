@@ -104,3 +104,6 @@ Owner supplied three Google Flow clips (10 s, 1080x1920, 24 fps, each with AI au
 ## Publishing notes
 - Pinned comment idea: "Would you do it? Tell me why." (an open question, not the reference's yes/no poll).
 - Do not write "ecosystem collapse" or "malaria would end" in the caption. Source line: "Malaria deaths: WHO World Malaria Report 2025."
+
+## Opening v7 (owner-approved style of v6, rebuilt natively; 10 s)
+v6 was a 512x910 procedural render upscaled 2x (hence soft). v7 redraws everything natively at 1080x1920 in code (tools/mosquito/opening2.html, canvas 2D; render2.js; mix_open.py): sunset marsh with the swarm losing flight and falling, then two continuous camera-move transitions: (1) the camera lifts away from the marsh to orbit as the Earth rises with its rim glow (3.45-4.95 s, motion blur); (2) the Earth dives into Africa and the globe becomes the data panel (6.5-7.45 s). Earth is Natural Earth 110m land (public domain) with procedural city lights. Text: "WHAT IF EVERY MOSQUITO VANISHED TONIGHT?" (script line, Earth), "THE HUMAN COST", counter to 610,000 (WHO 2024), "Malaria took over six hundred thousand lives." Markers are illustrative. Sound is synthesised (no credits).
