@@ -66,3 +66,12 @@ Design note: use newsroom-storytelling treatment for real political protests, no
 - Verify events against Reuters Oct 17/18 and AP Oct 17/19 before posting. Label government response and protest-versus-riot distinction neutrally.
 - QA: 21 video sections checked by contact sheet; blackdetect 0 intervals; audio volumedetect mean -17.5 dBFS, max -0.5 dBFS. Re-render at 1080 via upscale from 720 base. Review output title timing, source attribution, audience safe areas.
 - Local editor script included in conversation workspace: `/mnt/data/france_protests_2026/build_real_media.py`; raw media outside repository by design.
+
+## V2 clean-source-text editorial export — 19 Oct 2026
+
+**Finished private V2 review MP4 in conversation:** `/mnt/data/France_Protests_Slow_Light_42s_CLEAN_V2_REVIEW.mp4` — H.264/AAC, 1080×1920 at 30fps, 42.449s, 27,897,286 bytes. Build source `/mnt/data/france_protests_2026/build_real_media_v2.py`. 21 original-media shots, actual user-supplied Max voiceover kept verbatim and original CC0 Aix street ambiance ducked under voiceover.
+
+- Cropped/reframed nuisance broadcaster caption cards and creator-added subtitle overlays rather than generative painting of real-world events. E.g. Channel 4 early aerial shot replaced by later clean aerial view, text-heavy third-party crowd compilation replaced by a real filmed placard, Channel 4 footage at 50 s provides a legible ending shot, student footage cropped to avoid hard-burned commentary subtitles. Natural protest placards and graffiti remain visible because they are part of historical footage, not editorial overlays.
+- New Slow Light editorial typography: navy/cream/red accents; 6 clean no-main-headline beats to let imagery breathe; small top left brand, top right WORLD / 01, location/date tag, lower headline at selected shots, timeline bar, discreet agency / Wikimedia credit at bottom. No visual fact-generating inpainting.
+- Internal QC: no blackdetect events, max audio peak -0.5 dBFS, final size ~28 MB, audio and picture 42.449s.
+- **Rights not cleared for publication:** material labelled AP / Channel 4 is broadcaster footage and needs permission or licensed replacement for commercial or monetized use. Cropping source logo does not clear rights and is not represented as such. Preserve source credits and rights sidecar. Wikimedia CC BY-SA stills require attribution and ShareAlike compliance; CC0 Aix clip is publishable.
