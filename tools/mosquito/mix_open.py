@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Mosquito reel opening v7 sound (10 s), fully synthesised (no samples). usage: mix_open.py <out.wav>
+"""Mosquito reel opening v7 sound (10 s), fully synthesised (no samples). usage: mix_open.py <out.wav> [fly_buzz.wav]  (the owner's real fly-buzz recording, if given, is the swarm bed)
 0-1.9 rising swarm whine | 1.9-3.05 whine falls, water plinks | 3.05-3.45 silence | 3.45-4.95 lift riser + settle boom | 5-6.5 space pad + sonar ping |
 6.5-7.45 dive whoosh + grid ticks | 7.7-8.8 marker pings | 8.15-9.6 counter ticks | 9.6 hit."""
-import sys, wave, numpy as np
+import sys, wave, subprocess, numpy as np
 from numpy.fft import rfft, irfft, rfftfreq
 SR=44100; T=10.0; N=int(T*SR); rng=np.random.default_rng(21); t=np.arange(N)/SR
 def noise(n=N): return rng.standard_normal(n)
@@ -21,11 +21,20 @@ sw=win(0,1.9,0.05,0.0)*(0.25+0.75*np.clip(t/1.9,0,1)**1.3); pit=1+0.30*np.clip(t
 sw_sig=np.zeros(N)
 for k in range(46):
     f=rng.uniform(330,980); am=0.5+0.5*np.sin(2*np.pi*rng.uniform(80,200)*t+rng.uniform(0,6)); sw_sig+=np.sin(2*np.pi*np.cumsum(f*pit*(1+0.006*np.sin(2*np.pi*rng.uniform(.5,3)*t)))/SR)*am*0.05
-add(sw_sig*sw,0)
+add(sw_sig*sw*(0.55 if len(sys.argv)>2 else 1.0),0)
 for (t0,t1,f0,p0,p1) in [(0.2,1.5,540,-.8,.8),(0.9,1.9,470,.7,-.7)]:
     w=win(t0,t1,0.25,0.15); fr=f0*(1+0.18*np.cos(np.pi*np.clip((t-t0)/(t1-t0),0,1)))*pit; vib=1+0.01*np.sin(2*np.pi*7*t)
     hero=np.sin(2*np.pi*np.cumsum(fr*vib)/SR)*0.22+np.sin(2*np.pi*np.cumsum(fr*2.01*vib)/SR)*0.08; hero*=w*(0.6+0.4*np.sin(2*np.pi*110*t))
     pp=np.clip((t-t0)/(t1-t0),0,1)*(p1-p0)+p0; L+=hero*(0.5-pp*0.5)*1.4; R+=hero*(0.5+pp*0.5)*1.4
+# 1b. the owner's real fly-buzz recording as the swarm bed: pitch and level rise to 1.9 s, then the pitch collapses as they lose flight
+if len(sys.argv)>2:
+    raw=subprocess.run(['ffmpeg','-v','error','-i',sys.argv[2],'-ac','2','-ar',str(SR),'-f','f32le','-'],capture_output=True).stdout
+    fly=np.frombuffer(raw,np.float32).reshape(-1,2).T.copy(); fly=fly-fly.mean(axis=1,keepdims=True); nf=fly.shape[1]
+    rate=np.where(t<1.9,1.0+0.28*(t/1.9),np.maximum(0.25,1.28*np.exp(-(t-1.9)*1.5))); pos=(np.cumsum(rate)/1.0)%(nf-2)   # source position, looped
+    i0=pos.astype(int); fr=pos-i0; src=fly[:,i0]*(1-fr)+fly[:,i0+1]*fr
+    xf=np.clip(np.minimum(pos,nf-pos)/(0.05*SR),0,1)   # soften the loop seam
+    g=win(0,2.95,0.04,0.9)*(0.35+0.65*np.clip(t/1.9,0,1)**1.2)*np.where(t<1.9,1,np.clip(1-(t-1.9)/1.05,0,1)**1.2)
+    for ch,(pp) in enumerate((-0.2,0.2)): add(hp(src[ch]*xf,110)*g*3.2,pp)
 # 2. they lose flight: pitch collapses and decays, then water plinks, then a hard cut at 3.05
 fa=win(1.9,2.9,0.0,0.9)*np.clip(1-(t-1.9)/1.0,0,1)**1.5; fall_f=520*np.exp(-np.clip(t-1.9,0,3)*1.2)
 add(np.sin(2*np.pi*np.cumsum(np.where(t>1.9,fall_f,0))/SR)*fa*0.16,0)

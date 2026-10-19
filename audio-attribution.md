@@ -109,3 +109,6 @@ Short form (Instagram / Facebook caption): "Sound: CGEffex, urupin, newlocknew, 
 Replacements: synthesised circling air for the laps, riser quick for the probe, CC0 ambience and wind for the beds.
 
 v13 (18 Oct 2026): after the NC files were removed the owner supplied CC0/CC BY replacements (all licences checked on their Freesound pages): 403662, 235205, 218050 and 4096 are CC BY 4.0 (credits added above), 434098 is CC0.
+
+## Mosquito opening v7b
+- "flys" by galeku (file name `galeku-flys-i`, supplied by the owner as the fly-buzz bed for 0-3 s; trimmed, pitch-ramped, high-passed, mixed under synthesised swarm whine). LICENCE NOT YET CONFIRMED: check the source page before posting; it must be CC0 or CC BY (add credit + link here), never CC BY-NC. If the licence is not usable, remove it and use the synthesised bed (run mix_open.py without the second argument).
