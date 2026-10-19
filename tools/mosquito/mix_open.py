@@ -48,7 +48,7 @@ b=at(boom,4.95); add(b,0); add(reverb(b,2.0,0.4),0)
 pad=(np.sin(2*np.pi*55*t)*.5+np.sin(2*np.pi*82.4*t)*.35+np.sin(2*np.pi*123.5*t)*.18)*win(4.9,6.9,0.8,0.5)*(0.8+0.2*np.sin(2*np.pi*.3*t))*0.10; add(pad,0); add(reverb(pad,2.5,0.6),0)
 def ping(f,d=0.9,g=0.12):
     n=int(d*SR); x=np.arange(n)/SR; return (np.sin(2*np.pi*f*x)+0.35*np.sin(2*np.pi*f*2.76*x))*np.exp(-x/(d/4))*g
-for tp in (5.55,5.8): pg=at(ping(880,1.2,0.12),tp); add(pg,0); add(reverb(pg,1.8,0.5),0)
+pg=at(ping(784,1.6,0.12),5.3); add(pg,0); add(reverb(pg,2.0,0.5),0); n=int(0.9*SR); xx=np.arange(n)/SR; add(at(np.sin(2*np.pi*np.cumsum(60+380*(xx/0.9)**2)/SR)*np.sin(np.pi*xx/0.9)**1.5*0.22,5.25),0)   # single white pulse
 # 5. dive into Africa: rising whoosh, grid ticks
 dv=win(6.5,7.5,0.5,0.15); sweep=(bp(noise(),400,2500)*(1-np.clip((t-6.5)/1.0,0,1))+bp(noise(),1200,9000)*np.clip((t-6.5)/1.0,0,1)*0.8)*dv*0.28; add(sweep,0)
 tk=6.7

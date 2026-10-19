@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Mosquito reel acts 2-8 sound (screen 10-26 s, written as a 16 s file), fully synthesised. usage: mix_acts.py <out.wav>
+"""Mosquito reel acts 2-6 sound (screen 10-25 s, written as a 15 s file), fully synthesised. usage: mix_acts.py <out.wav>
 local time u = screen time - 10:
-0-1 transmission hum + marker pings | 1.0 the wave: suck, thump, outward whoosh, then silence | 2.3-3.5 'But...' key ticks + low drone | 3-3.9 iris hush |
-3.5-6 Arctic wind, pad, hoof thumps | 5.45-6.1 dive into the pool | 6-7.5 wetland: water, bird chirps, a fish bloop | 7.5-9.7 orchid: faint whine, dust shimmer |
-9.7-10.7 zoom-through | 10-13 Earth: uncertain pad, edge pings, question-mark glides | 12.55-13.5 descent | 13.4-16 the lone mosquito whine rising to the end."""
+0-2.5 bite -> glass body -> interrupted (close whine, skin tick, flow, heartbeat, second whine, dissolve shimmer, sting) | 2.5-5 the night goes quiet (near silence, breathing) |
+5-8 the pond: water, fish splash, swallow whoosh | 8-11.5 the orchid: glass pad, opening chimes, a drooping sigh | 11.2-12.2 zoom-through | 12-15 Earth half lit: cold pad, slow heartbeat, ghost ping, lone whine rising."""
 import sys, wave, numpy as np
 from numpy.fft import rfft, irfft, rfftfreq
-SR=44100; T=16.0; N=int(T*SR); rng=np.random.default_rng(33); t=np.arange(N)/SR
+SR=44100; T=15.0; N=int(T*SR); rng=np.random.default_rng(44); t=np.arange(N)/SR
 def noise(n=N): return rng.standard_normal(n)
 def lp(x,fc,o=2): X=rfft(x); f=rfftfreq(len(x),1/SR); return irfft(X/(1+(f/fc)**(2*o)),len(x))
 def hp(x,fc,o=2): return x-lp(x,fc,o)
@@ -18,49 +17,47 @@ def reverb(x,rt=1.8,wet=1.0):
 L=np.zeros(N); R=np.zeros(N)
 def add(x,p=0.0,g=1.0):
     global L,R; L+=x*g*(0.5-p*0.5)*1.4; R+=x*g*(0.5+p*0.5)*1.4
-def ping(f,d=0.9,g=0.12):
-    n=int(d*SR); x=np.arange(n)/SR; return (np.sin(2*np.pi*f*x)+0.35*np.sin(2*np.pi*f*2.76*x))*np.exp(-x/(d/4))*g
-# 1. transmission: warm hum, pulse, marker pings; then the wave cuts everything at u=1.0
-act=win(0,1.0,0.05,0.0)
-add((np.sin(2*np.pi*196*t)*.5+np.sin(2*np.pi*293.7*t)*.3+np.sin(2*np.pi*98*t)*.5)*act*0.10,0)
-for k in range(8):
-    tp=0.05+k*0.125; n=int(0.2*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(50+25*np.exp(-x/.03))*x)*np.exp(-x/.07)*0.35,tp)*1.0,0)
-    if tp<1.0: add(at(ping(rng.choice([1319,1568,1760,2093]),0.6,0.08),tp+0.05),rng.uniform(-.7,.7))
-suck=hp(noise(),400)*win(0.55,1.0,0.45,0.0)**2*0.22; add(suck,0)
-n=int(2.2*SR); x=np.arange(n)/SR; th=np.sin(2*np.pi*(52+60*np.exp(-x/.12))*x)*np.exp(-x/.8)*0.9+lp(noise(n),300)*np.exp(-x/.25)*0.5
-b=at(th,1.0); add(b,0); add(reverb(b,2.0,0.45),0)
-wh=bp(noise(),500,6000)*win(1.0,1.9,0.0,0.9)*0.25; add(wh,0)
-# 2. "But...": near silence, a low drone swelling, soft key ticks for each letter
-for k in range(6): n=int(0.02*SR); add(at(hp(noise(n),1500)*np.exp(-np.arange(n)/SR/0.004)*0.12,2.55+k*0.12),0)
-dr=np.sin(2*np.pi*40*t)*win(2.4,4.2,1.0,0.5)*0.22; add(dr,0)
-# 3. iris reveal and the cold Arctic: wind, pad, hooves
-iris=bp(noise(),300,4000)*win(3.0,3.9,0.5,0.4)*0.16; add(iris,0)
-wind=(bp(noise(),120,900)*(0.7+0.3*np.sin(2*np.pi*0.23*t))+bp(noise(),900,2500)*0.2*(0.5+0.5*np.sin(2*np.pi*0.17*t+1)))*win(3.5,6.2,0.8,0.3)*0.20; add(wind,-0.1)
-pad=(np.sin(2*np.pi*146.8*t)*.5+np.sin(2*np.pi*220*t)*.4+np.sin(2*np.pi*329.6*t)*.15)*win(3.6,6.1,1.0,0.4)*(0.8+0.2*np.sin(2*np.pi*.2*t))*0.05; add(pad,0); add(reverb(pad,2.4,0.6),0.1)
-tp=3.7
-while tp<5.5: n=int(0.05*SR); add(at(lp(noise(n),500)*np.exp(-np.arange(n)/SR/0.012)*rng.uniform(.04,.12),tp),rng.uniform(-.8,.8)); tp+=rng.uniform(.28,.55)
-# 4. the dive into the pool, then the wetland: water, a few bird chirps, a bloop as the fish rises
-dv=lp(noise(),3000)*win(5.45,6.15,0.6,0.1)**1.3*0.30; add(dv,0); n=int(0.25*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(260-120*x*4)*x)*np.exp(-x/.07)*0.25,6.05),0)
-water=lp(noise(),700)*win(6.05,7.7,0.15,0.4)*(0.6+0.4*np.sin(2*np.pi*.6*t))*0.14; add(water,0)
-for tc in (6.3,6.45,6.85,7.05):
-    n=int(0.09*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(3400-1200*x/0.09)*x)*np.sin(np.pi*x/0.09)*0.08,tc),rng.uniform(-.8,.8))
-n=int(0.2*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(320-140*x/.2)*x)*np.exp(-x/.08)*0.3,6.62),0.3)
-# 5. orchid: the mosquito's faint whine, then it dissolves into dust with a glassy shimmer
-wn=win(7.55,8.62,0.5,0.03); add(np.sin(2*np.pi*np.cumsum(520+60*np.sin(2*np.pi*6*t))/SR)*wn*0.07,0.3)
-od=(np.sin(2*np.pi*164.8*t)*.5+np.sin(2*np.pi*246.9*t)*.35)*win(7.5,10.0,0.8,0.4)*0.06; add(od,0); add(reverb(od,2.4,0.5),0)
-for k in range(14): add(at(ping(rng.choice([2093,2637,3136,3951]),1.0,0.045),8.62+k*0.07+rng.uniform(0,.05)),rng.uniform(-.8,.8))
-# 6. zoom-through to the planet, then the web: uncertain pad, edge pings, question-mark glides
-zt=(bp(noise(),300,5000)*win(9.7,10.7,0.6,0.1)**1.2*0.25); add(zt,0); add(np.sin(2*np.pi*np.cumsum(40+55*np.clip((t-9.7)/1.0,0,1)**1.5)/SR)*win(9.7,10.8,0.6,0.2)*0.3,0)
-cl=(np.sin(2*np.pi*110*t)*.5+np.sin(2*np.pi*116.5*t)*.4+np.sin(2*np.pi*164.8*t)*.3+np.sin(2*np.pi*174.6*t)*.25)*win(10.2,13.2,1.0,0.6)*(0.6+0.4*np.sin(2*np.pi*.25*t))*0.08; add(cl,0); add(reverb(cl,2.6,0.6),0.1)
-for k in range(24): pg=at(ping(rng.choice([440,523,587,659,784,880]),1.1,0.05),10.35+rng.uniform(0,2.1)); add(pg,rng.uniform(-.8,.8)); add(reverb(pg,1.6,0.3),0)
-for i in range(7):
-    tq=10.9+i*0.33; n=int(0.3*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(600+400*x/.3)*x)*np.sin(np.pi*x/.3)*0.05,tq),rng.uniform(-.6,.6))
-# 7. descent to the marsh and the lone mosquito
-ds=bp(noise(),200,4000)*win(12.55,13.55,0.5,0.15)*0.22; add(ds,0); add(np.sin(2*np.pi*np.cumsum(90-50*np.clip((t-12.6)/.9,0,1))/SR)*win(12.6,13.5,0.2,0.3)*0.25,0)
-mw=win(13.4,16.0,1.2,0.0)*(0.10+0.9*np.clip((t-13.4)/2.6,0,1)**1.4); f=380+360*np.clip((t-13.4)/2.6,0,1)
-mos=(np.sin(2*np.pi*np.cumsum(f*(1+0.012*np.sin(2*np.pi*6.5*t)))/SR)*0.42+np.sin(2*np.pi*np.cumsum(f*2.01*(1+0.012*np.sin(2*np.pi*6.5*t)))/SR)*0.15)*mw
-add(mos,0.15)
-mar=lp(noise(),600)*win(13.0,16.0,0.8,0.0)*0.08; add(mar,0)
+def bell(f,d=1.5,g=0.1):
+    n=int(d*SR); x=np.arange(n)/SR; return sum(np.sin(2*np.pi*f*m*x)*a*np.exp(-x/(d/3.2)/(1+0.4*i)) for i,(m,a) in enumerate([(1,1),(2.76,0.5),(5.4,0.25)]))*g
+def thump(t0,f=50,g=0.5,d=0.2):
+    n=int(d*SR); x=np.arange(n)/SR; return at(np.sin(2*np.pi*(f+30*np.exp(-x/.03))*x)*np.exp(-x/(d/3))*g,t0)
+# ---- act 2 (0-2.5): the bite
+add(bp(noise(),300,5000)*win(0.0,0.45,0.05,0.12)**1.2*0.28,0); add(np.sin(2*np.pi*np.cumsum(50+60*np.clip(t/0.4,0,1))/SR)*win(0,0.45,0.1,0.1)*0.3,0)   # zoom in
+mw=win(0.35,1.05,0.15,0.1); add(np.sin(2*np.pi*np.cumsum(620-90*np.clip((t-.35)/.5,0,1)+9*np.sin(2*np.pi*7*t))/SR)*mw*0.30,-0.2)   # the close whine settling onto the skin
+n=int(0.03*SR); add(at(hp(noise(n),1500)*np.exp(-np.arange(n)/SR/0.006)*0.35,0.64),0)   # skin touch
+add(lp(noise(),500)*win(0.7,1.15,0.1,0.15)*(0.6+0.4*np.sin(2*np.pi*9*t))*0.10,0)   # liquid flow
+add(bp(noise(),250,3500)*win(0.95,1.45,0.2,0.2)*0.25,0); add(np.sin(2*np.pi*np.cumsum(120-70*np.clip((t-.95)/.5,0,1))/SR)*win(0.95,1.5,0.1,0.2)*0.3,0)   # pull back
+tp=1.4
+while tp<2.1: add(thump(tp,48,0.38,0.2),0); add(thump(tp+0.17,44,0.26,0.18),0); tp+=0.56
+tk=1.42
+while tk<2.1: n=int(0.008*SR); add(at(hp(noise(n),3500)*np.exp(-np.arange(n)/SR/0.002)*0.07,tk),rng.uniform(-.6,.6)); tk+=0.075
+w2=win(1.7,2.12,0.25,0.02); add(np.sin(2*np.pi*np.cumsum(440+90*np.clip((t-1.7)/.4,0,1)+7*np.sin(2*np.pi*6*t))/SR)*w2*0.20,0.5)   # the second mosquito approaching
+for k in range(16): add(at(bell(rng.choice([2093,2637,3136,3951]),1.0,0.045),2.12+k*0.03+rng.uniform(0,.04)),rng.uniform(-.8,.8))   # it dissolves
+n=int(0.3*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(1400*np.exp(-x*7))*x)*np.exp(-x/.12)*0.25,2.14),0); add(thump(2.14,46,0.55,0.35),0)   # the interruption sting
+# ---- act 3 (2.5-5): the night goes quiet
+q=win(2.5,5.1,0.8,0.1); qp=(np.sin(2*np.pi*55*t)*.5+np.sin(2*np.pi*82.4*t)*.3)*q*0.06; add(qp,0); add(reverb(qp,2.4,0.5),0)
+add(lp(noise(),400)*win(2.6,5.1,0.8,0.1)*0.035,0)
+add(bp(noise(),200,2500)*win(3.1,3.9,0.4,0.3)*0.08,0)   # the push through the window
+br=(0.5+0.5*np.sin(2*np.pi*0.28*t-1.2)); add(bp(noise(),250,1400)*win(3.6,5.0,0.5,0.4)*br*0.05,0.1)   # the child breathing
+for k in range(5): n=int(0.02*SR); add(at(lp(noise(n),2500)*np.exp(-np.arange(n)/SR/0.004)*0.04,3.7+rng.uniform(0,1.2)),-0.4)   # lamp ticks
+# ---- act 4 (5-8): the pond
+add(lp(noise(),700)*win(5.0,8.2,0.5,0.4)*(0.6+0.4*np.sin(2*np.pi*.5*t))*0.07,0)
+n=int(0.25*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(320-140*x/.25)*x)*np.exp(-x/.09)*0.32,5.95),0.2)   # the fish leaves the water
+add(at(lp(noise(int(0.35*SR)),1800)*np.exp(-np.arange(int(0.35*SR))/SR/0.1)*0.18,6.78),0.3)   # and lands, finding nothing
+sw=bp(noise(),700,4500)*win(6.15,7.15,0.4,0.4)**1.2*0.20; pp=np.clip((t-6.15)/1.0,0,1)*2-1; L+=sw*(0.5-pp*0.5)*1.4; R+=sw*(0.5+pp*0.5)*1.4   # the swallow's dive
+# ---- act 5 (8-11.5): the orchid opens, waits, no one comes; a petal droops
+op=(np.sin(2*np.pi*329.6*t)*.4+np.sin(2*np.pi*493.9*t)*.25)*win(8.0,11.6,0.8,0.5)*0.05; add(op,0); add(reverb(op,2.6,0.6),0.1)
+for k,f in enumerate([659.3,830.6,987.8,1318.5,1661.2]): bb=at(bell(f,1.8,0.07),8.3+k*0.27); add(bb,-0.4+k*0.2); add(reverb(bb,2.0,0.4),0)
+n=int(0.7*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(700-220*x/.7)*x)*np.sin(np.pi*x/.7)*0.07,10.35),0)   # the petal droops
+# ---- the zoom-through (11.2-12.2)
+add(bp(noise(),300,5000)*win(11.2,12.2,0.6,0.1)**1.2*0.24,0); add(np.sin(2*np.pi*np.cumsum(40+55*np.clip((t-11.2)/1.0,0,1)**1.5)/SR)*win(11.2,12.3,0.6,0.2)*0.3,0)
+# ---- act 6 (12-15): the Earth, half lit
+cl=(np.sin(2*np.pi*55*t)*.5+np.sin(2*np.pi*82.4*t)*.4+np.sin(2*np.pi*87.3*t)*.35)*win(11.9,15.0,0.9,0.0)*(0.6+0.4*np.sin(2*np.pi*.3*t))*0.10; add(cl,0); add(reverb(cl,2.6,0.5),0.1)
+tp=12.0
+while tp<15.0: add(thump(tp,44,0.2,0.3),0); tp+=1.2
+gp=at(bell(784,2.0,0.10),12.7); add(gp,0.4); add(reverb(gp,2.2,0.5),0)
+mw=win(13.3,15.0,1.0,0.0)*(0.08+0.92*np.clip((t-13.3)/1.7,0,1)**1.4); f=380+340*np.clip((t-13.3)/1.7,0,1)
+vib=1+0.012*np.sin(2*np.pi*6.5*t); add((np.sin(2*np.pi*np.cumsum(f*vib)/SR)*0.42+np.sin(2*np.pi*np.cumsum(f*2.01*vib)/SR)*0.15)*mw,0.15)
 M=np.stack([L,R]); M=np.tanh(M*1.15)/1.15; M*=0.92/np.abs(M).max()
 M[:,:int(.01*SR)]*=np.linspace(0,1,int(.01*SR))
 w=wave.open(sys.argv[1],'wb'); w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((M.T*32767).astype('<i2').tobytes()); w.close()

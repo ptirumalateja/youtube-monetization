@@ -143,7 +143,7 @@ function drawPanel(c,t,PP,noMarkers){
     track(c,'ESTIMATED GLOBAL DEATHS',x+34,y+48,4,`bold 22px ${MONO}`,'#9fb8cc','l');
     const v=Math.round(610000*eo((t-8.15)/1.45)); const s=v.toLocaleString('en-US'); c.font=`bold 92px ${MONO}`; c.fillStyle='#f6f1e6'; c.textBaseline='alphabetic'; c.fillText(s,x+34,y+138);
     c.strokeStyle='#ff8a5b'; c.lineWidth=3; c.beginPath(); c.moveTo(x+34,y+160); c.lineTo(x+w-34,y+160); c.stroke(); track(c,'MALARIA / 2024 / WHO',x+34,y+182,4,`bold 18px ${MONO}`,'#9fb8cc','l'); c.restore()}
-  const ca=ease((t-9.0)/.5); if(ca>0){c.save(); c.globalAlpha=ca; c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=8; track(c,'Malaria took over six hundred',W/2,1520,2,`bold 38px ${MONO}`,'#f4f1ea','c'); track(c,'thousand lives.',W/2,1572,2,`bold 38px ${MONO}`,'#f4f1ea','c'); c.shadowBlur=0; track(c,'WHO ESTIMATE, 2024. MARKERS ILLUSTRATIVE. NOT LIVES INSTANTLY SAVED.',W/2,1650,2,`16px ${MONO}`,'#8fa6ba','c'); c.restore()}
+  const ca=ease((t-9.0)/.5); if(ca>0){c.save(); c.globalAlpha=ca; c.shadowColor='rgba(0,0,0,.5)'; c.shadowBlur=8; track(c,'610,000 DEATHS / YEAR.',W/2,1520,3,`bold 40px ${MONO}`,'#ffffff','c','rgba(4,8,22,.7)'); track(c,'2024',W/2,1580,3,`bold 40px ${MONO}`,'#ffffff','c','rgba(4,8,22,.7)'); c.shadowBlur=0; track(c,'WHO ESTIMATE, 2024. MARKERS ILLUSTRATIVE. NOT LIVES INSTANTLY SAVED.',W/2,1650,2,`16px ${MONO}`,'#8fa6ba','c'); c.restore()}
 }
 // ---------------------------------------------------------------- timeline
 const EARTH_REST={cx:540,cy:840,R:410,lat0:8,lon0:20}, PANEL={cx:540,cy:700,R:660,lat0:1,lon0:18};
@@ -175,155 +175,177 @@ function frameOpen(c,t){
     // space fades into the panel navy during the dive
     drawEarth(c,t,P,o);
     // pulse ring over the high-burden region as the Earth settles
-    const pu=t-5.55; if(pu>0&&pu<1.3&&t<T2a){const p=proj(6,12,P); for(let k=0;k<2;k++){const uu=pu-k*.25; if(uu<0) continue; c.strokeStyle=`rgba(255,170,110,${.8*(1-uu/1.1)})`; c.lineWidth=3; c.beginPath(); c.arc(p[0],p[1],14+uu*150,0,6.3); c.stroke()}}
+    const pu=t-5.3; if(pu>0&&pu<1.2&&t<T2a){c.save(); const k=eo(pu/1.2); c.strokeStyle=`rgba(255,255,255,${.9*(1-k)})`; c.lineWidth=6*(1-k)+1.5; c.shadowColor='rgba(255,255,255,.8)'; c.shadowBlur=24; c.beginPath(); c.arc(P.cx,P.cy,10+k*P.R*1.35,0,6.3); c.stroke(); c.restore()}
   }
   if(t>=7.45){c.fillStyle='#0b1b31'; c.fillRect(0,0,W,H); drawEarth(c,t,PANEL,{alpha:1,lights:0,glow:0,grid:1,mapMix:1,discFade:1}); }
   if(t>=6.9){const fa=ease((t-6.9)/.6); const g1=c.createLinearGradient(0,150,0,330); g1.addColorStop(0,`rgba(11,27,49,${fa})`); g1.addColorStop(1,'rgba(11,27,49,0)'); c.fillStyle=g1; c.fillRect(0,0,W,330); const g2=c.createLinearGradient(0,1090,0,1200); g2.addColorStop(0,'rgba(11,27,49,0)'); g2.addColorStop(1,`rgba(11,27,49,${fa})`); c.fillStyle=g2; c.fillRect(0,1090,W,H-1090); c.fillStyle=`rgba(11,27,49,${fa})`; c.fillRect(0,1200,W,H-1200)}
   if(t>=7.1) drawPanel(c,t,PANEL);
   // captions
   caption(c,['WHAT IF EVERY MOSQUITO','VANISHED RIGHT NOW?'],-0.3,3.0,170,40,t,40,.55);   // on screen from the first frame until the swarm has fallen
-  caption(c,['OVERNIGHT. ALL GONE.','NO BUZZING. NO BITES.'],4.35,6.45,170,40,t);
+  caption(c,['ONE SPECIES.','PAUSED.'],4.35,6.45,170,40,t,34,.7);
   // soft vignette
   const vg=c.createRadialGradient(540,960,700,540,960,1250); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.35)'); c.fillStyle=vg; c.fillRect(0,0,W,H);
 }
-// ================================================================ ACTS 2-8 (10 s to 26 s)
+// ================================================================ ACTS 2-6 (10 s to 25 s)
 const NAVY='#0b1b31';
 function panelMask(c,fa){const g1=c.createLinearGradient(0,150,0,330); g1.addColorStop(0,`rgba(11,27,49,${fa})`); g1.addColorStop(1,'rgba(11,27,49,0)'); c.fillStyle=g1; c.fillRect(0,0,W,330); const g2=c.createLinearGradient(0,1090,0,1200); g2.addColorStop(0,'rgba(11,27,49,0)'); g2.addColorStop(1,`rgba(11,27,49,${fa})`); c.fillStyle=g2; c.fillRect(0,1090,W,H-1090); c.fillStyle=`rgba(11,27,49,${fa})`; c.fillRect(0,1200,W,H-1200)}
-// ---- act 2 (10-12.5): the transmission network on the map, then the wave that cuts it
-const EDGES=[[4,0],[0,5],[5,1],[1,2],[1,6],[2,7],[3,6],[6,2],[0,1],[5,7]];
-function actTransmission(c,t){
+const dust=[]; for(let i=0;i<90;i++) dust.push({a:U(0,6.3),v:U(30,150),r:U(1.6,4.4),l:U(.5,1.2)});
+// ---- act 2 v2 (10-12.5): bite -> glass body -> blood flow -> transmission interrupted
+const PNT=(pts,u)=>{const n=pts.length-1, f=clamp(u)*n, i=Math.min(n-1,Math.floor(f)), k=f-i; return [mix(pts[i][0],pts[i+1][0],k),mix(pts[i][1],pts[i+1][1],k)]};
+function glow(c,x,y,r,rgb,a){c.save(); c.globalCompositeOperation='lighter'; const g=c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(${rgb},${a})`); g.addColorStop(1,`rgba(${rgb},0)`); c.fillStyle=g; c.fillRect(x-r,y-r,r*2,r*2); c.restore()}
+const BITE_SKIN=[470,1195], BITE_BODY=[768,1090];
+const skinPores=[]; for(let i=0;i<520;i++) skinPores.push({x:U(0,W),y:U(1120,H),r:U(.8,2.6),a:U(.05,.22)});
+function mosqXY(m,lx,ly){const ca=Math.cos(m.a), sa=Math.sin(m.a); return [m.x+m.s*(ca*lx-sa*ly), m.y+m.s*(sa*lx+ca*ly)]}
+function drawSkin(c,t){
+  const u=t-10.2;
+  const bg=c.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#150c10'); bg.addColorStop(.55,'#2a1713'); bg.addColorStop(1,'#1a0d0b'); c.fillStyle=bg; c.fillRect(0,0,W,H);
+  glow(c,300,420,420,'255,140,80',.12); glow(c,860,300,360,'90,150,170',.10);
+  // skin surface
+  const sy=x=>1185+26*Math.sin(x*.0055+.6)+10*Math.sin(x*.017);
+  const sg=c.createLinearGradient(0,1130,0,H); sg.addColorStop(0,'#d58a5e'); sg.addColorStop(.12,'#b86a43'); sg.addColorStop(.5,'#6d3a24'); sg.addColorStop(1,'#2a150e'); c.fillStyle=sg; c.beginPath(); c.moveTo(0,H); for(let x=0;x<=W;x+=12) c.lineTo(x,sy(x)); c.lineTo(W,H); c.fill();
+  c.strokeStyle='rgba(255,205,160,.75)'; c.lineWidth=3; c.beginPath(); for(let x=0;x<=W;x+=12){x?c.lineTo(x,sy(x)):c.moveTo(x,sy(x))} c.stroke();
+  for(const p of skinPores){c.fillStyle=`rgba(60,24,12,${p.a})`; c.beginPath(); c.arc(p.x,p.y+(p.y-1130)*.02,p.r,0,6.3); c.fill()}
+  // dimple where the proboscis presses in
+  const press=clamp((u-.32)/.2); const dg=c.createRadialGradient(BITE_SKIN[0],BITE_SKIN[1]+10,0,BITE_SKIN[0],BITE_SKIN[1]+10,150+60*press); dg.addColorStop(0,`rgba(40,14,8,${.55*press})`); dg.addColorStop(1,'rgba(40,14,8,0)'); c.fillStyle=dg; c.fillRect(230,1060,480,300);
+  // mosquito: drops in, settles, pushes the proboscis in
+  const drop=eo(u/.28), push=press*42, m={a:-.9,s:2.5,x:535+ (1-drop)*160, y:mix(-260,895+push,drop)+Math.sin(t*50)*(u<.3?0:1.2)};
+  const tip=mosqXY(m,-92,40), hd=mosqXY(m,-50,12);
+  // capillary and the parasite stream (sporozoites) going in through the proboscis and down into the blood
+  const tube=[[tip[0],BITE_SKIN[1]+6],[tip[0]+6,1330],[tip[0]-10,1520],[tip[0]+4,1700],[tip[0],1900]]; c.save(); c.globalAlpha=press;
+  c.strokeStyle='rgba(150,28,34,.85)'; c.lineWidth=46; c.lineCap='round'; c.beginPath(); tube.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.stroke(); c.strokeStyle='rgba(255,120,110,.35)'; c.lineWidth=6; c.stroke(); c.restore();
+  if(press>0){const path=[hd,tip,...tube]; for(let j=0;j<16;j++){const k=((t*1.8+j/16)%1), p=PNT(path,k); const fadeIn=clamp((u-.5)/.1); glow(c,p[0],p[1],20,'255,150,70',.95*fadeIn); c.fillStyle=`rgba(255,215,160,${.95*fadeIn})`; c.beginPath(); c.ellipse(p[0],p[1],5.5,2.6,(j*1.3),0,6.3); c.fill()}
+    for(let j=0;j<22;j++){const k=((t*.55+j/22)%1); c.fillStyle='rgba(255,100,90,.9)'; c.beginPath(); c.arc(tube[0][0]+Math.sin(j*2.1+t*3)*10,1250+k*650,5,0,6.3); c.fill()}}
+  drawMosquito(c,m.x,m.y,m.s,m.a,t*52,'#0e0a0d',1,u>.35?(Math.sin(t*40)>-2):true,false);
+}
+function drawBody(c,t){
+  const bg=c.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#06121f'); bg.addColorStop(1,'#030a14'); c.fillStyle=bg; c.fillRect(0,0,W,H);
+  c.strokeStyle='rgba(120,190,215,.07)'; c.lineWidth=1.2; for(let x=0;x<=W;x+=60){c.beginPath(); c.moveTo(x,0); c.lineTo(x,H); c.stroke()} for(let y=0;y<=H;y+=60){c.beginPath(); c.moveTo(0,y); c.lineTo(W,y); c.stroke()}
+  glow(c,540,820,640,'40,130,160',.18);
+  // glass body: capsules for head, torso, arms, legs
+  const caps=[[540,440,540,500,110],[540,620,545,990,230],[445,610,340,990,66],[345,990,300,1290,52],[640,610,745,990,66],[748,990,780,1290,52],[490,1010,478,1620,86],[595,1010,610,1620,86]];
+  const shape=()=>{const p=new Path2D(); p.arc(540,430,74,0,6.3); for(const [x1,y1,x2,y2,w] of caps){const a=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1); const q=new Path2D(); const m=new DOMMatrix().translate(x1,y1).rotate(a*180/Math.PI); const r=new Path2D(); r.roundRect(-w/2,-w/2,L+w,w,w/2); q.addPath(r,m); p.addPath(q)} return p};
+  const body=shape(); const bgl=c.createLinearGradient(0,380,0,1620); bgl.addColorStop(0,'rgba(120,225,235,.22)'); bgl.addColorStop(1,'rgba(60,150,190,.10)'); c.fillStyle=bgl; c.fill(body);
+  {const mk=()=>{const k=document.createElement('canvas'); k.width=cv.width; k.height=cv.height; return k}; const A=mk(), D=mk(), E=mk(); const a=A.getContext('2d'); a.setTransform(SC,0,0,SC,0,0); a.fillStyle='#fff'; a.fill(body); const d=D.getContext('2d'), e=E.getContext('2d'); e.drawImage(A,0,0); const sh=3.2*SC;
+   for(let i=0;i<8;i++){const dx=Math.cos(i*.785)*sh, dy=Math.sin(i*.785)*sh; d.drawImage(A,dx,dy); e.globalCompositeOperation='destination-in'; e.drawImage(A,dx,dy); e.globalCompositeOperation='source-over'}
+   d.globalCompositeOperation='destination-out'; d.drawImage(E,0,0); d.globalCompositeOperation='source-in'; d.fillStyle='rgba(140,240,245,.85)'; d.fillRect(0,0,D.width,D.height);
+   c.save(); c.shadowColor='rgba(80,220,240,.95)'; c.shadowBlur=16; c.drawImage(D,0,0,W,H); c.restore(); c.drawImage(D,0,0,W,H)}
+  // vessels
+  const V={aorta:[[585,690],[552,820],[545,1000],[500,1180],[484,1450],[480,1600]], aorta2:[[545,1000],[600,1200],[610,1450],[612,1600]], neck:[[575,680],[552,560],[540,470]], armR:[[600,700],[705,730],[748,900],[766,1090],[780,1260]], armL:[[560,700],[430,730],[345,930],[322,1100],[304,1270]]};
+  const infect=[[BITE_BODY[0],BITE_BODY[1]],[752,950],[720,800],[640,720],[596,700]];
+  c.lineCap='round'; for(const k in V){const pts=V[k]; c.strokeStyle='rgba(190,50,60,.55)'; c.lineWidth=8; c.beginPath(); pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.stroke(); c.strokeStyle='rgba(255,110,110,.35)'; c.lineWidth=2; c.stroke()}
+  // blood cells flowing
+  const flow=(pts,n,sp,off)=>{for(let j=0;j<n;j++){const p=PNT(pts,((t*sp+j/n+off)%1)); glow(c,p[0],p[1],14,'255,80,80',.8); c.fillStyle='rgba(255,150,140,.95)'; c.beginPath(); c.arc(p[0],p[1],3.2,0,6.3); c.fill()}};
+  flow(V.aorta,16,.55,0); flow(V.aorta2,12,.5,.3); flow(V.neck,6,.6,.1); flow(V.armR,10,.5,.6); flow(V.armL,10,.5,.2);
+  // heart
+  const hb=.6+.4*Math.pow(Math.abs(Math.sin(t*4.4)),6); glow(c,596,704,90,'255,70,70',.55*hb); c.fillStyle='rgba(255,120,110,.9)'; c.beginPath(); c.arc(596,704,16+6*hb,0,6.3); c.fill();
+  // parasites (orange) travelling from the bite site towards the heart until the transmission is interrupted at 12.1
+  const TI2=12.12;
+  for(let j=0;j<22;j++){ const born=10.95+j*0.05, ph=((t-born)*1.05); if(ph<0||ph>1||born>TI2) continue; const p=PNT(infect,ph), fade=clamp(1-(t-TI2)/.35); glow(c,p[0],p[1],24,'255,150,60',.95*fade); c.fillStyle=`rgba(255,225,170,${fade})`; c.beginPath(); c.ellipse(p[0],p[1],7,3.2,j*1.1,0,6.3); c.fill()}
+  // bite site marker and the cut stream
+  const bs=BITE_BODY; if(t<TI2){const pul=(t*3)%1; c.strokeStyle=`rgba(255,160,90,${.9*(1-pul)})`; c.lineWidth=3; c.beginPath(); c.arc(bs[0],bs[1],12+pul*44,0,6.3); c.stroke(); glow(c,bs[0],bs[1],46,'255,150,70',.8)}
+  else {const k=clamp((t-TI2)/.25); c.strokeStyle=`rgba(255,200,170,${.95*(1-k*.4)})`; c.lineWidth=5; c.beginPath(); c.moveTo(bs[0]-34,bs[1]-34); c.lineTo(bs[0]+34,bs[1]+34); c.moveTo(bs[0]+34,bs[1]-34); c.lineTo(bs[0]-34,bs[1]+34); c.stroke(); c.strokeStyle=`rgba(255,200,170,${.55*(1-k*.4)})`; c.lineWidth=3; c.beginPath(); c.arc(bs[0],bs[1],48,0,6.3); c.stroke()}
+  // a second, incoming mosquito is erased before it can bite
+  const ut=t-11.72; if(ut>0&&ut<.8){const mx=mix(1180,880,eo(ut/.4)), my=mix(900,1010,eo(ut/.4)); const dt=ut-.4; if(dt<0) drawMosquito(c,mx,my,1.0,-.2,t*54,'#0b1219',1,true,false); else {const a=1-ease(dt/.25); if(a>0) drawMosquito(c,mx,my,1.0,-.2,t*54,'#0b1219',a,true,false); for(const d of dust.slice(0,60)){const k=dt*d.v*1.2, al=clamp(1-dt/(d.l*.55)); if(al>0){c.fillStyle=`rgba(255,238,200,${al*.9})`; c.beginPath(); c.arc(mx+Math.cos(d.a)*k,my+Math.sin(d.a)*k,d.r,0,6.3); c.fill()}}}}
+  // the label
+  const la=ease((t-12.05)/.15)*(1-ease((t-12.42)/.1)); if(la>0){c.save(); c.globalAlpha=la; const w=760,h=92,x=(W-w)/2,y=1560; c.shadowColor='rgba(255,120,60,.8)'; c.shadowBlur=26; c.fillStyle='rgba(20,8,6,.92)'; c.strokeStyle='#ff8a5b'; c.lineWidth=3; c.beginPath(); c.roundRect(x,y,w,h,12); c.fill(); c.stroke(); c.shadowBlur=0; c.strokeStyle='#ff8a5b'; c.lineWidth=4; c.beginPath(); c.arc(x+48,y+h/2,18,0,6.3); c.moveTo(x+36,y+h/2+12); c.lineTo(x+60,y+h/2-12); c.stroke(); track(c,'TRANSMISSION INTERRUPTED',x+90,y+58,3,`bold 32px ${MONO}`,'#ffd9c4','l'); c.restore()}
+}
+function actBite(c,t){
   c.fillStyle=NAVY; c.fillRect(0,0,W,H);
-  drawEarth(c,t,PANEL,{alpha:1,lights:0,glow:0,grid:1,mapMix:1,discFade:1}); panelMask(c,1);
-  const k=ease((t-10.15)/.5);
-  if(k<1){drawPanel(c,10,PANEL,true); c.fillStyle=`rgba(11,27,49,${k})`; c.fillRect(0,120,W,110); c.fillRect(0,1190,W,H-1190)}
-  const P=MARKS.map(m=>proj(m[0],m[1],PANEL)), EP=[560,700], WT=11.0, SPD=950;
-  const dieN=P.map(p=>WT+Math.hypot(p[0]-EP[0],p[1]-EP[1])/SPD);
-  EDGES.forEach((e,ei)=>{const a=P[e[0]],b=P[e[1]],die=WT+Math.hypot((a[0]+b[0])/2-EP[0],(a[1]+b[1])/2-EP[1])/SPD; const alive=t<die; const fade=alive?1:clamp(1-(t-die)/.25); if(fade<=0) return;
-    const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2-70-14*ei%40; c.strokeStyle=`rgba(255,150,100,${.38*fade*ease((t-10.0)/.3)})`; c.lineWidth=2; c.beginPath(); c.moveTo(a[0],a[1]); c.quadraticCurveTo(mx,my,b[0],b[1]); c.stroke();
-    if(alive) for(let j=0;j<3;j++){const u=((t*.45+j/3+ei*.13)%1), x=(1-u)*(1-u)*a[0]+2*(1-u)*u*mx+u*u*b[0], y=(1-u)*(1-u)*a[1]+2*(1-u)*u*my+u*u*b[1]; c.save(); c.globalCompositeOperation='lighter'; const g=c.createRadialGradient(x,y,0,x,y,12); g.addColorStop(0,'rgba(255,200,150,.95)'); g.addColorStop(1,'rgba(255,120,70,0)'); c.fillStyle=g; c.fillRect(x-12,y-12,24,24); c.restore()}});
-  P.forEach((p,i)=>{const dead=t>dieN[i], ph=i*.37; if(!dead){const pulse=(((t*1.3+ph)%1)); c.save(); c.globalCompositeOperation='lighter'; const g=c.createRadialGradient(p[0],p[1],0,p[0],p[1],36); g.addColorStop(0,'rgba(255,130,90,.9)'); g.addColorStop(1,'rgba(255,100,60,0)'); c.fillStyle=g; c.fillRect(p[0]-40,p[1]-40,80,80); c.restore(); c.fillStyle='#ff8a5b'; c.beginPath(); c.arc(p[0],p[1],7,0,6.3); c.fill(); c.strokeStyle=`rgba(255,160,120,${.7*(1-pulse)})`; c.lineWidth=2; c.beginPath(); c.arc(p[0],p[1],10+pulse*54,0,6.3); c.stroke()}
-    else {const d=t-dieN[i]; const fl=clamp(1-d/.3); c.fillStyle=`rgba(255,220,190,${.9*fl})`; c.beginPath(); c.arc(p[0],p[1],7+22*d,0,6.3); c.fill(); c.fillStyle='#0d2238'; c.beginPath(); c.arc(p[0],p[1],7,0,6.3); c.fill(); c.strokeStyle='rgba(130,190,200,.75)'; c.lineWidth=2.4; c.beginPath(); c.arc(p[0],p[1],7,0,6.3); c.stroke()}});
-  const wv=t-WT; if(wv>0&&wv<1.6){c.strokeStyle=`rgba(210,235,245,${.75*(1-wv/1.6)})`; c.lineWidth=3; c.beginPath(); c.arc(EP[0],EP[1],wv*SPD,0,6.3); c.stroke(); c.strokeStyle=`rgba(210,235,245,${.25*(1-wv/1.6)})`; c.lineWidth=14; c.stroke(); if(wv<.14){c.fillStyle=`rgba(255,255,255,${.28*(1-wv/.14)})`; c.fillRect(0,0,W,H)}}
+  if(t<10.5){const z=1+ei(clamp((t-10.0)/.4))*16, pM=proj(9.1,8.7,PANEL); c.save(); c.translate(pM[0],pM[1]); c.scale(z,z); c.translate(-pM[0],-pM[1]); drawEarth(c,t,PANEL,{alpha:1,lights:0,glow:0,grid:1,mapMix:1,discFade:1}); panelMask(c,1); drawPanel(c,10,PANEL); c.restore()}
+  const p=clamp((t-11.0)/.45);
+  if(t>=10.2&&t<11.5){ c.save(); c.globalAlpha=ease((t-10.2)/.28)*(1-ease((p-.35)/.55)); const s=mix(1,.07,ei(p)), q=ei(p); c.translate(mix(BITE_SKIN[0],BITE_BODY[0],q),mix(BITE_SKIN[1],BITE_BODY[1],q)); c.scale(s,s); c.translate(-BITE_SKIN[0],-BITE_SKIN[1]); drawSkin(c,t); c.restore() }
+  if(t>=10.95){ c.save(); c.globalAlpha=ease(p*1.6); const s=mix(7,1,eo(p)); c.translate(BITE_BODY[0],BITE_BODY[1]); c.scale(s,s); c.translate(-BITE_BODY[0],-BITE_BODY[1]); drawBody(c,t); c.restore() }
 }
-function actBut(c,t){ // dark beat with "BUT..."
-  const a=ease((t-12.25)/.35); c.fillStyle=`rgba(3,7,16,${a*.97})`; c.fillRect(0,0,W,H);
-  const n=Math.floor(Math.max(0,t-12.55)/.12); const s='BUT...'.slice(0,Math.min(6,n)); c.save(); c.shadowColor='rgba(0,0,0,.9)'; c.shadowBlur=22; c.shadowOffsetY=8; track(c,s,W/2,990,10,`bold 96px ${MONO}`,'#ffffff','c','rgba(3,7,16,.7)'); c.restore();
+
+// ---- shared: floating dust motes in warm light
+const motes=[]; for(let i=0;i<110;i++) motes.push({x:U(0,W),y:U(250,1650),r:U(1.2,3.6),vx:U(-7,7),vy:U(-12,-2),ph:U(0,6.3),a:U(.3,.9)});
+function drawMotes(c,t,alpha,rgb){for(const m of motes){const x=((m.x+m.vx*t)%(W+60)+W+60)%(W+60)-30, y=((m.y+m.vy*t-250)%1400+1400)%1400+250, tw=.45+.55*Math.abs(Math.sin(t*1.1+m.ph)); glow(c,x,y,m.r*5,rgb,m.a*tw*alpha*.5); c.fillStyle=`rgba(${rgb},${m.a*tw*alpha})`; c.beginPath(); c.arc(x,y,m.r,0,6.3); c.fill()}}
+// ---- act 3 (12.5-15): the empty marsh, a push through the hut window, a child asleep without a net
+function actMarsh(c,t){
+  const zp=clamp((t-13.1)/.65), z=1+ei(zp)*13+.02*(t-12.4), px=160,py=1346;
+  c.save(); c.translate(px,py); c.scale(z,z); c.translate(-px,-py); drawA(c,6+(t-12.4)*.4,{calm:true}); drawMotes(c,t,1,'255,214,150'); c.restore();
 }
-// ---- act 4 (13.5-16): Arctic tundra with the caribou herd
-const ARC_SKY=c=>{const g=c.createLinearGradient(0,0,0,1250); g.addColorStop(0,'#16264a'); g.addColorStop(.35,'#3d4a7c'); g.addColorStop(.62,'#a77fa3'); g.addColorStop(.82,'#f0a58a'); g.addColorStop(1,'#f8d8b0'); return g};
-function ridge(c,base,amp,f,col,off,jag){c.fillStyle=col; c.beginPath(); c.moveTo(0,H); for(let x=-20;x<=W+20;x+=10){const y=base-amp*(jag?(Math.abs((((x*f/6.283+off)%1)+1)%1-.5)*2*.85+.3*Math.abs((((x*f*2.7/6.283+off*3)%1)+1)%1-.5)*2):.5+.5*Math.sin(x*f+off)*.7+.3*Math.sin(x*f*2.3+off)); c.lineTo(x,y)} c.lineTo(W+20,H); c.fill()}
-const tufts=[]; for(let i=0;i<150;i++){const z=Math.pow(R(),.8); tufts.push({x:U(0,W),z,ph:U(0,6.3)})}
-const herd=[]; for(let i=0;i<11;i++){const z=.06+Math.pow(R(),1.1)*.74; herd.push({x0:U(-200,W+300),z,ph:U(0,6.3),v:U(.8,1.2),rack:R()<.5?1:0.8})}
-const pools=[[330,1370,150,22],[760,1330,110,16],[560,1560,260,44],[160,1650,170,36],[900,1700,200,40],[640,1840,300,50]];
-function drawCaribou(c,x,y,s,ph,dir,col){
-  c.save(); c.translate(x,y); c.scale(s*dir,s); c.fillStyle=col; c.strokeStyle=col; c.lineCap='round'; c.lineWidth=7;
-  const w=Math.sin(ph); for(const [lx,off,fr] of[[-48,0,0],[-34,Math.PI,0],[44,Math.PI,1],[58,0,1]]){const a=Math.sin(ph+off)*.5; c.beginPath(); c.moveTo(lx,-4); c.lineTo(lx+Math.sin(a)*22,26); c.lineTo(lx+Math.sin(a)*30-(fr?4:0),54+Math.max(0,Math.cos(a))*2); c.stroke()}
-  c.beginPath(); c.ellipse(0,-20,64,30,0,0,6.3); c.fill();                       // body
-  c.beginPath(); c.moveTo(48,-34); c.quadraticCurveTo(86,-52,98,-70); c.lineTo(112,-62); c.quadraticCurveTo(84,-26,54,-6); c.fill();   // neck
-  c.beginPath(); c.ellipse(108,-66,17,10,.5,0,6.3); c.fill(); c.beginPath(); c.moveTo(118,-62); c.lineTo(136,-52); c.lineTo(122,-58); c.fill();   // head and muzzle
-  c.lineWidth=3.2; const hb=(bx,by,len,ang,d)=>{ c.beginPath(); c.moveTo(bx,by); const ex=bx+Math.cos(ang)*len, ey=by+Math.sin(ang)*len; c.lineTo(ex,ey); c.stroke(); if(d>0){hb(bx+Math.cos(ang)*len*.55,by+Math.sin(ang)*len*.55,len*.55,ang-.7,d-1); hb(ex,ey,len*.6,ang+.45,d-1)}}; hb(104,-74,52,-2.1,2); hb(98,-72,44,-2.6,2);   // antlers
-  c.restore();
+function drawKid(c,t){
+  const u=t-13.55, zz=1+.05*clamp(u/1.6);
+  c.save(); c.translate(540,1120); c.scale(zz,zz); c.translate(-540,-1120);
+  const wg=c.createLinearGradient(0,0,0,H); wg.addColorStop(0,'#2b1a12'); wg.addColorStop(.6,'#1c0f0a'); wg.addColorStop(1,'#0e0705'); c.fillStyle=wg; c.fillRect(-60,-60,W+120,H+120);
+  for(let x=-60;x<W+60;x+=96){c.fillStyle=`rgba(${60+((x*7)%20)},${34+((x*5)%12)},20,.55)`; c.fillRect(x,-60,5,H+120)}
+  // window with dusk outside
+  const wx=700,wy=330,ww=250,wh=330; const sg=c.createLinearGradient(0,wy,0,wy+wh); sg.addColorStop(0,'#1d2c52'); sg.addColorStop(.6,'#8b5a6b'); sg.addColorStop(1,'#f0905a'); c.fillStyle=sg; c.fillRect(wx,wy,ww,wh); c.strokeStyle='#3a2216'; c.lineWidth=14; c.strokeRect(wx,wy,ww,wh); c.lineWidth=8; c.beginPath(); c.moveTo(wx+ww/2,wy); c.lineTo(wx+ww/2,wy+wh); c.moveTo(wx,wy+wh/2); c.lineTo(wx+ww,wy+wh/2); c.stroke();
+  glow(c,wx+ww/2,wy+wh*.6,420,'240,140,90',.14);
+  // oil lamp and its light
+  const fl=.9+.1*Math.sin(t*9)+.05*Math.sin(t*23); glow(c,190,980,620,'255,170,90',.42*fl); c.fillStyle='#4a2c1a'; c.fillRect(130,1010,120,120); c.fillStyle='#ffe2a0'; c.beginPath(); c.ellipse(190,985,16,26,0,0,6.3); c.fill(); c.fillStyle='rgba(255,225,160,.5)'; c.beginPath(); c.ellipse(190,985,30,44,0,0,6.3); c.fill();
+  // floor
+  const fg=c.createLinearGradient(0,1500,0,H); fg.addColorStop(0,'#241309'); fg.addColorStop(1,'#0c0603'); c.fillStyle=fg; c.fillRect(-60,1500,W+120,H); for(let x=-60;x<W+60;x+=130){c.fillStyle='rgba(0,0,0,.35)'; c.fillRect(x,1500,4,H)}
+  // low cot (no net, no posts)
+  c.fillStyle='#4a2f1d'; c.fillRect(140,1440,820,26); c.fillRect(160,1466,26,100); c.fillRect(914,1466,26,100);
+  c.fillStyle='#d4bf9a'; c.beginPath(); c.roundRect(150,1330,800,120,18); c.fill();
+  c.fillStyle='#efe9dc'; c.beginPath(); c.roundRect(190,1250,250,110,40); c.fill();
+  // the child, asleep: head on the pillow, blanket rising and falling with the breath
+  const br=1+.02*Math.sin(t*1.5);
+  c.fillStyle='#b98563'; c.beginPath(); c.arc(315,1280,62,0,6.3); c.fill(); c.fillStyle='#1b100b'; c.beginPath(); c.arc(315,1262,64,Math.PI*1.05,Math.PI*1.98); c.fill();
+  c.strokeStyle='#3a2118'; c.lineWidth=4; c.lineCap='round'; c.beginPath(); c.arc(292,1292,9,.2,2.9); c.stroke(); c.beginPath(); c.arc(338,1292,9,.2,2.9); c.stroke(); c.beginPath(); c.arc(315,1318,10,.3,2.8); c.stroke();
+  c.save(); c.translate(560,1400); c.scale(1,br); c.translate(-560,-1400); const bg=c.createLinearGradient(0,1290,0,1410); bg.addColorStop(0,'#c46a3c'); bg.addColorStop(1,'#8f4524'); c.fillStyle=bg; c.beginPath(); c.moveTo(380,1400); c.quadraticCurveTo(400,1290,520,1300); c.lineTo(900,1330); c.quadraticCurveTo(950,1340,940,1400); c.closePath(); c.fill(); c.strokeStyle='rgba(255,210,150,.35)'; c.lineWidth=7; for(let x=470;x<900;x+=70){c.beginPath(); c.moveTo(x,1310); c.lineTo(x-14,1398); c.stroke()} c.restore();
+  c.fillStyle='#b98563'; c.beginPath(); c.ellipse(430,1352,34,22,.4,0,6.3); c.fill();
+  drawMotes(c,t,.9,'255,210,150'); c.restore();
+  const vg=c.createRadialGradient(540,1000,300,540,1000,1250); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); c.fillStyle=vg; c.fillRect(0,0,W,H);
 }
-function drawArctic(c,t){
-  const u=t-13.0; c.fillStyle=ARC_SKY(c); c.fillRect(0,0,W,1260);
-  const sg=c.createRadialGradient(700,1180,10,700,1180,520); sg.addColorStop(0,'rgba(255,225,180,.75)'); sg.addColorStop(.3,'rgba(255,170,130,.35)'); sg.addColorStop(1,'rgba(255,150,120,0)'); c.fillStyle=sg; c.fillRect(0,600,W,700);
-  c.fillStyle='#fde2b4'; c.beginPath(); c.arc(700,1182,58,Math.PI,0); c.fill();
-  c.save(); c.translate(-u*8,0); ridge(c,1030,130,.024,'#56658f',0.4,true); c.restore();
-  c.save(); c.translate(-u*16,0); ridge(c,1150,80,.007,'#37435f',2.1,false); c.restore();
-  c.save(); c.translate(-u*28,0); ridge(c,1250,40,.006,'#2a364b',4.0,false); c.restore();
-  const gg=c.createLinearGradient(0,1240,0,H); gg.addColorStop(0,'#27354a'); gg.addColorStop(1,'#141c27'); c.fillStyle=gg; c.fillRect(0,1262,W,H-1262);
-  for(const p of pools){const g=c.createLinearGradient(0,p[1]-p[3],0,p[1]+p[3]); g.addColorStop(0,'rgba(248,196,160,.95)'); g.addColorStop(1,'rgba(120,120,170,.9)'); c.fillStyle=g; c.beginPath(); c.ellipse(p[0]-u*(10+p[1]*.01),p[1],p[2],p[3],0,0,6.3); c.fill(); c.strokeStyle='rgba(15,22,32,.7)'; c.lineWidth=3; c.stroke()}
-  for(const tf of tufts){const y=1275+tf.z*620, s=.35+1.4*tf.z, x=((tf.x-u*(30+120*tf.z))%(W+80)+W+80)%(W+80)-40; const sw=Math.sin(t*1.6+tf.ph)*2*s; c.strokeStyle='rgba(20,28,38,.9)'; c.lineWidth=1.6*s; c.beginPath(); c.moveTo(x,y); c.lineTo(x+sw,y-22*s); c.stroke(); c.fillStyle='rgba(245,236,224,.78)'; c.beginPath(); c.arc(x+sw,y-24*s,3.4*s,0,6.3); c.fill()}
-  const hs=[...herd].sort((a,b)=>a.z-b.z); const hfade=1-clamp((t-15.45)/.25);
-  if(hfade>0) for(const h of hs){const y=1290+h.z*560, s=.34+1.15*h.z, x=((h.x0-u*(26+95*h.z)*h.v)%(W+500)+W+500)%(W+500)-250; c.save(); c.globalAlpha=hfade; drawCaribou(c,x,y,s,t*(3.2*h.v)+h.ph,-1,'#121a24'); c.restore(); c.save(); c.globalAlpha=.5*hfade; c.strokeStyle='#f2a784'; c.lineWidth=2*s; c.beginPath(); c.ellipse(x,y-20*s,64*s,30*s,0,3.5,5.9); c.stroke(); c.restore()}
-  const wv=c.createLinearGradient(0,0,0,H); wv.addColorStop(0,'rgba(0,0,0,0)'); wv.addColorStop(1,'rgba(0,0,0,.28)'); c.fillStyle=wv; c.fillRect(0,0,W,H);
+// ---- act 4 (15-18): one still pond; a fish jumps and a swallow dives; both find empty air
+function actPond(c,t){
+  const u=t-15; drawA(c,7+u*.1,{calm:true});
+  const s=clamp((u-.9)/.85); if(s>0&&s<1){const x=mix(700,900,s), y=1440-300*4*s*(1-s), ang=Math.atan2(-300*4*(1-2*s),200)*.9; c.save(); c.translate(x,y); c.rotate(ang); drawFish(c,0,0,1.5,u*30,'#0f1f2b',1); c.restore()}
+  for(const [tt,x] of[[.9,700],[1.75,900]]){const uu=u-tt; if(uu>0&&uu<1.2) for(let k=0;k<3;k++){const w=uu-k*.2; if(w>0){c.strokeStyle=`rgba(255,215,150,${.6*(1-w/1)})`; c.lineWidth=2.4; c.beginPath(); c.ellipse(x,1440,16+w*150,4+w*26,0,0,6.3); c.stroke()}}}
+  const q=clamp((u-1.15)/1.5); if(q>0&&q<1){const P0=[1180,640],P1=[900,1250],P2=[430,1450],P3=[-180,1180]; const bz=(a,b,cc,d,k)=>(1-k)**3*a+3*(1-k)**2*k*b+3*(1-k)*k*k*cc+k**3*d; const x=bz(P0[0],P1[0],P2[0],P3[0],q), y=bz(P0[1],P1[1],P2[1],P3[1],q), x2=bz(P0[0],P1[0],P2[0],P3[0],q+.01), y2=bz(P0[1],P1[1],P2[1],P3[1],q+.01); drawBird(c,x,y,2.6,t*16,Math.atan2(y2-y,x2-x),'#0b1119')}
+  for(let k=0;k<3;k++){const w=u-1.95-k*.22; if(w>0&&w<1){c.strokeStyle=`rgba(255,215,150,${.5*(1-w)})`; c.lineWidth=2; c.beginPath(); c.ellipse(500,1436,14+w*120,3+w*20,0,0,6.3); c.stroke()}}
 }
-// ---- act 5 (16-17.5): the wetland at dusk; fish and birds with nothing to eat
-function drawBird(c,x,y,s,flap,ang,col){c.save(); c.translate(x,y); c.rotate(ang); c.scale(s,s); c.fillStyle=col; c.strokeStyle=col; c.lineWidth=2; c.beginPath(); c.ellipse(0,0,20,6,0,0,6.3); c.fill(); c.beginPath(); c.moveTo(-18,0); c.lineTo(-40,-6); c.lineTo(-34,2); c.lineTo(-40,9); c.closePath(); c.fill(); const w=Math.sin(flap)*28; for(const sd of[-1,1]){c.beginPath(); c.moveTo(2,0); c.quadraticCurveTo(-4,sd*(26+w*.6),-18,sd*(34+w)); c.quadraticCurveTo(0,sd*14,10,2*sd); c.fill()} c.beginPath(); c.moveTo(20,0); c.lineTo(30,2); c.lineTo(20,3); c.fill(); c.restore()}
-function drawFish(c,x,y,s,ph,col,dir){c.save(); c.translate(x,y); c.scale(s*dir,s); c.fillStyle=col; const w=Math.sin(ph)*5; c.beginPath(); c.ellipse(0,0,46,16,0,0,6.3); c.fill(); c.beginPath(); c.moveTo(-40,0); c.lineTo(-66,-16+w); c.lineTo(-66,16+w); c.closePath(); c.fill(); c.beginPath(); c.moveTo(-6,-14); c.lineTo(8,-30); c.lineTo(22,-13); c.fill(); c.fillStyle='rgba(240,210,160,.9)'; c.beginPath(); c.arc(30,-3,3,0,6.3); c.fill(); c.strokeStyle='rgba(120,190,205,.5)'; c.lineWidth=2; c.beginPath(); c.ellipse(0,-2,44,13,0,3.6,5.8); c.stroke(); c.restore()}
-const fishes=[]; for(let i=0;i<7;i++) fishes.push({x0:U(0,W),y:1550+U(0,330),s:U(.55,1.05),v:U(60,120)*(R()<.5?-1:1),ph:U(0,6.3)});
-const birds=[]; for(let i=0;i<4;i++) birds.push({x0:U(0,W),y0:U(480,980),ax:U(150,330),ay:U(60,140),w:U(.6,1.0),ph:U(0,6.3),s:U(1.9,2.7)});
-function actWetland(c,t){
-  drawA(c,7+(t-16),{calm:true});
-  const u=t-16;
-  for(const b of birds){const x=b.x0+b.ax*Math.sin(b.w*u+b.ph)+u*30, y=b.y0+b.ay*Math.sin(b.w*u*1.3+b.ph), vx=b.ax*b.w*Math.cos(b.w*u+b.ph)+30, ang=Math.atan2(b.ay*b.w*1.3*Math.cos(b.w*u*1.3+b.ph),vx)*.7; drawBird(c,((x%1300)+1300)%1300-100,y,b.s,t*14+b.ph,ang,'#0e141c')}
-  for(const f of fishes){const dir=f.v<0?-1:1; let x=((f.x0+f.v*u)%1300+1300)%1300-110, y=f.y+10*Math.sin(u*1.5+f.ph); drawFish(c,x,y,f.s*1.5,t*9+f.ph,'#123446',-dir)}
-  // a fish rises to the surface for nothing: ripple, then it sinks back
-  const rt=u-.55; if(rt>0&&rt<1.2){const k=Math.sin(Math.min(1,rt/1.0)*Math.PI), yy=mix(1700,1448,k); drawFish(c,720,yy,1.35,rt*20,'#123446',1); for(let i=0;i<3;i++){const uu=rt-.45-i*.18; if(uu>0){c.strokeStyle=`rgba(255,215,150,${.55*(1-uu/1)})`; c.lineWidth=2; c.beginPath(); c.ellipse(720,1436,20+uu*160,5+uu*28,0,0,6.3); c.stroke()}}}
-  c.fillStyle='rgba(0,0,0,.12)'; c.fillRect(0,0,W,H);
-}
-// ---- act 6 (17.5-20): a wild orchid and the pollinator that never lands
+function drawBird(c,x,y,s,flap,ang,col){c.save(); c.translate(x,y); c.rotate(ang); c.scale(s,s); c.fillStyle=col; c.beginPath(); c.ellipse(0,0,20,6,0,0,6.3); c.fill(); c.beginPath(); c.moveTo(-18,0); c.lineTo(-40,-6); c.lineTo(-34,2); c.lineTo(-40,9); c.closePath(); c.fill(); const w=Math.sin(flap)*22; for(const sd of[-1,1]){c.beginPath(); c.moveTo(2,0); c.quadraticCurveTo(-4,sd*(26+w*.6),-18,sd*(34+w)); c.quadraticCurveTo(0,sd*14,10,2*sd); c.fill()} c.beginPath(); c.moveTo(20,0); c.lineTo(30,2); c.lineTo(20,3); c.fill(); c.restore()}
+function drawFish(c,x,y,s,ph,col,dir){c.save(); c.translate(x,y); c.scale(s*dir,s); c.fillStyle=col; const w=Math.sin(ph)*5; c.beginPath(); c.ellipse(0,0,46,16,0,0,6.3); c.fill(); c.beginPath(); c.moveTo(-40,0); c.lineTo(-66,-16+w); c.lineTo(-66,16+w); c.closePath(); c.fill(); c.beginPath(); c.moveTo(-6,-14); c.lineTo(8,-30); c.lineTo(22,-13); c.fill(); c.fillStyle='rgba(240,210,160,.9)'; c.beginPath(); c.arc(30,-3,3,0,6.3); c.fill(); c.strokeStyle='rgba(150,210,225,.55)'; c.lineWidth=2; c.beginPath(); c.ellipse(0,-2,44,13,0,3.6,5.8); c.stroke(); c.restore()}
+// ---- act 5 (18-21.5): one wild orchid opens, waits, and no mosquito comes; a petal droops
 const bokeh=[]; for(let i=0;i<46;i++) bokeh.push({x:U(0,W),y:U(0,H),r:U(14,70),a:U(.05,.16),c:R()<.5?'255,170,100':'110,200,210',vx:U(-8,8),vy:U(-10,6)});
 function stemX(y){return 548+36*Math.sin((y-1900)*.0036)-((1900-y)*.016)}
-const flowers=[]; for(let i=0;i<30;i++){const f=i/29; flowers.push({y:mix(1210,700,f),side:i%2?1:-1,sz:mix(30,15,f),ph:U(0,6.3)})}
-function drawOrchid(c,t){
+const flowers=[]; for(let i=0;i<30;i++){const f=i/29; flowers.push({i,y:mix(1210,700,f),side:i%2?1:-1,sz:mix(30,15,f),ph:U(0,6.3)})}
+function drawOrchid(c,t,open,droop){
   const bg=c.createRadialGradient(540,900,60,540,900,1300); bg.addColorStop(0,'#17404f'); bg.addColorStop(.5,'#0c2231'); bg.addColorStop(1,'#050e18'); c.fillStyle=bg; c.fillRect(0,0,W,H);
   for(const b of bokeh){const x=((b.x+b.vx*t)%(W+200)+W+200)%(W+200)-100, y=((b.y+b.vy*t)%(H+200)+H+200)%(H+200)-100; const g=c.createRadialGradient(x,y,0,x,y,b.r); g.addColorStop(0,`rgba(${b.c},${b.a})`); g.addColorStop(1,`rgba(${b.c},0)`); c.fillStyle=g; c.fillRect(x-b.r,y-b.r,b.r*2,b.r*2)}
   c.strokeStyle='#4f8a5c'; c.lineWidth=10; c.lineCap='round'; c.beginPath(); c.moveTo(stemX(1920),1920); for(let y=1920;y>=660;y-=20) c.lineTo(stemX(y)+Math.sin(t*.8+y*.004)*3,y); c.stroke();
   c.save(); c.translate(stemX(1560),1560); c.rotate(-.55); const lg=c.createLinearGradient(-200,0,0,0); lg.addColorStop(0,'#2f6a52'); lg.addColorStop(1,'#3d7e5a'); c.fillStyle=lg; c.beginPath(); c.ellipse(-130,0,150,44,0,0,6.3); c.fill(); c.strokeStyle='rgba(180,230,190,.45)'; c.lineWidth=2.4; c.beginPath(); c.moveTo(0,0); c.lineTo(-270,0); c.stroke(); c.restore();
-  for(const f of flowers){const x=stemX(f.y)+f.side*f.sz*.9+Math.sin(t*1.2+f.ph)*2, y=f.y; c.save(); c.translate(x,y); c.rotate(f.side*.4); const s=f.sz; c.shadowColor='rgba(220,255,200,.65)'; c.shadowBlur=18; c.fillStyle='#eef6dc'; for(let k=0;k<3;k++){c.save(); c.rotate(-1.1+k*1.1); c.beginPath(); c.ellipse(0,-s*.75,s*.34,s*.62,0,0,6.3); c.fill(); c.restore()} c.shadowBlur=0; c.fillStyle='#cfe3a9'; c.beginPath(); c.ellipse(0,s*.35,s*.22,s*.55,0,0,6.3); c.fill(); c.restore()}
-  for(let i=0;i<18;i++){const ph=i*2.3, a=.4+.6*Math.abs(Math.sin(t*1.5+ph)); c.fillStyle=`rgba(255,255,230,${a*.9})`; c.beginPath(); c.arc(stemX(900+i*50)+((i*37)%60-30),880+((i*91)%520),2.2,0,6.3); c.fill()}
+  for(const f of flowers){const k=ease(open*1.7-(f.i/29)*.7), x=stemX(f.y)+f.side*f.sz*.9*(.4+.6*k)+Math.sin(t*1.2+f.ph)*2, y=f.y; const dr=f.i>=24?droop*(.5+(f.i-24)*.14):0; c.save(); c.translate(x,y); c.rotate(f.side*.4+dr*1.15*f.side); const s=f.sz*(.28+.72*k); c.shadowColor='rgba(220,255,200,.65)'; c.shadowBlur=18*k; const pale=[mix(150,238,k),mix(190,246,k),mix(130,220,k)]; c.fillStyle=`rgb(${pale.map(Math.round).join()})`; for(let q=0;q<3;q++){c.save(); c.rotate(-1.1*k+q*1.1*k); c.beginPath(); c.ellipse(0,-s*.75,s*.34,s*.62,0,0,6.3); c.fill(); c.restore()} c.shadowBlur=0; c.fillStyle='#cfe3a9'; c.beginPath(); c.ellipse(0,s*.35,s*.22,s*.55,0,0,6.3); c.fill(); c.restore()}
+  for(let i=0;i<18;i++){const ph=i*2.3, a=(.4+.6*Math.abs(Math.sin(t*1.5+ph)))*ease(open*2-.4); c.fillStyle=`rgba(255,255,230,${a*.9})`; c.beginPath(); c.arc(stemX(900+i*50)+((i*37)%60-30),880+((i*91)%520),2.2,0,6.3); c.fill()}
 }
-const dust=[]; for(let i=0;i<90;i++) dust.push({a:U(0,6.3),v:U(30,150),r:U(1.6,4.4),l:U(.5,1.2)});
-function actOrchid(c,t){
-  const u=t-17.5, z=1+.07*u/2.5;
-  c.save(); c.translate(540,900); c.scale(z,z); c.translate(-540,-900); drawOrchid(c,t);
-  // the mosquito approaches the spike, hovers, then dissolves into dust before it can land
-  const mx=mix(1180,700,eo(u/.9))+Math.sin(u*3)*10, my=mix(500,790,eo(u/.9))+Math.cos(u*2.3)*16, dt=u-1.15;
-  if(dt<0) drawMosquito(c,mx,my,1.0,-.12,t*54,'#0b1219',1,true,false);
-  else if(dt<.8){const a=1-ease(dt/.45); if(a>0) drawMosquito(c,mx,my,1.0*(1-.25*dt),-.12+dt*.4,t*54,'#0b1219',a,true,false); for(const d of dust){const k=dt*d.v, al=clamp(1-dt/(d.l)); if(al>0){c.fillStyle=`rgba(255,238,200,${al*.9})`; c.beginPath(); c.arc(mx+Math.cos(d.a)*k+dt*40,my+Math.sin(d.a)*k-dt*20,d.r,0,6.3); c.fill()}}}
-  c.restore();
-}
-// ---- act 7 (20-23): the web of connections on the Earth, rewiring in ways nobody can predict
-const webN=[]; for(let i=0;i<34;i++){const c0=PICKC(); webN.push([c0[0]+U(-3,3),c0[1]+U(-4,4)])}
-function PICKC(){return CITIES[Math.floor(R()*CITIES.length)]}
-const webE=[]; for(let i=0;i<46;i++){const a=Math.floor(R()*34); let b=Math.floor(R()*34); if(b===a) b=(a+1)%34; const on=20.3+R()*2.0, life=U(.8,2.6); webE.push({a,b,on,off:on+life,col:R()<.5?'255,170,100':'120,215,225',ph:U(0,6.3)})}
-function slerpPts(a,b,n){const A=[Math.cos(a[0]*D)*Math.sin(a[1]*D),Math.sin(a[0]*D),Math.cos(a[0]*D)*Math.cos(a[1]*D)],B=[Math.cos(b[0]*D)*Math.sin(b[1]*D),Math.sin(b[0]*D),Math.cos(b[0]*D)*Math.cos(b[1]*D)]; const om=Math.acos(clamp(A[0]*B[0]+A[1]*B[1]+A[2]*B[2],-1,1))||1e-3, out=[]; for(let i=0;i<=n;i++){const f=i/n, k1=Math.sin((1-f)*om)/Math.sin(om), k2=Math.sin(f*om)/Math.sin(om), x=k1*A[0]+k2*B[0], y=k1*A[1]+k2*B[1], z=k1*A[2]+k2*B[2], lift=1+.18*Math.sin(Math.PI*f)*(om/1.5); out.push([Math.asin(y/Math.hypot(x,y,z))/D,Math.atan2(x,z)/D,lift])} return out}
-function actWeb(c,t,P,o){
+function actFlower(c,t){ const u=t-18, z=1+.07*u/3.5; c.save(); c.translate(540,900); c.scale(z,z); c.translate(-540,-900); drawOrchid(c,t,clamp((t-18.25)/1.3),clamp((t-20.35)/.8)); c.restore() }
+// ---- act 6 (21.5-25): the Earth comes back half lit; the mosquito silhouette is missing from the dark half
+function ghostMosq(c,x,y,s,ang,a){const k=document.createElement('canvas'); k.width=cv.width; k.height=cv.height; const g=k.getContext('2d'); g.setTransform(SC,0,0,SC,0,0); drawMosquito(g,x,y,s,ang,0,'#fff',1,false,false); const D=document.createElement('canvas'), E=document.createElement('canvas'); D.width=E.width=cv.width; D.height=E.height=cv.height; const d=D.getContext('2d'), e=E.getContext('2d'); e.drawImage(k,0,0); const sh=2.4*SC; for(let i=0;i<8;i++){const dx=Math.cos(i*.785)*sh, dy=Math.sin(i*.785)*sh; d.drawImage(k,dx,dy); e.globalCompositeOperation='destination-in'; e.drawImage(k,dx,dy); e.globalCompositeOperation='source-over'} d.globalCompositeOperation='destination-out'; d.drawImage(E,0,0); d.globalCompositeOperation='source-in'; d.fillStyle='rgba(190,230,240,1)'; d.fillRect(0,0,D.width,D.height); c.save(); c.globalAlpha=a; c.drawImage(D,0,0,W,H); c.restore()}
+function actEarthHalf(c,t,P,o){
   drawEarth(c,t,P,o);
-  c.save(); c.globalCompositeOperation='lighter';
-  for(const e of webE){ if(t<e.on||t>e.off+.4) continue; const g=clamp((t-e.on)/.5)*clamp(1-(t-e.off)/.4); const pts=slerpPts(webN[e.a],webN[e.b],18); c.strokeStyle=`rgba(${e.col},${.55*g*o.alpha})`; c.lineWidth=2; c.beginPath(); let st=false; const draw=Math.floor(pts.length*clamp((t-e.on)/.7)); for(let i=0;i<=Math.min(draw,pts.length-1);i++){const p=proj(pts[i][0],pts[i][1],{...P,R:P.R*pts[i][2]}); if(p[2]<.05){st=false; continue} st?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]); st=true} c.stroke()}
-  for(let i=0;i<webN.length;i++){const p=proj(webN[i][0],webN[i][1],P); if(p[2]<.1) continue; const tw=.5+.5*Math.abs(Math.sin(t*2+i)); c.fillStyle=`rgba(255,225,170,${.9*tw*o.alpha})`; c.beginPath(); c.arc(p[0],p[1],4.5,0,6.3); c.fill()}
-  c.restore();
-  // question marks drifting up from a few nodes
-  for(let i=0;i<7;i++){const t0=20.9+i*.33, u=t-t0; if(u<0||u>1.6) continue; const p=proj(webN[(i*5)%34][0],webN[(i*5)%34][1],P); if(p[2]<.2) continue; c.save(); c.globalAlpha=Math.sin(Math.min(1,u/1.6)*Math.PI)*.9*o.alpha; c.shadowColor='rgba(0,0,0,.8)'; c.shadowBlur=8; c.font=`bold ${34+i%3*8}px ${MONO}`; c.fillStyle='#ffe2b8'; c.textAlign='center'; c.fillText('?',p[0],p[1]-14-u*40); c.restore()}
-}
-// ---- act 8 (23-26): back to the marsh; one mosquito and the question
-function actFinal(c,t,u){   // u: slide-in progress 0..1 of the marsh over the Earth
-  const yA=H*1.15*(1-eo(u)); c.save(); c.translate(0,yA); const off=document.createElement('canvas'); off.width=cv.width; off.height=cv.height; const o=off.getContext('2d'); o.setTransform(SC,0,0,SC,0,0); drawA(o,6+(t-23),{calm:true});
-  // the lone mosquito flies in and hovers at the centre
-  const f=clamp((t-23.3)/1.1), mx=mix(1250,560,eo(f))+Math.sin((t-23)*2.2)*14*f, my=mix(520,840,eo(f))+Math.cos((t-23)*1.9)*20*f; drawMosquito(o,mx,my,1.9+.1*f,-.1+.05*Math.sin(t*2),t*58,'#0d131b',1,true,false);
-  o.setTransform(1,0,0,1,0,0); o.globalCompositeOperation='destination-in'; const top=clamp((1-u)*1.1); const g=o.createLinearGradient(0,0,0,H*SC); g.addColorStop(0,`rgba(0,0,0,${1-top})`); g.addColorStop(Math.min(.9,.15+top*.6),'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,1)'); o.fillStyle=g; o.fillRect(0,0,off.width,off.height); c.drawImage(off,0,0,W,H); c.restore();
+  c.save(); c.beginPath(); c.arc(P.cx,P.cy,P.R+3,0,6.3); c.clip(); const g=c.createLinearGradient(P.cx-P.R*.18,0,P.cx+P.R*.4,0); g.addColorStop(0,'rgba(2,5,11,0)'); g.addColorStop(1,`rgba(2,5,11,${.95*o.alpha})`); c.fillStyle=g; c.fillRect(P.cx-P.R-4,P.cy-P.R-4,P.R*2+8,P.R*2+8); c.restore();
+  const gg=c.createLinearGradient(P.cx,0,P.cx+P.R*1.5,0); gg.addColorStop(0,'rgba(2,5,11,0)'); gg.addColorStop(.5,`rgba(2,5,11,${.8*o.alpha})`); gg.addColorStop(1,`rgba(2,5,11,${.9*o.alpha})`); c.save(); c.beginPath(); c.rect(P.cx,P.cy-P.R*1.5,P.R*1.5,P.R*3); c.arc(P.cx,P.cy,P.R+2,0,6.3,true); c.clip(); c.fillStyle=gg; c.fillRect(P.cx,P.cy-P.R*1.5,P.R*1.5,P.R*3); c.restore();
+  // a tiny mosquito silhouette on the lit half; the same place on the dark half is empty (outline only)
+  const hv=Math.sin(t*1.6)*5, my=P.cy-P.R*1.02; glow(c,P.cx-P.R*.5,my+hv,150,'255,200,140',.35*o.alpha); drawMosquito(c,P.cx-P.R*.5,my+hv,.8,-.18,t*50,'#f6e8cf',o.alpha,true,false);
+  const fa=ease((t-22.6)/.8)*o.alpha; if(fa>0) ghostMosq(c,P.cx+P.R*.5,my,.8,-.18,.7*fa*(.65+.35*Math.sin(t*3)));
 }
 function frameActs(c,t){
   c.setTransform(SC,0,0,SC,0,0); c.clearRect(0,0,W,H);
-  if(t<13.95){ actTransmission(c,Math.min(t,12.8)); if(t>12.25) actBut(c,t) }
-  if(t>=13.0&&t<16.2){ // iris reveal of the tundra, then the dive into a pool
-    const ir=ease((t-13.0)/.9)*1400, dv=clamp((t-15.45)/.65); c.save(); if(t<13.95){c.beginPath(); c.arc(540,960,ir,0,6.3); c.clip()}
-    const px=560,py=1560; c.save(); c.translate(px,py); const sc=1+ei(dv)*16; c.scale(sc,sc); c.translate(-px,-py); drawArctic(c,t); c.restore(); c.restore();
-    if(t<13.95){c.strokeStyle=`rgba(255,190,150,${.8*(1-(t-13.0)/.9)})`; c.lineWidth=4; c.beginPath(); c.arc(540,960,ir,0,6.3); c.stroke()}
-  }
-  if(t>=15.75&&t<17.6){ const a=ease((t-15.75)/.5); c.save(); c.globalAlpha=a; actWetland(c,t); c.restore() }
-  if(t>=17.45&&t<20.9){ const a=ease((t-17.45)/.35); c.save(); c.globalAlpha=a; actOrchid(c,t); c.restore() }
-  if(t>=19.7&&t<23.7){ // zoom-through from the orchid out to the planet
-    const p=clamp((t-19.7)/1.0), kk=eo(p);
-    c.fillStyle='#02050b'; if(t<20.7){}
-    const earthA=ease(p*1.4); if(t>=19.9){ c.save(); drawSpace(c,t,0,earthA); const Pp={cx:540,cy:t<22.6?840:mix(840,-500,eo((t-22.6)/.9)),R:EARTH_REST.R*mix(3.4,1,kk)*(t<22.6?1:mix(1,.7,eo((t-22.6)/.9))),lat0:8,lon0:20+(t-20)*2.5}; actWeb(c,t,Pp,{alpha:earthA,lights:1,glow:ease(p*1.3),grid:0,mapMix:0,discFade:0}); c.restore() }
-    if(t<20.75){const s=mix(1,.02,ei(p)); c.save(); c.globalAlpha=1-ease((p-.45)/.5); c.translate(540,840); c.scale(s,s); c.translate(-540,-900); actOrchid(c,Math.min(t,19.99)); c.restore()}
-  }
-  if(t>=22.55){ const u=clamp((t-22.6)/.95); if(u>0){ c.save(); actFinal(c,t,u); c.restore() } }
-  // narration lines
-  caption(c,['WITHOUT MOSQUITOES,','TRANSMISSION COLLAPSES.'],10.3,12.45,170,40,t,34,.9);
-  caption(c,['CARIBOU ESCAPE','THE SWARMS.'],13.55,15.9,170,40,t,34,.8);
-  caption(c,['SOME FISH AND BIRDS','LOSE FOOD.'],16.0,17.45,170,40,t,44,.6);
-  caption(c,['SOME WILD ORCHIDS','LOSE A POLLINATOR.'],17.55,19.9,170,40,t,34,.8);
-  caption(c,['AND ECOSYSTEMS CHANGE','IN WAYS WE CAN\'T PREDICT.'],20.1,22.9,170,40,t,34,.9);
-  caption(c,['WOULD YOU ERASE','THEM ANYWAY?'],23.4,26.6,170,44,t,30,.9);
+  c.fillStyle='#02050b'; c.fillRect(0,0,W,H);
+  // act 2: the bite, the glass body, the interrupted transmission; slides up and away
+  if(t<12.95){const k=ease((t-12.35)/.6); c.save(); c.translate(0,-H*k); actBite(c,Math.min(t,12.8)); c.restore()}
+  // act 3: the empty marsh rises in, the camera pushes through the hut window to the sleeping child
+  if(t>=12.35&&t<15.5){ if(t<13.95){const k=ease((t-12.35)/.6); c.save(); c.translate(0,H*(1-k)); actMarsh(c,t); c.restore()} if(t>=13.55){c.save(); c.globalAlpha=ease((t-13.55)/.35); drawKid(c,t); c.restore()} }
+  // act 4: the still pond, rack-focus in and out
+  if(t>=14.95&&t<18.4){const a=ease((t-14.95)/.45), b=ease((t-17.9)/.45); c.save(); c.globalAlpha=a; c.filter=`blur(${((1-a)*22+b*22)*SC}px)`; actPond(c,t); c.restore()}
+  // act 5: the orchid
+  if(t>=17.9&&t<22.1){const a=ease((t-17.9)/.45), p=clamp((t-21.2)/.8), s=mix(1,.02,ei(p)); c.save(); c.globalAlpha=a*(1-ease((p-.4)/.5)); c.filter=`blur(${(1-a)*22*SC}px)`; c.translate(540,840); c.scale(s,s); c.translate(-540,-900); actFlower(c,Math.min(t,21.99)); c.restore()}
+  // act 6: the planet, half lit
+  if(t>=21.3){const p=clamp((t-21.3)/.9), kk=eo(p), a=ease(p*1.4); c.save(); drawSpace(c,t,0,a); const P={cx:540,cy:840,R:EARTH_REST.R*mix(3.4,1,kk)*(1+.12*clamp((t-22.2)/2.8)),lat0:8,lon0:20+(t-21)*1.5}; actEarthHalf(c,t,P,{alpha:a,lights:1,glow:ease(p*1.3),grid:0,mapMix:0,discFade:0}); c.restore()}
+  // on-screen text
+  caption(c,['THE NIGHT GOES','QUIET'],12.7,14.95,170,40,t,34,.5);
+  caption(c,['A FOOD SOURCE','DISAPPEARS'],15.1,17.95,170,40,t,34,.5);
+  caption(c,['A POLLINATOR','FORGOTTEN'],18.1,21.0,170,40,t,34,.5);
+  caption(c,['WOULD YOU','ERASE THEM?'],22.0,25.4,170,44,t,24,.7);
   const vg=c.createRadialGradient(540,960,700,540,960,1250); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.35)'); c.fillStyle=vg; c.fillRect(0,0,W,H);
 }
 function frame(c,t){ if(t<10) frameOpen(c,t); else frameActs(c,t) }
 
-function blurRanges(t){return (t>3.4&&t<5.1)||(t>6.45&&t<7.55)||(t>19.7&&t<20.8)||(t>22.55&&t<23.6)}
+function blurRanges(t){return (t>3.4&&t<5.1)||(t>6.45&&t<7.55)||(t>9.98&&t<10.5)||(t>10.95&&t<11.5)||(t>12.3&&t<13.0)||(t>13.1&&t<13.8)||(t>21.2&&t<22.2)}
 window.renderAt=t=>{
   if(blurRanges(t)){const N=6, sh=0.55/30; actx.setTransform(1,0,0,1,0,0); actx.globalCompositeOperation='source-over'; actx.fillStyle='#000'; actx.fillRect(0,0,acc.width,acc.height); actx.globalCompositeOperation='lighter';
     for(let k=0;k<N;k++){frame(ctx,t-sh*(k/(N-1))); actx.globalAlpha=1/N; actx.drawImage(cv,0,0)} actx.globalAlpha=1; ctx.setTransform(1,0,0,1,0,0); ctx.globalCompositeOperation='source-over'; ctx.drawImage(acc,0,0)}
