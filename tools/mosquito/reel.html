@@ -261,10 +261,6 @@ function actBite(c,t){
 const motes=[]; for(let i=0;i<110;i++) motes.push({x:U(0,W),y:U(250,1650),r:U(1.2,3.6),vx:U(-7,7),vy:U(-12,-2),ph:U(0,6.3),a:U(.3,.9)});
 function drawMotes(c,t,alpha,rgb){for(const m of motes){const x=((m.x+m.vx*t)%(W+60)+W+60)%(W+60)-30, y=((m.y+m.vy*t-250)%1400+1400)%1400+250, tw=.45+.55*Math.abs(Math.sin(t*1.1+m.ph)); glow(c,x,y,m.r*5,rgb,m.a*tw*alpha*.5); c.fillStyle=`rgba(${rgb},${m.a*tw*alpha})`; c.beginPath(); c.arc(x,y,m.r,0,6.3); c.fill()}}
 // ---- act 3 (12.5-15): the empty marsh, a push through the hut window, a child asleep without a net
-function actMarsh(c,t){
-  const zp=clamp((t-13.1)/.65), z=1+ei(zp)*13+.02*(t-12.4), px=160,py=1346;
-  c.save(); c.translate(px,py); c.scale(z,z); c.translate(-px,-py); drawA(c,6+(t-12.4)*.4,{calm:true}); drawMotes(c,t,1,'255,214,150'); c.restore();
-}
 function drawKid(c,t){
   const u=t-13.55, zz=1+.05*clamp(u/1.6);
   c.save(); c.translate(540,1120); c.scale(zz,zz); c.translate(-540,-1120);
@@ -290,13 +286,50 @@ function drawKid(c,t){
   drawMotes(c,t,.9,'255,210,150'); c.restore();
   const vg=c.createRadialGradient(540,1000,300,540,1000,1250); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); c.fillStyle=vg; c.fillRect(0,0,W,H);
 }
-// ---- act 4 (15-18): one still pond; a fish jumps and a swallow dives; both find empty air
+
+// ---- act 3 (12.5-15): a moonlit village; the lantern's light has nothing swarming in it; the camera pushes to a lit window
+const nstars=[]; for(let i=0;i<220;i++) nstars.push({x:U(0,W),y:U(0,1050),r:U(.5,1.7),a:U(.3,.9),p:U(0,6.3)});
+function hillsLayer(c,base,amp,f,col,off){c.fillStyle=col; c.beginPath(); c.moveTo(-20,H); for(let x=-20;x<=W+20;x+=12) c.lineTo(x,base-amp*(.5+.5*Math.sin(x*f+off))*(.7+.3*Math.sin(x*f*2.3+off*2))); c.lineTo(W+20,H); c.fill()}
+function drawNightVillage(c,t){
+  const sg=c.createLinearGradient(0,0,0,1260); sg.addColorStop(0,'#030816'); sg.addColorStop(.6,'#0a1938'); sg.addColorStop(1,'#1b3a5f'); c.fillStyle=sg; c.fillRect(0,0,W,1270);
+  for(const s of nstars){const tw=.6+.4*Math.sin(t*1.7+s.p); c.fillStyle=`rgba(235,240,255,${s.a*tw})`; c.beginPath(); c.arc(s.x,s.y,s.r,0,6.3); c.fill()}
+  glow(c,800,430,420,'160,200,255',.28); const mg=c.createRadialGradient(790,420,6,800,430,80); mg.addColorStop(0,'#fbfdff'); mg.addColorStop(1,'#cfdcf2'); c.fillStyle=mg; c.beginPath(); c.arc(800,430,78,0,6.3); c.fill(); c.fillStyle='rgba(120,140,175,.18)'; for(const [dx,dy,r] of[[-22,-14,16],[18,20,12],[-6,30,9],[30,-26,8]]){c.beginPath(); c.arc(800+dx,430+dy,r,0,6.3); c.fill()}
+  hillsLayer(c,1190,90,.006,'#0e2038',.4); hillsLayer(c,1250,60,.009,'#091628',2);
+  const gg=c.createLinearGradient(0,1250,0,H); gg.addColorStop(0,'#0a1422'); gg.addColorStop(1,'#03070d'); c.fillStyle=gg; c.fillRect(0,1250,W,H-1250);
+  // the huts: one lit window we will push into
+  const hut=(x,y,w,h,col,lit)=>{c.fillStyle=col; c.fillRect(x-w/2,y-h,w,h); c.beginPath(); c.moveTo(x-w/2-26,y-h); c.lineTo(x,y-h-h*.75); c.lineTo(x+w/2+26,y-h); c.closePath(); c.fill(); if(lit){glow(c,x,y-h*.45,240,'255,180,90',.45); c.fillStyle='#ffd27a'; c.fillRect(x-30,y-h*.62,60,60); c.strokeStyle='#2a1708'; c.lineWidth=5; c.strokeRect(x-30,y-h*.62,60,60); c.beginPath(); c.moveTo(x,y-h*.62); c.lineTo(x,y-h*.62+60); c.stroke()}};
+  hut(180,1270,130,80,'#07101c',false); hut(470,1285,170,100,'#081321',false); hut(700,1300,290,176,'#0a1626',true);
+  // the porch and its lantern: normally a cloud of insects would circle it
+  c.fillStyle='#130c07'; c.fillRect(240,700,34,800); c.fillRect(90,690,520,30);
+  const fl=.92+.08*Math.sin(t*8)+.04*Math.sin(t*21); c.strokeStyle='#2a1a0e'; c.lineWidth=3; c.beginPath(); c.moveTo(380,720); c.lineTo(380,840); c.stroke();
+  glow(c,380,900,560,'255,180,90',.55*fl); c.fillStyle='#2b1a0d'; c.fillRect(350,832,60,10); c.fillRect(350,948,60,10); c.fillStyle=`rgba(255,226,150,${.95*fl})`; c.beginPath(); c.roundRect(354,842,52,106,12); c.fill(); c.fillStyle='rgba(255,246,210,.9)'; c.beginPath(); c.ellipse(380,895,11,30,0,0,6.3); c.fill();
+  c.save(); c.beginPath(); c.arc(380,900,520,0,6.3); c.clip(); drawMotes(c,t,1,'255,214,150'); c.restore();
+  // dark frond silhouettes in the corners
+  c.strokeStyle='#02060b'; c.lineWidth=14; c.lineCap='round'; for(let i=0;i<7;i++){const sx=i<4?-20:W+20, d=i<4?1:-1, y0=H-40-i*30; c.beginPath(); c.moveTo(sx,y0); c.quadraticCurveTo(sx+d*220,y0-260-i*20,sx+d*(380+i*30),y0-120+i*18); c.stroke()}
+}
+function actNight(c,t){
+  const zp=clamp((t-13.1)/.65), z=1+ei(zp)*12+.015*(t-12.4), px=700,py=1245;
+  c.save(); c.translate(px,py); c.scale(z,z); c.translate(-px,-py); drawNightVillage(c,t); c.restore();
+}
+// ---- act 4 (15-18): a misty lake at dawn; one fish jumps, one swallow dives, both find empty air
+const lilies=[]; for(let i=0;i<9;i++) lilies.push({x:U(60,1020),y:U(1560,1860),r:U(46,96),ph:U(0,6.3),bud:R()<.3});
+function drawLake(c,t){
+  const sg=c.createLinearGradient(0,0,0,1340); sg.addColorStop(0,'#2c4b72'); sg.addColorStop(.45,'#7d8fb0'); sg.addColorStop(.78,'#e6b7b0'); sg.addColorStop(1,'#f6dcc0'); c.fillStyle=sg; c.fillRect(0,0,W,1340);
+  for(let i=0;i<5;i++){c.fillStyle=`rgba(255,235,225,${.10+.04*(i%2)})`; c.beginPath(); c.ellipse(200+i*230+Math.sin(t*.1+i)*20,300+i*120,260,16+i*3,0,0,6.3); c.fill()}
+  glow(c,340,1290,700,'255,226,196',.32);
+  hillsLayer(c,1330,150,.007,'#8795b0',.8); hillsLayer(c,1345,100,.011,'#667c98',3); hillsLayer(c,1360,70,.016,'#4b6580',5);
+  c.fillStyle='#2e4455'; for(let x=20;x<W;x+=26){const h=22+((x*13)%30); c.beginPath(); c.moveTo(x,1362); c.lineTo(x+8,1362-h); c.lineTo(x+16,1362); c.fill()}
+  const mist=c.createLinearGradient(0,1280,0,1400); mist.addColorStop(0,'rgba(250,230,220,0)'); mist.addColorStop(.5,'rgba(250,230,220,.55)'); mist.addColorStop(1,'rgba(250,230,220,0)'); c.fillStyle=mist; c.fillRect(0,1280,W,120);
+  const wg=c.createLinearGradient(0,1362,0,H); wg.addColorStop(0,'#e2b9b2'); wg.addColorStop(.18,'#7f9bb0'); wg.addColorStop(.6,'#2f5468'); wg.addColorStop(1,'#12293a'); c.fillStyle=wg; c.fillRect(0,1362,W,H-1362);
+  for(let i=0;i<70;i++){const y=1380+i*i*.11+i*5, k=.5+.5*Math.sin(t*.7+i*1.3); c.fillStyle=`rgba(255,240,225,${.06+.06*k})`; c.fillRect(((i*173)%W)-80,y,160+(i*61)%200,1.6)}
+  for(const l of lilies){c.save(); c.translate(l.x,l.y+Math.sin(t*.8+l.ph)*2); c.scale(1,.28); c.fillStyle='#2f6a4a'; c.beginPath(); c.arc(0,0,l.r,.25,6.0); c.lineTo(0,0); c.fill(); c.strokeStyle='rgba(180,230,190,.4)'; c.lineWidth=3; c.stroke(); c.restore(); if(l.bud){c.fillStyle='#f3a9c0'; c.beginPath(); c.ellipse(l.x+l.r*.3,l.y-14,12,22,0,0,6.3); c.fill()}}
+}
 function actPond(c,t){
-  const u=t-15; drawA(c,7+u*.1,{calm:true});
-  const s=clamp((u-.9)/.85); if(s>0&&s<1){const x=mix(700,900,s), y=1440-300*4*s*(1-s), ang=Math.atan2(-300*4*(1-2*s),200)*.9; c.save(); c.translate(x,y); c.rotate(ang); drawFish(c,0,0,1.5,u*30,'#0f1f2b',1); c.restore()}
-  for(const [tt,x] of[[.9,700],[1.75,900]]){const uu=u-tt; if(uu>0&&uu<1.2) for(let k=0;k<3;k++){const w=uu-k*.2; if(w>0){c.strokeStyle=`rgba(255,215,150,${.6*(1-w/1)})`; c.lineWidth=2.4; c.beginPath(); c.ellipse(x,1440,16+w*150,4+w*26,0,0,6.3); c.stroke()}}}
-  const q=clamp((u-1.15)/1.5); if(q>0&&q<1){const P0=[1180,640],P1=[900,1250],P2=[430,1450],P3=[-180,1180]; const bz=(a,b,cc,d,k)=>(1-k)**3*a+3*(1-k)**2*k*b+3*(1-k)*k*k*cc+k**3*d; const x=bz(P0[0],P1[0],P2[0],P3[0],q), y=bz(P0[1],P1[1],P2[1],P3[1],q), x2=bz(P0[0],P1[0],P2[0],P3[0],q+.01), y2=bz(P0[1],P1[1],P2[1],P3[1],q+.01); drawBird(c,x,y,2.6,t*16,Math.atan2(y2-y,x2-x),'#0b1119')}
-  for(let k=0;k<3;k++){const w=u-1.95-k*.22; if(w>0&&w<1){c.strokeStyle=`rgba(255,215,150,${.5*(1-w)})`; c.lineWidth=2; c.beginPath(); c.ellipse(500,1436,14+w*120,3+w*20,0,0,6.3); c.stroke()}}
+  const u=t-15; drawLake(c,7+u*.05); const SY=1470;
+  const s=clamp((u-.9)/.85); if(s>0&&s<1){const x=mix(640,860,s), y=SY-30-300*4*s*(1-s), ang=Math.atan2(-300*4*(1-2*s),220)*.9; c.save(); c.translate(x,y); c.rotate(ang); drawFish(c,0,0,1.5,u*30,'#10202d',1); c.restore()}
+  for(const [tt,x] of[[.9,640],[1.75,860]]){const uu=u-tt; if(uu>0&&uu<1.2) for(let k=0;k<3;k++){const w=uu-k*.2; if(w>0){c.strokeStyle=`rgba(255,245,230,${.7*(1-w/1)})`; c.lineWidth=2.4; c.beginPath(); c.ellipse(x,SY,16+w*150,4+w*26,0,0,6.3); c.stroke()}}}
+  const q=clamp((u-1.15)/1.5); if(q>0&&q<1){const P0=[1180,640],P1=[900,1260],P2=[430,SY-20],P3=[-180,1180]; const bz=(a,b,cc,d,k)=>(1-k)**3*a+3*(1-k)**2*k*b+3*(1-k)*k*k*cc+k**3*d; const x=bz(P0[0],P1[0],P2[0],P3[0],q), y=bz(P0[1],P1[1],P2[1],P3[1],q), x2=bz(P0[0],P1[0],P2[0],P3[0],q+.01), y2=bz(P0[1],P1[1],P2[1],P3[1],q+.01); drawBird(c,x,y,2.6,t*16,Math.atan2(y2-y,x2-x),'#0e151e')}
+  for(let k=0;k<3;k++){const w=u-1.95-k*.22; if(w>0&&w<1){c.strokeStyle=`rgba(255,245,230,${.55*(1-w)})`; c.lineWidth=2; c.beginPath(); c.ellipse(500,SY-4,14+w*120,3+w*20,0,0,6.3); c.stroke()}}
 }
 function drawBird(c,x,y,s,flap,ang,col){c.save(); c.translate(x,y); c.rotate(ang); c.scale(s,s); c.fillStyle=col; c.beginPath(); c.ellipse(0,0,20,6,0,0,6.3); c.fill(); c.beginPath(); c.moveTo(-18,0); c.lineTo(-40,-6); c.lineTo(-34,2); c.lineTo(-40,9); c.closePath(); c.fill(); const w=Math.sin(flap)*22; for(const sd of[-1,1]){c.beginPath(); c.moveTo(2,0); c.quadraticCurveTo(-4,sd*(26+w*.6),-18,sd*(34+w)); c.quadraticCurveTo(0,sd*14,10,2*sd); c.fill()} c.beginPath(); c.moveTo(20,0); c.lineTo(30,2); c.lineTo(20,3); c.fill(); c.restore()}
 function drawFish(c,x,y,s,ph,col,dir){c.save(); c.translate(x,y); c.scale(s*dir,s); c.fillStyle=col; const w=Math.sin(ph)*5; c.beginPath(); c.ellipse(0,0,46,16,0,0,6.3); c.fill(); c.beginPath(); c.moveTo(-40,0); c.lineTo(-66,-16+w); c.lineTo(-66,16+w); c.closePath(); c.fill(); c.beginPath(); c.moveTo(-6,-14); c.lineTo(8,-30); c.lineTo(22,-13); c.fill(); c.fillStyle='rgba(240,210,160,.9)'; c.beginPath(); c.arc(30,-3,3,0,6.3); c.fill(); c.strokeStyle='rgba(150,210,225,.55)'; c.lineWidth=2; c.beginPath(); c.ellipse(0,-2,44,13,0,3.6,5.8); c.stroke(); c.restore()}
@@ -313,15 +346,25 @@ function drawOrchid(c,t,open,droop){
   for(let i=0;i<18;i++){const ph=i*2.3, a=(.4+.6*Math.abs(Math.sin(t*1.5+ph)))*ease(open*2-.4); c.fillStyle=`rgba(255,255,230,${a*.9})`; c.beginPath(); c.arc(stemX(900+i*50)+((i*37)%60-30),880+((i*91)%520),2.2,0,6.3); c.fill()}
 }
 function actFlower(c,t){ const u=t-18, z=1+.07*u/3.5; c.save(); c.translate(540,900); c.scale(z,z); c.translate(-540,-900); drawOrchid(c,t,clamp((t-18.25)/1.3),clamp((t-20.35)/.8)); c.restore() }
-// ---- act 6 (21.5-25): the Earth comes back half lit; the mosquito silhouette is missing from the dark half
-function ghostMosq(c,x,y,s,ang,a){const k=document.createElement('canvas'); k.width=cv.width; k.height=cv.height; const g=k.getContext('2d'); g.setTransform(SC,0,0,SC,0,0); drawMosquito(g,x,y,s,ang,0,'#fff',1,false,false); const D=document.createElement('canvas'), E=document.createElement('canvas'); D.width=E.width=cv.width; D.height=E.height=cv.height; const d=D.getContext('2d'), e=E.getContext('2d'); e.drawImage(k,0,0); const sh=2.4*SC; for(let i=0;i<8;i++){const dx=Math.cos(i*.785)*sh, dy=Math.sin(i*.785)*sh; d.drawImage(k,dx,dy); e.globalCompositeOperation='destination-in'; e.drawImage(k,dx,dy); e.globalCompositeOperation='source-over'} d.globalCompositeOperation='destination-out'; d.drawImage(E,0,0); d.globalCompositeOperation='source-in'; d.fillStyle='rgba(190,230,240,1)'; d.fillRect(0,0,D.width,D.height); c.save(); c.globalAlpha=a; c.drawImage(D,0,0,W,H); c.restore()}
-function actEarthHalf(c,t,P,o){
-  drawEarth(c,t,P,o);
-  c.save(); c.beginPath(); c.arc(P.cx,P.cy,P.R+3,0,6.3); c.clip(); const g=c.createLinearGradient(P.cx-P.R*.18,0,P.cx+P.R*.4,0); g.addColorStop(0,'rgba(2,5,11,0)'); g.addColorStop(1,`rgba(2,5,11,${.95*o.alpha})`); c.fillStyle=g; c.fillRect(P.cx-P.R-4,P.cy-P.R-4,P.R*2+8,P.R*2+8); c.restore();
-  const gg=c.createLinearGradient(P.cx,0,P.cx+P.R*1.5,0); gg.addColorStop(0,'rgba(2,5,11,0)'); gg.addColorStop(.5,`rgba(2,5,11,${.8*o.alpha})`); gg.addColorStop(1,`rgba(2,5,11,${.9*o.alpha})`); c.save(); c.beginPath(); c.rect(P.cx,P.cy-P.R*1.5,P.R*1.5,P.R*3); c.arc(P.cx,P.cy,P.R+2,0,6.3,true); c.clip(); c.fillStyle=gg; c.fillRect(P.cx,P.cy-P.R*1.5,P.R*1.5,P.R*3); c.restore();
-  // a tiny mosquito silhouette on the lit half; the same place on the dark half is empty (outline only)
-  const hv=Math.sin(t*1.6)*5, my=P.cy-P.R*1.02; glow(c,P.cx-P.R*.5,my+hv,150,'255,200,140',.35*o.alpha); drawMosquito(c,P.cx-P.R*.5,my+hv,.8,-.18,t*50,'#f6e8cf',o.alpha,true,false);
-  const fa=ease((t-22.6)/.8)*o.alpha; if(fa>0) ghostMosq(c,P.cx+P.R*.5,my,.8,-.18,.7*fa*(.65+.35*Math.sin(t*3)));
+
+// ---- act 6 (21.5-25): one mosquito flying over open grassland at golden hour
+const blades=[]; for(let i=0;i<520;i++){const z=Math.pow(R(),.7); blades.push({x:U(-20,W+20),z,h:U(40,130),ph:U(0,6.3),lit:R()<.25})}
+function drawField(c,t){
+  const sg=c.createLinearGradient(0,0,0,1200); sg.addColorStop(0,'#30508a'); sg.addColorStop(.4,'#8b88b4'); sg.addColorStop(.75,'#f0a56e'); sg.addColorStop(1,'#fde0a6'); c.fillStyle=sg; c.fillRect(0,0,W,1220);
+  glow(c,700,1150,760,'255,215,150',.75); c.fillStyle='#fff0c4'; c.beginPath(); c.arc(700,1160,74,0,6.3); c.fill();
+  for(let i=0;i<6;i++){c.fillStyle=`rgba(255,215,190,${.10+.03*(i%2)})`; c.beginPath(); c.ellipse(150+i*190+Math.sin(t*.12+i)*24,420+i*110,250,12+i*2,0,0,6.3); c.fill()}
+  hillsLayer(c,1215,80,.006,'#6e6445',.5); hillsLayer(c,1275,70,.009,'#4e5430',2.2); hillsLayer(c,1345,60,.013,'#38441f',4);
+  const gg=c.createLinearGradient(0,1330,0,H); gg.addColorStop(0,'#2c3a1c'); gg.addColorStop(1,'#101709'); c.fillStyle=gg; c.fillRect(0,1340,W,H-1340);
+  // a lone acacia
+  c.fillStyle='#0f1409'; c.beginPath(); c.moveTo(838,1330); c.quadraticCurveTo(850,1240,830,1170); c.lineTo(858,1170); c.quadraticCurveTo(866,1250,880,1330); c.fill(); for(const [dx,dy,rx,ry] of[[0,1150,170,34],[-70,1180,110,26],[80,1176,120,28]]){c.beginPath(); c.ellipse(844+dx,dy,rx,ry,0,0,6.3); c.fill()}
+  for(const b of blades){const y=1350+b.z*570, sz=.4+1.3*b.z, sw=Math.sin(t*1.5+b.ph+b.x*.01)*10*sz; c.strokeStyle=b.lit?'rgba(214,176,98,.85)':'#0f160a'; c.lineWidth=2.2*sz; c.beginPath(); c.moveTo(b.x,y); c.quadraticCurveTo(b.x+sw*.4,y-b.h*sz*.5,b.x+sw,y-b.h*sz); c.stroke()}
+  drawMotes(c,t,.8,'255,225,160');
+}
+function actField(c,t){
+  const u=t-21.5; drawField(c,t);
+  // the single mosquito crosses the open land and then hovers towards us
+  const f=clamp(u/2.1), x=mix(-220,640,eo(f))+16*Math.sin(u*2.6), y=mix(900,720,eo(f))+60*Math.sin(u*1.4)*(1-.4*f), sc=mix(1.0,1.9,ease(clamp(u/3.2))), ang=-.1+.07*Math.sin(u*2.1);
+  drawMosquito(c,x,y,sc,ang,t*54,'#120d0a',1,true,false);
 }
 function frameActs(c,t){
   c.setTransform(SC,0,0,SC,0,0); c.clearRect(0,0,W,H);
@@ -329,23 +372,23 @@ function frameActs(c,t){
   // act 2: the bite, the glass body, the interrupted transmission; slides up and away
   if(t<12.95){const k=ease((t-12.35)/.6); c.save(); c.translate(0,-H*k); actBite(c,Math.min(t,12.8)); c.restore()}
   // act 3: the empty marsh rises in, the camera pushes through the hut window to the sleeping child
-  if(t>=12.35&&t<15.5){ if(t<13.95){const k=ease((t-12.35)/.6); c.save(); c.translate(0,H*(1-k)); actMarsh(c,t); c.restore()} if(t>=13.55){c.save(); c.globalAlpha=ease((t-13.55)/.35); drawKid(c,t); c.restore()} }
+  if(t>=12.35&&t<15.5){ if(t<13.95){const k=ease((t-12.35)/.6); c.save(); c.translate(0,H*(1-k)); actNight(c,t); c.restore()} if(t>=13.55){c.save(); c.globalAlpha=ease((t-13.55)/.35); drawKid(c,t); c.restore()} }
   // act 4: the still pond, rack-focus in and out
   if(t>=14.95&&t<18.4){const a=ease((t-14.95)/.45), b=ease((t-17.9)/.45); c.save(); c.globalAlpha=a; c.filter=`blur(${((1-a)*22+b*22)*SC}px)`; actPond(c,t); c.restore()}
   // act 5: the orchid
-  if(t>=17.9&&t<22.1){const a=ease((t-17.9)/.45), p=clamp((t-21.2)/.8), s=mix(1,.02,ei(p)); c.save(); c.globalAlpha=a*(1-ease((p-.4)/.5)); c.filter=`blur(${(1-a)*22*SC}px)`; c.translate(540,840); c.scale(s,s); c.translate(-540,-900); actFlower(c,Math.min(t,21.99)); c.restore()}
-  // act 6: the planet, half lit
-  if(t>=21.3){const p=clamp((t-21.3)/.9), kk=eo(p), a=ease(p*1.4); c.save(); drawSpace(c,t,0,a); const P={cx:540,cy:840,R:EARTH_REST.R*mix(3.4,1,kk)*(1+.12*clamp((t-22.2)/2.8)),lat0:8,lon0:20+(t-21)*1.5}; actEarthHalf(c,t,P,{alpha:a,lights:1,glow:ease(p*1.3),grid:0,mapMix:0,discFade:0}); c.restore()}
+  if(t>=17.9&&t<21.8){const a=ease((t-17.9)/.45); c.save(); c.globalAlpha=a; c.filter=`blur(${(1-a)*22*SC}px)`; actFlower(c,Math.min(t,21.79)); c.restore()}
+  // act 6: one mosquito over open land
+  if(t>=21.3){const a=ease((t-21.3)/.5); c.save(); c.globalAlpha=a; c.filter=`blur(${(1-a)*22*SC}px)`; actField(c,t); c.restore()}
   // on-screen text
   caption(c,['THE NIGHT GOES','QUIET'],12.7,14.95,170,40,t,34,.5);
   caption(c,['A FOOD SOURCE','DISAPPEARS'],15.1,17.95,170,40,t,34,.5);
   caption(c,['A POLLINATOR','FORGOTTEN'],18.1,21.0,170,40,t,34,.5);
-  caption(c,['WOULD YOU','ERASE THEM?'],22.0,25.4,170,44,t,24,.7);
+  caption(c,['Would you','erase them?'],22.0,25.4,170,46,t,22,.8);
   const vg=c.createRadialGradient(540,960,700,540,960,1250); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.35)'); c.fillStyle=vg; c.fillRect(0,0,W,H);
 }
 function frame(c,t){ if(t<10) frameOpen(c,t); else frameActs(c,t) }
 
-function blurRanges(t){return (t>3.4&&t<5.1)||(t>6.45&&t<7.55)||(t>9.98&&t<10.5)||(t>10.95&&t<11.5)||(t>12.3&&t<13.0)||(t>13.1&&t<13.8)||(t>21.2&&t<22.2)}
+function blurRanges(t){return (t>3.4&&t<5.1)||(t>6.45&&t<7.55)||(t>9.98&&t<10.5)||(t>10.95&&t<11.5)||(t>12.3&&t<13.0)||(t>13.1&&t<13.8)}
 window.renderAt=t=>{
   if(blurRanges(t)){const N=6, sh=0.55/30; actx.setTransform(1,0,0,1,0,0); actx.globalCompositeOperation='source-over'; actx.fillStyle='#000'; actx.fillRect(0,0,acc.width,acc.height); actx.globalCompositeOperation='lighter';
     for(let k=0;k<N;k++){frame(ctx,t-sh*(k/(N-1))); actx.globalAlpha=1/N; actx.drawImage(cv,0,0)} actx.globalAlpha=1; ctx.setTransform(1,0,0,1,0,0); ctx.globalCompositeOperation='source-over'; ctx.drawImage(acc,0,0)}

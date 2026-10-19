@@ -49,15 +49,13 @@ sw=bp(noise(),700,4500)*win(6.15,7.15,0.4,0.4)**1.2*0.20; pp=np.clip((t-6.15)/1.
 op=(np.sin(2*np.pi*329.6*t)*.4+np.sin(2*np.pi*493.9*t)*.25)*win(8.0,11.6,0.8,0.5)*0.05; add(op,0); add(reverb(op,2.6,0.6),0.1)
 for k,f in enumerate([659.3,830.6,987.8,1318.5,1661.2]): bb=at(bell(f,1.8,0.07),8.3+k*0.27); add(bb,-0.4+k*0.2); add(reverb(bb,2.0,0.4),0)
 n=int(0.7*SR); x=np.arange(n)/SR; add(at(np.sin(2*np.pi*(700-220*x/.7)*x)*np.sin(np.pi*x/.7)*0.07,10.35),0)   # the petal droops
-# ---- the zoom-through (11.2-12.2)
-add(bp(noise(),300,5000)*win(11.2,12.2,0.6,0.1)**1.2*0.24,0); add(np.sin(2*np.pi*np.cumsum(40+55*np.clip((t-11.2)/1.0,0,1)**1.5)/SR)*win(11.2,12.3,0.6,0.2)*0.3,0)
-# ---- act 6 (12-15): the Earth, half lit
-cl=(np.sin(2*np.pi*55*t)*.5+np.sin(2*np.pi*82.4*t)*.4+np.sin(2*np.pi*87.3*t)*.35)*win(11.9,15.0,0.9,0.0)*(0.6+0.4*np.sin(2*np.pi*.3*t))*0.10; add(cl,0); add(reverb(cl,2.6,0.5),0.1)
-tp=12.0
-while tp<15.0: add(thump(tp,44,0.2,0.3),0); tp+=1.2
-gp=at(bell(784,2.0,0.10),12.7); add(gp,0.4); add(reverb(gp,2.2,0.5),0)
-mw=win(13.3,15.0,1.0,0.0)*(0.08+0.92*np.clip((t-13.3)/1.7,0,1)**1.4); f=380+340*np.clip((t-13.3)/1.7,0,1)
-vib=1+0.012*np.sin(2*np.pi*6.5*t); add((np.sin(2*np.pi*np.cumsum(f*vib)/SR)*0.42+np.sin(2*np.pi*np.cumsum(f*2.01*vib)/SR)*0.15)*mw,0.15)
+# ---- act 6 (11.5-15): open grassland, golden hour; wind, grass, and one mosquito crossing then hovering towards us
+add(bp(noise(),150,1100)*win(11.2,15.0,0.6,0.0)*(0.5+0.5*np.clip((t-11.2)/3.5,0,1))*(0.7+0.3*np.sin(2*np.pi*.21*t))*0.16,-0.1)
+add(hp(noise(),2500)*win(11.4,15.0,0.8,0.0)*(0.5+0.5*np.sin(2*np.pi*.35*t+1))*0.03,0.1)
+add(bp(noise(),300,4500)*win(11.2,11.9,0.3,0.3)*0.12,0)   # the soft rack-focus into the field
+fm=win(11.5,15.0,0.5,0.0)*(0.25+0.75*np.clip((t-11.5)/3.5,0,1)**1.3); f=420+300*np.clip((t-11.5)/3.5,0,1)+60*np.exp(-np.clip(t-11.5,0,3)*1.1)*(t>11.5)
+vib=1+0.012*np.sin(2*np.pi*6.5*t); mos=(np.sin(2*np.pi*np.cumsum(f*vib)/SR)*0.40+np.sin(2*np.pi*np.cumsum(f*2.01*vib)/SR)*0.14)*fm
+pp=np.clip((t-11.5)/2.1,0,1)*1.2-0.8; L+=mos*(0.5-pp*0.5)*1.4; R+=mos*(0.5+pp*0.5)*1.4
 M=np.stack([L,R]); M=np.tanh(M*1.15)/1.15; M*=0.92/np.abs(M).max()
 M[:,:int(.01*SR)]*=np.linspace(0,1,int(.01*SR))
 w=wave.open(sys.argv[1],'wb'); w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((M.T*32767).astype('<i2').tobytes()); w.close()
