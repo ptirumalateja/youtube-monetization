@@ -42,3 +42,13 @@ Read `claude.md` and `slow-light-design-playbook.md` before producing this. Port
 
 ## Next action
 Use the attached project ZIP to fetch originals on an internet-connected machine and render with `python3 render.py --fetch --width 1080 --fps 30`; or upload the licensed media into a ChatGPT conversation. The container QA render verified exactly 40.00 seconds using **marked test placeholders only**. Do not claim the final original-media MP4 has been produced yet.
+
+## Narration update — 19 Oct 2026
+
+User supplied actual ElevenLabs **Max – Elearning and Documentary** MP3, length **42.448938 s**, filename `ElevenLabs_2026-10-19T11_02_40_Max - Elearning and Documentary_pvc_sp100_s50_sb75_v3.mp3`. This supersedes the optional Fraser voice. Master voiceover is frozen; **do not generate a replacement**. Original upload and project bundle are available in current ChatGPT conversation (not checked into Git because binaries are not meant to live in repository).
+
+Editorial animatic built and checked: `france_protests_voice_locked_ANIMATIC.mp4`, 1080×1920, H.264/AAC, about 42.46 s. This contains authentic supplied narration and clearly marked **graphics-only editorial guide**; **NO real protest media**, not publication-ready. Current file in conversation under `/mnt/data/france_protests_2026/output/`.
+
+Narrated full-media renderer updated to use the frozen recording, proportional 40→42.45 s timeline, and quiet genuine location sound on Aix footage. Project ZIP in conversation: `slow_light_france_protests_voice_locked_project.zip`. Original footage/photos could not be fetched from Wikimedia because the runtime lacks DNS; final user-requested genuine-footage MP4 is therefore **not yet rendered**.
+
+Design note: use newsroom-storytelling treatment for real political protests, not the explicitly sci-fi wordless thought-experiment rule. Attribute accurately; keep peaceful marches distinct from damage, and verify actual dates/places. Fact-check news against AP/Reuters again before publish.
