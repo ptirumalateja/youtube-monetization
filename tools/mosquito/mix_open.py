@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Mosquito reel opening v7 sound (10 s), fully synthesised (no samples). usage: mix_open.py <out.wav> [fly_buzz.wav]  (the owner's real fly-buzz recording, if given, is the swarm bed)
-0-1.9 rising swarm whine | 1.9-3.05 whine falls, water plinks | 3.05-3.45 silence | 3.45-4.95 lift riser + settle boom | 5-6.5 space pad + sonar ping |
+0-1.9 rising swarm whine | 1.9-3.45 complete silence while they fall | 3.45-4.95 lift riser + settle boom | 5-6.5 space pad + sonar ping |
 6.5-7.45 dive whoosh + grid ticks | 7.7-8.8 marker pings | 8.15-9.6 counter ticks | 9.6 hit."""
 import sys, wave, subprocess, numpy as np
 from numpy.fft import rfft, irfft, rfftfreq
@@ -33,15 +33,11 @@ if len(sys.argv)>2:
     rate=np.where(t<1.9,1.0+0.28*(t/1.9),np.maximum(0.25,1.28*np.exp(-(t-1.9)*1.5))); pos=(np.cumsum(rate)/1.0)%(nf-2)   # source position, looped
     i0=pos.astype(int); fr=pos-i0; src=fly[:,i0]*(1-fr)+fly[:,i0+1]*fr
     xf=np.clip(np.minimum(pos,nf-pos)/(0.05*SR),0,1)   # soften the loop seam
-    g=win(0,2.95,0.04,0.9)*(0.35+0.65*np.clip(t/1.9,0,1)**1.2)*np.where(t<1.9,1,np.clip(1-(t-1.9)/1.05,0,1)**1.2)
+    g=win(0,1.9,0.04,0.0)*(0.35+0.65*np.clip(t/1.9,0,1)**1.2)*np.where(t<1.9,1,np.clip(1-(t-1.9)/1.05,0,1)**1.2)
     for ch,(pp) in enumerate((-0.2,0.2)): add(hp(src[ch]*xf,110)*g*3.2,pp)
-# 2. they lose flight: pitch collapses and decays, then water plinks, then a hard cut at 3.05
-fa=win(1.9,2.9,0.0,0.9)*np.clip(1-(t-1.9)/1.0,0,1)**1.5; fall_f=520*np.exp(-np.clip(t-1.9,0,3)*1.2)
-add(np.sin(2*np.pi*np.cumsum(np.where(t>1.9,fall_f,0))/SR)*fa*0.16,0)
-for k in range(46):
-    tp=1.95+rng.exponential(0.55); tp=min(tp,3.0); n=int(0.12*SR); x=np.arange(n)/SR; f=rng.uniform(650,1900)
-    add(at(np.sin(2*np.pi*(f*(1+0.8*np.exp(-x/0.02)))*x)*np.exp(-x/0.035)*rng.uniform(0.05,0.14),tp),rng.uniform(-.9,.9))
-cut=np.ones(N); cut[t>3.05]=0.0
+# 2. they all lose flight at 1.9 s: hard cut to silence: pitch collapses and decays, then water plinks, then a hard cut at 3.05
+# complete silence from the instant they lose flight (no falling tone, no plinks)
+cut=np.ones(N); cut[t>1.9]=0.0; cut[(t>1.88)&(t<=1.9)]=np.linspace(1,0,int((((t>1.88)&(t<=1.9)).sum())))
 L*=cut; R*=cut
 # 3. lift to orbit: sub riser, airy whoosh, settle boom at 4.95
 riser=np.sin(2*np.pi*np.cumsum(38+60*np.clip((t-3.45)/1.5,0,1)**1.6)/SR)*win(3.45,4.95,0.5,0.03)*0.35; add(riser,0)

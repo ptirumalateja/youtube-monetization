@@ -17,8 +17,8 @@ const stars=[]; for(let i=0;i<260;i++) stars.push({x:U(0,W),y:U(-1400,1000),r:U(
 const reeds=[]; for(let i=0;i<34;i++){const left=i<17; reeds.push({x:left?U(10,150):U(830,1075),h:U(280,640),lean:(left?1:-1)*U(.02,.14),ph:U(0,6.28),head:R()<.7})}
 const refl=[]; for(let i=0;i<120;i++){const d=i/119; refl.push({y:WATER+8+d*470,w:mix(40,210,d)*U(.55,1),x:U(-1,1)*mix(8,40,d),a:U(.25,.7),c:R()<.6?'255,196,110':'120,190,200',sp:U(.4,1)})}
 const fireflies=[]; for(let i=0;i<150;i++) fireflies.push({x:U(0,W),y:HORIZON-4+U(-14,8),r:U(1.2,2.8),p:U(0,6.28),d:U(2.8,4.2)});
-const smalls=[]; for(let i=0;i<420;i++){const y0=U(-60,1300);smalls.push({x0:U(-40,W+40),y0,ax:U(10,70),ay:U(10,55),wx:U(.6,1.9),wy:U(.6,1.9),px:U(0,6.28),py:U(0,6.28),s:U(.7,1.35),fl:U(40,70),ph:U(0,6.28),tf:1.7+Math.pow(R(),1.2)*0.75,vy:U(0,90),spin:U(-6,6),land:WATER+30+U(0,330),dark:R()<.0})}
-const heroes=[{x:610,y:880,s:1.75,t:2.55,ph:0.2,drift:1},{x:140,y:640,s:.95,t:2.0,ph:1.1,drift:-1},{x:930,y:520,s:.8,t:2.2,ph:2.0,drift:1},{x:330,y:1010,s:.7,t:2.35,ph:3.0,drift:1},{x:850,y:1060,s:.85,t:2.1,ph:4.0,drift:-1},{x:140,y:1150,s:.75,t:1.95,ph:5.0,drift:1},{x:700,y:360,s:.7,t:2.3,ph:2.6,drift:-1}];
+const smalls=[]; for(let i=0;i<1000;i++){const far=i>=420; const y0=U(-60,1330);smalls.push({far,x0:U(-40,W+40),y0,ax:U(10,70),ay:U(10,55),wx:U(.6,1.9),wy:U(.6,1.9),px:U(0,6.28),py:U(0,6.28),s:far?U(.38,.6):U(.7,1.35),fl:U(40,70),ph:U(0,6.28),tf:1.9+R()*0.2,vy:U(0,90),spin:U(-6,6),land:WATER+30+U(0,330),dark:R()<.0})}
+const heroes=[{x:610,y:880,s:1.75,t:1.95,ph:0.2,drift:1},{x:140,y:640,s:.95,t:1.92,ph:1.1,drift:-1},{x:930,y:520,s:.8,t:2.0,ph:2.0,drift:1},{x:330,y:1010,s:.7,t:1.98,ph:3.0,drift:1},{x:850,y:1060,s:.85,t:1.94,ph:4.0,drift:-1},{x:140,y:1150,s:.75,t:1.9,ph:5.0,drift:1},{x:700,y:360,s:.7,t:2.02,ph:2.6,drift:-1}];
 const ripples=[]; for(const m of smalls) if(R()<.3) ripples.push({x:m.x0+U(-30,30),y:m.land,t0:m.tf+Math.sqrt(2*Math.max(1,(m.land-m.y0))/2600)});
 function drawMosquito(c,x,y,s,ang,flap,body,alpha,wingsOn,legsDroop){
   c.save(); c.translate(x,y); c.rotate(ang); c.scale(s,s); c.globalAlpha=alpha;
@@ -65,7 +65,7 @@ function drawA(c,t){
     if(t>m.tf){const u=t-m.tf; const y0=m.y0+m.ay*Math.sin(m.wy*m.tf+m.py); y=y0+m.vy*u+2600*u*u; x=m.x0+m.ax*Math.sin(m.wx*m.tf+m.px)+m.tf*14+30*u; ang+=m.spin*u; wings=false; if(y>=m.land){alpha=clamp(1-(y-m.land)/40); y=m.land}}
     if(alpha<=0.01||x<-30||x>W+30) continue;
     const warm=clamp((y-780)/500); const col=warm>.5?'#2a1810':'#f1dcaa';
-    drawSmall(c,x,y,m.s*1.05,ang,t*m.fl+m.ph,col,alpha*(t>m.tf?0.9:1),wings);
+    drawSmall(c,x,y,m.s*1.05,ang,t*m.fl+m.ph,col,alpha*(t>m.tf?0.9:1)*(m.far?.65:1),wings);
   }
   // splashes
   for(const r of ripples){const u=t-r.t0; if(u<0||u>1.1) continue; for(let k=0;k<2;k++){const uu=u-k*.18; if(uu<0) continue; c.strokeStyle=`rgba(255,215,150,${.4*(1-uu/1.0)})`; c.lineWidth=1.8; c.beginPath(); c.ellipse(r.x,r.y,8+uu*46,3+uu*12,0,0,6.3); c.stroke()}}
@@ -73,7 +73,7 @@ function drawA(c,t){
   for(const h of heroes){
     let x=h.x+h.drift*(t*22+30*Math.sin(t*.9+h.ph)), y=h.y+26*Math.sin(t*1.3+h.ph*2)-t*10, ang=-0.12*h.drift+0.1*Math.sin(t*1.7+h.ph), wings=true, alpha=1, droop=false;
     if(h===heroes[0]){const z=1+0.35*clamp(t/1.9); h.s0=h.s; var sc=h.s*z} else var sc=h.s;
-    if(t>h.t){const u=t-h.t; y+=700*u*u+60*u; ang+=0.9*u*h.drift; wings=false; droop=true; if(h===heroes[0]){const ly=1560; const yy=h.y+26*Math.sin(h.t*1.3+h.ph*2)-h.t*10; y=Math.min(ly,yy+700*u*u+60*u); if(y>=ly) {ang=0.12; alpha=1}} else if(y>1500) alpha=clamp(1-(y-1500)/100)}
+    if(t>h.t){const u=t-h.t; y+=2600*u*u+60*u; ang+=0.9*u*h.drift; wings=false; droop=true; if(h===heroes[0]){const ly=1560; const yy=h.y+26*Math.sin(h.t*1.3+h.ph*2)-h.t*10; y=Math.min(ly,yy+2600*u*u+60*u); if(y>=ly) {ang=0.12; alpha=1}} else if(y>1500) alpha=clamp(1-(y-1500)/100)}
     if(alpha<=.01) continue;
     if(h===heroes[0]&&t>h.t&&y>=1559){   // the big one settles on a leaf, wings drooping
       c.fillStyle='#0b1a22'; c.beginPath(); c.ellipse(x,y+34,120,22,0,0,6.3); c.fill(); drawMosquito(c,x,y,sc*.9,0.1,0,'#10151d',1,false,true);
@@ -129,9 +129,9 @@ function drawEarth(c,t,P,o){   // o: {alpha,lights,glow,grid,mapMix,discFade,pul
   c.restore();
 }
 // ---------------------------------------------------------------- text helpers and the data panel
-function track(c,s,x,y,sp,font,fill,align){c.font=font; c.fillStyle=fill; c.textBaseline='alphabetic'; let w=0; for(const ch of s) w+=c.measureText(ch).width+sp; w-=sp; let xx=align==='c'?x-w/2:x; for(const ch of s){c.fillText(ch,xx,y); xx+=c.measureText(ch).width+sp} return w}
+function track(c,s,x,y,sp,font,fill,align,outline){c.font=font; c.fillStyle=fill; c.textBaseline='alphabetic'; c.lineJoin='round'; let w=0; for(const ch of s) w+=c.measureText(ch).width+sp; w-=sp; let xx=align==='c'?x-w/2:x; for(const ch of s){if(outline){c.save(); c.shadowColor='transparent'; c.strokeStyle=outline; c.lineWidth=6; c.strokeText(ch,xx,y); c.restore()} c.fillText(ch,xx,y); xx+=c.measureText(ch).width+sp} return w}
 function typed(s,t0,cps,t){return s.slice(0,Math.max(0,Math.floor((t-t0)*cps)))}
-function caption(c,lines,t0,t1,y,size,t,cps=26,gap=.9){const a=ease((t-t0)/.3)*(1-ease((t-t1)/.4)); if(a<=0) return; c.save(); c.globalAlpha=a; c.shadowColor='rgba(0,0,0,.6)'; c.shadowBlur=10; lines.forEach((s,i)=>{const sp=size*.16; track(c,typed(s,t0+i*gap,cps,t),W/2,y+i*(size*1.5),sp,`bold ${size}px ${MONO}`,'#f4f1ea','c')}); c.restore()}
+function caption(c,lines,t0,t1,y,size,t,cps=26,gap=.9){const a=ease((t-t0)/.3)*(1-ease((t-t1)/.4)); if(a<=0) return; c.save(); c.globalAlpha=a; c.shadowColor='rgba(2,6,16,.92)'; c.shadowBlur=18; c.shadowOffsetX=0; c.shadowOffsetY=7; lines.forEach((s,i)=>{const sp=size*.14; track(c,typed(s,t0+i*gap,cps,t),W/2,y+i*(size*1.5),sp,`bold ${size}px ${MONO}`,'#ffffff','c','rgba(4,8,22,.7)')}); c.restore()}
 function drawPanel(c,t,PP){
   const a=ease((t-7.35)/.5);
   c.save(); c.globalAlpha=a; track(c,'THE HUMAN COST',90,172,5,`bold 26px ${MONO}`,'#cfe1ee','l'); c.strokeStyle='rgba(200,225,240,.55)'; c.lineWidth=1.6; c.beginPath(); c.moveTo(90,196); c.lineTo(990,196); c.stroke(); c.restore();
@@ -180,7 +180,7 @@ function frame(c,t){
   if(t>=6.9){const fa=ease((t-6.9)/.6); const g1=c.createLinearGradient(0,150,0,330); g1.addColorStop(0,`rgba(11,27,49,${fa})`); g1.addColorStop(1,'rgba(11,27,49,0)'); c.fillStyle=g1; c.fillRect(0,0,W,330); const g2=c.createLinearGradient(0,1090,0,1200); g2.addColorStop(0,'rgba(11,27,49,0)'); g2.addColorStop(1,`rgba(11,27,49,${fa})`); c.fillStyle=g2; c.fillRect(0,1090,W,H-1090); c.fillStyle=`rgba(11,27,49,${fa})`; c.fillRect(0,1200,W,H-1200)}
   if(t>=7.1) drawPanel(c,t,PANEL);
   // captions
-  caption(c,['WHAT IF EVERY MOSQUITO','VANISHED RIGHT NOW?'],-0.3,3.0,170,46,t,40,.55);   // on screen from the first frame until the swarm has fallen
+  caption(c,['WHAT IF EVERY MOSQUITO','VANISHED RIGHT NOW?'],-0.3,3.0,170,40,t,40,.55);   // on screen from the first frame until the swarm has fallen
   caption(c,['OVERNIGHT. ALL GONE.','NO BUZZING. NO BITES.'],4.35,6.45,170,40,t);
   // soft vignette
   const vg=c.createRadialGradient(540,960,700,540,960,1250); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.35)'); c.fillStyle=vg; c.fillRect(0,0,W,H);
