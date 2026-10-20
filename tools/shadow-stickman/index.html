@@ -26,40 +26,44 @@ function pulse(t){ const f=hbPhase(t)%1; return Math.exp(-f*11)+0.55*Math.exp(-M
 // ---------------------------------------------------------------- stage constants
 const ZM=0.8;                                    // the man's plane; the wall is z=0, the floor y=0
 const LAMP=new THREE.Vector3(-2.0,1.05,2.4);
-const X0=-0.85, XS=-0.35, XB=-0.6, WIN=2.0, STRIDE=1.5, PHI0=0.6;
+const X0=-0.5, XS=-0.3, XB=-0.55, WIN=2.0, STRIDE=1.5, PHI0=0.6;
 const L_UP=0.3, L_FORE=0.28, L_THIGH=0.47, L_SHIN=0.47, L_TORSO=0.55, HEAD_R=0.115, BONE_R=0.036;
 
 // ---------------------------------------------------------------- choreography (man)
-function manX(t){
-  if(t>=14.5){ const u=(t-16)/WIN; return XS-(XS-X0)*Math.pow(1-u,2); }       // re-entry = extension of the entry curve backwards: loop is C1-continuous
-  if(t<=WIN){ const u=t/WIN; return XS-(XS-X0)*Math.pow(1-u,2); }
-  if(t<9.4) return XS;
-  if(t<12.4) return lerp(XS,XB,sstep(9.4,11.4,t));
-  return lerp(XB,2.0,sstep(12.4,14.5,t));
-}
-const WW=[[0,1],[1.5,1],[2.0,0],[9.3,0],[9.5,0.9],[11.2,0.9],[11.5,0],[12.3,0],[12.6,1],[14.5,1],[16,1]];
+function manX(t){ if(t<=WIN){ const u=t/WIN; return XS-(XS-X0)*Math.pow(1-u,2); } return XS; }
+const WW=[[0,1],[1.5,1],[2.0,0],[16,0]];
+const PK=['lnu','lnk','lfu','lfk','nu','nf','fu','ff','lean','fna','ffa'];
 function walkAngles(phi){ const s=Math.sin(phi), c=Math.cos(phi); const A=0.42;
-  return {lnu:A*s, lnk:0.12+0.85*Math.max(0,c), lfu:-A*s, lfk:0.12+0.85*Math.max(0,-c), nu:-0.5*s, nf:0.45, fu:0.5*s, ff:0.45, lean:0.08}; }
+  return {lnu:A*s+0.02*Math.sin(2*phi), lnk:0.12+0.85*Math.max(0,c), lfu:-A*s, lfk:0.12+0.85*Math.max(0,-c),
+    nu:-0.5*s, nf:0.3+0.3*Math.max(0,s), fu:0.5*s, ff:0.3+0.3*Math.max(0,-s), lean:0.08+0.025*Math.sin(2*phi+0.5), fna:0.35*Math.max(0,c), ffa:0.35*Math.max(0,-c)}; }
 function manParams(t){
   const x=manX(t), ww=keys(WW,t), phi=2*Math.PI*(x-X0)/STRIDE+PHI0; const w=walkAngles(phi);
-  const idle={lnu:keys([[5.6,0.04],[6.1,0.95],[9.2,0.95],[9.6,0.04]],t), lnk:keys([[5.6,0],[6.1,0.7],[9.2,0.7],[9.6,0]],t), lfu:-0.04, lfk:0,
-    nu:keys([[2.0,0.12],[2.8,0.12],[3.4,2.3],[4.3,2.3],[4.9,0.12]],t), nf:keys([[2.8,0.15],[3.5,0.5],[4.3,0.5],[4.9,0.15]],t), fu:-0.05, ff:0.1,
-    lean:keys([[2,0.05],[5.6,0.06],[6.4,0.2],[9.2,0.2],[9.6,0.05]],t)};
-  const P={x,tilt:keys([[3.6,0],[4.1,0.3],[4.9,0.3],[5.3,0]],t)};
-  for(const k of ['lnu','lnk','lfu','lfk','nu','nf','fu','ff','lean']) P[k]=lerp(idle[k],w[k],ww);
+  const fear=sstep(9.0,9.25,t); const tr=fear*Math.sin(t*47)*0.025;       // startle at the reveal, then he freezes and trembles
+  const idle={lnu:0.04-0.3*fear, lnk:0.25*fear, lfu:-0.04+0.18*fear, lfk:0.1*fear,
+    nu:keys([[2.0,0.12],[3.0,0.12],[3.5,2.3],[4.3,2.3],[4.9,0.12]],t)*(1-fear)+0.8*fear+tr, nf:keys([[3.0,0.15],[3.6,0.5],[4.3,0.5],[4.9,0.15]],t)*(1-fear)+1.5*fear,
+    fu:-0.05*(1-fear)+0.6*fear-tr, ff:0.1*(1-fear)+1.4*fear, lean:0.05*(1-fear)-0.24*fear, fna:0, ffa:0};
+  const P={x,tilt:keys([[3.6,0],[4.1,0.25],[4.9,0.25],[5.3,0]],t)-0.2*fear};
+  for(const k of PK) P[k]=lerp(idle[k],w[k],ww);
   return P;
 }
-function ownParams(t){                              // the shadow's own script: sits, stands, walks away
-  const sit=keys([[9.4,0],[10.2,1],[11.8,1],[12.5,0]],t); const x=lerp(XS,1.3,sstep(12.4,14.2,t)); const ww=keys([[12.2,0],[12.6,1],[14.4,1]],t);
-  const phi=2*Math.PI*(x-X0)/STRIDE+PHI0; const w=walkAngles(phi);
-  const idle={lnu:1.5*sit+0.04*(1-sit), lnk:1.5*sit, lfu:1.5*sit-0.04*(1-sit), lfk:1.5*sit, nu:0.7*sit+0.12*(1-sit), nf:0.6*sit+0.15*(1-sit), fu:0.7*sit-0.05*(1-sit), ff:0.5*sit, lean:0.02};
-  const P={x,tilt:-0.35*sit};
-  for(const k of ['lnu','lnk','lfu','lfk','nu','nf','fu','ff','lean']) P[k]=lerp(idle[k],w[k],ww);
+const ZS=t=>ZM+0.75*sstep(12.0,12.9,t)+0.2*sstep(13.2,15.8,t);       // the shadow's own depth: it approaches the lamp, so it looms
+function ownParams(t){                              // after the reveal the shadow stands calm, then steps toward us
+  const k=LAMP.z/(LAMP.z-ZS(t)); const xs=lerp(XS,LAMP.x+(0.55-LAMP.x)/k,sstep(11.9,12.0,t));
+  const step=sstep(11.95,12.1,t)*(1-sstep(12.8,13.0,t)); const phi=PHI0+Math.PI*sstep(12.0,12.9,t); const w=walkAngles(phi);
+  const arm=keys([[4.5,2.3],[6.0,2.3],[6.6,0.12]],t);                // it keeps its raised arm long after he lowered his
+  const idle={lnu:0.04, lnk:0, lfu:-0.04, lfk:0, nu:Math.min(arm,2.3), nf:keys([[4.5,0.5],[6.0,0.5],[6.6,0.15]],t), fu:-0.05, ff:0.1, lean:0.17+0.015*Math.sin(t*1.3), fna:0, ffa:0};
+  const P={x:xs,tilt:0.0};
+  for(const kk of PK) P[kk]=lerp(idle[kk],w[kk],step);
   return P;
 }
 function lagAt(t){ return keys(TL.lag,t); }
-function shadowParams(t){ const a=manParams(Math.max(0,t-lagAt(t))); const w=sstep(EV.own[0],EV.own[0]+0.2,t)*(1-sstep(EV.own[1]-0.0,EV.own[1]+0.3,t)); if(w<=0) return a; const b=ownParams(t); const P={}; for(const k in a) P[k]=lerp(a[k],b[k],w); return P; }
-const ownW=t=>sstep(EV.own[0],EV.own[0]+0.2,t)*(1-sstep(EV.own[1],EV.own[1]+0.3,t));
+function shadowParams(t){
+  const P=manParams(Math.max(0,t-lagAt(t)));
+  const ws=sstep(4.5,4.6,t)*(1-sstep(6.0,6.6,t)); P.nu=lerp(P.nu,2.3,ws); P.nf=lerp(P.nf,0.5,ws);   // first disobedience: his arm comes down, its arm stays up
+  P.lean+=0.12*sstep(6.5,9.0,t);                                                                        // slow lean toward the viewer
+  const w=sstep(8.9,9.0,t); if(w<=0) return P; const b=ownParams(t); for(const k in P) P[k]=lerp(P[k],b[k],w); return P;
+}
+const headTurn=t=>1.5708*sstep(6.2,9.0,t);          // the shadow's head turns from profile toward the viewer (nose bump disappears, eyes light)
 
 // ---------------------------------------------------------------- forward kinematics (profile, facing +x), y up
 const v=(a,l)=>[Math.sin(a)*l,-Math.cos(a)*l];
@@ -70,7 +74,7 @@ function fk(P){
     const add=(p,q)=>[p[0]+q[0],p[1]+q[1]];
     const eN=add(Sh,v(P.nu,L_UP)), wN=add(eN,v(P.nu+P.nf,L_FORE)); const eF=add(Sh,v(P.fu,L_UP)), wF=add(eF,v(P.fu+P.ff,L_FORE));
     const kN=add(H,v(P.lnu,L_THIGH)), aN=add(kN,v(P.lnu-P.lnk,L_SHIN)); const kF=add(H,v(P.lfu,L_THIGH)), aF=add(kF,v(P.lfu-P.lfk,L_SHIN));
-    return {H,N,Sh,C,eN,wN,eF,wF,kN,aN,kF,aF,fN:[aN[0]+0.15,aN[1]],fF:[aF[0]+0.15,aF[1]]}; };
+    return {H,N,Sh,C,eN,wN,eF,wF,kN,aN,kF,aF,fN:[aN[0]+0.15*Math.cos(P.fna),aN[1]+0.15*Math.sin(P.fna)],fF:[aF[0]+0.15*Math.cos(P.ffa),aF[1]+0.15*Math.sin(P.ffa)]}; };
   let J=place(H); const low=Math.min(J.aN[1],J.aF[1],J.fN[1],J.fF[1]); H=[P.x,BONE_R-low]; return place(H);
 }
 const BONES=[['H','N',0],['Sh','eF',-1],['eF','wF',-1],['H','kF',-1],['kF','aF',-1],['aF','fF',-1],['Sh','eN',1],['eN','wN',1],['H','kN',1],['kN','aN',1],['aN','fN',1]];
@@ -80,15 +84,16 @@ const capGeo=new THREE.CylinderGeometry(1,1,1,14,1,false); const headGeo=new THR
 const JOINTS=['H','N','eN','wN','eF','wF','kN','aN','kF','aF','fN','fF'];
 function makeSet(parent,mat){ const set={bones:[],joints:[],head:null};
   const mk=(g,arr)=>{ const m=new THREE.Mesh(g,mat); m.matrixAutoUpdate=false; m.frustumCulled=false; parent.add(m); if(arr) arr.push(m); return m; };
-  for(let i=0;i<BONES.length;i++) mk(capGeo,set.bones); for(const j of JOINTS) mk(jGeo,set.joints); set.head=mk(headGeo,null); return set; }
+  for(let i=0;i<BONES.length;i++) mk(capGeo,set.bones); for(const j of JOINTS) mk(jGeo,set.joints); set.head=mk(headGeo,null); set.nose=mk(headGeo,null); return set; }
 const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _p=new THREE.Vector3(), _s=new THREE.Vector3(), _e=new THREE.Euler();
 function setM(mesh,p,q,s){ _m.compose(p,q,s); mesh.matrix.copy(_m); mesh.matrixWorld.copy(_m); }
-function poseSet(set,J,zbase){
+function poseSet(set,J,zbase,turn=0){
   BONES.forEach((b,i)=>{ const p=J[b[0]], q=J[b[1]]; const dx=q[0]-p[0], dy=q[1]-p[1], L=Math.max(Math.hypot(dx,dy),0.001); const z=zbase+b[2]*0.07;
     _p.set((p[0]+q[0])/2,(p[1]+q[1])/2,z); _q.setFromEuler(_e.set(0,0,-Math.atan2(dx,dy))); _s.set(BONE_R,L,BONE_R); setM(set.bones[i],_p,_q,_s); });
   const zOf={H:0,N:0,eN:1,wN:1,eF:-1,wF:-1,kN:1,aN:1,kF:-1,aF:-1,fN:1,fF:-1};
   JOINTS.forEach((j,i)=>{ _p.set(J[j][0],J[j][1],zbase+zOf[j]*0.07); setM(set.joints[i],_p,_q.identity(),_s.set(BONE_R,BONE_R,BONE_R)); });
   setM(set.head,_p.set(J.C[0],J.C[1],zbase),_q.identity(),_s.set(HEAD_R,HEAD_R,HEAD_R));
+  const nf=Math.cos(turn); setM(set.nose,_p.set(J.C[0]+HEAD_R*0.95*nf,J.C[1]-0.012,zbase),_q.identity(),_s.set(0.035*Math.max(nf,0.001),0.035,0.035));
 }
 
 // ---------------------------------------------------------------- room
@@ -167,14 +172,17 @@ composer.addPass(new ShaderPass({uniforms:gradeU,vertexShader:`varying vec2 vU; 
 composer.addPass(new OutputPass());
 
 // ---------------------------------------------------------------- one sub-frame
-const TARGET=new THREE.Vector3(0.05,1.0,0.4);
-function lampLevel(t){ let I=1; const [s0,s1]=EV.stutter; if(t>s0&&t<s1){ const u=(t-s0)/(s1-s0); const f=Math.sin(t*83)+Math.sin(t*131+1.3); I*=(f>1.2-1.5*u)?0.12:1.0; } const d=t-EV.hit_reveal; if(d>=0&&d<0.12) I=0.0; return I; }
+const TARGET=new THREE.Vector3(0.1,1.35,0.4);
+function lampLevel(t){ let I=1; const [s0,s1]=EV.stutter; if(t>s0&&t<s1){ const u=(t-s0)/(s1-s0); const f=Math.sin(t*83)+Math.sin(t*131+1.3); I*=(f>1.2-1.5*u)?0.12:1.0; } const d=t-EV.hit_reveal; if(d>=0&&d<0.12) I=0.0; if(t>15.8) I=0.0; return I; }
 function setT(t){
   const p=pulse(t), L=lampLevel(t);
-  const Pm=manParams(t); const Jm=fk(Pm); poseSet(manSet,Jm,ZM);
-  const Ps=shadowParams(t); const Js=fk(Ps); poseSet(shSet,Js,ZM);
-  cam.position.set(0.05+0.015*Math.sin(t*0.7),1.3+0.01*Math.sin(t*1.1),5.8-0.25*sstep(2,9,t)+0.25*sstep(9.2,15,t)); cam.fov=36+0.3*p; cam.updateProjectionMatrix(); cam.lookAt(TARGET);
-  const ang=keys([[0,0.5],[8,0.36],[9.1,0.36],[11,0.44],[14,0.5],[16,0.5]],t);
+  const Pm=manParams(t); const Jm=fk(Pm); poseSet(manSet,Jm,ZM,0);
+  const Ps=shadowParams(t); const Js=fk(Ps); const zs=ZS(t); poseSet(shSet,Js,zs,headTurn(t));
+  const sh=sstep(9.1,9.6,t)*0.012*Math.sin(t*38);   // small shake after the reveal
+  cam.position.set(keys([[0,0.1],[9.1,0.1],[11.5,0.15],[16,0.2]],t)+0.015*Math.sin(t*0.7)+sh, keys([[0,1.5],[9.1,1.5],[11.5,1.7],[16,1.9]],t)+0.01*Math.sin(t*1.1), keys([[0,6.4],[2,6.4],[9.0,6.15],[9.1,6.15],[10.6,5.0],[16,4.1]],t));
+  cam.fov=36+0.3*p; cam.updateProjectionMatrix();
+  cam.lookAt(keys([[0,0.1],[9.1,0.1],[11.5,0.2],[16,0.3]],t), keys([[0,1.35],[9.1,1.35],[11.5,1.8],[14,2.2],[16,2.35]],t), 0.4);
+  const ang=keys([[0,0.5],[8,0.36],[9.1,0.36],[10,0.55],[12,0.72],[16,0.72]],t);
   spotL.target.position.set(-0.1,0.9,0.4); spotL.target.updateMatrixWorld(); spotL.angle=ang; spotL.intensity=52*L*(0.92+0.08*p);
   const dir=spotL.target.position.clone().sub(LAMP).normalize(); const far=4.0; const rad=Math.tan(ang)*far;
   beam.scale.set(rad,far,rad); beam.position.copy(LAMP.clone().addScaledVector(dir,far/2)); beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir); beamMat.uniforms.uA.value=0.035*L;
@@ -186,8 +194,8 @@ function setT(t){
     blurMat.uniforms.tD.value=rtB.texture; blurMat.uniforms.uDir.value.set(0,1); renderer.setRenderTarget(rtA); renderer.render(quadScene,quadCam); }
   renderer.setRenderTarget(null); renderer.setClearColor(0x010206,1); compMat.uniforms.tM.value=rtA.texture; compMat.uniforms.uA.value=0.93*(0.15+0.85*L);   // the shadow dims with the lamp
   // eyes on the shadow head (only while the shadow is its own thing, after the relight)
-  const ew=sstep(EV.relight,EV.relight+0.15,t)*(1-sstep(EV.own[1]-0.2,EV.own[1],t));
-  const pr=projectToWall([Js.C[0],Js.C[1]+0.01,ZM],LAMP); const k=pr.t;
+  const ew=sstep(EV.relight,EV.relight+0.15,t)*(1-sstep(15.72,15.78,t));
+  const pr=projectToWall([Js.C[0],Js.C[1]+0.01,zs],LAMP); const k=pr.t;
   eyes.forEach((e,i)=>{ e.visible=ew>0.01&&!pr.onFloor; e.position.set(pr.S[0]+(i?0.05:-0.05)*k, pr.S[1]+0.02*k, 0.012); const s=0.028*k*ew; e.scale.set(s,s*1.25,1); });
   gradeU.uT.value=t; gradeU.uPulse.value=p; let fl=0; const d=t-EV.hit_reveal; if(d>0.12&&d<0.28) fl=0.10*(1-(d-0.12)/0.16); gradeU.uFlash.value=fl;
 }

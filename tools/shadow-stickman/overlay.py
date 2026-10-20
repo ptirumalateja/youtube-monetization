@@ -36,17 +36,6 @@ def frame(fi):
     t = fi / FPS
     img = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
     fo = 1.0 - min(1.0, max(0.0, (t - (T - 0.7)) / 0.5))                  # everything clears before the loop point
-    co = 1.0 - min(1.0, max(0.0, (t - TL['counter_out'][0]) / (TL['counter_out'][1] - TL['counter_out'][0])))   # stopwatch leaves at the reveal
-    fo *= co
-    # stopwatch: one monotonic odometer; label flips at the reveal
-    lab = TL['chip'][0] if t < TL['chip_switch'] else TL['chip'][1]
-    cf = font(27); cw = d.textlength(lab, font=cf) + 44
-    chip = Image.new('RGBA', (W, H), (0, 0, 0, 0)); cd = ImageDraw.Draw(chip)
-    cd.rounded_rectangle((W / 2 - cw / 2, 150, W / 2 + cw / 2, 198), 8, fill=RED + (int(235 * fo),))
-    cd.text((W / 2, 174), lab, font=cf, fill=CREAM + (int(255 * fo),), anchor='mm'); img.alpha_composite(chip)
-    mm, ss = int(t // 60), t - 60 * int(t // 60)
-    ts = f'{mm:02d}:{ss:04.1f}'
-    d.text((W / 2, 262), ts, font=font(92), fill=CREAM + (int(255 * fo),), anchor='mm', stroke_width=6, stroke_fill=BLACK + (int(255 * fo),))
     # tag (small, top)
     s, a = typed(TX['tag'], t)
     if s: d.text((W / 2, 108), s, font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 22), fill=CREAM + (int(190 * a),), anchor='mm', stroke_width=4, stroke_fill=BLACK + (int(190 * a),))
@@ -54,7 +43,7 @@ def frame(fi):
     s, a = typed(TX['hook'], t)
     if s and a > 0: text_block(d, s, font(64), W / 2, 380, 940, a, full=TX['hook']['s'])
     # reveal captions + end line
-    for k, y, sz in (('reveal1', 1300, 62), ('end', 1300, 62)):
+    for k, y, sz in (('reveal1', 380, 64), ('end', 380, 64)):
         s, a = typed(TX[k], t)
         if s and a > 0: text_block(d, s, font(sz), W / 2, y, 960, a, full=TX[k]['s'])
     return img, t
