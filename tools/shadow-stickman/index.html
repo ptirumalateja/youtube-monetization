@@ -1,0 +1,201 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// The Shadow That Stops Copying: a stickman and his shadow. The shadow is the same skeleton projected from the lamp onto
+// the wall/floor (planar projection, first plane the ray hits), rendered to a mask, blurred for a penumbra and
+// composited. Its pose is the man's pose delayed by lag(t), later replaced by its own scripted pose. renderAt(t) is pure.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const TL=await (await fetch('timeline.json')).json(); const T=TL.T; const EV=TL.events;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x010206);
+const cam=new THREE.PerspectiveCamera(36,W/H,0.05,100);
+
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)); const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t)}; const lerp=(a,b,t)=>a+(b-a)*t;
+function keys(k,t){ if(t<=k[0][0])return k[0][1]; for(let i=1;i<k.length;i++){ if(t<=k[i][0]){ const u=(t-k[i-1][0])/(k[i][0]-k[i-1][0]); return lerp(k[i-1][1],k[i][1],u*u*(3-2*u)); } } return k[k.length-1][1]; }
+const HB=[]; {let ph=0; for(let i=0;i<=T*600;i++){ HB.push(ph); ph+=keys(TL.hb_bpm,i/600)/60/600; }}
+const hbPhase=t=>HB[Math.min(HB.length-1,Math.max(0,Math.round(t*600)))];
+function pulse(t){ const f=hbPhase(t)%1; return Math.exp(-f*11)+0.55*Math.exp(-Math.pow((f-0.2)*9,2)); }
+
+// ---------------------------------------------------------------- stage constants
+const ZM=0.8;                                    // the man's plane; the wall is z=0, the floor y=0
+const LAMP=new THREE.Vector3(-2.0,1.05,2.4);
+const X0=-0.85, XS=-0.35, XB=-0.6, WIN=2.0, STRIDE=1.5, PHI0=0.6;
+const L_UP=0.3, L_FORE=0.28, L_THIGH=0.47, L_SHIN=0.47, L_TORSO=0.55, HEAD_R=0.115, BONE_R=0.036;
+
+// ---------------------------------------------------------------- choreography (man)
+function manX(t){
+  if(t>=14.5){ const u=(t-16)/WIN; return XS-(XS-X0)*Math.pow(1-u,2); }       // re-entry = extension of the entry curve backwards: loop is C1-continuous
+  if(t<=WIN){ const u=t/WIN; return XS-(XS-X0)*Math.pow(1-u,2); }
+  if(t<9.4) return XS;
+  if(t<12.4) return lerp(XS,XB,sstep(9.4,11.4,t));
+  return lerp(XB,2.0,sstep(12.4,14.5,t));
+}
+const WW=[[0,1],[1.5,1],[2.0,0],[9.3,0],[9.5,0.9],[11.2,0.9],[11.5,0],[12.3,0],[12.6,1],[14.5,1],[16,1]];
+function walkAngles(phi){ const s=Math.sin(phi), c=Math.cos(phi); const A=0.42;
+  return {lnu:A*s, lnk:0.12+0.85*Math.max(0,c), lfu:-A*s, lfk:0.12+0.85*Math.max(0,-c), nu:-0.5*s, nf:0.45, fu:0.5*s, ff:0.45, lean:0.08}; }
+function manParams(t){
+  const x=manX(t), ww=keys(WW,t), phi=2*Math.PI*(x-X0)/STRIDE+PHI0; const w=walkAngles(phi);
+  const idle={lnu:keys([[5.6,0.04],[6.1,0.95],[9.2,0.95],[9.6,0.04]],t), lnk:keys([[5.6,0],[6.1,0.7],[9.2,0.7],[9.6,0]],t), lfu:-0.04, lfk:0,
+    nu:keys([[2.0,0.12],[2.8,0.12],[3.4,2.3],[4.3,2.3],[4.9,0.12]],t), nf:keys([[2.8,0.15],[3.5,0.5],[4.3,0.5],[4.9,0.15]],t), fu:-0.05, ff:0.1,
+    lean:keys([[2,0.05],[5.6,0.06],[6.4,0.2],[9.2,0.2],[9.6,0.05]],t)};
+  const P={x,tilt:keys([[3.6,0],[4.1,0.3],[4.9,0.3],[5.3,0]],t)};
+  for(const k of ['lnu','lnk','lfu','lfk','nu','nf','fu','ff','lean']) P[k]=lerp(idle[k],w[k],ww);
+  return P;
+}
+function ownParams(t){                              // the shadow's own script: sits, stands, walks away
+  const sit=keys([[9.4,0],[10.2,1],[11.8,1],[12.5,0]],t); const x=lerp(XS,1.3,sstep(12.4,14.2,t)); const ww=keys([[12.2,0],[12.6,1],[14.4,1]],t);
+  const phi=2*Math.PI*(x-X0)/STRIDE+PHI0; const w=walkAngles(phi);
+  const idle={lnu:1.5*sit+0.04*(1-sit), lnk:1.5*sit, lfu:1.5*sit-0.04*(1-sit), lfk:1.5*sit, nu:0.7*sit+0.12*(1-sit), nf:0.6*sit+0.15*(1-sit), fu:0.7*sit-0.05*(1-sit), ff:0.5*sit, lean:0.02};
+  const P={x,tilt:-0.35*sit};
+  for(const k of ['lnu','lnk','lfu','lfk','nu','nf','fu','ff','lean']) P[k]=lerp(idle[k],w[k],ww);
+  return P;
+}
+function lagAt(t){ return keys(TL.lag,t); }
+function shadowParams(t){ const a=manParams(Math.max(0,t-lagAt(t))); const w=sstep(EV.own[0],EV.own[0]+0.2,t)*(1-sstep(EV.own[1]-0.0,EV.own[1]+0.3,t)); if(w<=0) return a; const b=ownParams(t); const P={}; for(const k in a) P[k]=lerp(a[k],b[k],w); return P; }
+const ownW=t=>sstep(EV.own[0],EV.own[0]+0.2,t)*(1-sstep(EV.own[1],EV.own[1]+0.3,t));
+
+// ---------------------------------------------------------------- forward kinematics (profile, facing +x), y up
+const v=(a,l)=>[Math.sin(a)*l,-Math.cos(a)*l];
+function fk(P){
+  let H=[P.x,0]; const U=[Math.sin(P.lean),Math.cos(P.lean)];
+  const place=(H)=>{ const N=[H[0]+U[0]*L_TORSO,H[1]+U[1]*L_TORSO]; const Sh=[N[0]-U[0]*0.07,N[1]-U[1]*0.07];
+    const C=[N[0]+Math.sin(P.lean+P.tilt)*0.17,N[1]+Math.cos(P.lean+P.tilt)*0.17];
+    const add=(p,q)=>[p[0]+q[0],p[1]+q[1]];
+    const eN=add(Sh,v(P.nu,L_UP)), wN=add(eN,v(P.nu+P.nf,L_FORE)); const eF=add(Sh,v(P.fu,L_UP)), wF=add(eF,v(P.fu+P.ff,L_FORE));
+    const kN=add(H,v(P.lnu,L_THIGH)), aN=add(kN,v(P.lnu-P.lnk,L_SHIN)); const kF=add(H,v(P.lfu,L_THIGH)), aF=add(kF,v(P.lfu-P.lfk,L_SHIN));
+    return {H,N,Sh,C,eN,wN,eF,wF,kN,aN,kF,aF,fN:[aN[0]+0.15,aN[1]],fF:[aF[0]+0.15,aF[1]]}; };
+  let J=place(H); const low=Math.min(J.aN[1],J.aF[1],J.fN[1],J.fF[1]); H=[P.x,BONE_R-low]; return place(H);
+}
+const BONES=[['H','N',0],['Sh','eF',-1],['eF','wF',-1],['H','kF',-1],['kF','aF',-1],['aF','fF',-1],['Sh','eN',1],['eN','wN',1],['H','kN',1],['kN','aN',1],['aN','fN',1]];
+
+// ---------------------------------------------------------------- geometry sets
+const capGeo=new THREE.CylinderGeometry(1,1,1,14,1,false); const headGeo=new THREE.SphereGeometry(1,40,28); const jGeo=new THREE.SphereGeometry(1,14,10);
+const JOINTS=['H','N','eN','wN','eF','wF','kN','aN','kF','aF','fN','fF'];
+function makeSet(parent,mat){ const set={bones:[],joints:[],head:null};
+  const mk=(g,arr)=>{ const m=new THREE.Mesh(g,mat); m.matrixAutoUpdate=false; m.frustumCulled=false; parent.add(m); if(arr) arr.push(m); return m; };
+  for(let i=0;i<BONES.length;i++) mk(capGeo,set.bones); for(const j of JOINTS) mk(jGeo,set.joints); set.head=mk(headGeo,null); return set; }
+const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _p=new THREE.Vector3(), _s=new THREE.Vector3(), _e=new THREE.Euler();
+function setM(mesh,p,q,s){ _m.compose(p,q,s); mesh.matrix.copy(_m); mesh.matrixWorld.copy(_m); }
+function poseSet(set,J,zbase){
+  BONES.forEach((b,i)=>{ const p=J[b[0]], q=J[b[1]]; const dx=q[0]-p[0], dy=q[1]-p[1], L=Math.max(Math.hypot(dx,dy),0.001); const z=zbase+b[2]*0.07;
+    _p.set((p[0]+q[0])/2,(p[1]+q[1])/2,z); _q.setFromEuler(_e.set(0,0,-Math.atan2(dx,dy))); _s.set(BONE_R,L,BONE_R); setM(set.bones[i],_p,_q,_s); });
+  const zOf={H:0,N:0,eN:1,wN:1,eF:-1,wF:-1,kN:1,aN:1,kF:-1,aF:-1,fN:1,fF:-1};
+  JOINTS.forEach((j,i)=>{ _p.set(J[j][0],J[j][1],zbase+zOf[j]*0.07); setM(set.joints[i],_p,_q.identity(),_s.set(BONE_R,BONE_R,BONE_R)); });
+  setM(set.head,_p.set(J.C[0],J.C[1],zbase),_q.identity(),_s.set(HEAD_R,HEAD_R,HEAD_R));
+}
+
+// ---------------------------------------------------------------- room
+const wallMat=new THREE.MeshStandardMaterial({color:0x726c5f,roughness:0.97,metalness:0});
+const wall=new THREE.Mesh(new THREE.PlaneGeometry(14,8),wallMat); wall.position.set(0,3,0); scene.add(wall);
+const floorMat=new THREE.MeshStandardMaterial({color:0x2a3446,roughness:0.9,metalness:0});
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(14,14),floorMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,0,5); scene.add(floor);
+// the stickman
+const manMat=new THREE.MeshStandardMaterial({color:0xf2ecdc,roughness:0.55,emissive:0x3a362c,emissiveIntensity:0.55});
+const manGroup=new THREE.Group(); scene.add(manGroup); const manSet=makeSet(manGroup,manMat);
+
+// ---------------------------------------------------------------- lamp
+const spotL=new THREE.SpotLight(0xffd6a0,52,0,0.6,0.8,2); spotL.position.copy(LAMP); scene.add(spotL,spotL.target);
+const fillL=new THREE.PointLight(0x2a3d66,2.2,0,2); fillL.position.set(3,2.4,4); scene.add(fillL);
+scene.add(new THREE.AmbientLight(0x0b1020,0.3));
+const beamMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uA:{value:0.03}},
+ vertexShader:`varying vec2 vU; varying vec3 vN; varying vec3 vV; void main(){ vU=uv; vec4 mv=modelViewMatrix*vec4(position,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying vec2 vU; varying vec3 vN; varying vec3 vV; uniform float uA; void main(){ float e=pow(abs(dot(vN,vV)),1.4); float a=e*smoothstep(0.0,0.3,vU.y)*uA; gl_FragColor=vec4(vec3(1.0,0.86,0.62)*a,1.0);} `});
+const beam=new THREE.Mesh(new THREE.ConeGeometry(1,1,48,1,true),beamMat); scene.add(beam);
+
+// ---------------------------------------------------------------- shadow pipeline: mask -> blur -> composite
+const hw=Math.max(2,W>>1), hh=Math.max(2,H>>1);
+const rtOpt={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,type:THREE.UnsignedByteType,depthBuffer:false};
+const rtA=new THREE.WebGLRenderTarget(hw,hh,rtOpt), rtB=new THREE.WebGLRenderTarget(hw,hh,rtOpt);
+const shadowScene=new THREE.Scene();
+const shMat=new THREE.ShaderMaterial({side:THREE.DoubleSide,depthTest:false,depthWrite:false,transparent:false,blending:THREE.CustomBlending,blendEquation:THREE.MaxEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,
+ uniforms:{uL:{value:LAMP.clone()}},
+ vertexShader:`uniform vec3 uL; void main(){ vec3 P=(modelMatrix*vec4(position,1.0)).xyz; vec3 d=P-uL;
+   float tf=d.y<-1e-4?(0.0-uL.y)/d.y:1e9; float tw=d.z<-1e-4?(0.0-uL.z)/d.z:1e9; float t=max(1.0,min(tf,tw)); vec3 S=uL+d*t;
+   gl_Position=projectionMatrix*viewMatrix*vec4(S,1.0); }`,
+ fragmentShader:`void main(){ gl_FragColor=vec4(1.0,1.0,1.0,1.0); }`});
+const shadowGroup=new THREE.Group(); shadowScene.add(shadowGroup); const shSet=makeSet(shadowGroup,shMat);
+const quadScene=new THREE.Scene(); const quadCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const blurMat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{tD:{value:null},uDir:{value:new THREE.Vector2(1,0)},uPx:{value:new THREE.Vector2(1/hw,1/hh)},uR:{value:2.0}},
+ vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=vec4(position.xy,0.0,1.0);} `,
+ fragmentShader:`varying vec2 vU; uniform sampler2D tD; uniform vec2 uDir,uPx; uniform float uR; void main(){ float s=0.0,wt=0.0; for(int i=-6;i<=6;i++){ float w=exp(-float(i*i)/18.0); s+=texture2D(tD,vU+uDir*uPx*float(i)*uR).r*w; wt+=w; } gl_FragColor=vec4(vec3(s/wt),1.0);} `});
+const quadMesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),blurMat); quadScene.add(quadMesh);
+const compMat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,transparent:false,blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor,
+ uniforms:{tM:{value:rtA.texture},uRes:{value:new THREE.Vector2(W,H)},uA:{value:0.93}},
+ vertexShader:`void main(){ gl_Position=vec4(position.xy,0.0,1.0);} `,
+ fragmentShader:`uniform sampler2D tM; uniform vec2 uRes; uniform float uA; void main(){ float m=texture2D(tM,gl_FragCoord.xy/uRes).r; m=smoothstep(0.08,0.92,m); gl_FragColor=vec4(0.0,0.0,0.004,m*uA);} `});
+const comp=new THREE.Mesh(new THREE.PlaneGeometry(2,2),compMat); comp.frustumCulled=false; comp.renderOrder=5; scene.add(comp);
+// eyes on the shadow's head
+const eyeMat=new THREE.MeshBasicMaterial({color:0xfff3d8,blending:THREE.AdditiveBlending,transparent:false,depthWrite:false,depthTest:true});
+const eyes=[0,1].map(()=>{ const m=new THREE.Mesh(new THREE.CircleGeometry(1,24),eyeMat); m.renderOrder=6; m.frustumCulled=false; scene.add(m); return m; });
+function projectToWall(P,Lp){ const d=[P[0]-Lp.x,P[1]-Lp.y,P[2]-Lp.z]; const tf=d[1]<-1e-4?(0-Lp.y)/d[1]:1e9, tw=d[2]<-1e-4?(0-Lp.z)/d[2]:1e9; const t=Math.max(1,Math.min(tf,tw)); return {S:[Lp.x+d[0]*t,Lp.y+d[1]*t,Lp.z+d[2]*t],t,onFloor:tf<tw}; }
+
+// ---------------------------------------------------------------- motes (dust in the beam)
+const mN=700; const mg=new THREE.BufferGeometry(); const mp=new Float32Array(mN*3), ms=new Float32Array(mN*4);
+{ let s=11; const R=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}; for(let i=0;i<mN;i++){ mp[i*3]=(R()-0.5)*7; mp[i*3+1]=R()*3.5; mp[i*3+2]=R()*5.5; ms[i*4]=R()*6.283; ms[i*4+1]=0.1+R()*0.4; ms[i*4+2]=R(); ms[i*4+3]=R(); } }
+mg.setAttribute('position',new THREE.BufferAttribute(mp,3)); mg.setAttribute('aS',new THREE.BufferAttribute(ms,4));
+const motes=new THREE.Points(mg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ uniforms:{uT:{value:0},uL:{value:LAMP.clone()},uD:{value:new THREE.Vector3(1,0,-1)},uCos:{value:0.8},uI:{value:1},uK:{value:H/2/Math.tan(18*Math.PI/180)}},
+ vertexShader:`attribute vec4 aS; uniform float uT,uCos,uI,uK; uniform vec3 uL,uD; varying float vA;
+  void main(){ vec3 p=position+vec3(sin(uT*0.31+aS.x)*aS.y,sin(uT*0.23+aS.x*2.0)*aS.y*0.6,cos(uT*0.27+aS.x*1.3)*aS.y);
+   vec4 mv=modelViewMatrix*vec4(p,1.0); float c=dot(normalize(p-uL),uD);
+   vA=smoothstep(uCos-0.03,uCos+0.04,c)*uI*(0.3+0.7*aS.w); gl_PointSize=max(1.5,uK*0.011*(0.5+aS.z)/-mv.z); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying float vA; void main(){ float r=length(gl_PointCoord-0.5)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(vec3(1.0,0.88,0.66)*a*a*vA*0.8,1.0);} `}));
+motes.frustumCulled=false; scene.add(motes);
+
+// ---------------------------------------------------------------- post (same grade as the ball reel)
+const composer=new EffectComposer(renderer); composer.setSize(W,H);
+composer.addPass(new RenderPass(scene,cam));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),0.38,0.55,0.8));
+const gradeU={tDiffuse:{value:null},uT:{value:0},uPulse:{value:0},uFlash:{value:0},uAsp:{value:W/H}};
+composer.addPass(new ShaderPass({uniforms:gradeU,vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying vec2 vU; uniform sampler2D tDiffuse; uniform float uT,uPulse,uFlash,uAsp;
+  float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uT*37.0)*43758.5453); }
+  void main(){ vec2 c=vU-0.5; float r2=dot(c*vec2(uAsp,1.0),c*vec2(uAsp,1.0));
+   vec2 off=c*(0.0016+0.0016*uPulse)*(1.0+r2*4.0);
+   vec3 col=vec3(texture2D(tDiffuse,vU+off).r,texture2D(tDiffuse,vU).g,texture2D(tDiffuse,vU-off).b);
+   col=vec3(1.0)-exp(-1.25*col); col=mix(col,col*vec3(0.88,1.0,1.06),0.5);
+   float vig=1.0-smoothstep(0.10,0.46,r2*(1.0+0.45*uPulse))*(0.80+0.12*uPulse);
+   col*=vig; col+=(h(vU*vec2(uAsp,1.0)*900.0)-0.5)*0.035; col+=uFlash*vec3(0.9,0.95,1.0);
+   gl_FragColor=vec4(max(col,0.0),1.0);} `}));
+composer.addPass(new OutputPass());
+
+// ---------------------------------------------------------------- one sub-frame
+const TARGET=new THREE.Vector3(0.05,1.0,0.4);
+function lampLevel(t){ let I=1; const [s0,s1]=EV.stutter; if(t>s0&&t<s1){ const u=(t-s0)/(s1-s0); const f=Math.sin(t*83)+Math.sin(t*131+1.3); I*=(f>1.2-1.5*u)?0.12:1.0; } const d=t-EV.hit_reveal; if(d>=0&&d<0.12) I=0.0; return I; }
+function setT(t){
+  const p=pulse(t), L=lampLevel(t);
+  const Pm=manParams(t); const Jm=fk(Pm); poseSet(manSet,Jm,ZM);
+  const Ps=shadowParams(t); const Js=fk(Ps); poseSet(shSet,Js,ZM);
+  cam.position.set(0.05+0.015*Math.sin(t*0.7),1.3+0.01*Math.sin(t*1.1),5.8-0.25*sstep(2,9,t)+0.25*sstep(9.2,15,t)); cam.fov=36+0.3*p; cam.updateProjectionMatrix(); cam.lookAt(TARGET);
+  const ang=keys([[0,0.5],[8,0.36],[9.1,0.36],[11,0.44],[14,0.5],[16,0.5]],t);
+  spotL.target.position.set(-0.1,0.9,0.4); spotL.target.updateMatrixWorld(); spotL.angle=ang; spotL.intensity=52*L*(0.92+0.08*p);
+  const dir=spotL.target.position.clone().sub(LAMP).normalize(); const far=4.0; const rad=Math.tan(ang)*far;
+  beam.scale.set(rad,far,rad); beam.position.copy(LAMP.clone().addScaledVector(dir,far/2)); beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir); beamMat.uniforms.uA.value=0.035*L;
+  const mu=motes.material.uniforms; mu.uT.value=t; mu.uD.value.copy(dir); mu.uCos.value=Math.cos(ang); mu.uI.value=L;
+  // shadow mask -> blur -> composite texture
+  renderer.setRenderTarget(rtA); renderer.setClearColor(0x000000,0); renderer.clear(); renderer.render(shadowScene,cam);
+  quadMesh.material=blurMat; blurMat.uniforms.uR.value=2.4;
+  for(let it=0;it<2;it++){ blurMat.uniforms.tD.value=rtA.texture; blurMat.uniforms.uDir.value.set(1,0); renderer.setRenderTarget(rtB); renderer.render(quadScene,quadCam);
+    blurMat.uniforms.tD.value=rtB.texture; blurMat.uniforms.uDir.value.set(0,1); renderer.setRenderTarget(rtA); renderer.render(quadScene,quadCam); }
+  renderer.setRenderTarget(null); renderer.setClearColor(0x010206,1); compMat.uniforms.tM.value=rtA.texture; compMat.uniforms.uA.value=0.93*(0.15+0.85*L);   // the shadow dims with the lamp
+  // eyes on the shadow head (only while the shadow is its own thing, after the relight)
+  const ew=sstep(EV.relight,EV.relight+0.15,t)*(1-sstep(EV.own[1]-0.2,EV.own[1],t));
+  const pr=projectToWall([Js.C[0],Js.C[1]+0.01,ZM],LAMP); const k=pr.t;
+  eyes.forEach((e,i)=>{ e.visible=ew>0.01&&!pr.onFloor; e.position.set(pr.S[0]+(i?0.05:-0.05)*k, pr.S[1]+0.02*k, 0.012); const s=0.028*k*ew; e.scale.set(s,s*1.25,1); });
+  gradeU.uT.value=t; gradeU.uPulse.value=p; let fl=0; const d=t-EV.hit_reveal; if(d>0.12&&d<0.28) fl=0.10*(1-(d-0.12)/0.16); gradeU.uFlash.value=fl;
+}
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
+window.renderAt=function(t,K=3){
+  actx.globalAlpha=1; actx.clearRect(0,0,W,H); const shutter=1/60;
+  for(let k=0;k<K;k++){ setT(t+(K>1?(k/(K-1)-0.5)*shutter:0)); composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(renderer.domElement,0,0); }
+  return acc.toDataURL('image/jpeg',0.93);
+};
+window.ready=true;
+</script></body></html>

@@ -43,3 +43,10 @@ Hit and motion on frame 0; hook by 1.9 s; held-breath silence before the one big
 - Stickman must read at phone size: thick tubes, high contrast against the cream wall; QA by contact sheet at 1/4 size.
 - The late shadow must be visible but deniable: lag is eased in; check at 2 fps and 30 fps.
 - Planar projection with a close lamp distorts limbs; clamp lamp distance so the shadow stays legible.
+
+## As built (tools/shadow-stickman/)
+- Profile-view stickman (cylinders + joint spheres, FK rig with grounding), walk cycle tied to distance so feet match the ground speed. Shadow = same skeleton projected from the lamp onto the first plane the ray hits (wall or floor), rendered to a mask, gaussian-blurred for the penumbra, composited under the man. At 9.12 s two glowing eyes appear on the shadow's head.
+- Loop: the entry curve is extended backwards for the re-entry (14.5-16 s), so position, stride phase and velocity at 16 s equal frame 0; both man and shadow are off-screen while the scripted shadow hands back to the copy at 14.4-14.7.
+- Extra caption added: IT IS LOOKING AT YOU. (9.5-12.4 s). Chip: WATCHING -> WATCHED at 9.0 s; stopwatch leaves at 10.6-11.0 s.
+- Result: 16 s, -16.5 LUFS, true peak -1.6 dBFS after AAC, 6.8 MB.
+- Rebuild: same as the ball reel (`node render.js 720 1280 $FRAMES $o 480 4` x4 workers, then `FRAMES=$FRAMES OUT=shadow_stickman.mp4 ./build.sh`), about 15 min on 4 CPUs.

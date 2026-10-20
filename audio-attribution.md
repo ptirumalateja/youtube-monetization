@@ -75,3 +75,7 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 ## 6. The Ball That Never Falls
 
 No third-party audio. Every sound (heartbeat, drone, creaks, hits, riser, loop tone) is synthesised in `tools/ball-never-falls/mix.py`, so no credit line or licence entry is needed.
+
+## 7. The Shadow That Stops Copying
+
+No third-party audio. Every sound is synthesised in `tools/shadow-stickman/mix.py`; no credit line or licence entry is needed.
