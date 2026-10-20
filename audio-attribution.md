@@ -71,3 +71,7 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+## 6. The Ball That Never Falls
+
+No third-party audio. Every sound (heartbeat, drone, creaks, hits, riser, loop tone) is synthesised in `tools/ball-never-falls/mix.py`, so no credit line or licence entry is needed.

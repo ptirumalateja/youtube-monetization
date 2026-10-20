@@ -1,0 +1,190 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// The Ball That Never Falls: a ball teeters on the rim of a bottomless pit that is really a flat anamorphic
+// painting on the floor. The floor shader ray-casts a virtual shaft from a fixed viewpoint V, so the pit is
+// perfect from V and smears flat when the camera swings away. Deterministic: renderAt(t) is a pure function of t.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const TL=await (await fetch('timeline.json')).json(); const T=TL.T;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x010206);
+const cam=new THREE.PerspectiveCamera(42,W/H,0.05,200);
+const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(new RoomEnvironment(),0.04).texture; scene.environmentIntensity=0.05;
+
+// ---------------------------------------------------------------- helpers
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)); const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t)};
+const lerp=(a,b,t)=>a+(b-a)*t;
+function keys(k,t){ if(t<=k[0][0])return k[0][1]; for(let i=1;i<k.length;i++){ if(t<=k[i][0]){ const u=(t-k[i-1][0])/(k[i][0]-k[i-1][0]); const s=u*u*(3-2*u); return lerp(k[i-1][1],k[i][1],s);} } return k[k.length-1][1]; }
+// heartbeat phase = integral of bpm/60 (table)
+const HB=[]; {let ph=0; const n=T*600; for(let i=0;i<=n;i++){ HB.push(ph); ph+=keys(TL.hb_bpm,i/600)/60/600; }}
+const hbPhase=t=>HB[Math.min(HB.length-1,Math.max(0,Math.round(t*600)))];
+function pulse(t){ const f=hbPhase(t)%1; return Math.exp(-f*11)+0.55*Math.exp(-Math.pow((f-0.2)*9,2)); }
+
+// ---------------------------------------------------------------- world constants
+const HOLE=1.6, DEPTH=9.0, BALL_R=0.36;
+const TARGET=new THREE.Vector3(0.3,0.05,0.75);
+const C0=new THREE.Vector3(1.3,3.1,4.9); const R0=C0.length(), AZ0=Math.atan2(C0.x,C0.z), EL0=Math.asin(C0.y/R0);
+const [SW0,SW1]=TL.events.swing, [RT0,RT1]=TL.events.return;
+function rV(t){ return keys([[0,R0],[11.3,R0*0.8],[15.4,R0*0.8],[20,R0]],t); }       // dolly of the painting viewpoint
+function orbit(r,az,el){ return new THREE.Vector3(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el)).multiplyScalar(r).add(TARGET); }
+function swing(t){ return sstep(SW0,SW1,t)*(1-sstep(RT0,RT1,t)); }
+function camState(t){
+  const s=swing(t); const r=rV(t);
+  const drift=[Math.sin(t*0.9*2*Math.PI/T*1.0)*0.012,Math.sin(t*1.3*2*Math.PI/T*2.0)*0.008];
+  const az=AZ0+drift[0]+s*2.15, el=EL0+drift[1]+s*0.62, rr=r+s*2.4;
+  return {pos:orbit(rr,az,el), V:orbit(r,AZ0,EL0)};
+}
+function ballState(t){
+  let z=keys(TL.ball_z,t); const wob=sstep(7.5,10.4,t)*(1-sstep(10.45,10.6,t));
+  z+=wob*0.006*Math.sin(t*47)+wob*0.004*Math.sin(t*23.0);
+  return {z,x:0.0};
+}
+function lightState(t){
+  const s=swing(t); const ball=ballState(t);
+  let ang=keys([[0,0.46],[6,0.36],[10,0.27],[11.3,0.25],[13.2,0.8],[15.4,0.8],[19,0.46],[20,0.46]],t);
+  let I=1.0; const fl=TL.events.lurch; const d=t-fl; if(d>-0.02&&d<0.45){ I*=0.12+0.88*sstep(0.05,0.42,d); if(d<0.06) I=Math.min(I,0.5+0.5*Math.sin(d*300)); }
+  I*=0.97+0.03*Math.sin(t*61);
+  const sway=0.25*Math.sin(t*0.55)*(1-s);
+  return {ang,I,tx:lerp(0.15+sway,ball.x,0.6),tz:lerp(0.9,ball.z,0.55)};
+}
+
+// ---------------------------------------------------------------- floor with the anamorphic pit
+const floorU={uV:{value:new THREE.Vector3()},uBall:{value:new THREE.Vector3()},uL:{value:new THREE.Vector3(-2.2,8.5,3.2)},
+  uLDir:{value:new THREE.Vector3(0,-1,0)},uCos:{value:0.9},uI:{value:1},uTime:{value:0},uPulse:{value:0}};
+const floorMat=new THREE.ShaderMaterial({uniforms:floorU,vertexShader:`varying vec3 vP; void main(){ vP=(modelMatrix*vec4(position,1.0)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.0);} `,
+ fragmentShader:`varying vec3 vP; uniform vec3 uV,uBall,uL,uLDir; uniform float uCos,uI,uTime,uPulse;
+  const float HH=${HOLE.toFixed(3)}, DD=${DEPTH.toFixed(3)}, BR=${BALL_R.toFixed(3)};
+  float h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+  float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y); }
+  float spot(vec3 P){ vec3 d=normalize(P-uL); float c=dot(d,uLDir); return smoothstep(uCos-0.045,uCos+0.05,c); }
+  void main(){
+    vec3 P=vP; vec3 col; vec3 tint=vec3(0.82,0.88,1.0);
+    bool inside = abs(P.x)<HH && abs(P.z)<HH;
+    float rim=min(HH-abs(P.x),HH-abs(P.z));            // >0 inside
+    if(inside){
+      vec3 d=normalize(P-uV); float tmin=1e9; int face=0; float tb=(-DD-P.y)/d.y;
+      float tx= d.x>0.0 ? (HH-P.x)/d.x : (-HH-P.x)/d.x; float tz= d.z>0.0 ? (HH-P.z)/d.z : (-HH-P.z)/d.z;
+      if(d.y>-0.0001){ tb=1e9; }
+      float t=tb; face=0; if(tx<t){t=tx;face=1;} if(tz<t){t=tz;face=2;}
+      vec3 H=P+d*t; float depth=-H.y;
+      float fade=exp(-depth*1.4);
+      float u = face==1 ? H.z : H.x;
+      float gx=abs(fract(u/0.4+0.5)-0.5)*0.4, gy=abs(fract(depth/0.4+0.5)-0.5)*0.4;
+      float aa=0.012+0.006*t; float line=max(1.0-smoothstep(0.0,aa*2.0,gx),1.0-smoothstep(0.0,aa*2.0,gy));
+      if(face==0){ line=0.0; }
+      float wall = face==1 ? 0.78 : 1.0;
+      vec3 base=vec3(0.010,0.018,0.030)*(0.7+0.5*vn(H.xy*3.0+H.zz*2.0));
+      col=(base+vec3(0.05,0.70,0.64)*line*0.9)*wall*fade;
+      col*=0.55+0.45*uI;
+      // lit rim lip, painted at the rim boundary
+      float lip=1.0-smoothstep(0.0,0.05,rim);
+      col+=vec3(0.95,0.82,0.62)*lip*0.42*(0.35+spot(P)*1.4)*uI;
+      // thin dark line just inside the lip gives the pit an edge
+      col*=mix(1.0,0.35,smoothstep(0.05,0.0,rim-0.05)*step(0.0,rim-0.05));
+    } else {
+      float r=length(P.xz);
+      vec2 tp=P.xz; vec2 g=abs(fract(tp+0.5)-0.5); float seam=1.0-smoothstep(0.0,0.012+0.004*length(P-uV)*0.15,min(g.x,g.y));
+      float n=vn(tp*7.0)*0.6+vn(tp*23.0)*0.4;
+      vec3 conc=vec3(0.030,0.036,0.050)*(0.55+0.7*n);
+      conc=mix(conc,vec3(0.015,0.02,0.03),seam*0.85);
+      float amb=0.035*exp(-r*0.30);
+      float sp=spot(P)*uI;
+      // soft sphere shadow + contact darkening (only on real floor, outside the painted pit)
+      vec3 toL=normalize(uL-P); vec3 bc=uBall; vec3 oc=bc-P; float tc=dot(oc,toL); float dist=length(oc-toL*tc);
+      float sh=(tc>0.0)? smoothstep(BR*0.6,BR*1.7,dist):1.0;
+      float ao=1.0-0.75*exp(-pow(length(P.xz-bc.xz)/0.62,2.0));
+      float lum=amb+sp*0.95*sh;
+      col=conc*lum*ao*tint*1.3;
+      // rim bevel highlight right outside the edge
+      float lip=1.0-smoothstep(0.0,0.06,-rim);
+      col+=vec3(0.8,0.7,0.55)*lip*0.12*(0.3+sp);
+      col+=vec3(0.02,0.05,0.06)*uPulse*0.5*exp(-r*0.3);
+    }
+    gl_FragColor=vec4(col,1.0); }`});
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(80,80),floorMat); floor.rotation.x=-Math.PI/2; scene.add(floor);
+
+// ---------------------------------------------------------------- ball (banded so the roll is readable)
+function ballTex(){ const cv=document.createElement('canvas'); cv.width=1024; cv.height=512; const x=cv.getContext('2d');
+  x.fillStyle='#d9cfbe'; x.fillRect(0,0,1024,512);
+  for(let i=0;i<4000;i++){ x.fillStyle=`rgba(${120+Math.random()*60|0},${110+Math.random()*50|0},${95+Math.random()*50|0},0.05)`; x.fillRect(Math.random()*1024,Math.random()*512,2,2); }
+  x.fillStyle='#16313a'; for(const u of [0.0,0.5]){ x.fillRect(u*1024-14,0,28,512); }
+  x.fillStyle='#16313a'; x.fillRect(0,236,1024,40);
+  x.fillStyle='#c9972f'; x.beginPath(); x.arc(256,256,34,0,7); x.fill(); x.beginPath(); x.arc(768,256,34,0,7); x.fill();
+  const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; }
+const ball=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,96,64),new THREE.MeshStandardMaterial({map:ballTex(),roughness:0.30,metalness:0.0}));
+scene.add(ball);
+
+// ---------------------------------------------------------------- lights, beam, motes
+const spotL=new THREE.SpotLight(0xffe2b8,330,0,0.5,0.55,2); spotL.position.set(-2.2,8.5,3.2); scene.add(spotL,spotL.target);
+const rimL=new THREE.PointLight(0x2fb8b0,6,0,2); rimL.position.set(2.8,1.4,-3.4); scene.add(rimL);
+const fillL=new THREE.PointLight(0x405a8a,2,0,2); fillL.position.set(-3,2.2,5); scene.add(fillL);
+const beamMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uA:{value:0.07},uT:{value:0}},
+ vertexShader:`varying vec2 vU; varying vec3 vN; varying vec3 vV; void main(){ vU=uv; vec4 mv=modelViewMatrix*vec4(position,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying vec2 vU; varying vec3 vN; varying vec3 vV; uniform float uA,uT; void main(){ float e=pow(abs(dot(vN,vV)),1.4); float a=e*(1.0-vU.y*0.0)*smoothstep(0.0,0.25,vU.y)*uA; gl_FragColor=vec4(vec3(1.0,0.88,0.68)*a,1.0);} `});
+const beam=new THREE.Mesh(new THREE.ConeGeometry(1,1,48,1,true),beamMat); scene.add(beam);
+const mN=900; const mg=new THREE.BufferGeometry(); const mp=new Float32Array(mN*3), ms=new Float32Array(mN*4);
+{ let s=7; const R=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}; for(let i=0;i<mN;i++){ mp[i*3]=(R()-0.5)*8; mp[i*3+1]=R()*7.5; mp[i*3+2]=(R()-0.5)*8; ms[i*4]=R()*6.283; ms[i*4+1]=0.1+R()*0.5; ms[i*4+2]=R(); ms[i*4+3]=R(); } }
+mg.setAttribute('position',new THREE.BufferAttribute(mp,3)); mg.setAttribute('aS',new THREE.BufferAttribute(ms,4));
+const motes=new THREE.Points(mg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ uniforms:{uT:{value:0},uL:{value:new THREE.Vector3()},uD:{value:new THREE.Vector3(0,-1,0)},uCos:{value:0.9},uI:{value:1},uK:{value:H/2/Math.tan(21*Math.PI/180)}},
+ vertexShader:`attribute vec4 aS; uniform float uT,uCos,uI,uK; uniform vec3 uL,uD; varying float vA;
+  void main(){ vec3 p=position+vec3(sin(uT*0.31+aS.x)*aS.y,sin(uT*0.23+aS.x*2.0)*aS.y*0.6-uT*0.02*aS.z,cos(uT*0.27+aS.x*1.3)*aS.y);
+   p.y=mod(p.y+8.0,8.0); vec4 mv=modelViewMatrix*vec4(p,1.0); float c=dot(normalize(p-uL),uD);
+   vA=smoothstep(uCos-0.03,uCos+0.04,c)*uI*(0.35+0.65*aS.w); gl_PointSize=max(1.5,uK*0.012*(0.5+aS.z)/-mv.z); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying float vA; void main(){ float r=length(gl_PointCoord-0.5)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(vec3(1.0,0.9,0.72)*a*a*vA*0.8,1.0);} `}));
+motes.frustumCulled=false; scene.add(motes);
+
+// ---------------------------------------------------------------- post
+const composer=new EffectComposer(renderer); composer.setSize(W,H);
+composer.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.4,0.55,0.8); composer.addPass(bloom);
+const gradeU={tDiffuse:{value:null},uT:{value:0},uPulse:{value:0},uFlash:{value:0},uAsp:{value:W/H}};
+composer.addPass(new ShaderPass({uniforms:gradeU,vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying vec2 vU; uniform sampler2D tDiffuse; uniform float uT,uPulse,uFlash,uAsp;
+  float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uT*37.0)*43758.5453); }
+  void main(){ vec2 c=vU-0.5; float r2=dot(c*vec2(uAsp,1.0),c*vec2(uAsp,1.0));
+   vec2 off=c*(0.0016+0.0016*uPulse)*(1.0+r2*4.0);
+   vec3 col=vec3(texture2D(tDiffuse,vU+off).r,texture2D(tDiffuse,vU).g,texture2D(tDiffuse,vU-off).b);
+   col=vec3(1.0)-exp(-1.25*col);                       // soft clamp
+   col=mix(col,col*vec3(0.88,1.0,1.06),0.6);           // cool shadows
+   float vig=1.0-smoothstep(0.10,0.46+0.0*uPulse,r2*(1.0+0.9*uPulse*0.5))*(0.78+0.14*uPulse);
+   col*=vig; col+=(h(vU*vec2(uAsp,1.0)*900.0)-0.5)*0.035; col+=uFlash*vec3(0.9,0.95,1.0);
+   gl_FragColor=vec4(max(col,0.0),1.0);} `}));
+composer.addPass(new OutputPass());
+
+// ---------------------------------------------------------------- one sub-frame
+function setT(t){
+  const cs=camState(t), b=ballState(t), L=lightState(t), p=pulse(t), s=swing(t);
+  cam.position.copy(cs.pos); cam.fov=42+0.35*p; cam.updateProjectionMatrix();
+  cam.lookAt(TARGET.x,TARGET.y+0.05*Math.sin(t*0.4),TARGET.z);
+  // ball: roll with its travel, plus a tiny teeter tilt
+  const bz=b.z; ball.position.set(b.x,BALL_R,bz); ball.rotation.set((bz-1.4)/BALL_R*-1.0,0.35,0.0);
+  const wob=sstep(7.5,10.4,t)*(1-sstep(10.45,10.6,t)); ball.rotation.z=wob*0.02*Math.sin(t*19);
+  const target=new THREE.Vector3(L.tx,0,L.tz); spotL.target.position.copy(target); spotL.angle=L.ang; spotL.intensity=330*L.I*(0.9+0.1*p); spotL.target.updateMatrixWorld();
+  const dir=target.clone().sub(spotL.position).normalize();
+  floorU.uV.value.copy(cs.V); floorU.uBall.value.copy(ball.position); floorU.uLDir.value.copy(dir); floorU.uCos.value=Math.cos(L.ang); floorU.uI.value=L.I*(0.92+0.08*p); floorU.uTime.value=t; floorU.uPulse.value=p;
+  const h=spotL.position.distanceTo(target); beam.scale.set(Math.tan(L.ang)*h,h,Math.tan(L.ang)*h);
+  beam.position.copy(spotL.position.clone().add(target).multiplyScalar(0.5)); beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir);
+  beamMat.uniforms.uA.value=0.012*L.I*(0.85+0.2*p);
+  const mu=motes.material.uniforms; mu.uT.value=t; mu.uL.value.copy(spotL.position); mu.uD.value.copy(dir); mu.uCos.value=Math.cos(L.ang); mu.uI.value=L.I;
+  rimL.intensity=6*(0.7+0.3*p)*(1-0.5*s); gradeU.uT.value=t; gradeU.uPulse.value=p;
+  let fl=0; const e=TL.events.hit_reveal, d=t-e; if(d>0&&d<0.16) fl=0.10*(1-d/0.16); gradeU.uFlash.value=fl;   // 10% max flash
+}
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
+window.renderAt=function(t,K=3){
+  actx.globalAlpha=1; actx.clearRect(0,0,W,H);
+  const shutter=1/60;
+  for(let k=0;k<K;k++){ setT(t+(K>1?(k/(K-1)-0.5)*shutter:0)); composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(renderer.domElement,0,0); }
+  return acc.toDataURL('image/jpeg',0.93);
+};
+window.beatTimes=()=>{ const out=[]; let last=-1; for(let i=0;i<=T*600;i++){ const f=Math.floor(HB[i]); if(f>last){ last=f; out.push(+(i/600).toFixed(3)); } } return out; };
+window.ready=true;
+</script></body></html>
