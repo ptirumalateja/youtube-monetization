@@ -43,7 +43,7 @@ def frame(fi):
     s, a = typed(TX['hook'], t)
     if s and a > 0: text_block(d, s, font(64), W / 2, 380, 940, a, full=TX['hook']['s'])
     # reveal captions + end line
-    for k, y, sz in (('reveal1', 380, 64), ('end', 380, 64)):
+    for k, y, sz in (('reveal1', 1450, 64), ('end', 1450, 64)):
         s, a = typed(TX[k], t)
         if s and a > 0: text_block(d, s, font(sz), W / 2, y, 960, a, full=TX[k]['s'])
     return img, t
