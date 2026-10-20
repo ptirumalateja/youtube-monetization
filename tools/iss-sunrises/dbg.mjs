@@ -1,0 +1,5 @@
+import {chromium} from 'playwright-core'; import {createServer} from 'node:http'; import {readFile} from 'node:fs/promises'; import path from 'node:path';
+const root=path.dirname(new URL(import.meta.url).pathname); const server=createServer(async(q,r)=>{try{const p=new URL(q.url,'http://x').pathname; const f=path.join(root,p==='/'?'index.html':p); r.setHeader('Content-Type',f.endsWith('.js')||f.endsWith('.mjs')?'text/javascript':'text/html'); r.end(await readFile(f));}catch{r.writeHead(404).end();}}); await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const b=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--use-angle=metal']}); const pg=await b.newPage({viewport:{width:1080,height:1920}}); pg.on('pageerror',e=>console.log(e.message));
+await pg.goto(`http://127.0.0.1:${server.address().port}/index.html?${process.env.Q||''}`); await pg.waitForFunction(()=>window.ready===true);
+console.log(await pg.evaluate(process.argv[2])); await b.close(); server.close();

@@ -60,6 +60,8 @@ Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin
 
 Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, choir pad, pings, risers, whooshes, ticks) and needs no credit.
 
+**16 Sunrises a Day (ISS):** no third-party audio. The whole score is synthesised in `tools/iss-sunrises/synth.mjs` (glass FM bells, noise whooshes, impacts, drone, pads), so no credit line is needed.
+
 ## 4. Not used in the final cuts
 
 - hykenfreak Transformers SFX: not in either final mix; no credit needed unless it is added later (check its licence first).
