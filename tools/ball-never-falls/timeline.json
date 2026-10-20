@@ -146,5 +146,90 @@
    ]
   }
  },
- "counter_label_switch": 12.7
+ "counter_label_switch": 12.7,
+ "cut": {
+  "T": 16.0,
+  "warp": [
+   [
+    0,
+    0
+   ],
+   [
+    7.8,
+    9.7
+   ],
+   [
+    8.5,
+    10.5
+   ],
+   [
+    9.2,
+    11.3
+   ],
+   [
+    11.4,
+    13.7
+   ],
+   [
+    12.8,
+    15.4
+   ],
+   [
+    16.0,
+    20.0
+   ]
+  ],
+  "counter_label_switch": 9.4,
+  "counter_out": [
+   10.6,
+   11.0
+  ],
+  "text": {
+   "hook": {
+    "s": "THIS BALL IS ABOUT TO FALL.",
+    "t0": 0.1,
+    "t1": 1.4,
+    "out": [
+     2.6,
+     3.0
+    ]
+   },
+   "reveal1": {
+    "s": "THERE IS NO HOLE.",
+    "t0": 9.9,
+    "t1": 10.6,
+    "out": [
+     12.4,
+     12.7
+    ]
+   },
+   "reveal2": {
+    "s": "IT IS PAINTED ON THE FLOOR.",
+    "t0": 10.7,
+    "t1": 11.7,
+    "out": [
+     12.4,
+     12.7
+    ]
+   },
+   "end": {
+    "s": "YOUR BRAIN FILLED IN THE DEPTH.",
+    "t0": 12.9,
+    "t1": 14.2,
+    "out": [
+     15.2,
+     15.6
+    ]
+   },
+   "tag": {
+    "s": "SLOW LIGHT",
+    "t0": 0.0,
+    "t1": 0.4,
+    "out": [
+     15.2,
+     15.6
+    ]
+   }
+  }
+ }
 }

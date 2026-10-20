@@ -2,7 +2,10 @@
 # one big reveal hit, creaks, riser/whoosh, loop-link tone. No samples are used, so no licence credits are needed.
 # usage: python3 mix.py out.wav
 import json, sys, wave, numpy as np
-SR = 48000; TL = json.load(open('timeline.json')); T = TL['T']; N = int(SR * T); EV = TL['events']
+from cut import CUT, old_of_new, new_of_old
+SR = 48000; TL = json.load(open('timeline.json')); T = CUT['T']; N = int(SR * T)
+EVO = TL['events']   # master (20 s) times; EV is the same events on the 16 s cut
+EV = {k: (new_of_old(np.array(v)).tolist() if isinstance(v, list) else float(new_of_old(v))) for k, v in EVO.items()}
 rng = np.random.default_rng(7)
 def db(g): return 10 ** (g / 20)
 def tt(d): return np.arange(int(d * SR)) / SR
@@ -27,31 +30,32 @@ def reverb(x, rt=2.2, mix=0.35):
 # ---- heartbeat: beat times from the same bpm keys the scene uses
 def beat_times():
     out, ph, last = [], 0.0, -1
-    for i in range(int(T * 600) + 1):
+    for i in range(int(TL['T'] * 600) + 1):
         ph += keys(TL['hb_bpm'], i / 600) / 60 / 600
         if int(ph) > last: last = int(ph); out.append(i / 600)
     return out
 def thump(f0, d, g):
     t = tt(d); f = f0 * (1 + 1.6 * np.exp(-t * 38)); x = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 17)
     return (x + 0.25 * np.tanh(3 * x)) * g
-sil0, sil1 = EV['silence']
+sil0, sil1 = EVO['silence']
 for b in beat_times():
     if sil0 <= b < sil1 or b > 12.0 and b < 16.2: continue
-    gain = keys([[0, -13], [9, -5], [11.3, -2], [12, -14], [20, -13]], b)
+    bo, b = b, float(new_of_old(b))
+    gain = keys([[0, -13], [9, -5], [11.3, -2], [12, -14], [20, -13]], bo)
     place('beat', thump(86, 0.38, 1.0), b, gain)
-    place('beat', thump(64, 0.34, 0.8), b + 0.2 - 0.04 * min(1, b / 10), gain - 4)
+    place('beat', thump(64, 0.34, 0.8), b + 0.2 - 0.04 * min(1, bo / 10), gain - 4)
     place('beat', hp(noise(0.02), 1500) * np.exp(-tt(0.02) * 200), b, gain - 14)
 
 # ---- drone bed: low harmonics (90-400 Hz so phones play it) that rise in pitch toward the reveal
 def drone():
-    t = tt(T); f = keys([[0, 62], [8, 66], [11.3, 76], [12.5, 55], [20, 62]], t); ph = 2 * np.pi * np.cumsum(f) / SR
+    t = tt(T); to = old_of_new(t); f = keys([[0, 62], [8, 66], [11.3, 76], [12.5, 55], [20, 62]], to); ph = 2 * np.pi * np.cumsum(f) / SR
     x = sum(np.sin(k * ph + k) * a for k, a in [(2, 1.0), (3, 0.7), (4, 0.45), (6, 0.25)]) + 0.5 * np.sin(ph)
-    x = x * (1 + 0.18 * np.sin(2 * np.pi * 0.23 * t)); a = keys([[0, 0.5], [6, 0.8], [9.7, 1.0], [10.5, 0.0], [11.3, 0.0], [12.5, 0.55], [16, 0.5], [20, 0.5]], t)
+    x = x * (1 + 0.18 * np.sin(2 * np.pi * 0.23 * t)); a = keys([[0, 0.5], [6, 0.8], [9.7, 1.0], [10.5, 0.0], [11.3, 0.0], [12.5, 0.55], [16, 0.5], [20, 0.5]], to)
     return hp(x, 85) * a
 place('bed', drone() * 0.35, 0, -3)
 # anxiety shimmer: rising sine pair with tremolo, only before the held breath, plus a thin high tone
-t = tt(T); fr = keys([[0, 520], [9.7, 1650], [20, 520]], t); sh = np.sin(2 * np.pi * np.cumsum(fr) / SR) * np.sin(2 * np.pi * keys([[0, 3], [9.7, 11]], t) * t) ** 2
-sh *= keys([[0, 0.0], [1.5, 0.0], [4, 0.2], [9.5, 0.55], [9.7, 0.0], [20, 0.0]], t); place('air', sh * 0.12, 0, -8)
+t = tt(T); to = old_of_new(t); fr = keys([[0, 520], [9.7, 1650], [20, 520]], to); sh = np.sin(2 * np.pi * np.cumsum(fr) / SR) * np.sin(2 * np.pi * keys([[0, 3], [9.7, 11]], to) * t) ** 2
+sh *= keys([[0, 0.0], [1.5, 0.0], [4, 0.2], [9.5, 0.55], [9.7, 0.0], [20, 0.0]], to); place('air', sh * 0.12, 0, -8)
 
 # ---- creaks as the ball inches forward
 def creak(d, f0, g=1.0):
@@ -59,7 +63,7 @@ def creak(d, f0, g=1.0):
     x = (np.sign(np.sin(ph)) * 0.4 + np.sin(2 * ph) * 0.3) * (0.6 + 0.4 * noise(d)) * np.sin(np.pi * t / d) ** 2
     return bp(x, 220, 2400) * g
 for at, f0, d, g in [(3.4, 330, 0.9, -14), (5.6, 360, 1.1, -12), (7.2, 420, 1.0, -11), (8.6, 470, 0.8, -10), (9.3, 520, 0.5, -10)]:
-    place('sfx', creak(d, f0), at, g)
+    place('sfx', creak(d, f0), float(new_of_old(at)), g)
 
 # ---- hits
 def crack(d=0.25): t = tt(d); return hp(noise(d), 2000) * np.exp(-t * 28)
@@ -80,7 +84,7 @@ sw = hp(noise(0.8), 300) * np.linspace(0, 1, int(0.8 * SR)) ** 2.2; place('sfx',
 # camera swing whoosh and calm after the reveal
 sw0, sw1 = EV['swing']; d = sw1 - sw0 + 0.6; t = tt(d); w = noise(d)
 w = bp(w, 200, 3000) * np.sin(np.pi * np.minimum(1, t / d * 1.05)) ** 1.5 * (0.4 + 0.6 * np.exp(-t * 0.8)); place('sfx', w, sw0, -9)
-gl = sum(np.sin(2 * np.pi * f * tt(3.5)) * np.exp(-tt(3.5) * 1.3) * a for f, a in [(784, 0.6), (1175, 0.4), (1568, 0.25)]); place('air', reverb(gl, 2.5, 0.5) * 0.35, 12.7, -9)
+gl = sum(np.sin(2 * np.pi * f * tt(3.5)) * np.exp(-tt(3.5) * 1.3) * a for f, a in [(784, 0.6), (1175, 0.4), (1568, 0.25)]); place('air', reverb(gl, 2.5, 0.5) * 0.35, float(new_of_old(12.7)), -9)
 # return riser (reverse feel), landing already placed above
 r0, r1 = EV['return']; d = r1 - r0; t = tt(d); ri = bp(noise(d), 400, 4500) * (t / d) ** 2.6 + 0.4 * np.sin(2 * np.pi * np.cumsum(keys([[0, 140], [d, 520]], t)) / SR) * (t / d) ** 2; place('sfx', ri, r0, -12)
 # loop link: rising tone + crackle into frame 0

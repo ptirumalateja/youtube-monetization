@@ -1,9 +1,10 @@
 # Draws hook, stopwatch, reveal captions and the end line into an RGBA PNG .mov (1080x1920, 30 fps).
 # usage: python3 overlay.py out.mov
 import json, subprocess, sys
+from cut import CUT
 from PIL import Image, ImageDraw, ImageFont
 W, H, FPS = 1080, 1920, 30
-TL = json.load(open('timeline.json')); T = TL['T']; TX = TL['text']
+TL = json.load(open('timeline.json')); T = CUT['T']; TX = CUT['text']
 CREAM = (244, 232, 210); RED = (214, 62, 48); BLACK = (0, 0, 0)
 F = '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
 def font(n): return ImageFont.truetype(F, n)
@@ -35,9 +36,11 @@ def text_block(d, s, f, cx, y, maxw, alpha, spacing=1.18, full=None):
 def frame(fi):
     t = fi / FPS
     img = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
-    fo = 1.0 - min(1.0, max(0.0, (t - 19.3) / 0.5))                       # everything clears before the loop point
+    fo = 1.0 - min(1.0, max(0.0, (t - (T - 0.7)) / 0.5))                  # everything clears before the loop point
+    co = 1.0 - min(1.0, max(0.0, (t - CUT['counter_out'][0]) / (CUT['counter_out'][1] - CUT['counter_out'][0])))   # stopwatch leaves at the reveal
+    fo *= co
     # stopwatch: one monotonic odometer; label flips at the reveal
-    lab = 'ON THE EDGE' if t < TL['counter_label_switch'] else 'ON THE FLOOR'
+    lab = 'ON THE EDGE' if t < CUT['counter_label_switch'] else 'ON THE FLOOR'
     cf = font(27); cw = d.textlength(lab, font=cf) + 44
     chip = Image.new('RGBA', (W, H), (0, 0, 0, 0)); cd = ImageDraw.Draw(chip)
     cd.rounded_rectangle((W / 2 - cw / 2, 150, W / 2 + cw / 2, 198), 8, fill=RED + (int(235 * fo),))
