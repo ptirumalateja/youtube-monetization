@@ -1,0 +1,17 @@
+{
+  "name": "slow-light-sleep-paralysis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "node src/render.js --serve",
+    "stills": "node src/render.js --stills",
+    "render": "node src/render.js",
+    "opening:stills": "node src/render.js --opening --stills",
+    "opening:render": "node src/render.js --opening"
+  },
+  "dependencies": {
+    "playwright-core": "^1.56.1",
+    "three": "^0.170.0"
+  }
+}
