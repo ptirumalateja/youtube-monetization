@@ -110,3 +110,6 @@ v6 was a 512x910 procedural render upscaled 2x (hence soft). v7 redraws everythi
 
 ## Reel v9 (24.77 s): voice-over and retiming
 Voice: Higgsfield preset "Fraser" via the ElevenLabs engine (text2speech_v2). Lines: "One species. Paused." | "Six hundred and ten thousand deaths. In twenty twenty-four." (x1.25) | "Transmission interrupted." | "The night goes quiet." | "A food source disappears." | "A pollinator. Forgotten." | "Would you erase them?". Retiming of the v8 frames (build_reel2.py, retime_audio.py): freeze on the empty sky 0.6 s after the swarm falls; Earth section x1.2; slow 1.4 s hold on TRANSMISSION INTERRUPTED (old 12.0-12.3 s rendered slowly); flower section x1.129; final grassland x1.25 (trimmed about 0.9 s overall). Voice ducks the bed by about 4 dB.
+
+## Reel v10 (24.77 s): voice-over v2
+User-supplied ElevenLabs take (Max voice, one 23.9 s file, 7 lines from mosquito-reel-voiceover-v2.md). tools/mosquito/retime_audio2.py trims the long pauses inside lines and places each on its beat: 3.9 s (x1.15), 7.2, 11.9 (x1.1), 13.8 (x1.12), 16.6, 19.0, 21.9 (ends 24.1). Same picture as v9; voice ducks the bed as before. AI-voice label still applies.
