@@ -40,7 +40,7 @@ Counter: one odometer in metres, 0.1 -> 10.0 -> 392 -> 4,000 -> 12,262 M, script
 - Groundwater fills the pores of sand and gravel below the water table, so the aquifer is drawn as gravel with water between the stones. USGS https://www.usgs.gov/water-science-school/science/groundwater-what-groundwater
 
 ## Sound
-Procedural in numpy (`mix.py`), no samples and no credits. Family: earth, iron and heat (new for this reel). Hits only at frame 0, the snap into the cross-section (small) and the planet reveal (biggest). Delivery: about -15 LUFS, true peak under -1 dBFS after AAC.
+Procedural in numpy (`mix.py`), no samples and no credits. Family: earth, iron and heat (new for this reel). Hits only at frame 0, the snap into the cross-section (small) and the planet reveal (biggest). Delivered at -15.4 LUFS, true peak about -1.2 dBFS after AAC; 22.0 s, 1080x1920, 30 fps, about 23 MB (H.264 CRF 22, AAC 192k). Output: `final-reels/the-deepest-hole.mp4` in the project files.
 
 ## Build (tools/deepest-hole/)
 `gen_timeline.py` -> `timeline.json`; `index.html` (scene, `window.renderAt(t)`); `render.js`, `shot.js`, `proj.js` (chip anchors); `overlay.py`; `mix.py`; `build.sh`.
