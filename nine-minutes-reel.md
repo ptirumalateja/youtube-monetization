@@ -9,7 +9,7 @@ Slow Light remake of the reference "What does it actually look like when a CAR-T
 
 One idea: a living drug kills a cancer cell, and you watch the clock while it happens.
 
-- Hook (frame 0, typed by 1.4 s): **WATCH IT DIE IN / 9 MINUTES.** over a slowly turning leukemia cell studded with red CD19 markers.
+- Hook (fully on screen from frame 0, no typing): **WATCH THIS CANCER CELL / DIE IN 9 MINUTES.** over a slowly turning leukemia cell studded with red CD19 markers, labelled CANCER CELL (LEUKEMIA, A BLOOD CANCER). "Cancer" leads because more viewers know it than "leukemia" (owner's call).
 - Pattern interrupt at 2.2 s: whip to a teal T cell. Gold Y-shaped receptors sprout all over it: this is the CAR.
 - Target first (playbook 3.3): the camera chases the T cell from behind with the cancer cell already ahead and growing.
 - Contact starts a **minutes timer that only goes up** (00:00 to 09:00, script-asserted monotonic).
@@ -22,10 +22,10 @@ What makes it ours and not a copy: rendered 3D cells with depth and parallax in 
 
 | Time | Shot | On screen |
 |---|---|---|
-| 0.0-2.2 | Close orbit on the leukemia cell (amber, translucent, red CD19 dots, dark nucleus). Hit on frame 0. | WATCH IT DIE IN / **9 MINUTES.** chip "LEUKEMIA CELL" |
+| 0.0-2.2 | Close orbit on the leukemia cell (amber, translucent, red CD19 dots, dark nucleus). Hit on frame 0. | WATCH THIS CANCER CELL / **DIE IN 9 MINUTES.** chip "CANCER CELL" + "(LEUKEMIA, A BLOOD CANCER)", all on from frame 0 |
 | 2.2-2.6 | Whip pan to the T cell | |
 | 2.6-5.0 | T cell close-up; about 170 gold Y receptors grow in a wave (2.85-4.9) | THE PATIENT'S OWN T CELL / **CAR-T CELL** / "given a new receptor in a lab (the CAR)" |
-| 5.0-8.7 | Chase from behind the T cell; it stretches as it crawls; the cancer cell grows ahead | IT HUNTS ONE MARKER / **CD19** / "red dots on the leukemia cell" |
+| 5.0-8.7 | Chase from behind the T cell; it stretches as it crawls; the cancer cell grows ahead | IT HUNTS ONE MARKER / **CD19** / "red dots on the cancer cell" |
 | 8.7 | Contact (hit). Timer appears at 00:00 | SINCE CONTACT 00:00 |
 | 8.7-12.0 | T cell flattens against the target; glowing synapse disc forms (teal ring, gold core). Timer 00:00 to 03:00 | SYNAPSE FORMING |
 | 12.0-13.5 | Synapse stable | LOCKED ON / "stable within ~3 min" |
@@ -95,10 +95,10 @@ Upload checklist: AI/synthetic content label ON (it is a rendered illustration);
 
 ## 6. QA (playbook section 7)
 
-- Frame 0: hit + premise; hook readable by 1 s.
+- Frame 0: hit + premise; full hook already on screen at frame 0.
 - Contact sheets at 2 fps checked: one target at a time, no white or beige frames, labels legible.
 - Timer monotonic (asserted in `overlay.py`), ends at 09:00 exactly.
-- Typed text starts at n >= 1.
+- Typed text (end line) starts at n >= 1.
 - Loop: last frame and frame 0 share camera formula, cell, CD19 layout and dust lattice.
 - Text kept out of the bottom 18% and the top strip.
 

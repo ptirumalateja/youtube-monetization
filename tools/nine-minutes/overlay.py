@@ -30,17 +30,18 @@ def timer_s(t):
     for (a, va), (b, vb) in zip(TK, TK[1:]):
         if t < b: return va + (vb - va) * (t - a) / (b - a)
     return 540
-fh = F(MB, 76); fchip = F(MB, 48); fsp = F(MR, 27); fmean = F(MR, 30); ftag = F(MR, 23); ftim = F(MB, 120); fcap = F(MB, 44); fend = F(MB, 72); fsrc = F(MR, 25)
+fh = F(MB, 76); fhk = F(MB, 66); fchip = F(MB, 48); fsp = F(MR, 27); fmean = F(MR, 30); ftag = F(MR, 23); ftim = F(MB, 120); fcap = F(MB, 44); fend = F(MB, 72); fsrc = F(MR, 25)
 p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-c:v", "png", OUT], stdin=subprocess.PIPE)
 last = -1
 for f in range(N):
     t = f / FPS; im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     ctext(d, 150, "ILLUSTRATION · NOT TO SCALE · TIME-LAPSE", ftag, CREAM, 0.62, stroke=3)
-    # hook
+    # hook: fully on screen from frame 0 (no typing); "cancer" leads, leukemia names the type
     a = 1 - sstep(2.05, 2.35, t)
-    l1 = typed("WATCH IT DIE IN", t, 0.0, 22); ctext(d, 290, l1, fh, CREAM, a, stroke=6)
-    l2 = typed("9 MINUTES.", t, 0.75, 16); ctext(d, 392, l2, fh, CREAM, a, chip=RED if l2 else None)
-    ctext(d, 1400, "LEUKEMIA CELL", fchip, CREAM, win(t, 0.45, 2.3), chip=RED)
+    ctext(d, 290, "WATCH THIS CANCER CELL", fhk, CREAM, a, stroke=6)
+    ctext(d, 384, "DIE IN 9 MINUTES.", fh, CREAM, a, chip=RED)
+    ctext(d, 1380, "CANCER CELL", fchip, CREAM, a, chip=RED)
+    ctext(d, 1452, "(LEUKEMIA, A BLOOD CANCER)", fmean, CREAM, a, stroke=4)
     # the engineered T cell
     a = win(t, 2.75, 5.0)
     ctext(d, 300, "THE PATIENT'S OWN T CELL", fsp, CREAM, a, sp=3, stroke=4)
@@ -52,7 +53,7 @@ for f in range(N):
     a = win(t, 5.35, 8.55)
     ctext(d, 300, "IT HUNTS ONE MARKER", fsp, CREAM, a, sp=3, stroke=4)
     ctext(d, 352, "CD19", fchip, CREAM, a, chip=RED)
-    ctext(d, 1400, "red dots on the leukemia cell", fmean, CREAM, win(t, 5.8, 8.55), stroke=4)
+    ctext(d, 1400, "red dots on the cancer cell", fmean, CREAM, win(t, 5.8, 8.55), stroke=4)
     # timer
     s = timer_s(t)
     if s is not None:
