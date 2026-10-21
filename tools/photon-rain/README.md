@@ -15,7 +15,7 @@ Setup (in a scratch folder next to these files):
 npm i three@0.170.0 playwright-core@1.56.0
 python3 -m http.server 8777 &
 ```
-The scripts expect Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (SwiftShader, CPU only). A native 1080x1920 render takes about 1.5-2 h on 4 cores.
+The scripts expect Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` (SwiftShader, CPU only). A native 1080x1920 render took about 40 min on 4 cores.
 
 Assemble:
 ```
