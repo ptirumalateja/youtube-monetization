@@ -62,7 +62,7 @@ Nuance for comments (not on screen): later papers reduce the energy (Van Den Bro
 - **Movement:** jet doppler + cinematic woosh for the planet; gateway shimmer going into the bubble, subby whooshes coming out; an electric zap and a falling tone for the light beam; sparks under the unstable ring; a riser and a warm pad into the star reveal.
 - **Ship's clock:** a soft tick every second all the way through, louder inside the bubble and alone in the held breath (14.0-14.7 s).
 - **End:** wind and a glass bell, then a rising tone into frame 0 so the loop is audible.
-- Master: about -15 LUFS integrated, true peak under -1 dBTP, both measured on the final AAC file.
+- Master: -15.0 LUFS integrated, true peak -4.8 dBTP, both measured on the final AAC share file (26.4 MB; 87 MB master).
 
 ### Sound credits (paste into the YouTube description)
 > Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0, generated with ElevenLabs, or synthesised.
