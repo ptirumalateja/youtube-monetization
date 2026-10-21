@@ -91,3 +91,13 @@ Rendering is headless Chromium with SwiftShader (CPU). Motion blur averages 2 su
 - Final: `/mnt/project-files/final-reels/jam-made-of-phones.mp4` (22.0 s, 1080x1920, H.264 + AAC).
 - 27.9 MB. Contact sheet at 2 fps: `/mnt/project-files/final-reels/jam-made-of-phones-contact.jpg`.
 - QA: the counter is monotonic (asserted in overlay.py). No white frames (an 8-9 s white-out from stacked trails was fixed and re-rendered). Text stays out of the bottom 18%, except the small YOU label, which tracks the dot at about 82% height. The last frame matches frame 0. The end line clears before the hook is typed again.
+
+## 8. v2 with voiceover (`jam-made-of-phones-vo.mp4`)
+
+- Voice: Teja's ElevenLabs "Max" take. `tools/phone-jam/vo_edit.py` trims the long pauses and speeds it up 10% (25.7 s to 21.4 s, pitch kept).
+- Script as delivered: "Google Maps doesn't see cars. It sees phones. Every dot is one phone. When the phones slow down... the road turns red. But in 2020, an artist in Berlin pulled 99 phones in a wagon, down an empty street. Google Maps saw a traffic jam... and sent drivers around it. The jam was made of phones."
+- Pacing: `tools/phone-jam/timemap.py` retimes the scene so each beat lands on its line. The red block holds during "But in 2020, an artist in Berlin", and the reveal hit lands on "pulled 99 phones in a wagon". Scene time after the reveal runs about 1.2-1.5x faster, so the close-up and map sections keep moving.
+- Berlin chip now reads "REAL STORY · BERLIN 2020". The voice explains it, so it no longer appears out of nowhere.
+- Map captions match the narration: "MAPS SAW A JAM / AND SENT DRIVERS AROUND."
+- Sound design is ducked about 8 dB under the voice. Final master: -15.7 LUFS integrated, true peak -1.5 dBFS after AAC.
+- Voice credit: ElevenLabs-generated voiceover (disclose as synthetic voice on upload).
