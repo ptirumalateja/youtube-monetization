@@ -1,6 +1,6 @@
 # Sleep Paralysis: "The Thing In Your Room" (v4, Conjuring cut)
 
-**Final reel:** `final-reels/sleep-paralysis.mp4` in the project files. It runs 20.6 s at 1080x1920 and 30 fps, encoded as H.264 with AAC audio, mixed to about -15 LUFS. Videos are kept in the project folder and are not committed to git.
+**Final reel:** `final-reels/sleep-paralysis.mp4` in the project files. It runs 20.6 s at 1080x1920 and 30 fps, encoded as H.264 (11 Mb/s, about 28 MB) with AAC audio, mixed to -15.6 LUFS with a -3.8 dBFS peak. Videos are kept in the project folder and are not committed to git.
 **Source:** `tools/sleep-paralysis/conjuring/` (v4, this cut). It reuses the 3D bedroom, the rigged branch wraith and the sleeper asset from `tools/sleep-paralysis/nightmare/` (v2). The rebuild steps are in the folder's README.
 **Earlier versions:** v2 was a wordless engraved three.js take, and v3 (`tools/sleep-paralysis/chalk/`) was a chalk stickman explainer. The owner rejected v3 because it felt funny rather than frightening, and asked for a Conjuring-style look with a story that stays intimidating to the end.
 
