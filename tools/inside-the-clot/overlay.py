@@ -69,9 +69,9 @@ for f in range(N):
     # crowd hook, on screen from frame 0
     if tv<3.25:
         a=int(255*(1-sstep(3.0,3.25,tv)))
-        ctext(d,280,"EVERY 40 SECONDS",fh,CREAM,a,stroke=6)
-        B=int(a*sstep(0.6,0.8,tv)); ctext(d,378,"SOMEONE IN THE US",fchip,CREAM,B,stroke=5)
-        if tv>=1.5: typed_chip_line(d,452,"HAS A HEART ATTACK.","",int((tv-1.5)*30)+1,fchip,a)
+        ctext(d,280,"EVERY 4 SECONDS",fh,CREAM,a,stroke=6)
+        B=int(a*sstep(0.6,0.8,tv)); ctext(d,378,"SOMEONE IN THE WORLD",fchip,CREAM,B,stroke=5)
+        if tv>=1.5: typed_chip_line(d,452,"DIES OF HEART DISEASE.","",int((tv-1.5)*30)+1,fchip,a)
         if 1.3<=tv<2.75 and P(f):
             A=int(a*sstep(1.3,1.5,tv)*(1-sstep(2.55,2.75,tv))); cx,cy=P(f); rr=46+6*math.sin(tv*7)
             d.ellipse((cx-rr,cy-rr,cx+rr,cy+rr),outline=RED+(A,),width=5)

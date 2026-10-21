@@ -7,3 +7,7 @@
 - 0-3.2 s: new crowd world (point-cloud walking figures on a dark wet plaza, bokeh city lights); hero walks toward camera, stops ~1.1 s, right hand to left chest 1.3-1.8 s, gold/red heart glow pulsing through his chest, red ring marker; camera from high-wide to the chest, dive + flash at 3.2 s into the beating heart.
 - Overlay: hook "EVERY 40 SECONDS" / "SOMEONE IN THE US" / chip "HAS A HEART ATTACK." from frame 0; other labels driven by scene time.
 - Mix: sample masks driven by scene time per sample; events placed through the warp; crowd footsteps + murmur + rising heartbeat 0-3.2 s; duck beds under VO.
+
+## v4 (Teja, 21 Oct 10:49): worldwide hook + real ElevenLabs audio
+- Hook changed from US to world: "EVERY 4 SECONDS / SOMEONE IN THE WORLD / DIES OF HEART DISEASE." Source: WHO, The top 10 causes of death (ischaemic heart disease ~9 million deaths a year, the leading cause) -> one about every 3.5 s, rounded to 4.
+- Waiting for Teja's ElevenLabs MP3 of the 9-line script (stand-in voice rejected). On arrival: find line starts (silencedetect), move the warp knots in index.html / overlay.py / mix3.py so snap, crack ("cracks"), clot, muscle, twist and end land on their lines, re-render, mix with the MP3 instead of the TTS lines.
