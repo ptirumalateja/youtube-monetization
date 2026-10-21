@@ -1,7 +1,7 @@
 <!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
 <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
 <body><script type="module">
-// The Ship Never Moves: Alcubierre warp bubble, rendered in the ship's frame.
+// The Ship Never Moves (v2, 24 s): Alcubierre warp bubble, rendered in the ship's frame.
 // The ship sits at the origin facing +X and never moves; far space flows past at -V(t). Grid vertices are fixed
 // pieces of space: they bunch up ahead of the bubble (space contracts) and spread out behind it (space expands),
 // while a still lattice inside the bubble shows the flat region the ship rests in. Illustration, not a solution plot.
@@ -25,19 +25,19 @@ const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)); const sstep=(a,b,x)=>{const 
 const lerp=(a,b,u)=>a+(b-a)*u;
 const wrap=(v,lo,P)=>{v=(v-lo)%P; if(v<0)v+=P; return v+lo};
 // ------------------------------------------------------------------ timeline (seconds), shared with overlay/mix via window.TL
-const T_END=22.0, T_IGN=1.95, T_FULL=3.2, T_SLOW=15.3, T_TWIST=16.2, T_COLL=18.6, T_GONE=19.3;
+const T_END=24.0, T_IGN=1.6, T_FULL=2.6, T_SLOW=11.8, T_ARR=14.0, T_TWIST=14.7, T_STOP=17.8, T_BLAST=17.9, T_COLL=18.0, T_GONE=18.8;
 const SIG_TOTAL=180;                     // total space that flows past; multiple of grid spacing and star period -> seamless loop
 // bubble amplitude A(t): 0 = flat space, 1 = full warp bubble
-function amp(t){ if(t<T_IGN) return 0; if(t<T_COLL) return sstep(T_IGN,T_IGN+0.9,t); return 1-sstep(T_COLL,T_GONE,t); }
+function amp(t){ if(t<T_IGN) return 0; if(t<T_COLL) return sstep(T_IGN,T_IGN+0.7,t); return 1-sstep(T_COLL,T_GONE,t); }
 // raw speed profile; scaled so its integral over the reel is exactly SIG_TOTAL
 function vraw(t){ if(t<T_IGN) return 0; let v=sstep(T_IGN,T_FULL,t);
-  if(t>T_SLOW) v*=lerp(1,0.22,sstep(T_SLOW,T_TWIST,t));
-  if(t>T_TWIST) v*=1-sstep(T_TWIST+0.6,T_GONE,t); return v; }
+  if(t>T_SLOW) v*=lerp(1,0.2,sstep(T_SLOW,T_ARR,t));
+  if(t>16.6) v*=1-sstep(16.6,T_STOP,t); return v; }
 const NS=4400, DT=T_END/NS; const SIGT=new Float64Array(NS+1); for(let i=1;i<=NS;i++){ SIGT[i]=SIGT[i-1]+0.5*(vraw((i-1)*DT)+vraw(i*DT))*DT; }
 const VSCALE=SIG_TOTAL/SIGT[NS];
 function sigma(t){ const x=clamp(t/DT,0,NS); const i=Math.min(NS-1,Math.floor(x)); return VSCALE*lerp(SIGT[i],SIGT[i+1],x-i); }
 function vel(t){ return VSCALE*vraw(t); }
-window.TL={T_END,T_IGN,T_FULL,T_SLOW,T_TWIST,T_COLL,T_GONE,VMAX:VSCALE};
+window.TL={T_END,T_IGN,T_FULL,T_SLOW,T_ARR,T_TWIST,T_STOP,T_BLAST,T_COLL,T_GONE,VMAX:VSCALE};
 // ------------------------------------------------------------------ bubble geometry
 const BR=3.0, Y0=-2.9;          // bubble radius, wall sharpness, grid sheet height (sheet grazes the bubble floor)
 // ------------------------------------------------------------------ space displacement carried with the bubble
@@ -123,40 +123,98 @@ const ring=new THREE.Mesh(new THREE.TorusGeometry(0.62,0.026,24,160),ringM); rin
 for(const a of [0,2.094,4.189]){ const strut=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.32,8),hullM); strut.position.set(-0.25,Math.cos(a)*0.46,Math.sin(a)*0.46); strut.rotation.x=a; ship.add(strut); }
 const stripM=new THREE.MeshBasicMaterial({color:0x2be0d0}); for(const s of [-1,1]){ const strip=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.012,0.012),stripM); strip.position.set(0.25,0.0,s*0.325); ship.add(strip); }
 const winM=new THREE.MeshBasicMaterial({color:0xffe2a8}); const win=new THREE.Mesh(new THREE.SphereGeometry(0.11,24,16),winM); win.scale.set(1.6,0.6,0.9); win.position.set(1.05,0.16,0); ship.add(win);
+for(const a of [Math.PI/2,Math.PI/2+2.094,Math.PI/2+4.189]){ const fg=new THREE.Shape(); fg.moveTo(0,0); fg.lineTo(-0.55,0.42); fg.lineTo(-0.72,0.42); fg.lineTo(-0.5,0); const fin=new THREE.Mesh(new THREE.ExtrudeGeometry(fg,{depth:0.02,bevelEnabled:false}),hullM); const holder=new THREE.Group(); holder.rotation.x=a; fin.position.set(-0.55,0.18,-0.01); holder.add(fin); ship.add(holder); }
 const engM=new THREE.MeshBasicMaterial({color:0x101418}); const eng=new THREE.Mesh(new THREE.CircleGeometry(0.17,32),engM); eng.rotation.y=-Math.PI/2; eng.position.x=-1.23; ship.add(eng); // engine dark: nothing pushes
 scene.add(new THREE.HemisphereLight(0x8fb6c8,0x10141c,0.45));
 const key=new THREE.DirectionalLight(0xffe0b0,1.25); key.position.set(4,6,5); scene.add(key);
 const rim=new THREE.DirectionalLight(0x40e0d0,1.6); rim.position.set(-6,1,-4); scene.add(rim);
 const shipLight=new THREE.PointLight(0xffa040,0,6,2); shipLight.position.set(0,-1.6,0); scene.add(shipLight);
 // ------------------------------------------------------------------ the light beam (fired forward beside the ship; the bubble outruns it)
-const T_LIGHT=12.3, LZ=4.6, LY=Y0+0.35;
+const T_LIGHT=10.0, LZ=4.6, LY=Y0+0.35;
 const NB=420; const beam=makePoints(NB,4);
 function lightState(t){ // returns {head, tail} x positions in the ship frame, or null
   if(t<T_LIGHT) return null; const s0=sigma(T_LIGHT), s=sigma(t);
   const tail=0.6-(s-s0);                                  // emission point: fixed in far space, flows back at -V
   const c=0.62*VSCALE;                                    // light speed in scene units: the bubble's cruise speed is 1/0.62 = 1.6x light
   const head=tail+c*(t-T_LIGHT); return {head,tail}; }
-function updateBeam(t){ const L=lightState(t); const vis=L?(1-sstep(T_SLOW+0.3,T_TWIST,t)):0;
+function updateBeam(t){ const L=lightState(t); const vis=L?(1-sstep(T_SLOW-0.2,T_SLOW+0.3,t)):0;
   for(let i=0;i<NB;i++){ const u=i/(NB-1); const x=L?lerp(L.tail,L.head,Math.pow(u,0.7)):0; beam.pos[i*3]=x; beam.pos[i*3+1]=LY; beam.pos[i*3+2]=LZ;
     const hd=u>0.985?4.0:0; const b=(0.35+1.2*Math.pow(u,5)+hd)*vis; beam.col[i*3]=1.0*b; beam.col[i*3+1]=0.93*b; beam.col[i*3+2]=0.78*b; beam.sz[i]=u>0.985?0.45:0.10; }
   beam.g.attributes.position.needsUpdate=true; beam.g.attributes.color.needsUpdate=true; beam.g.attributes.aSize.needsUpdate=true; }
+// ------------------------------------------------------------------ exotic (negative) energy: Alcubierre's energy density sits in a ring
+// around the bubble's equator, perpendicular to the motion. Drawn as a flowing torus of sparks.
+const NR=7000, RG=[]; const ringPts=makePoints(NR,5);
+for(let i=0;i<NR;i++){ RG.push([R()*6.283,R()*6.283,Math.sqrt(R())*0.22,0.6+R()*1.4,R()]); }
+function updateRing(t,lv,hot){ const A=amp(t);
+  for(let i=0;i<NR;i++){ const [ph,th,rr,w,k]=RG[i]; const a=ph+t*w*(k<0.5?1:-1)*0.9; const ry=BR+rr*Math.cos(th+t*2.0), rx=rr*Math.sin(th+t*2.0);
+    ringPts.pos[i*3]=rx; ringPts.pos[i*3+1]=ry*Math.cos(a); ringPts.pos[i*3+2]=ry*Math.sin(a);
+    const fl=0.6+0.4*Math.sin(a*7.0+t*11.0+k*30.0); const b=A*lv*fl*(0.5+1.2*Math.pow(1-rr/0.22,2));
+    const c=k<0.8?ICE:CREAM; const hh=hot;  // twist: the ring burns brighter and warmer
+    ringPts.col[i*3]=(c[0]*(1-hh)+1.0*hh)*b; ringPts.col[i*3+1]=(c[1]*(1-hh)+0.55*hh)*b; ringPts.col[i*3+2]=(c[2]*(1-hh)+0.35*hh)*b; ringPts.sz[i]=0.045+0.03*k; }
+  ringPts.g.attributes.position.needsUpdate=true; ringPts.g.attributes.color.needsUpdate=true; ringPts.g.attributes.aSize.needsUpdate=true; }
+// ------------------------------------------------------------------ swept-up particles: matter met on the way piles up on the front wall;
+// when the bubble stops it is released forward as a blast (McMonigal, Lewis and O'Byrne 2012)
+const NP=3200, PP=[]; const pile=makePoints(NP,5);
+for(let i=0;i<NP;i++){ let dx,dy,dz; do{ dx=R()*2-1; dy=R()*2-1; dz=R()*2-1; }while(dx*dx+dy*dy+dz*dz>1||dx<0.35); const n=Math.hypot(dx,dy,dz);
+  PP.push([dx/n,dy/n,dz/n,R(),R(),0.35+R()*0.65]); }
+const SIG_STOP=()=>sigma(T_STOP);
+function updatePile(t){ const fill=clamp(sigma(t)/SIG_STOP()); const A=amp(Math.min(t,T_COLL-0.01));
+  for(let i=0;i<NP;i++){ const [dx,dy,dz,b,k,sp]=PP[i]; let r=BR+0.08+0.25*k, x=dx*r, y=dy*r, z=dz*r, br=0;
+    if(t<T_BLAST){ br=sstep(b,b+0.04,fill)*A*(0.5+0.5*Math.sin(t*9+k*40)); }
+    else { const u=t-T_BLAST; const d=u*(26+40*sp); x+=d*(0.85+0.15*dx); y+=d*dy*0.32; z+=d*dz*0.32; br=Math.exp(-u*1.1)*3.2; }
+    pile.pos[i*3]=x; pile.pos[i*3+1]=y; pile.pos[i*3+2]=z; pile.col[i*3]=1.0*br; pile.col[i*3+1]=0.78*br; pile.col[i*3+2]=0.45*br; pile.sz[i]=(0.035+0.05*k)*(t<T_BLAST?1:2.2); }
+  pile.g.attributes.position.needsUpdate=true; pile.g.attributes.color.needsUpdate=true; pile.g.attributes.aSize.needsUpdate=true; }
+const shockMat=new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const shock=new THREE.Mesh(new THREE.TorusGeometry(1,0.02,8,200),shockMat); shock.rotation.y=Math.PI/2; scene.add(shock);
+function updateShock(t){ const u=t-T_BLAST; if(u<0||u>2.2){ shockMat.opacity=0; return; } shock.position.x=BR+u*30; const s=BR*(1+u*3.2); shock.scale.set(s,s,s); shockMat.opacity=Math.exp(-u*2.0)*0.6; }
+// ------------------------------------------------------------------ a ringed gas giant that whips past (it is far space, so it flows at -V)
+function bandTex(){ const cv=document.createElement('canvas'); cv.width=16; cv.height=512; const x=cv.getContext('2d'); const r=rnd(7);
+  for(let y=0;y<512;y++){ const v=0.5+0.5*Math.sin(y*0.09+Math.sin(y*0.021)*3)+0.25*(r()-0.5); const c=[200+40*v,150+50*v,105+40*v]; x.fillStyle=`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`; x.fillRect(0,y,16,1);} const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; return t; }
+const planet=new THREE.Group(); scene.add(planet);
+const PT=bandTex(); const plM=new THREE.MeshStandardMaterial({map:PT,emissiveMap:PT,emissive:0xffffff,emissiveIntensity:0.12,roughness:0.9,metalness:0,transparent:true});
+planet.add(new THREE.Mesh(new THREE.SphereGeometry(4.2,96,64),plM));
+function ringTex(){ const cv=document.createElement('canvas'); cv.width=512; cv.height=8; const x=cv.getContext('2d'); const r=rnd(11); for(let i=0;i<512;i++){ const a=(0.25+0.6*Math.pow(r(),0.6))*(i<40?i/40:1)*(i>470?(512-i)/42:1)*(Math.abs(i-300)<14?0.1:1); x.fillStyle=`rgba(235,205,160,${a})`; x.fillRect(i,0,1,8);} return new THREE.CanvasTexture(cv); }
+const rgG=new THREE.RingGeometry(5.6,9.8,160,1); { const p=rgG.attributes.position, uv=rgG.attributes.uv; for(let i=0;i<p.count;i++){ const r=Math.hypot(p.getX(i),p.getY(i)); uv.setXY(i,(r-5.6)/4.2,0.5);} }
+const RT=ringTex(); const rgM=new THREE.MeshStandardMaterial({map:RT,emissiveMap:RT,emissive:0xffffff,emissiveIntensity:0.15,transparent:true,side:THREE.DoubleSide,roughness:1,depthWrite:false});
+const prings=new THREE.Mesh(rgG,rgM); prings.rotation.x=-Math.PI/2+0.95; prings.rotation.y=0.25; planet.add(prings); planet.rotation.z=0.3;
+const T_PL=5.7; let XP0=0;
+function updatePlanet(t){ planet.position.set(XP0-sigma(t),-0.8,8.0); const o=sstep(2.6,3.6,t)*(1-sstep(8.5,9.0,t)); plM.opacity=o; rgM.opacity=o; planet.visible=o>0.001; planet.rotation.y=t*0.05; }
+// ------------------------------------------------------------------ the destination: the nearest star, small and dead ahead all the way, big at arrival
+const starM=new THREE.ShaderMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,uniforms:{uT:{value:0},uO:{value:1}},
+  vertexShader:`varying vec3 vN; varying vec3 vP; void main(){ vP=position; vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+  fragmentShader:`varying vec3 vN; varying vec3 vP; uniform float uT,uO; float h(vec3 p){return fract(sin(dot(p,vec3(12.9,78.2,37.7)))*43758.5);} float n(vec3 p){ vec3 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
+    return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+    void main(){ float mu=abs(vN.z); float g=0.6*n(vP*3.0+uT*0.3)+0.4*n(vP*7.0-uT*0.5); vec3 c=mix(vec3(1.0,0.38,0.12),vec3(1.0,0.78,0.45),g)*(0.55+0.45*pow(mu,0.5));
+      gl_FragColor=vec4(c*1.25*uO,1.0);} `});
+const star=new THREE.Mesh(new THREE.SphereGeometry(2.4,96,64),starM); scene.add(star);
+const glowM=new THREE.ShaderMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,uniforms:{uO:{value:1}},
+  vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+  fragmentShader:`varying vec2 vU; uniform float uO; void main(){ float r=length(vU-0.5)*2.0; float a=pow(max(1.0-r,0.0),3.0)*0.55+pow(max(1.0-r,0.0),12.0)*0.8; gl_FragColor=vec4(vec3(1.0,0.55,0.25)*a*uO,1.0);} `});
+const sglow=new THREE.Mesh(new THREE.PlaneGeometry(22,22),glowM); scene.add(sglow);
+let XS0=0; const SY=1.6;
+function updateStar(t){ const x=XS0-sigma(t); star.position.set(x,SY,0); sglow.position.copy(star.position); sglow.lookAt(cam.position);
+  const o=sstep(2.8,4.0,t)*(1-sstep(20.4,21.8,t)); starM.uniforms.uO.value=o; glowM.uniforms.uO.value=o*clamp(60/Math.max(x,1)); starM.uniforms.uT.value=t; star.visible=sglow.visible=o>0.001; }
 // ------------------------------------------------------------------ camera: Catmull-Rom keys [t, pos, target]; t=22 equals t=0 so the loop closes
 const CK=[
- [-1.0,[-4.6,2.5,2.8],[0.7,-0.3,0]],
- [0.0,[-4.4,2.4,2.6],[0.7,-0.3,0]],
- [1.9,[-3.8,2.15,2.15],[0.75,-0.3,0]],
- [3.3,[-9.0,6.0,2.6],[3.0,-2.0,0]],
- [5.6,[-12.5,8.4,1.3],[4.5,-2.6,0]],
- [7.8,[-12.0,8.0,-1.0],[4.5,-2.6,0],0.3],
- [9.0,[-2.3,1.3,1.05],[3.2,-1.7,0],0.0],
- [10.9,[-2.1,1.25,0.85],[3.2,-1.7,0.1],0.0],
- [12.4,[-15.0,17.0,3.2],[-4.0,-3.0,1.8],0.4],
- [15.0,[-14.0,16.0,2.6],[-5.0,-3.0,1.8]],
- [16.3,[-8.5,6.2,4.0],[1.0,-1.0,0]],
- [18.8,[-7.0,5.0,3.0],[1.0,-1.0,0]],
- [20.6,[-5.0,2.9,2.9],[0.7,-0.3,0]],
- [22.0,[-4.4,2.4,2.6],[0.7,-0.3,0]],
- [23.0,[-4.2,2.3,2.4],[0.7,-0.3,0]]];
+ [-1.0,[-4.0,1.7,4.6],[0.4,0,0]],
+ [0.0,[-3.6,1.5,4.2],[0.4,0,0]],
+ [1.4,[2.2,1.2,4.4],[0.2,0,0]],
+ [2.5,[-6.5,4.5,5.0],[2.0,-1.2,0]],
+ [4.4,[-11.0,6.5,2.5],[4.0,-1.8,1.5]],
+ [6.2,[-11.5,6.0,-1.5],[4.0,-1.2,4.0]],
+ [7.0,[-2.3,1.3,1.05],[3.2,-1.5,0],0.0],
+ [8.8,[-2.1,1.25,0.85],[3.2,-1.5,0.1],0.0],
+ [9.8,[-15.0,17.0,3.2],[-4.0,-3.0,1.8],0.4],
+ [11.6,[-14.0,16.0,2.6],[-5.0,-3.0,1.8]],
+ [12.6,[-8.5,2.4,1.6],[20.0,0.8,0],0.5],
+ [14.0,[-7.5,2.1,1.2],[20.0,1.0,0]],
+ [15.2,[5.0,3.4,7.0],[0.0,0.0,0],0.4],
+ [17.3,[4.5,3.2,7.5],[0.5,0.0,0]],
+ [18.2,[-9.0,2.5,2.5],[7.0,0.0,0],0.3],
+ [20.4,[-8.5,2.4,2.3],[7.0,0.0,0]],
+ [22.6,[-4.2,1.7,4.8],[0.4,0,0]],
+ [24.0,[-3.6,1.5,4.2],[0.4,0,0]],
+ [25.0,[2.2,1.2,4.4],[0.2,0,0]]];
 // cubic Hermite with Catmull tangents scaled per key (key[3]=0 stops the camera path from overshooting a key, see playbook lessons)
 function cr(p0,p1,p2,p3,u,k1,k2,d01,d12,d23){ const m1=k1*(p2-p0)/(d01+d12)*d12, m2=k2*(p3-p1)/(d12+d23)*d12; const u2=u*u,u3=u2*u;
   return (2*u3-3*u2+1)*p1+(u3-2*u2+u)*m1+(-2*u3+3*u2)*p2+(u3-u2)*m2; }
@@ -175,20 +233,24 @@ composer.addPass(new OutputPass());
 // ------------------------------------------------------------------ one sub-frame
 function frameAt(t){
   const A=amp(t);
-  updateGrid(t); updateStars(t); updateBeam(t);
-  const insideLv=sstep(7.9,8.8,t)*(1-sstep(11.2,12.2,t))+0.35; updateInner(t,insideLv);
-  // bubble wall: ignition sweep, steady shimmer, flicker during the twist, collapse
-  let fl=0; if(t>T_TWIST&&t<T_GONE){ const k=(t-T_TWIST)/(T_GONE-T_TWIST); fl=clamp((0.5+0.5*Math.sin(t*47.0)*Math.sin(t*13.0))*sstep(0.0,0.5,k)*0.85); }
-  shellMat.uniforms.uA.value=A*(t<T_TWIST?1:1.25); shellMat.uniforms.uT.value=sigma(t)*0.4+t; shellMat.uniforms.uF.value=t>T_IGN&&t<T_IGN+1.0?Math.sin(Math.PI*(t-T_IGN)/1.0):0; shellMat.uniforms.uFl.value=fl;
-  { const d=Math.hypot(...camAt(t).P); shellMat.uniforms.uIn.value=0.3+0.7*sstep(BR-0.4,BR+0.6,d); }
+  const inB=sstep(6.4,6.9,t)*(1-sstep(8.9,9.3,t));   // camera inside the bubble
+  const {P,Tg}=camAt(t); cam.position.set(...P); cam.up.set(0,1,0); cam.lookAt(...Tg);
+  cam.fov=FOV+30*inB; cam.updateProjectionMatrix(); const kU=(H/2)/Math.tan(cam.fov*Math.PI/360); for(const o of [grid,stars,inner,beam,ringPts,pile]) o.p.material.uniforms.uK.value=kU;
+  updateGrid(t); updateStars(t); updateBeam(t); updatePlanet(t); updateStar(t); updatePile(t); updateShock(t);
+  const hot=sstep(T_TWIST,T_TWIST+0.4,t)*(1-sstep(T_STOP,T_BLAST+0.2,t));
+  updateRing(t,1+1.6*hot*(0.75+0.25*Math.sin(t*20)),hot);
+  updateInner(t,inB+0.3);
+  // bubble wall: ignition sweep, steady shimmer, instability just before the stop, collapse
+  let fl=0; if(t>17.2&&t<T_GONE){ fl=clamp((0.5+0.5*Math.sin(t*47.0)*Math.sin(t*13.0))*sstep(17.2,17.7,t)*0.8); }
+  shellMat.uniforms.uA.value=A; shellMat.uniforms.uT.value=sigma(t)*0.4+t; shellMat.uniforms.uF.value=t>T_IGN&&t<T_IGN+0.8?Math.sin(Math.PI*(t-T_IGN)/0.8):0; shellMat.uniforms.uFl.value=fl;
+  { const d=Math.hypot(...P); shellMat.uniforms.uIn.value=0.3+0.7*sstep(BR-0.4,BR+0.6,d); }
   const sc=t>T_COLL?lerp(1,0.25,sstep(T_COLL,T_GONE,t)):1; shell.scale.setScalar(sc);
   ship.rotation.x=0.04*Math.sin(t*2*Math.PI*3/T_END); ship.position.y=0.03*Math.sin(t*2*Math.PI*4/T_END);   // periodic over the reel so the loop is seamless
-  const inB=sstep(8.6,9.0,t)*(1-sstep(11.0,11.4,t));   // camera inside the bubble: tame the hull glare
+  ring.rotation.x=t*2*Math.PI*6/T_END;
   key.intensity=1.25*(1-0.45*inB); hullM.envMapIntensity=0.32*(1-0.5*inB);
   ringM.emissiveIntensity=(0.35+0.45*A)*(1-0.4*inB); shipLight.intensity=3*A*(1-fl);
-  cam.fov=FOV+30*inB; cam.updateProjectionMatrix(); const kU=(H/2)/Math.tan(cam.fov*Math.PI/360); for(const o of [grid,stars,inner,beam]) o.p.material.uniforms.uK.value=kU;   // wide lens inside the bubble
-  const {P,Tg}=camAt(t); cam.position.set(...P); cam.up.set(0,1,0); cam.lookAt(...Tg);
-  grade.uniforms.uSeed.value=(t*977)%100; grade.uniforms.uFlash.value=0.10*Math.exp(-Math.pow((t-T_IGN-0.12)/0.07,2))+0.08*Math.exp(-Math.pow((t-T_TWIST-0.05)/0.06,2));
+  const flash=0.10*Math.exp(-Math.pow((t-T_IGN-0.1)/0.07,2))+0.05*Math.exp(-Math.pow((t-T_TWIST-0.04)/0.06,2))+0.13*Math.exp(-Math.pow((t-T_BLAST-0.06)/0.09,2));
+  grade.uniforms.uSeed.value=(t*977)%100; grade.uniforms.uFlash.value=flash;
   composer.render();
 }
 // ------------------------------------------------------------------ motion blur: average sub-frames on a 2D canvas
@@ -199,7 +261,8 @@ window.renderAt=(t,nsub)=>{ const v=vel(t); const camSpeed=(()=>{const a=camAt(t
   ax.globalAlpha=1; return acc.toDataURL('image/jpeg',0.94); };
 // screen projections for overlay markers
 window.proj=(t)=>{ frameAt(t); const out={}; const P=(x,y,z)=>{ const v=new THREE.Vector3(x,y,z).project(cam); return [ (v.x*0.5+0.5), (-v.y*0.5+0.5), v.z<1?1:0 ]; };
-  out.ship=P(0,0,0); out.front=P(BR,Y0,0); out.back=P(-BR,Y0,0); const L=lightState(t); out.light=L?P(L.head,LY,LZ):null; out.v=vel(t)/VSCALE; out.sig=sigma(t); out.A=amp(t); return out; };
+  out.ship=P(0,0,0); out.front=P(BR,Y0,0); out.back=P(-BR,Y0,0); const L=lightState(t); out.light=L?P(L.head,LY,LZ):null; out.ring=P(0,BR,0); out.ringL=P(0,0,BR); out.star=P(XS0-sigma(t),SY,0); out.pile=P(BR+0.3,0,0); out.v=vel(t)/VSCALE; out.sig=sigma(t); out.A=amp(t); return out; };
+XP0=sigma(T_PL); XS0=sigma(T_ARR)+38;
 window.camAt=camAt;
 window.ready=true;
 </script></body></html>
