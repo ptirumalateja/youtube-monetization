@@ -71,3 +71,6 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+## The Edge of the Wind (reel 13)
+No third-party audio. Every sound is synthesized in `tools/edge-of-wind/mix.py` (numpy noise, oscillators and filters), so there is nothing to credit.
