@@ -1,0 +1,6 @@
+{
+ "T": 30.4,
+ "note": "warp maps video seconds -> scene seconds (the v1 22 s choreography), monotone cubic. vo = [start_video_s, line]. Retime here when the final ElevenLabs take arrives.",
+ "warp": [[0,0],[2.55,2.2],[2.9,2.62],[4.2,2.85],[7.9,4.9],[9.2,5.0],[13.5,8.7],[16.4,12.0],[17.2,13.5],[20.45,16.3],[21.75,17.3],[25.0,19.45],[27.8,21.4],[30.4,22.0]],
+ "vo": [[0.10,"This cancer cell has nine minutes to live."],[2.75,"Meet its killer."],[3.95,"A patient's own T cell, rebuilt in a lab with a brand-new receptor."],[8.30,"A CAR."],[9.25,"It hunts one marker on cancer cells: CD19."],[13.45,"Contact."],[14.60,"In about three minutes, it locks on."],[17.00,"Then it fires toxic granules, straight into the cancer cell."],[21.75,"Nine minutes."],[22.90,"The cancer cell self-destructs."],[25.00,"This is CAR-T."],[26.30,"A living drug."],[27.60,"And it's already moving on, to the next one."]]
+}
