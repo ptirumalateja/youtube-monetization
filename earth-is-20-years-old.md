@@ -105,3 +105,10 @@ Thought experiment, not to scale. Sound: original + CC0 wind (sleepCircle, Frees
 ### Upload checklist
 - AI/synthetic content label on (rendered CGI).
 - Hook A is the only hook; a hook B ("THE DINOSAURS DIED LESS THAN ONE ORBIT AGO.") would be overlay-only.
+
+## 8. v2 (detail, depth, parallax)
+
+Files: `final-reels/earth-is-20-years-old_v2.mp4` (share encode, 27.7 MB, 9.2 Mb/s) and `_v2_master.mp4` (CRF 17, 93.5 MB). Same timeline, overlay and sound; -14.2 LUFS, true peak -2.3 dBFS after AAC.
+- Rendered at 1350x2400 and downsampled to 1080x1920 (`SS=1.25`) for sharper, anti-aliased stars.
+- Galaxy: 560k stars (was 230k), sharper arm crests, 170 spurs/feathers off the arms, 900 young-star knots, a soft gas-glow layer along the arms (faded out near the camera), 60k finer dust blobs, a 3D stellar halo and 70 globular clusters above and below the disc, a mid-field star layer between camera and galaxy for parallax.
+- Camera: during the laps it sweeps about 40° in azimuth and drops from about 58° to 38° above the plane (more oblique, more depth) with a slight dolly; the twist shot trucks sideways. Bloom radius tightened and grain reduced for crispness.
