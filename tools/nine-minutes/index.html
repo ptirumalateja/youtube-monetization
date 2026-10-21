@@ -1,0 +1,329 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// Nine Minutes: a CAR-T cell finds a CD19+ leukemia cell, forms a synapse, delivers granules; the target blebs (apoptosis).
+// Timings follow Lee et al., eLife 2020 (synapse steady within ~3 min, apoptotic blebbing ~9 min after contact).
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/960;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+const scene=new THREE.Scene();
+const FOV=60; const cam=new THREE.PerspectiveCamera(FOV,W/H,0.05,500);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const TAN=Math.tan(FOV*Math.PI/360), HALF=H/2, UK=HALF/TAN;
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)); const lerp=(a,b,k)=>a+(b-a)*k;
+const sst=(a,b,x)=>{const k=clamp((x-a)/(b-a));return k*k*(3-2*k)}; const s5=(a,b,x)=>{const k=clamp((x-a)/(b-a));return k*k*k*(k*(k*6-15)+10)};
+// ------------------------------------------------------------------ world
+const RC=3.2, RT=1.6;
+const C=V(0,0,0); const LOOP=22.0;
+const OFF=V(24,-12,-36);                    // second cancer cell = one lattice period away, so the loop matches
+const C2=C.clone().add(OFF);
+const D=V(-0.85,0.15,0.5).normalize();      // contact direction from C
+const TS0=C.clone().addScaledVector(D,15).add(V(0,1.2,0));
+const L1=V(0.45,0.75,0.5).normalize();
+// ------------------------------------------------------------------ GLSL: noise + cell displacement
+const NOISE=`
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;} vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);} vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+float snoise(vec3 v){const vec2 C=vec2(1.0/6.0,1.0/3.0);const vec4 D=vec4(0.0,0.5,1.0,2.0);
+ vec3 i=floor(v+dot(v,C.yyy));vec3 x0=v-i+dot(i,C.xxx);vec3 g=step(x0.yzx,x0.xyz);vec3 l=1.0-g;vec3 i1=min(g.xyz,l.zxy);vec3 i2=max(g.xyz,l.zxy);
+ vec3 x1=x0-i1+C.xxx;vec3 x2=x0-i2+C.yyy;vec3 x3=x0-D.yyy;i=mod289(i);
+ vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+ float n_=0.142857142857;vec3 ns=n_*D.wyz-D.xzx;vec4 j=p-49.0*floor(p*ns.z*ns.z);vec4 x_=floor(j*ns.z);vec4 y_=floor(j-7.0*x_);
+ vec4 x=x_*ns.x+ns.yyyy;vec4 y=y_*ns.x+ns.yyyy;vec4 h=1.0-abs(x)-abs(y);vec4 b0=vec4(x.xy,y.xy);vec4 b1=vec4(x.zw,y.zw);
+ vec4 s0=floor(b0)*2.0+1.0;vec4 s1=floor(b1)*2.0+1.0;vec4 sh=-step(h,vec4(0.0));vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+ vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=vec3(a1.zw,h.w);
+ vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+ vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);m=m*m;
+ return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));}
+`;
+const DISP=`
+uniform float uR,uAmp,uFreq,uTime,uSeed,uMicro;
+uniform vec3 uFlatDir; uniform float uFlatH;
+uniform vec3 uDentDir; uniform float uDentCos,uDentOn;
+uniform vec3 uStrDir; uniform float uStr;
+uniform vec4 uBleb[12];
+float hgt(vec3 p){
+  float n=snoise(p*uFreq+vec3(uSeed)+vec3(0.0,uTime*0.13,0.0))*0.62+snoise(p*uFreq*2.1+vec3(uSeed*1.7)-vec3(uTime*0.09))*0.28;
+  float m=snoise(p*uFreq*6.5+vec3(uSeed*2.3)+uTime*0.25)*uMicro;
+  float h=uAmp*(n+m);
+  float cd=dot(p,uDentDir); float near=smoothstep(uDentCos-0.05,uDentCos+0.03,cd)*uDentOn;
+  h=mix(h,-0.03,near);
+  for(int i=0;i<12;i++){ float c=dot(p,uBleb[i].xyz); float x=sqrt(max(2.0*(1.0-c),0.0))/0.30; h+=uBleb[i].w*sqrt(max(1.0-x*x,0.0))*(0.75+0.25*smoothstep(1.0,0.6,x)); }
+  return h;
+}
+vec3 dispP(vec3 p){
+  vec3 q=p*uR*(1.0+hgt(p));
+  float a=dot(q,uStrDir); q=q+uStrDir*a*uStr-(q-uStrDir*a)*uStr*0.3;
+  float hd=dot(q,uFlatDir); q-=uFlatDir*max(hd-uFlatH,0.0);
+  return q;
+}
+void dispPN(vec3 p,out vec3 q,out vec3 n){
+  vec3 t1=normalize(cross(p,abs(p.y)<0.95?vec3(0.0,1.0,0.0):vec3(1.0,0.0,0.0))); vec3 t2=cross(p,t1);
+  float e=0.012; q=dispP(p); vec3 a=dispP(normalize(p+t1*e)); vec3 b=dispP(normalize(p+t2*e));
+  n=normalize(cross(a-q,b-q)); if(dot(n,p)<0.0) n=-n;
+}
+`;
+let PMK=0;
+function cellUniforms(o){
+  const bl=[]; for(let i=0;i<12;i++) bl.push(new THREE.Vector4(0,1,0,0));
+  return {uR:{value:o.R},uAmp:{value:o.amp},uFreq:{value:o.freq},uTime:{value:0},uSeed:{value:o.seed},uMicro:{value:o.micro||0.2},
+    uFlatDir:{value:V(0,1,0)},uFlatH:{value:99},uDentDir:{value:V(0,1,0)},uDentCos:{value:2},uDentOn:{value:0},
+    uStrDir:{value:V(1,0,0)},uStr:{value:0},uBleb:{value:bl},
+    uBase:{value:new THREE.Color(o.base)},uRim:{value:new THREE.Color(o.rim)},uCore:{value:new THREE.Color(o.core)},
+    uAlpha:{value:o.alpha},uBright:{value:1},uL:{value:L1},uTex:{value:o.tex||1}};
+}
+function membraneMat(U){
+  const m=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.FrontSide,
+   vertexShader:NOISE+DISP+`varying vec3 vN; varying vec3 vW; varying vec3 vP;
+    void main(){ vec3 p=normalize(position); vec3 q,n; dispPN(p,q,n); vP=p;
+      vec4 w=modelMatrix*vec4(q,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*n); gl_Position=projectionMatrix*viewMatrix*w; }`,
+   fragmentShader:NOISE+`uniform vec3 uBase,uRim,uCore,uL; uniform float uAlpha,uBright,uSeed,uTex,uTime; varying vec3 vN; varying vec3 vW; varying vec3 vP;
+    void main(){ vec3 N=normalize(vN); vec3 Vv=normalize(cameraPosition-vW); float ndv=clamp(dot(N,Vv),0.0,1.0); float fr=pow(1.0-ndv,2.3);
+      float dif=0.5+0.5*dot(N,uL); float tex=1.0+uTex*(0.10*snoise(vP*38.0+uSeed)+0.06*snoise(vP*90.0-uSeed));
+      float sp=pow(max(dot(reflect(-Vv,N),uL),0.0),28.0);
+      vec3 col=uBase*(0.16+0.62*dif)*tex + uRim*fr*1.25 + vec3(1.0,0.96,0.88)*sp*0.35 + uCore*pow(ndv,2.0)*0.35;
+      float a=mix(uAlpha,1.0,fr);
+      gl_FragColor=vec4(col*uBright,a); }`});
+  m.customProgramCacheKey=()=>'mem'+(PMK++); return m;
+}
+// instanced surface features (receptors / antigens) that ride the deformed surface of their cell
+function surfaceFeature(U,geo,dirs,color,extraScale,kind){
+  const ig=new THREE.InstancedBufferGeometry(); ig.index=geo.index; ig.attributes.position=geo.attributes.position; ig.attributes.normal=geo.attributes.normal;
+  const ad=new Float32Array(dirs.length*4); dirs.forEach((d,i)=>{ad[i*4]=d.x;ad[i*4+1]=d.y;ad[i*4+2]=d.z;ad[i*4+3]=d.w;});
+  ig.setAttribute('aDir',new THREE.InstancedBufferAttribute(ad,4)); ig.instanceCount=dirs.length;
+  const Uf=Object.assign({},U,{uCol:{value:new THREE.Color(color)},uGrow:{value:1},uGT:{value:0},uHide:{value:0},uFS:{value:extraScale},uFB:{value:1}});
+  const m=new THREE.ShaderMaterial({uniforms:Uf,
+   vertexShader:NOISE+DISP+`attribute vec4 aDir; uniform float uGrow,uGT,uHide,uFS; varying vec3 vN; varying vec3 vW;
+    void main(){ vec3 p=normalize(aDir.xyz); vec3 q,n; dispPN(p,q,n);
+      float g=${kind==='car'?'clamp((uGT-aDir.w*1.7)/0.38,0.0,1.0)':'1.0'}; g=g*g*(3.0-2.0*g);
+      float hide=1.0-smoothstep(-0.2,0.25,dot(q,uFlatDir)-uFlatH+0.35)*uHide;
+      ${kind==='cd19'?'hide=1.0-smoothstep(uDentCos-0.08,uDentCos-0.01,dot(p,uDentDir))*uDentOn;':''}
+      float s=uFS*g*hide*uGrow*${kind==='car'?'(1.0+0.12*sin(uTime*3.0+aDir.w*40.0))':'1.0'};
+      vec3 t1=normalize(cross(n,abs(n.y)<0.95?vec3(0.0,1.0,0.0):vec3(1.0,0.0,0.0))); vec3 t2=cross(n,t1);
+      vec3 lp=t1*position.x+n*position.y+t2*position.z; vec3 ln=t1*normal.x+n*normal.y+t2*normal.z;
+      vec4 w=modelMatrix*vec4(q+lp*s,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*ln); gl_Position=projectionMatrix*viewMatrix*w; }`,
+   fragmentShader:`uniform vec3 uCol,uL; uniform float uBright,uFB; varying vec3 vN; varying vec3 vW;
+    void main(){ vec3 N=normalize(vN); vec3 Vv=normalize(cameraPosition-vW); float dif=0.45+0.55*max(dot(N,uL),0.0); float fr=pow(1.0-abs(dot(N,Vv)),2.0);
+      gl_FragColor=vec4(uCol*(0.35+0.9*dif)*uFB*uBright+uCol*fr*0.6*uFB,1.0); }`});
+  m.customProgramCacheKey=()=>'feat'+(PMK++);
+  const mesh=new THREE.Mesh(ig,m); mesh.frustumCulled=false; return {mesh,U:Uf};
+}
+function fib(n,seed,jit){ const R=rnd(seed); const out=[]; for(let i=0;i<n;i++){ const y=1-2*(i+0.5)/n; const r=Math.sqrt(1-y*y); const th=i*2.399963+R()*jit;
+  const v=V(r*Math.cos(th),y,r*Math.sin(th)).add(V(R()-0.5,R()-0.5,R()-0.5).multiplyScalar(jit*0.25)).normalize(); out.push(new THREE.Vector4(v.x,v.y,v.z,R())); } return out; }
+// ------------------------------------------------------------------ geometry for features
+function receptorGeo(){ // a "Y": stem + two arms + tips (CAR: antibody fragment on a stalk)
+  const parts=[]; const mat4=new THREE.Matrix4();
+  const stem=new THREE.CylinderGeometry(0.028,0.034,0.30,6,1); stem.translate(0,0.15,0); parts.push(stem);
+  for(const s of [-1,1]){ const arm=new THREE.CylinderGeometry(0.026,0.028,0.16,6,1); arm.translate(0,0.08,0); arm.rotateZ(s*0.62); arm.translate(0,0.29,0); parts.push(arm);
+    const tip=new THREE.SphereGeometry(0.05,8,6); tip.translate(s*Math.sin(0.62)*0.17,0.29+Math.cos(0.62)*0.17,0); parts.push(tip); }
+  return mergeGeos(parts); }
+function mergeGeos(gs){ let np=0,ni=0; gs.forEach(g=>{g=g.index?g:g; np+=g.attributes.position.count; ni+=g.index.count;});
+  const pos=new Float32Array(np*3), nor=new Float32Array(np*3), idx=new Uint32Array(ni); let po=0,io=0;
+  gs.forEach(g=>{ pos.set(g.attributes.position.array,po*3); nor.set(g.attributes.normal.array,po*3); for(let i=0;i<g.index.count;i++) idx[io+i]=g.index.array[i]+po; po+=g.attributes.position.count; io+=g.index.count; });
+  const m=new THREE.BufferGeometry(); m.setAttribute('position',new THREE.BufferAttribute(pos,3)); m.setAttribute('normal',new THREE.BufferAttribute(nor,3)); m.setIndex(new THREE.BufferAttribute(idx,1)); return m; }
+const SPH_HI=new THREE.SphereGeometry(1,224,150); const SPH_MID=new THREE.SphereGeometry(1,96,64);
+// ------------------------------------------------------------------ background (depends on view direction only)
+const bgMat=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{uF:{value:V(0,0,-1)},uRt:{value:V(1,0,0)},uUp:{value:V(0,1,0)},uTa:{value:TAN},uAs:{value:W/H},uT:{value:0}},
+  vertexShader:`varying vec2 vU; void main(){ vU=position.xy; gl_Position=vec4(position.xy,0.0,1.0); }`,
+  fragmentShader:NOISE+`uniform vec3 uF,uRt,uUp; uniform float uTa,uAs,uT; varying vec2 vU;
+   void main(){ vec3 d=normalize(uF+uRt*vU.x*uTa*uAs+uUp*vU.y*uTa);
+     float n=snoise(d*1.6)*0.5+snoise(d*3.7+vec3(4.0))*0.25; float c=snoise(d*7.0+vec3(0.0,uT*0.05,0.0));
+     vec3 deep=vec3(0.010,0.018,0.040); vec3 teal=vec3(0.018,0.060,0.075); vec3 warm=vec3(0.060,0.040,0.030);
+     vec3 col=mix(deep,teal,smoothstep(-0.4,0.7,n+d.y*0.35)); col=mix(col,warm,smoothstep(0.35,0.9,snoise(d*1.1+vec3(9.0)))*0.45);
+     col+=vec3(0.010,0.022,0.026)*smoothstep(0.55,0.95,c);
+     float vig=1.0-0.55*pow(length(vU*vec2(0.85,1.0))/1.35,2.2); gl_FragColor=vec4(col*vig,1.0); }`});
+const bg=new THREE.Mesh(new THREE.PlaneGeometry(2,2),bgMat); bg.frustumCulled=false; bg.renderOrder=-100; scene.add(bg);
+// ------------------------------------------------------------------ camera-wrapped particle lattices (world-fixed parallax; periods divide OFF)
+function lattice(n,P,seed,sizeLo,sizeHi,cols,near,far,soft,maxpx,cap){
+  const R=rnd(seed); const pos=new Float32Array(n*3), sz=new Float32Array(n), col=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ pos[i*3]=R()*P.x; pos[i*3+1]=R()*P.y; pos[i*3+2]=R()*P.z; sz[i]=lerp(sizeLo,sizeHi,Math.pow(R(),2.2)); const c=cols[Math.floor(R()*cols.length)]; const b=0.5+0.5*R(); col[i*3]=c[0]*b; col[i*3+1]=c[1]*b; col[i*3+2]=c[2]*b; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,
+   uniforms:{uP:{value:P},uK:{value:UK},uNear:{value:near},uFar:{value:far},uSoft:{value:soft},uMax:{value:maxpx*SC},uAmp:{value:1},uT:{value:0}},
+   vertexShader:`attribute float aSize; attribute vec3 color; uniform vec3 uP; uniform float uK,uNear,uFar,uMax,uAmp,uT; varying vec3 vc; varying float vS;
+    void main(){ vec3 p=mod(position-cameraPosition+uP*0.5,uP)-uP*0.5+cameraPosition;
+      p+=vec3(sin(uT*0.31+position.z),cos(uT*0.27+position.x),sin(uT*0.23+position.y))*0.08;
+      vec4 mv=viewMatrix*vec4(p,1.0); float d=max(-mv.z,0.01);
+      float px=aSize*uK/d; float fade=smoothstep(uNear,uNear*2.2,d)*(1.0-smoothstep(uFar*0.6,uFar,d));
+      float pc=clamp(px,1.0,uMax); vc=color*fade*uAmp*min(1.0,px*px/(pc*pc)+0.35); vS=pc; gl_PointSize=pc; gl_Position=projectionMatrix*mv; }`,
+   fragmentShader:`uniform float uSoft; varying vec3 vc; varying float vS; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; if(r>1.0) discard;
+      float a=uSoft>0.5? exp(-r*r*2.2)*(0.7+0.3*smoothstep(0.55,0.95,r)) : exp(-r*r*5.0); gl_FragColor=vec4(vc*a,1.0); }`});
+  m.customProgramCacheKey=()=>'lat'+(PMK++); const p=new THREE.Points(g,m); p.frustumCulled=false; scene.add(p); return p;
+}
+const DUST=[[0.55,0.75,0.78],[0.80,0.78,0.70],[0.35,0.60,0.70]];
+const lat1=lattice(2600,V(12,12,12),11,0.010,0.035,DUST,0.6,22,0,6,0);
+const lat2=lattice(900,V(6,6,6),12,0.006,0.018,DUST,0.4,9,0,4,0);
+const lat3=lattice(420,V(12,12,12),13,0.05,0.16,[[0.10,0.20,0.24],[0.18,0.16,0.13]],2.5,30,1,140,0); // soft out-of-focus debris
+const lat4=lattice(14,V(24,12,36),14,1.2,2.2,[[0.040,0.085,0.095],[0.075,0.060,0.045]],9,46,1,900,0); // distant blurred cells
+// ------------------------------------------------------------------ cancer cell factory (C and C2 are identical, C2 runs on t-22)
+function makeCancer(center,toff){
+  const U=cellUniforms({R:RC,amp:0.085,freq:1.25,seed:3.7,micro:0.22,base:0x9c6a2c,rim:0xffd9a0,core:0x5a2c12,alpha:0.80});
+  const g=new THREE.Group(); g.position.copy(center); scene.add(g);
+  const nucU=cellUniforms({R:RC*0.56,amp:0.10,freq:1.6,seed:8.1,micro:0.1,base:0x3a2016,rim:0x8a5a34,core:0x1a0d08,alpha:1.0,tex:0.5});
+  const nucM=membraneMat(nucU); nucM.transparent=false; nucM.depthWrite=true; const nuc=new THREE.Mesh(SPH_MID,nucM); nuc.renderOrder=1; g.add(nuc);
+  const mem=new THREE.Mesh(SPH_HI,membraneMat(U)); mem.renderOrder=5; g.add(mem); mem.frustumCulled=false; nuc.frustumCulled=false;
+  const cd=surfaceFeature(U,new THREE.SphereGeometry(0.105,10,8).translate(0,0.05,0),fib(150,77,0.9),0xff4a36,1.0,'cd19'); cd.mesh.renderOrder=2; g.add(cd.mesh);
+  return {g,U,nucU,cdU:cd.U,toff,mem,nuc,cd};
+}
+const CA=makeCancer(C,0), CB=makeCancer(C2,-LOOP);
+// ------------------------------------------------------------------ T cell
+const TU=cellUniforms({R:RT,amp:0.07,freq:1.8,seed:12.3,micro:0.30,base:0x1f6f74,rim:0x9ff2ea,core:0x0c3a40,alpha:0.42});
+const TG=new THREE.Group(); scene.add(TG);
+const tnucU=cellUniforms({R:RT*0.62,amp:0.12,freq:2.0,seed:5.5,micro:0.1,base:0x0e3036,rim:0x3f8c8c,core:0x061418,alpha:1.0,tex:0.5});
+const tnucM=membraneMat(tnucU); tnucM.transparent=false; tnucM.depthWrite=true; const tnuc=new THREE.Mesh(SPH_MID,tnucM); tnuc.renderOrder=1; TG.add(tnuc);
+const tmem=new THREE.Mesh(SPH_HI,membraneMat(TU)); tmem.renderOrder=6; TG.add(tmem); tmem.frustumCulled=false; tnuc.frustumCulled=false;
+const CAR=surfaceFeature(TU,receptorGeo(),fib(170,91,0.9),0xffc566,0.95,'car'); CAR.mesh.renderOrder=2; TG.add(CAR.mesh); CAR.U.uHide.value=1;
+// lytic granules
+const NG=48; const gR=rnd(55); const gInit=[], gClus=[], gDest=[], gDel=[];
+for(let i=0;i<NG;i++){ let v; do{v=V(gR()*2-1,gR()*2-1,gR()*2-1);}while(v.length()>1); gInit.push(v.multiplyScalar(RT*0.55));
+  const a=gR()*6.283, r=Math.sqrt(gR())*0.42; gClus.push([Math.cos(a)*r,Math.sin(a)*r,gR()*0.18]);
+  let w; do{w=V(gR()*2-1,gR()*2-1,gR()*2-1);}while(w.length()>1); gDest.push(w.multiplyScalar(RC*0.62)); gDel.push(gR()); }
+const gPos=new Float32Array(NG*3), gB=new Float32Array(NG); const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.BufferAttribute(gPos,3)); gg.setAttribute('aB',new THREE.BufferAttribute(gB,1));
+const gMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,uniforms:{uK:{value:UK}},
+  vertexShader:`attribute float aB; uniform float uK; varying float vB; void main(){ vec4 mv=viewMatrix*vec4(position,1.0); float d=max(-mv.z,0.1); gl_PointSize=clamp(0.16*uK/d,2.0,90.0); vB=aB; gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`varying float vB; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; if(r>1.0) discard; float a=exp(-r*r*4.0)+0.6*exp(-r*r*30.0); gl_FragColor=vec4(vec3(1.0,0.78,0.38)*a*vB,1.0); }`});
+gMat.customProgramCacheKey=()=>'gran'; const gran=new THREE.Points(gg,gMat); gran.frustumCulled=false; gran.renderOrder=20; scene.add(gran);
+// synapse glow disc
+const discMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{uA:{value:0},uC:{value:0},uT:{value:0}},
+  vertexShader:`varying vec2 vU; void main(){ vU=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`uniform float uA,uC,uT; varying vec2 vU; void main(){ float r=length(vU); if(r>1.0) discard;
+    float ring=exp(-pow((r-0.72)/0.13,2.0)); float core=exp(-r*r/0.10); float edge=1.0-smoothstep(0.85,1.0,r);
+    float pulse=0.85+0.15*sin(uT*7.0-r*9.0);
+    vec3 col=vec3(0.35,0.95,0.90)*ring*0.8*pulse + vec3(1.0,0.75,0.35)*core*(0.4+uC*1.2);
+    gl_FragColor=vec4(col*uA*edge,1.0); }`});
+discMat.customProgramCacheKey=()=>'disc'; const disc=new THREE.Mesh(new THREE.CircleGeometry(1,64),discMat); disc.renderOrder=15; scene.add(disc);
+// apoptotic bodies (pinch off the blebs at the end)
+const BLEB=fib(12,303,1.5).map((v,i)=>{ let d=V(v.x,v.y,v.z); return d; });
+const bodies=[]; for(let i=0;i<5;i++){ const U=cellUniforms({R:0.42,amp:0.06,freq:2.0,seed:20+i,micro:0.1,base:0x6a5446,rim:0xe6c8a4,core:0x2a1a12,alpha:0.85});
+  const m=new THREE.Mesh(SPH_MID,membraneMat(U)); m.renderOrder=7; m.visible=false; m.frustumCulled=false; scene.add(m); bodies.push({m,U}); }
+// ------------------------------------------------------------------ choreography
+function sph(az,el,r){ return V(r*Math.cos(el)*Math.sin(az), r*Math.sin(el), r*Math.cos(el)*Math.cos(az)); }
+const RC_EFF=RC*0.97;
+const TC_TOUCH=C.clone().addScaledVector(D,RC_EFF+RT*0.98), TC_IN=C.clone().addScaledVector(D,RC_EFF+RT*0.56);
+const NEXT=C2.clone().sub(C).normalize();
+function bez(a,b,c,k){ return a.clone().multiplyScalar((1-k)*(1-k)).addScaledVector(b,2*k*(1-k)).addScaledVector(c,k*k); }
+const TMID=TS0.clone().lerp(TC_TOUCH,0.5).add(V(0,-1.6,1.8));
+function Tpos(t){
+  if(t<5.0) return TS0.clone().add(V(Math.sin(t*0.9)*0.06,Math.sin(t*0.7)*0.05,0));
+  if(t<8.7){ const k=s5(5.0,8.7,t); return bez(TS0,TMID,TC_TOUCH,k); }
+  if(t<10.4){ return TC_TOUCH.clone().lerp(TC_IN,s5(8.7,10.4,t)); }
+  if(t<19.2) return TC_IN.clone().addScaledVector(D,0.03*Math.sin(t*2.2));
+  const k=clamp((t-19.2)/2.8); return TC_IN.clone().addScaledVector(D,0.4*k*k).addScaledVector(NEXT,9.0*k*k*(1.2-0.2*k)).add(V(0,-2.5*k*k,0));
+}
+// camera: spherical offset around a look point, keyed
+const AZ0=0.35, EL0=0.12, R0=13.5;
+function camAt(t){
+  // returns [pos,look]
+  const P=C.clone().addScaledVector(D,RC); // synapse point
+  const azD=Math.atan2(D.x,D.z);
+  const keys=[ // t, look, az, el, r
+    [0.0, C, AZ0, EL0, R0],
+    [2.2, C, AZ0+0.11, EL0, R0-0.3],
+    [2.62, ()=>Tpos(t), azD+0.62, 0.20, 7.2],
+    [5.0, ()=>Tpos(t), azD+0.78, 0.22, 7.6],
+    [8.7, C.clone().addScaledVector(D,RC+0.9), azD+1.62, 0.26, 13.2],
+    [10.6, C.clone().addScaledVector(D,2.2), azD+1.10, 0.22, 11.6],
+    [17.3, C.clone().addScaledVector(D,1.9), azD+0.90, 0.20, 10.6],
+    [18.3, C.clone().addScaledVector(D,1.0), azD+1.05, 0.18, 12.4],
+    [19.4, C.clone().addScaledVector(D,1.0), azD+1.15, 0.16, 12.6]];
+  const ease=[s5,s5,sst,sst,sst,sst,sst,sst,sst];
+  const ev=(L)=>typeof L==='function'?L():L.clone();
+  let pos,look;
+  let i=keys.length-2; for(let j=0;j<keys.length-1;j++){ if(t<keys[j+1][0]){i=j;break;} }
+  const a=keys[i], b=keys[i+1]; const k=t>=keys[keys.length-1][0]?1:(i===0?(t-a[0])/(b[0]-a[0]):ease[i](a[0],b[0],t));
+  const kk=i===0?clamp(k):k;
+  look=ev(a[1]).lerp(ev(b[1]),kk); const az=lerp(a[2],b[2],kk), el=lerp(a[3],b[3],kk), r=lerp(a[4],b[4],kk);
+  pos=look.clone().add(sph(az,el,r));
+  { const wc=s5(4.3,5.3,t)*(1-s5(8.3,9.7,t)); if(wc>0){ const Tp=Tpos(t); const side=V().crossVectors(D,V(0,1,0)).normalize();
+    const cp=Tp.clone().addScaledVector(D,8.0).addScaledVector(side,-3.3).add(V(0,1.8,0)); const cl=C.clone().lerp(Tp,0.28);
+    pos.lerp(cp,wc); look.lerp(cl,wc); } }
+  if(t>19.4){ // drift during death, then fly to C2 and join the frame-0 orbit (t-22)
+    const tt=t-LOOP; const p2=C2.clone().add(sph(AZ0+0.05*tt,EL0,R0+0.14*tt)), l2=C2.clone();
+    const dl=C.clone().addScaledVector(D,1.0), dp=dl.clone().add(sph(azD+1.15+0.05*(t-19.4),0.16,12.6+0.4*(t-19.4)));
+    const w=s5(19.9,21.45,t); pos=dp.lerp(p2,w); look=dl.lerp(l2,s5(19.45,20.35,t));
+  }
+  if(t<2.2){ const az=AZ0+0.05*t; pos=C.clone().add(sph(az,EL0,R0+0.14*t)); look=C.clone(); }
+  return [pos,look];
+}
+const blebDel=BLEB.map((_,i)=>rnd(900+i)());
+function setT(t){
+  // cancer cells
+  for(const K of [CA,CB]){
+    const tl=t+K.toff; K.U.uTime.value=tl; K.nucU.uTime.value=tl; K.g.rotation.y=0.04*tl;
+  }
+  const tl=t;
+  // contact geometry (CA only)
+  const Tp=Tpos(t); TG.position.copy(Tp);
+  const dist=Tp.distanceTo(C); const flatH=dist-RC_EFF; // in T-local units
+  const toC=C.clone().sub(Tp).normalize();
+  TU.uFlatDir.value.copy(toC); TU.uFlatH.value=flatH; tnucU.uFlatDir.value.copy(toC); tnucU.uFlatH.value=99;
+  const discR=flatH<RT?Math.sqrt(Math.max(RT*RT*1.02-flatH*flatH,0)):0;
+  const invRot=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-CA.g.rotation.y,0));
+  const dLoc=D.clone().applyQuaternion(invRot);
+  CA.U.uDentDir.value.copy(dLoc); CA.U.uDentCos.value=Math.cos(Math.asin(clamp(discR*1.08/RC,0,0.999))); CA.U.uDentOn.value=discR>0.05?sst(0.05,0.5,discR):0;
+  CA.cdU.uDentOn.value=CA.U.uDentOn.value;
+  // T cell motion stretch
+  const vel=Tpos(t+0.05).sub(Tpos(t-0.05)); const sp=vel.length()/0.1;
+  const str=(t<10.4||t>19.2)?clamp(sp*0.045,0,0.22):0; if(vel.length()>1e-5) TU.uStrDir.value.copy(vel.normalize()); TU.uStr.value=str; tnucU.uStrDir.value.copy(TU.uStrDir.value); tnucU.uStr.value=str*0.6;
+  TU.uTime.value=tl; tnucU.uTime.value=tl; CAR.U.uGT.value=t-2.85;
+  // T cell brightens slightly when it locks on
+  TU.uBright.value=1+0.25*sst(9.0,10.4,t)-0.15*sst(19.0,21,t);
+  // synapse disc
+  const Pc=Tp.clone().addScaledVector(toC,flatH+0.01); disc.position.copy(Pc); disc.lookAt(Pc.clone().add(toC)); const dr=Math.max(discR*0.98,0.001); disc.scale.set(dr,dr,1);
+  discMat.uniforms.uA.value=sst(8.8,10.6,t)*(1-sst(17.6,19.6,t))*(t>19.2?0:1); discMat.uniforms.uC.value=sst(13.2,14.2,t)*(1-sst(16.4,17.4,t)); discMat.uniforms.uT.value=t;
+  // granules
+  const fl=V().copy(toC); const e1=V().crossVectors(fl,V(0,1,0)).normalize(); const e2=V().crossVectors(fl,e1);
+  for(let i=0;i<NG;i++){
+    const ph=i*1.7; const wob=V(Math.sin(t*1.3+ph),Math.cos(t*1.1+ph*0.7),Math.sin(t*0.9+ph*1.3)).multiplyScalar(0.07);
+    const p0=Tp.clone().add(gInit[i]).add(wob);
+    const c=gClus[i]; const pc=Tp.clone().addScaledVector(fl,flatH-0.18-c[2]).addScaledVector(e1,c[0]*discR).addScaledVector(e2,c[1]*discR);
+    const kc=s5(11.2+gDel[i]*0.8,13.4+gDel[i]*0.4,t);
+    let p=p0.lerp(pc,kc); let b=0.75+0.25*Math.sin(t*5+ph);
+    const t0=13.6+gDel[i]*2.3, kx=s5(t0,t0+0.9,t);
+    if(kx>0){ const dest=C.clone().addScaledVector(D,RC*0.35).add(gDest[i].clone().multiplyScalar(0.8)); p=p.lerp(dest,kx); b*=1+0.8*Math.sin(Math.PI*kx); b*=1-0.65*sst(t0+0.9,t0+2.2,t); }
+    b*=sst(2.4,3.0,t)*(1-sst(17.4,18.4,t));
+    gPos[i*3]=p.x; gPos[i*3+1]=p.y; gPos[i*3+2]=p.z; gB[i]=b;
+  }
+  gg.attributes.position.needsUpdate=true; gg.attributes.aB.needsUpdate=true;
+  // death: blebs, dimming, shrink, apoptotic bodies
+  for(let i=0;i<12;i++){ const d=BLEB[i]; const st=17.3+blebDel[i]*0.75; let a=0.34*s5(st,st+0.4,t);
+    a*=0.78+0.22*Math.sin((t-st)*7.0+i); if(dLoc.dot(d)>0.45) a=0; a*=1-0.55*sst(19.0,20.8,t);
+    if(i<5) a*=1-sst(18.7+i*0.15,19.2+i*0.15,t);
+    CA.U.uBleb.value[i].set(d.x,d.y,d.z,a); }
+  // shiver before death
+  const shiver=sst(15.4,16.3,t)*(1-sst(16.3,16.6,t));
+  CA.U.uAmp.value=0.085+0.035*sst(17.3,19.5,t)+shiver*0.01*Math.sin(t*60);
+  CA.U.uR.value=RC*(1-0.12*sst(18.4,21.0,t)); CA.nucU.uR.value=RC*0.56*(1-0.22*sst(17.6,20.5,t));
+  const dk=sst(17.3,19.6,t);
+  CA.U.uBase.value.setHex(0x9c6a2c).lerp(new THREE.Color(0x6b5a50),dk); CA.U.uRim.value.setHex(0xffd9a0).lerp(new THREE.Color(0xd8cfc8),dk*0.8);
+  CA.U.uBright.value=1-0.35*sst(18.5,21.0,t); CA.cdU.uFB.value=1-0.75*dk; CA.U.uAlpha.value=0.80-0.25*dk;
+  // the second cancer cell stays alive (it is the next target and frame 0)
+  bodies.forEach((B,i)=>{ const st=18.7+i*0.15; const on=t>st; B.m.visible=on; if(!on) return;
+    const d=BLEB[i].clone().applyQuaternion(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,CA.g.rotation.y,0)));
+    const k=t-st; B.m.position.copy(C).addScaledVector(d,RC*(1.12)+0.55*k); B.U.uTime.value=t; B.U.uR.value=0.40*(0.8+0.2*sst(st,st+0.3,t)); B.U.uBright.value=1-sst(20.4,21.6,t); });
+  if(dLoc.dot(BLEB[0])>2) {}
+  // camera
+  const [cp,cl]=camAt(t); cam.position.copy(cp); cam.up.set(0,1,0); cam.lookAt(cl); cam.updateMatrixWorld();
+  const f=V(0,0,-1).applyQuaternion(cam.quaternion), rt=V(1,0,0).applyQuaternion(cam.quaternion), up=V(0,1,0).applyQuaternion(cam.quaternion);
+  bgMat.uniforms.uF.value.copy(f); bgMat.uniforms.uRt.value.copy(rt); bgMat.uniforms.uUp.value.copy(up); bgMat.uniforms.uT.value=t;
+  // the dust time must loop too
+  const tw=t%LOOP; [lat1,lat2,lat3,lat4].forEach(L=>{L.material.uniforms.uT.value=Math.sin(tw/LOOP*Math.PI*2)*3.0;});
+}
+// ------------------------------------------------------------------ post
+const comp=new EffectComposer(renderer); comp.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.42,0.55,0.62); comp.addPass(bloom); comp.addPass(new OutputPass());
+const c2=document.createElement('canvas'); c2.width=W; c2.height=H; const ctx=c2.getContext('2d');
+// grain + vignette applied in 2D after accumulation
+window.renderAt=(t,nsub)=>{ nsub=nsub||2; const sh=1/60;
+  for(let s=0;s<nsub;s++){ const ts=t+sh*((s+0.5)/nsub-0.5); setT(ts); comp.render(); ctx.globalAlpha=1/(s+1); ctx.drawImage(renderer.domElement,0,0); }
+  ctx.globalAlpha=1; return c2.toDataURL('image/jpeg',0.95); };
+window.setT=setT; window.cam=cam; window.THREE=THREE; window.ready=true;
+window.proj=(t)=>{ setT(t); const out={}; const pr=(v)=>{const p=v.clone().project(cam); return [ (p.x+1)/2, (1-p.y)/2, p.z ];};
+  out.C=pr(C); out.T=pr(Tpos(t)); out.C2=pr(C2); out.P=pr(C.clone().addScaledVector(D,RC)); return out; };
+</script></body></html>
