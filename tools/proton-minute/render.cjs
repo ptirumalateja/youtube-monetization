@@ -33,19 +33,26 @@ const server = http.createServer((req, res) => {
         fs.writeFileSync(path.join(output, `still-${t.toFixed(2).padStart(5, '0')}.jpg`), Buffer.from(b64, 'base64'));
       }
       console.log('stills written');
+    } else if (process.argv.includes('--frames')) {
+      // resumable: writes output/frames/NNNN.jpg, skipping frames already on disk; FROM/TO pick a slice so slices can run in parallel
+      const dir = path.join(output, 'frames'); fs.mkdirSync(dir, { recursive: true });
+      const from = Number(process.env.FROM || 0), to = Math.min(total, Number(process.env.TO || total)), t0 = Date.now();
+      for (let f = from; f < to; f++) {
+        const file = path.join(dir, String(f).padStart(4, '0') + '.jpg'); if (fs.existsSync(file)) continue;
+        const b64 = await page.evaluate(f => window.captureFrame(f / 30, f), f);
+        fs.writeFileSync(file + '.tmp', Buffer.from(b64, 'base64')); fs.renameSync(file + '.tmp', file);
+        if (f % 30 === 0) console.log(`frame ${f}/${total} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+      }
+      console.log('frames done', from, to);
     } else {
+      // encode output/frames + output/sound.wav (run --frames first)
       const name = process.env.OUT || 'proton-laps-one-minute.mp4';
-      const ff = spawn('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'warning', '-f', 'image2pipe', '-framerate', String(spec.fps), '-i', 'pipe:0',
+      const missing = [...Array(total).keys()].filter(f => !fs.existsSync(path.join(output, 'frames', String(f).padStart(4, '0') + '.jpg')));
+      if (missing.length) throw Error(`${missing.length} frames missing, first ${missing[0]}`);
+      await new Promise((res, rej) => spawn('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'warning', '-framerate', String(spec.fps), '-i', path.join(output, 'frames', '%04d.jpg'),
         '-i', path.join(output, 'sound.wav'), '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p',
         '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',
-        '-t', String(spec.duration), '-movflags', '+faststart', path.join(output, name)], { stdio: ['pipe', 'ignore', 'inherit'] });
-      const t0 = Date.now();
-      for (let f = 0; f < total; f++) {
-        const b64 = await page.evaluate(f => window.captureFrame(f / 30, f), f);
-        if (!ff.stdin.write(Buffer.from(b64, 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
-        if (f % 60 === 0) console.log(`frame ${f}/${total} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
-      }
-      ff.stdin.end(); await new Promise((res, rej) => ff.on('exit', c => c ? rej(Error('ffmpeg ' + c)) : res()));
+        '-t', String(spec.duration), '-movflags', '+faststart', path.join(output, name)], { stdio: 'inherit' }).on('exit', c => c ? rej(Error('ffmpeg ' + c)) : res()));
       console.log('wrote', name);
     }
   } finally { await browser.close(); server.close(); }

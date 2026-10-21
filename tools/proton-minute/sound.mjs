@@ -46,9 +46,9 @@ hit(0, 0.75);
   for (let j = 0; j < n; j++) { const t = j / SR; ph += 2 * Math.PI * 330 / SR; ph2 += 2 * Math.PI * LAPS / SR;
     const am = 0.55 + 0.45 * Math.cos(ph2), e = Math.min(1, t / 0.02);
     const v = (Math.sin(ph) + 0.4 * Math.sin(2.01 * ph) + 0.2 * Math.sin(3.03 * ph)) * am * 0.06 * e; put(SFX, j, v, 0.5 * Math.sin(ph2)); } }
-for (const [txt, t0, t1] of [['THIS PROTON', 0, 0.4], ['LAPS EARTH 7.5X', 0.45, 1.0], ['EVERY SECOND.', 1.05, 1.5], ['HOW MANY LAPS', 2.95, 3.35], ['IN ONE MINUTE?', 3.4, 3.8],
+for (const [txt, t0, t1] of [['HOW MANY LAPS', 2.95, 3.35], ['IN ONE MINUTE?', 3.4, 3.8],
   ['448 LAPS.', 23.05, 23.4], ['IN 60 SECONDS.', 23.55, 23.95], ['17,987,547 KM', 24.1, 24.5], ["THAT'S 46 TRIPS", 25.4, 25.85], ['TO THE MOON.', 25.9, 26.3],
-  ['IN ONE MINUTE.', 28.05, 28.45], ['99.999999% OF LIGHT SPEED', 28.6, 28.9]])
+  ['IN ONE MINUTE.', 29.0, 29.4], ['99.999999% OF LIGHT SPEED', 29.55, 29.85]])
   for (let k = 0; k < txt.length; k++) if (txt[k] !== ' ') noise(SFX, t0 + (t1 - t0) * k / txt.length, 0.025, 0.07, { hp: 2500, lp: 9000, d: 0.006, pan: rnd() * 0.3 });
 // ---- the minute starts: suck-in and a thud ----
 noise(SFX, M0 - 0.5, 0.5, 0.2, { lp: 400, lpEnd: 6000, hp: 150, rev: true, send: 0.3 });
@@ -82,14 +82,16 @@ tone(SFX, 25.2, 1.6, 700, 110, 0.06, { a: 0.2, d: 3, curve: 0.6 });
 for (const [f, g] of [[110, 0.05], [164.8, 0.04], [220, 0.03]]) tone(SFX, 26.0, 3.0, f, f, g, { a: 0.8, d: 6, send: 0.5 });
 // ---- one plink per trip to the Moon (same easing as the on-screen counter) ----
 const PENTA = [0, 2, 4, 7, 9];
-for (let n = 1; n <= F.moon_trips; n++) { const t = 26.55 + 1.45 * Math.pow(n / F.moon_trips, 1 / 1.25), st = PENTA[(n - 1) % 5] + 12 * Math.floor((n - 1) / 5) / 3;
+for (let n = 1; n <= F.moon_trips; n++) { const t = 26.5 + 2.4 * Math.sqrt(n / F.moon_trips), st = PENTA[(n - 1) % 5] + 12 * Math.floor((n - 1) / 5) / 3;
   const f = 659.3 * Math.pow(2, Math.round(st) / 12); tone(SFX, t, 0.3, f, f, 0.05, { a: 0.001, d: 0.08, send: 0.5, pan: (n % 2 ? -0.35 : 0.35) }); }
-hit(28.0, 0.7);
-for (const [f, g] of [[440, 0.06], [659.3, 0.05], [880, 0.035]]) tone(SFX, 28.0, 2.0, f, f, g, { a: 0.01, d: 0.9, send: 0.7 });
-tone(SFX, 28.5, 0.4, 1320, 1320, 0.05, { d: 0.12, send: 0.4 }); // LHC chip
+for (let n = 1; n <= 4; n++) { const t0 = 26.5 + 2.4 * Math.sqrt((n - 1) / F.moon_trips), t1 = 26.5 + 2.4 * Math.sqrt(n / F.moon_trips);
+  noise(SFX, t0, t1 - t0, 0.12, { lp: 800, lpEnd: 6000, hp: 300, rev: true, pan: n % 2 ? 0.4 : -0.4 }); }
+hit(28.9, 0.8);
+for (const [f, g] of [[440, 0.06], [659.3, 0.05], [880, 0.035]]) tone(SFX, 28.9, 2.0, f, f, g, { a: 0.01, d: 0.9, send: 0.7 });
+tone(SFX, 29.45, 0.4, 1320, 1320, 0.05, { d: 0.12, send: 0.4 }); // LHC chip
 // ---- snap back into frame 0 ----
-noise(SFX, 28.9, 1.1, 0.24, { lp: 300, lpEnd: 8000, hp: 120, rev: true, send: 0.2 });
-tone(SFX, 28.9, 1.1, 120, 900, 0.05, { a: 0.5, d: 9, curve: 2 });
+noise(SFX, 29.9, 1.1, 0.24, { lp: 300, lpEnd: 8000, hp: 120, rev: true, send: 0.2 });
+tone(SFX, 29.9, 1.1, 120, 900, 0.05, { a: 0.5, d: 9, curve: 2 });
 // ---- reverb on the send (Schroeder, run over two loops so the tail wraps) ----
 function reverb([l, r]) {
   const out = [new Float32Array(L), new Float32Array(L)];
@@ -105,7 +107,7 @@ const VERB = reverb(SEND);
 // high-pass everything but the hit bus at 90 Hz (phones), duck under hits, sum
 const hp90 = ([l, r]) => [l, r].forEach(x => { const a = Math.exp(-2 * Math.PI * 90 / SR); let y = 0, p = 0; for (let k = 0; k < 2 * L; k++) { const v = x[k % L]; y = a * (y + v - p); p = v; if (k >= L) x[k - L] = y; } });
 hp90(SFX); hp90(BED); hp90(VERB);
-const duck = t => { let g = 1; for (const h of [0, END, 28.0]) { const dt = t - h; if (dt >= 0 && dt < 1.2) g = Math.min(g, 0.45 + 0.55 * dt / 1.2); if (dt > -0.05 && dt < 0) g = Math.min(g, 0.05); }
+const duck = t => { let g = 1; for (const h of [0, END, 28.9]) { const dt = t - h; if (dt >= 0 && dt < 1.2) g = Math.min(g, 0.45 + 0.55 * dt / 1.2); if (dt > -0.05 && dt < 0) g = Math.min(g, 0.05); }
   if (t > DUR - 0.05) g = Math.min(g, 0.05); return g; };
 const mix = [new Float32Array(L), new Float32Array(L)];
 for (let c = 0; c < 2; c++) for (let k = 0; k < L; k++) {
