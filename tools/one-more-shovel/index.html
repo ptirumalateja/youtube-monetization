@@ -1,0 +1,311 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// One More Shovel: a stickman digs a well, seen as a cross-section of the ground. The water table glows below him; we can
+// see it, he can't. He stops 20 cm short and climbs out. renderAt(t) is pure (every frame is a function of t only).
+// Earth surfaces share one strata shader keyed by a #define per surface; the stickman is an IK rig (hands, feet targets).
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
+const TL=await (await fetch('timeline.json')).json(); const T=TL.T, EV=TL.events, ST=TL.strokes, WT=TL.water;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x02040a);
+const cam=new THREE.PerspectiveCamera(38,W/H,0.05,200);
+
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)); const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t)}; const lerp=(a,b,t)=>a+(b-a)*t;
+function keys(k,t){ if(t<=k[0][0])return k[0][1]; for(let i=1;i<k.length;i++){ if(t<=k[i][0]){ const u=(t-k[i-1][0])/(k[i][0]-k[i-1][0]); return lerp(k[i-1][1],k[i][1],u*u*(3-2*u)); } } return k[k.length-1][1]; }
+const L2=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t)];
+
+// ---------------------------------------------------------------- depth: stepwise at impacts (scoop lands just after), smooth for the camera
+function strokeAt(t){ let k=0; for(let i=0;i<ST.length;i++) if(ST[i][0]<=t) k=i; return k; }
+function depth(t){ if(t<0) return 0; const k=strokeAt(t); const prev=k>0?ST[k-1][1]:0; return lerp(prev,ST[k][1],sstep(ST[k][0],ST[k][0]+0.12*(k<4||k>=ST.length-4?1:0.5),t)); }
+function depthSmooth(t){ // monotone, through the stroke points
+  if(t<=ST[0][0]) return 0; for(let i=1;i<ST.length;i++){ if(t<=ST[i][0]){ const u=(t-ST[i-1][0])/(ST[i][0]-ST[i-1][0]); return lerp(ST[i-1][1],ST[i][1],u); } } return ST[ST.length-1][1]; }
+
+// ---------------------------------------------------------------- earth shader (one source, #define per surface so programs never share uniform caches)
+const G={uLamp:{value:new THREE.Vector3()},uLampI:{value:1},uD:{value:0},uWater:{value:0.3},uT:{value:0},uSeep:{value:0}};
+const EARTH_V=`varying vec3 vP; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vP=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`;
+const EARTH_F=`
+uniform vec3 uLamp; uniform float uLampI,uD,uWater,uT,uSeep; varying vec3 vP;
+float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y); }
+float fbm(vec2 p){ float s=0.0,a=0.5; for(int i=0;i<4;i++){ s+=a*vn(p); p*=2.03; a*=0.5; } return s; }
+vec3 vor(vec2 p){ vec2 i=floor(p), f=fract(p); float d1=8.0,d2=8.0; vec2 id=vec2(0);
+  for(int y=-1;y<=1;y++) for(int x=-1;x<=1;x++){ vec2 g=vec2(x,y); vec2 o=vec2(h21(i+g),h21(i+g+17.3)); vec2 r=g+o-f; float d=dot(r,r); if(d<d1){d2=d1;d1=d;id=i+g;} else if(d<d2) d2=d; }
+  return vec3(sqrt(d1),sqrt(d2)-sqrt(d1),h21(id+3.1)); }
+const vec3 TEAL=vec3(0.10,0.85,0.80);
+void main(){
+  vec3 N=NRM; float u=vP.x+vP.z*0.9; float y=vP.y;
+#if KIND==0
+  if(abs(vP.x)<0.5 && y>-uD && y<0.001 && uD>0.004) discard;
+#endif
+#if KIND==3
+  if(abs(vP.x)<0.5 && abs(vP.z)<0.6 && uD>0.004) discard;
+#endif
+  vec3 col; float em=0.0; vec3 emc=vec3(0);
+#if KIND==3
+  vec3 c3=vor(vP.xz*2.6); float crack=1.0-smoothstep(0.0,0.035,c3.y);
+  col=mix(vec3(0.050,0.040,0.034),vec3(0.075,0.060,0.048),fbm(vP.xz*3.0)); col*=1.0-0.75*crack;
+#else
+  float b1=-0.35+0.07*(fbm(vec2(u*1.6,1.0))-0.5), b2=-2.6+0.35*(fbm(vec2(u*0.55,3.0))-0.5), b3=-5.0+0.4*(fbm(vec2(u*0.5,7.0))-0.5), b4=-7.8+0.35*(fbm(vec2(u*0.6,11.0))-0.5);
+  float n=fbm(vec2(u,y)*4.0), n2=fbm(vec2(u,y)*18.0);
+  if(y>b1){ col=vec3(0.040,0.030,0.024)*(0.8+0.5*n2);                                        // topsoil
+    float rt=abs(sin(u*7.0+fbm(vec2(u,y)*3.0)*9.0+y*3.0)); col+=vec3(0.05,0.042,0.03)*smoothstep(0.985,1.0,rt); }
+  else if(y>b2){ col=mix(vec3(0.082,0.052,0.036),vec3(0.105,0.068,0.046),n)*(0.85+0.3*n2);       // clay
+    col*=0.92+0.08*sin(y*22.0+n*4.0); }
+  else if(y>b3){ col=mix(vec3(0.150,0.118,0.074),vec3(0.185,0.150,0.095),n)*(0.8+0.45*n2);       // sand, gold glints
+    float g=h21(floor(vec2(u,y)*70.0)); col+=vec3(0.9,0.62,0.22)*step(0.988,g)*0.6; em+=step(0.994,g)*0.15; emc=vec3(1.0,0.7,0.3); }
+  else if(y>b4){ vec2 q=vec2(u,y)*5.5; q+=0.45*vec2(fbm(q*0.7),fbm(q*0.7+5.0)); vec3 v=vor(q);   // stones in a dark matrix
+    float peb=smoothstep(0.05,0.16,v.y)*step(0.35,v.z);
+    col=mix(vec3(0.050,0.044,0.040)*(0.8+0.4*n2),mix(vec3(0.062,0.062,0.066),vec3(0.095,0.085,0.072),v.z)*(0.55+0.6*smoothstep(0.7,0.0,v.x)),peb); }
+  else if(y>-WATER){ col=mix(vec3(0.040,0.050,0.066),vec3(0.055,0.068,0.088),n)*(0.85+0.3*n2);  // dense blue clay, damp just above the water
+    col*=0.9+0.1*sin(y*30.0+fbm(vec2(u*2.0,y))*6.0);
+    float damp=smoothstep(-WATER+0.45,-WATER,y); col=mix(col,col*vec3(0.55,0.75,0.85),damp*0.8); }
+  else { vec2 q=vec2(u,y)*7.0; q+=0.22*vec2(fbm(q*0.35),fbm(q*0.35+9.0)); vec3 v=vor(q);   // aquifer: gravel, water fills the pores
+    float peb=smoothstep(0.03,0.13,v.y);
+    float sh=0.6+0.4*sin(uT*2.1+v.z*6.28+y*3.0)*sin(uT*1.3+u*4.0);
+    col=mix(vec3(0.010,0.03,0.035),vec3(0.055,0.07,0.08)*(0.55+0.7*v.z)*(0.6+0.7*smoothstep(0.75,0.0,v.x)),peb);
+    em+=(1.0-peb)*uWater*sh*1.1*smoothstep(-WATER-3.5,-WATER-0.2,y); emc=TEAL;
+    em+=smoothstep(0.03,0.0,abs(y+WATER))*uWater*1.2; }                                         // the water table line
+  // glow of the water bleeding up through the damp clay: we see it, he doesn't
+  if(y>-WATER){ float k=exp(-(y+WATER)/0.55)*uWater*0.32; col+=TEAL*k*0.35; }
+#endif
+#if KIND==2
+  // shaft floor: wet after he leaves
+  float wet=uSeep*smoothstep(0.6,0.2,vor(vP.xz*6.0).x+0.3*(1.0-uSeep)); col=mix(col,vec3(0.02,0.07,0.08),wet*0.8); em+=wet*0.35*uWater; emc=TEAL;
+#endif
+  // light: the lantern (warm), a cool fill on the cut face so the section reads, moonlight on the surface
+  vec3 L=uLamp-vP; float d=length(L); float fall=uLampI/(1.0+d*d*1.1);
+  vec3 lit;
+#if KIND==0
+  lit=vec3(1.0,0.78,0.5)*fall*0.55+vec3(0.55,0.65,0.85)*0.55;
+  float edge=0.0; if(uD>0.004){ float ex=abs(abs(vP.x)-0.5); if(y>-uD-0.01 && y<0.0) edge+=smoothstep(0.012,0.0,ex); if(abs(vP.x)<0.51) edge+=smoothstep(0.012,0.0,abs(y+uD)); }
+  edge+=smoothstep(0.014,0.0,abs(y))*step(0.5,abs(vP.x)+step(uD,0.004));
+#elif KIND==3
+  lit=vec3(1.0,0.78,0.5)*fall*max(dot(N,L/d),0.0)*1.6+vec3(0.45,0.55,0.8)*0.5;
+#else
+  lit=vec3(1.0,0.78,0.5)*fall*(max(dot(N,L/d),0.0)*1.5+0.25)+vec3(0.4,0.5,0.7)*0.12;
+#endif
+  vec3 o=col*lit+emc*em;
+#if KIND==0
+  o+=vec3(0.95,0.88,0.72)*edge*0.18;
+#endif
+  gl_FragColor=vec4(o,1.0);
+}`;
+function earthMat(kind,n){ return new THREE.ShaderMaterial({uniforms:G,vertexShader:EARTH_V,
+  fragmentShader:`#define KIND ${kind}\n#define WATER ${WT.toFixed(2)}\n#define NRM vec3(${n.map(v=>v.toFixed(1)).join(',')})\n`+EARTH_F}); }
+const face=new THREE.Mesh(new THREE.PlaneGeometry(14,30),earthMat(0,[0,0,1])); face.position.set(0,-15,0.6); scene.add(face);
+const top=new THREE.Mesh(new THREE.PlaneGeometry(40,40),earthMat(3,[0,1,0])); top.rotation.x=-Math.PI/2; top.position.set(0,0,-19.4); scene.add(top);
+const back=new THREE.Mesh(new THREE.PlaneGeometry(1,1),earthMat(1,[0,0,1])); scene.add(back);
+const wallL=new THREE.Mesh(new THREE.PlaneGeometry(1,1),earthMat(4,[1,0,0])); wallL.rotation.y=Math.PI/2; scene.add(wallL);
+const wallR=new THREE.Mesh(new THREE.PlaneGeometry(1,1),earthMat(5,[-1,0,0])); wallR.rotation.y=-Math.PI/2; scene.add(wallR);
+const floorM=new THREE.Mesh(new THREE.PlaneGeometry(1,1),earthMat(2,[0,1,0])); floorM.rotation.x=-Math.PI/2; scene.add(floorM);
+function setShaft(D){ const d=Math.max(D,0.002);
+  back.position.set(0,-d/2,-0.6); back.scale.set(1.0,d,1);
+  wallL.position.set(-0.5,-d/2,0); wallL.scale.set(1.2,d,1); wallR.position.set(0.5,-d/2,0); wallR.scale.set(1.2,d,1);
+  floorM.position.set(0,-d,0); floorM.scale.set(1.0,1.2,1); }
+
+// ---------------------------------------------------------------- sky: navy gradient, stars, a low moon
+const skyMat=new THREE.ShaderMaterial({depthWrite:false,vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying vec2 vU; void main(){ vec3 c=mix(vec3(0.020,0.040,0.075),vec3(0.004,0.008,0.020),smoothstep(0.0,0.6,vU.y)); gl_FragColor=vec4(c,1.0);} `});
+const sky=new THREE.Mesh(new THREE.PlaneGeometry(160,60),skyMat); sky.position.set(0,26,-60); scene.add(sky);
+{ const n=900, g=new THREE.BufferGeometry(), p=new Float32Array(n*3), s=new Float32Array(n); let r=7; const R=()=>{r=(r*1664525+1013904223)>>>0;return r/4294967296};
+  for(let i=0;i<n;i++){ p[i*3]=(R()-0.5)*150; p[i*3+1]=1+R()*55; p[i*3+2]=-58; s[i]=Math.pow(R(),3); }
+  g.setAttribute('position',new THREE.BufferAttribute(p,3)); g.setAttribute('aS',new THREE.BufferAttribute(s,1));
+  const st=new THREE.Points(g,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+   vertexShader:`attribute float aS; varying float vS; void main(){ vS=aS; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=1.4+aS*2.6; gl_Position=projectionMatrix*mv; }`,
+   fragmentShader:`varying float vS; void main(){ float r=length(gl_PointCoord-0.5)*2.0; gl_FragColor=vec4(vec3(0.85,0.9,1.0)*smoothstep(1.0,0.0,r)*(0.25+0.75*vS),1.0);} `}));
+  st.frustumCulled=false; scene.add(st); }
+
+// ---------------------------------------------------------------- tripod, rope, lantern, dirt mound
+const wood=new THREE.MeshStandardMaterial({color:0x5a4330,roughness:0.85});
+const APEX=new THREE.Vector3(0.28,2.55,0.0);
+function stick(a,b,r,mat){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,8),mat); const d=b.clone().sub(a); m.scale.set(1,d.length(),1); m.position.copy(a).addScaledVector(d,0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize()); scene.add(m); return m; }
+for(const f of [[-1.15,0,0.45],[1.55,0,0.4],[0.3,0,-1.5]]) stick(new THREE.Vector3(...f),APEX.clone().add(new THREE.Vector3(0,0.12,0)),0.035,wood);
+const ropeMat=new THREE.MeshStandardMaterial({color:0xb79a6e,roughness:0.9,emissive:0x1a1208});
+const rope=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,1,6),ropeMat); scene.add(rope);
+const cord=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,1,5),ropeMat); scene.add(cord);
+const lantern=new THREE.Group(); scene.add(lantern);
+{ const glass=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.16,16),new THREE.MeshBasicMaterial({color:0xffc070})); lantern.add(glass);
+  const capM=new THREE.MeshStandardMaterial({color:0x2a2622,roughness:0.6,metalness:0.4});
+  const cap=new THREE.Mesh(new THREE.ConeGeometry(0.095,0.07,16),capM); cap.position.y=0.115; lantern.add(cap);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.085,0.03,16),capM); base.position.y=-0.095; lantern.add(base);
+  const halo=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+    fragmentShader:`varying vec2 vU; void main(){ float r=length(vU-0.5)*2.0; gl_FragColor=vec4(vec3(1.0,0.72,0.38)*exp(-r*r*7.0)*0.32,1.0);} `}));
+  halo.scale.set(0.9,0.9,1); halo.position.z=0.12; lantern.add(halo); }
+const lampL=new THREE.PointLight(0xffc27a,7,0,1.6); scene.add(lampL);
+const fillL=new THREE.DirectionalLight(0x7a8fc0,0.55); fillL.position.set(2,3,6); scene.add(fillL);
+const moonL=new THREE.DirectionalLight(0x9fb2d8,0.5); moonL.position.set(-4,6,2); scene.add(moonL);
+scene.add(new THREE.AmbientLight(0x1a2236,0.6));
+const moundMat=new THREE.MeshStandardMaterial({color:0x4a382a,roughness:1,emissive:0x0d0a08});
+const mound=new THREE.Mesh(new THREE.SphereGeometry(1,32,16,0,Math.PI*2,0,Math.PI/2),moundMat); mound.position.set(-1.7,0,-0.35); scene.add(mound);
+
+// ---------------------------------------------------------------- the stickman (IK rig, profile)
+const L_UP=0.30,L_FORE=0.29,L_TH=0.47,L_SH=0.47,L_TOR=0.55,HEAD_R=0.118,BR=0.04;
+function ik(A,Tg,l1,l2,pick){ const dx=Tg[0]-A[0], dy=Tg[1]-A[1]; const d=Math.max(Math.hypot(dx,dy),1e-4); const dm=Math.min(d,l1+l2-1e-4); const ux=dx/d, uy=dy/d;
+  const a=(l1*l1-l2*l2+dm*dm)/(2*dm), h=Math.sqrt(Math.max(0,l1*l1-a*a)); const px=A[0]+ux*a, py=A[1]+uy*a;
+  const m1=[px-uy*h,py+ux*h], m2=[px+uy*h,py-ux*h]; return [pick(m1,m2), [A[0]+ux*dm,A[1]+uy*dm]]; }
+function joints(P){ const dir=P.dir; const H=P.hip; const U=[Math.sin(P.lean)*dir,Math.cos(P.lean)];
+  const N=[H[0]+U[0]*L_TOR,H[1]+U[1]*L_TOR], Sh=[N[0]-U[0]*0.07,N[1]-U[1]*0.07];
+  const C=[N[0]+Math.sin(P.lean+P.tilt)*dir*0.18,N[1]+Math.cos(P.lean+P.tilt)*0.18];
+  const elbowPick=(a,b)=> (a[1]-b[1])+0.6*dir*(b[0]-a[0])<0?a:b;     // elbows hang low and back
+  const kneePick=(a,b)=> dir*(a[0]-b[0])>0?a:b;                    // knees bend forward
+  const [eN,wN]=ik(Sh,P.hN,L_UP,L_FORE,elbowPick), [eF,wF]=ik(Sh,P.hF,L_UP,L_FORE,elbowPick);
+  const [kN,aN]=ik(H,P.fN,L_TH,L_SH,kneePick), [kF,aF]=ik(H,P.fF,L_TH,L_SH,kneePick);
+  return {H,N,Sh,C,eN,wN,eF,wF,kN,aN,kF,aF,tN:[aN[0]+0.15*dir,aN[1]-0.01],tF:[aF[0]+0.15*dir,aF[1]-0.01],dir}; }
+const BONES=[['H','N',0],['Sh','eF',-1],['eF','wF',-1],['H','kF',-1],['kF','aF',-1],['aF','tF',-1],['Sh','eN',1],['eN','wN',1],['H','kN',1],['kN','aN',1],['aN','tN',1]];
+const JN=['H','N','eN','wN','eF','wF','kN','aN','kF','aF','tN','tF'];
+const manMat=new THREE.MeshStandardMaterial({color:0xf2ecdc,roughness:0.55,emissive:0x4a4436,emissiveIntensity:0.6});
+const cylG=new THREE.CylinderGeometry(1,1,1,14), sphG=new THREE.SphereGeometry(1,36,24), jG=new THREE.SphereGeometry(1,14,10);
+const man={bones:[],joints:[]}; const mk=(g,mat)=>{ const m=new THREE.Mesh(g,mat); m.matrixAutoUpdate=false; m.frustumCulled=false; scene.add(m); return m; };
+for(const b of BONES) man.bones.push(mk(cylG,manMat)); for(const j of JN) man.joints.push(mk(jG,manMat)); man.head=mk(sphG,manMat); man.nose=mk(sphG,manMat);
+const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _p=new THREE.Vector3(), _s=new THREE.Vector3(), _e=new THREE.Euler();
+function setM(mesh,p,q,s){ _m.compose(p,q,s); mesh.matrix.copy(_m); mesh.matrixWorld.copy(_m); }
+function seg(mesh,p,q,z1,z2,r){ const dx=q[0]-p[0], dy=q[1]-p[1], L=Math.max(Math.hypot(dx,dy),1e-3); _p.set((p[0]+q[0])/2,(p[1]+q[1])/2,(z1+z2)/2); _q.setFromEuler(_e.set(0,0,-Math.atan2(dx,dy))); _s.set(r,L,r); setM(mesh,_p,_q,_s); }
+function poseMan(J,z){ BONES.forEach((b,i)=>seg(man.bones[i],J[b[0]],J[b[1]],z+b[2]*0.075,z+b[2]*0.075,BR));
+  const zOf={H:0,N:0,eN:1,wN:1,eF:-1,wF:-1,kN:1,aN:1,kF:-1,aF:-1,tN:1,tF:-1};
+  JN.forEach((j,i)=>{ _p.set(J[j][0],J[j][1],z+zOf[j]*0.075); setM(man.joints[i],_p,_q.identity(),_s.set(BR,BR,BR)); });
+  setM(man.head,_p.set(J.C[0],J.C[1],z),_q.identity(),_s.set(HEAD_R,HEAD_R,HEAD_R));
+  setM(man.nose,_p.set(J.C[0]+HEAD_R*0.95*J.dir,J.C[1]-0.012,z),_q.identity(),_s.set(0.034,0.034,0.034)); }
+
+// ---------------------------------------------------------------- the shovel
+const bladeMat=new THREE.MeshStandardMaterial({color:0x9aa3ad,roughness:0.35,metalness:0.85,emissive:0x15171a});
+const shovel={handle:mk(cylG,wood),grip:mk(cylG,wood),blade:mk(new THREE.BoxGeometry(1,1,1),bladeMat)};
+const SH_LEN=1.35, BLADE=0.30;
+function poseShovel(tip,a,z){ const d=[-Math.sin(a),Math.cos(a)]; const so=[tip[0]+d[0]*BLADE,tip[1]+d[1]*BLADE], top=[tip[0]+d[0]*SH_LEN,tip[1]+d[1]*SH_LEN];
+  seg(shovel.handle,so,top,z,z,0.022);
+  _p.set(top[0],top[1],z); _q.setFromEuler(_e.set(Math.PI/2,0,0)); _s.set(0.02,0.16,0.02); setM(shovel.grip,_p,_q,_s);
+  _p.set((tip[0]+so[0])/2,(tip[1]+so[1])/2,z); _q.setFromEuler(_e.set(0,0,-Math.atan2(d[0],d[1]))); _s.set(0.025,BLADE,0.24); setM(shovel.blade,_p,_q,_s);
+  return {top,at:(s)=>[tip[0]+d[0]*s,tip[1]+d[1]*s]}; }
+
+// ---------------------------------------------------------------- dirt clods thrown on each stroke
+const CN=60; const cg=new THREE.BufferGeometry(); const cp=new Float32Array(CN*3), ca=new Float32Array(CN); cg.setAttribute('position',new THREE.BufferAttribute(cp,3)); cg.setAttribute('aA',new THREE.BufferAttribute(ca,1));
+const clods=new THREE.Points(cg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uK:{value:H/2/Math.tan(19*Math.PI/180)}},
+ vertexShader:`attribute float aA; uniform float uK; varying float vA; void main(){ vA=aA; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=max(2.0,uK*0.05/-mv.z); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying float vA; void main(){ float r=length(gl_PointCoord-0.5)*2.0; if(r>1.0) discard; gl_FragColor=vec4(vec3(0.42,0.30,0.20)*(1.1-0.5*r),vA);} `}));
+clods.frustumCulled=false; scene.add(clods);
+const hr=(i)=>{ let s=(i*2654435761)>>>0; s^=s>>>13; s=(s*1274126177)>>>0; return (s>>>0)/4294967296; };
+
+// ---------------------------------------------------------------- choreography
+const MANX=-0.18;
+// one shovel stroke, phase u in [0,1): impact at 0; [tipX, tipY (from floor), handle angle, lean, knee]
+const DK=[[0.00,[0.42,-0.10,0.30,0.38,0.40]],[0.14,[0.40,0.02,0.70,0.30,0.35]],[0.32,[0.42,0.65,1.40,0.12,0.25]],[0.48,[0.40,1.90,2.70,-0.10,0.10]],[0.62,[0.42,1.30,1.60,0.05,0.15]],[0.82,[0.48,0.50,0.55,0.26,0.28]],[1.00,[0.42,-0.10,0.30,0.38,0.40]]];
+function cyc(u){ for(let i=1;i<DK.length;i++){ if(u<=DK[i][0]){ const a=DK[i-1], b=DK[i]; const w=(u-a[0])/(b[0]-a[0]); const s=w*w*(3-2*w); return a[1].map((v,j)=>lerp(v,b[1][j],s)); } } return DK[0][1]; }
+function digState(t){ const k=strokeAt(t); const t0=ST[k][0], t1=k+1<ST.length?ST[k+1][0]:t0+0.8; let u=(t-t0)/(t1-t0);
+  const tired=sstep(6.2,8.4,t); let c=cyc(Math.min(u,0.999)); c[1]=c[1]>0?c[1]*(1-0.3*tired):c[1]; c[3]+=0.08*tired; return {c,k,u}; }
+const REST=[0.36,-0.02,0.12,0.06,0.08];
+function manState(t){
+  const F=-depth(t); let hip,lean,tilt=0.05,hN,hF,fN,fF,dir=1,tip,a,held=true;
+  if(t<EV.out){
+    let c; if(t<EV.last_stroke+0.2){ c=digState(t).c; } else { const c0=cyc(clamp((t-EV.last_stroke)/0.66*1,0,0.14)); c=c0.map((v,j)=>lerp(v,REST[j],sstep(EV.rest[0]-0.1,EV.rest[1],t))); }
+    lean=c[3]; const knee=c[4]; tip=[MANX+c[0],F+c[1]]; a=c[2];
+    let hx=MANX+lerp(0,0.2,sstep(EV.reach[0],EV.reach[1],t));
+    hip=[hx,F+0.92-0.3*knee]; fN=[hx+0.2,F+BR]; fF=[hx-0.17,F+BR];
+    tilt=0.05-0.75*sstep(EV.look_up[0],EV.look_up[1],t)+0.15*sstep(EV.hit_reveal,EV.hit_reveal+0.4,t);
+    lean-=0.1*sstep(EV.look_up[0],EV.look_up[1],t);
+    // hands on the handle: far hand at the grip, near hand 0.85 m from the tip
+    const d=[-Math.sin(a),Math.cos(a)]; hF=[tip[0]+d[0]*SH_LEN,tip[1]+d[1]*SH_LEN]; hN=[tip[0]+d[0]*0.85,tip[1]+d[1]*0.85];
+    if(t>EV.rest[0]){ const r=sstep(EV.rest[0],EV.rest[1],t); hN=L2(hN,[hF[0]+0.02,hF[1]-0.1],r); }
+    // drop: the shovel falls and ends leaning on the right wall
+    if(t>EV.drop[0]){ held=false; const s=clamp((t-EV.drop[0])/(EV.drop[1]-EV.drop[0])); const s2=s*s;
+      tip=[lerp(MANX+REST[0],-0.40,s2),lerp(F+REST[1],F,s2)]; a=lerp(REST[2],-0.70,s2); if(t>EV.drop[1]) a+=0.03*Math.exp(-(t-EV.drop[1])*14)*Math.sin((t-EV.drop[1])*60); }
+    // reach for the rope, then climb (hip rises, hands alternate on the rope, legs hang)
+    const RX=0.30; const rch=sstep(EV.reach[0],EV.reach[1],t);
+    if(t>EV.reach[0]){ const hOld=[hN,hF]; let rise=0; const cl=t-EV.hit_reveal;
+      if(cl>0) rise=0.9*cl*cl+0.6*cl;            // accelerating climb
+      hip=[hip[0],hip[1]+rise]; const ph=cl>0?cl*3.2:0;
+      const gN=[RX,hip[1]+1.12+0.14*Math.sin(ph*6.283)], gF=[RX,hip[1]+0.98-0.14*Math.sin(ph*6.283)];
+      hN=L2(hOld[0],gN,rch); hF=L2(hOld[1],gF,rch);
+      if(cl>0){ const dl=sstep(0,0.3,cl); fN=L2(fN,[hip[0]+0.10,hip[1]-0.86+0.1*Math.sin(ph*6.283)],dl); fF=L2(fF,[hip[0]-0.02,hip[1]-0.84-0.1*Math.sin(ph*6.283)],dl); lean=lerp(lean,0.08,dl); }
+    }
+    if(held===false && t<=EV.drop[0]+1e-6) held=true;
+    return {P:{hip,dir,lean,tilt,hN,hF,fN,fF},tip,a,F,z:0};
+  }
+  // out of the shaft: he walks away, head down
+  const x=0.55+0.62*(t-EV.out); const ph=2*Math.PI*(x-0.55)/1.0; const s=Math.sin(ph), c=Math.cos(ph);
+  hip=[x,0.9+0.02*Math.cos(2*ph)]; lean=0.17; tilt=0.4;
+  fN=[x+0.24*s,BR+0.08*Math.max(0,c)]; fF=[x-0.24*s,BR+0.08*Math.max(0,-c)];
+  const sh=[x+Math.sin(lean)*0.48,hip[1]+0.46]; hN=[sh[0]-0.12*s+0.05,sh[1]-0.56]; hF=[sh[0]+0.12*s+0.05,sh[1]-0.56];
+  return {P:{hip,dir,lean,tilt,hN,hF,fN,fF},tip:[-0.40,-ST[ST.length-1][1]],a:-0.70,F:-ST[ST.length-1][1],z:0};
+}
+
+// ---------------------------------------------------------------- the 20 CM bracket (red, on the cut face)
+const redMat=new THREE.MeshBasicMaterial({color:0xd63e30,transparent:true,opacity:0});
+const brk=[new THREE.Mesh(new THREE.BoxGeometry(1,1,0.004),redMat),new THREE.Mesh(new THREE.BoxGeometry(1,1,0.004),redMat),new THREE.Mesh(new THREE.BoxGeometry(1,1,0.004),redMat)];
+brk.forEach(m=>scene.add(m));
+function setBracket(t){ const D=ST[ST.length-1][1]; const s=sstep(EV.hit_reveal,EV.hit_reveal+0.18,t)*(1-sstep(11.75,11.95,t)); redMat.opacity=s;
+  const w=1.25*sstep(EV.hit_reveal,EV.hit_reveal+0.22,t)+0.001;
+  brk[0].scale.set(w,0.014,1); brk[0].position.set(-0.55+w/2,-D,0.606);
+  brk[1].scale.set(w,0.014,1); brk[1].position.set(-0.55+w/2,-WT,0.606);
+  brk[2].scale.set(0.016,(WT-D),1); brk[2].position.set(0.66,-(D+WT)/2,0.606); brk.forEach(m=>m.visible=s>0.01); }
+
+// ---------------------------------------------------------------- camera
+function camAt(t){ const Ds=depthSmooth(t), Dl=ST[ST.length-1][1];
+  const dive=sstep(1.15,2.05,t), back=sstep(6.2,8.0,t), push=sstep(EV.push[0],EV.push[1],t)*(1-sstep(EV.whoosh[0],EV.whoosh[0]+0.1,t)), up=sstep(EV.whoosh[0],EV.whoosh[1],t);
+  let cy=lerp(0.75,-Ds+0.55,dive); cy=lerp(cy,-Dl+0.75,back);
+  let dist=lerp(7.4,6.3,dive); dist=lerp(dist,8.0,back);
+  let cx=0.08, lx=0.08;
+  const gap=[0.12,-(Dl+WT)/2]; cy=lerp(cy,gap[1]+0.18,push); dist=lerp(dist,3.4,push); cx=lerp(cx,0.45,push); lx=lerp(lx,0.18,push);
+  // whoosh back up the shaft to the frame-0 composition (loop)
+  const upE=up*up*(3-2*up); cy=lerp(cy,0.75,upE); dist=lerp(dist,7.4,upE); cx=lerp(cx,0.08,upE); lx=lerp(lx,0.08,upE);
+  const az=0.16+0.05*Math.sin(t*0.45)*(1-push);        // slight orbit: the shaft walls show depth
+  const shake=Math.exp(-Math.max(0,t-EV.hit_reveal)*6)*(t>EV.hit_reveal?1:0)*0.03*Math.sin(t*61);
+  cam.position.set(cx+dist*Math.sin(az)+shake, cy+0.25+shake*0.6, 0.6+dist*Math.cos(az));
+  cam.lookAt(lx,cy,0.0); cam.updateProjectionMatrix(); }
+window.projAt=function(t,pts){ camAt(t); cam.updateMatrixWorld(); return pts.map(p=>{ const v=new THREE.Vector3(...p).project(cam); return [(v.x*0.5+0.5),(0.5-v.y*0.5)]; }); };
+window.chipWorld=[0.74,-(ST[ST.length-1][1]+WT)/2,0.61];
+
+// ---------------------------------------------------------------- post: bloom + grade (teal shadows, warm highs, vignette, grain)
+const composer=new EffectComposer(renderer); composer.setSize(W,H);
+composer.addPass(new RenderPass(scene,cam));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),0.5,0.6,0.62));
+const gradeU={tDiffuse:{value:null},uT:{value:0},uFlash:{value:0},uAsp:{value:W/H}};
+composer.addPass(new ShaderPass({uniforms:gradeU,vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying vec2 vU; uniform sampler2D tDiffuse; uniform float uT,uFlash,uAsp;
+  float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uT*37.0)*43758.5453); }
+  void main(){ vec2 c=vU-0.5; float r2=dot(c*vec2(uAsp,1.0),c*vec2(uAsp,1.0));
+   vec3 col=texture2D(tDiffuse,vU).rgb; col=vec3(1.0)-exp(-1.25*col); col=mix(col,col*vec3(0.9,1.0,1.05),0.5);
+   col*=1.0-smoothstep(0.12,0.5,r2)*0.75; col+=(h(vU*vec2(uAsp,1.0)*900.0)-0.5)*0.03; col+=uFlash*vec3(0.55,0.95,0.95);
+   gl_FragColor=vec4(max(col,0.0),1.0);} `}));
+composer.addPass(new OutputPass());
+
+// ---------------------------------------------------------------- one sub-frame
+function setT(t){
+  const D=depth(t); G.uD.value=D; G.uT.value=t; setShaft(D);
+  G.uWater.value=keys([[0,0.35],[6.0,0.45],[8.4,0.8],[EV.hit_reveal,0.8],[EV.hit_reveal+0.06,1.7],[10.8,1.05],[T,1.0]],t);
+  G.uSeep.value=sstep(EV.seep[0],EV.seep[1],t);
+  // lantern hangs from the tripod on its cord, lowered as he digs; it sways a little with each stroke
+  const ly=Math.min(1.85,-D+1.95), sw=0.03*Math.sin(t*2.3); lantern.position.set(-0.3+sw,ly,-0.32);
+  const flick=0.92+0.05*Math.sin(t*23.0)+0.03*Math.sin(t*41.0); const LI=flick*keys([[0,1],[EV.hit_reveal-0.3,1],[EV.hit_reveal,0.75],[T,0.75]],t);
+  lampL.position.copy(lantern.position); lampL.intensity=7*LI; G.uLamp.value.copy(lantern.position); G.uLampI.value=2.2*LI;
+  seg(cord,[APEX.x,APEX.y],[-0.3+sw,ly+0.13],-0.32,-0.32,0.008); cord.matrixAutoUpdate=false;
+  seg(rope,[APEX.x+0.02,APEX.y],[0.30,-Math.max(D,0.05)],0.0,0.0,0.014); rope.matrixAutoUpdate=false;
+  mound.scale.set(0.55+0.5*Math.min(D,9.8)/9.8,0.12+0.5*Math.min(D,9.8)/9.8,0.5+0.4*Math.min(D,9.8)/9.8);
+  const S=manState(t); poseMan(joints(S.P),S.z); poseShovel(S.tip,S.a,0.12);
+  // clods: thrown at the top of the toss (phase ~0.45) and from the blade at impact
+  const pos=clods.geometry.attributes.position.array, al=clods.geometry.attributes.aA.array; let n=0;
+  if(t<EV.last_stroke+1.0){ const k=strokeAt(t); for(const kk of [k-1,k]){ if(kk<0) continue; const t0=ST[kk][0], t1=kk+1<ST.length?ST[kk+1][0]:t0+0.8; const tr=t0+0.45*(t1-t0);
+      const F=-ST[kk][1]; const age=t-tr; if(age<0||age>0.7) continue;
+      for(let i=0;i<30&&n<CN;i++,n++){ const r1=hr(kk*97+i), r2=hr(kk*131+i+7), r3=hr(kk*53+i+3);
+        const vx=-0.6+1.4*(r1-0.5), vy=5.5+3.5*r2, vz=(r3-0.5)*0.8; const sx=MANX+0.4+(r2-0.5)*0.15, sy=F+1.85;
+        pos[n*3]=sx+vx*age; pos[n*3+1]=sy+vy*age-4.9*age*age; pos[n*3+2]=0.12+vz*age; al[n]=1.0-sstep(0.45,0.7,age); } } }
+  for(;n<CN;n++){ al[n]=0; pos[n*3+1]=-100; }
+  clods.geometry.attributes.position.needsUpdate=true; clods.geometry.attributes.aA.needsUpdate=true;
+  setBracket(t); camAt(t);
+  gradeU.uT.value=t; const d=t-EV.hit_reveal; gradeU.uFlash.value=(d>0&&d<0.2)?0.09*(1-d/0.2):0;
+}
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
+window.renderAt=function(t,K=3){
+  const fast=(t>1.15&&t<2.1)||(t>EV.whoosh[0]&&t<EV.whoosh[1])||(t>2.1&&t<6.1); if(fast) K=Math.max(K,5);
+  actx.globalAlpha=1; actx.clearRect(0,0,W,H); const shutter=1/60;
+  for(let k=0;k<K;k++){ setT(t+(K>1?(k/(K-1)-0.5)*shutter:0)); composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(renderer.domElement,0,0); }
+  return acc.toDataURL('image/jpeg',0.93);
+};
+window.ready=true;
+</script></body></html>
