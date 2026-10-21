@@ -2,7 +2,7 @@
 
 Reel #4 of the reference remakes (`ref-remakes-plan.md`). Ref: "Earth's Evolution Measured in Galactic Years" (33 s, Sun orbiting a particle Milky Way with life-history icons). We take the topic only. Built in `tools/galactic-years/` with the three.js `renderAt(t)` pipeline, rendered natively at 1080x1920, 30 fps, 24.0 s.
 
-Final file: `final-reels/earth-is-20-years-old.mp4` in the project files (not in git).
+Final files in the project files (not in git): `final-reels/earth-is-20-years-old.mp4` (share encode, 23.9 MB, 7.8 Mb/s two-pass H.264 + AAC 192k) and `final-reels/earth-is-20-years-old_master.mp4` (CRF 17 master, 89.7 MB). Measured after AAC: -14.2 LUFS integrated, true peak -2.3 dBFS. Counter monotonic (asserted), ends at 19.7.
 
 ## 1. Concept
 
@@ -59,7 +59,7 @@ Simplifications to keep in the copy if asked: the Sun's path is not a perfect ci
 
 ## 5. Sound ("orbital clockwork" family, new)
 
-All synthesized in `mix_gy.py` except the wind bed. Frame-0 hit (pitch-drop body + crack + gong partials) and a rush; quiet type ticks; reverse swell into a soft hit on the snap; **one wooden tick per completed lap** on a rising pentatonic scale (they accelerate with the laps: 19 ticks between 5.6 and 14.5 s); a glass FM bell per milestone (a new pitch each); a pad drone whose filter opens with lap speed; shepard riser into "today"; near-silent held breath (16.65-16.6+0.45 s); the biggest hit on the twist (17.1 s: body 300 to 58 Hz, crack, 73 Hz gong, 44 Hz sub, reverb); a high bell for humans; dive whoosh and a rising loop-link tone into frame 0. Bass is managed per playbook 4.1 (sub only on the hit bus, 90 Hz high-pass elsewhere). Master target about -15 LUFS, true peak checked after AAC.
+All synthesized in `mix_gy.py` except the wind bed. Frame-0 hit (pitch-drop body + crack + gong partials) and a rush; quiet type ticks; reverse swell into a soft hit on the snap; **one wooden tick per completed lap** on a rising pentatonic scale (they accelerate with the laps: 19 ticks between 5.6 and 14.5 s); a glass FM bell per milestone (a new pitch each); a pad drone whose filter opens with lap speed; shepard riser into "today"; held breath (16.6-17.1 s: drone and wind drop out, only the TODAY bell rings, then a 0.42 s reverse swell); the biggest hit on the twist (17.1 s: body 300 to 58 Hz, crack, 73 Hz gong, 44 Hz sub, reverb); a high bell for humans; dive whoosh and a rising loop-link tone into frame 0. Bass is managed per playbook 4.1 (sub only on the hit bus, 90 Hz high-pass elsewhere). Master target about -15 LUFS, true peak checked after AAC.
 
 Licences: wind is "wind.ogg" by sleepCircle (Freesound 22331, CC0, no credit required). No CC BY files are used, so no credit block is needed.
 

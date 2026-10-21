@@ -89,8 +89,8 @@ for f in range(N):
             s=l[:max(0,min(len(l),k))]; k-=len(l)
             if s: ctext(d,450+j*72,s,fcap,CREAM if j<2 else CREAM,a,stroke=6,chip=RED if j==2 and len(s)==len(l) else None)
         mx,my=pj['dinoMid'][0]*W,pj['dinoMid'][1]*H; la=int(a*sstep(B['twistHit']+0.7,B['twistHit']+1.1,t))
-        ctext(d,int(my-16),"66 MILLION YEARS",fsmall,CREAM,la,sp=2,stroke=4,x=min(W-200,mx+150))
-        ctext(d,int(my+20),"= 0.29 OF A LAP",fsmall,CREAM,la,sp=2,stroke=4,x=min(W-200,mx+150))
+        lx=min(W-210,mx+190); ly=int(my)
+        ctext(d,ly-22,"66 MILLION YEARS",F(MB,34),CREAM,la,stroke=6,x=lx); ctext(d,ly+24,"= 0.29 OF A LAP",F(MB,30),CREAM,la,stroke=6,x=lx)
     # ---- twist 2: modern humans
     if B['humans']+0.2<=t<B['dive']+0.3:
         a=int(255*sstep(B['humans']+0.2,B['humans']+0.4,t)*(1-sstep(B['dive'],B['dive']+0.3,t)))
@@ -99,7 +99,7 @@ for f in range(N):
             s=l[:max(0,min(len(l),k))]; k-=len(l)
             if s: ctext(d,460+j*74,s,fcap if j==1 else F(MB,48),CREAM,a,stroke=6,chip=RED if j==1 and len(s)==len(l) else None)
         hx,hy=pj['human'][0]*W,pj['human'][1]*H; la=int(a*sstep(B['humans']+1.2,B['humans']+1.5,t))
-        ctext(d,int(hy+44),"~300,000 YEARS",fsmall,CREAM,la,sp=2,stroke=4,x=hx)
+        ctext(d,int(hy+46),"~300,000 YEARS",F(MB,32),CREAM,la,stroke=6,x=hx)
     # ---- end line (loops into the hook)
     if B['dive']+0.3<=t<T:
         a=int(255*(1-sstep(23.45,23.85,t))); s=typed(t,B['dive']+0.3,"WE JUST GOT HERE.",22)

@@ -130,8 +130,6 @@ for ht,dd in [(0.0,0.5),(h,0.35)]:
 for k,g in [('hit',-11),('tick',4),('bell',-6),('bed',3),('fx',4)]: buses[k]*=db(g)
 for k,v in buses.items(): print(k,'rms dB',round(20*np.log10(np.sqrt((v**2).mean())+1e-9),1),'peak',round(np.abs(v).max(),2))
 mixd=buses['hit']+buses['tick']+buses['bell']+(buses['bed']+buses['fx'])*duck[:,None]
-# held-breath window: force near-silence
-hb=(t>=B['now']+0.05)&(t<h-0.47); mixd[hb]*=db(-40)
 mixd=np.tanh(mixd*1.1)/np.tanh(1.1); mixd/=np.abs(mixd).max()/0.89
 # loop seam: short fades so the last sample meets the first
 fn=int(0.01*SR); mixd[-fn:]*=np.linspace(1,0,fn)[:,None]
