@@ -1,0 +1,202 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// The Ship Never Moves: Alcubierre warp bubble, rendered in the ship's frame.
+// The ship sits at the origin facing +X and never moves; far space flows past at -V(t). Grid vertices are fixed
+// pieces of space: they bunch up ahead of the bubble (space contracts) and spread out behind it (space expands),
+// while a still lattice inside the bubble shows the flat region the ship rests in. Illustration, not a solution plot.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/1920;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+renderer.toneMapping=THREE.NoToneMapping;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x03050b);
+const pmrem=new THREE.PMREMGenerator(renderer); const envTex=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+const FOV=46; const cam=new THREE.PerspectiveCamera(FOV,W/H,0.05,2000);
+const TAN=Math.tan(FOV*Math.PI/360);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(1994);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)); const sstep=(a,b,x)=>{const k=clamp((x-a)/(b-a));return k*k*(3-2*k)};
+const lerp=(a,b,u)=>a+(b-a)*u;
+const wrap=(v,lo,P)=>{v=(v-lo)%P; if(v<0)v+=P; return v+lo};
+// ------------------------------------------------------------------ timeline (seconds), shared with overlay/mix via window.TL
+const T_END=22.0, T_IGN=1.95, T_FULL=3.2, T_SLOW=15.3, T_TWIST=16.2, T_COLL=18.6, T_GONE=19.3;
+const SIG_TOTAL=180;                     // total space that flows past; multiple of grid spacing and star period -> seamless loop
+// bubble amplitude A(t): 0 = flat space, 1 = full warp bubble
+function amp(t){ if(t<T_IGN) return 0; if(t<T_COLL) return sstep(T_IGN,T_IGN+0.9,t); return 1-sstep(T_COLL,T_GONE,t); }
+// raw speed profile; scaled so its integral over the reel is exactly SIG_TOTAL
+function vraw(t){ if(t<T_IGN) return 0; let v=sstep(T_IGN,T_FULL,t);
+  if(t>T_SLOW) v*=lerp(1,0.22,sstep(T_SLOW,T_TWIST,t));
+  if(t>T_TWIST) v*=1-sstep(T_TWIST+0.6,T_GONE,t); return v; }
+const NS=4400, DT=T_END/NS; const SIGT=new Float64Array(NS+1); for(let i=1;i<=NS;i++){ SIGT[i]=SIGT[i-1]+0.5*(vraw((i-1)*DT)+vraw(i*DT))*DT; }
+const VSCALE=SIG_TOTAL/SIGT[NS];
+function sigma(t){ const x=clamp(t/DT,0,NS); const i=Math.min(NS-1,Math.floor(x)); return VSCALE*lerp(SIGT[i],SIGT[i+1],x-i); }
+function vel(t){ return VSCALE*vraw(t); }
+window.TL={T_END,T_IGN,T_FULL,T_SLOW,T_TWIST,T_COLL,T_GONE,VMAX:VSCALE};
+// ------------------------------------------------------------------ bubble geometry
+const BR=3.0, Y0=-2.9;          // bubble radius, wall sharpness, grid sheet height (sheet grazes the bubble floor)
+// ------------------------------------------------------------------ space displacement carried with the bubble
+// Each grid vertex is a fixed piece of space with coordinate u; far away it flows past at -V. Near the bubble it is pushed
+// forward by D(x,z)=WA*g(z)*exp(-x^2/WW^2): spacing shrinks ahead of the bubble (dx'/dx<1, squeeze) and grows behind it (stretch).
+const XL=80, Z0=-40, DZ=0.2, NL=401, WW=3.6, WA=2.9;
+const LANE=[]; for(let j=0;j<NL;j++){ const z=Z0+j*DZ; LANE.push({z,g:Math.exp(-(z*z)/(BR*1.35)**2)}); }
+// ------------------------------------------------------------------ glowing point material (per-material program key, see playbook lessons)
+let PMK=0;
+function pointsMat(blend){
+  const key='pm'+(PMK++);
+  const m=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:blend||THREE.AdditiveBlending,
+    uniforms:{uK:{value:(H/2)/TAN},uMin:{value:1.6*SC*1.5},uMax:{value:26*SC},uAmp:{value:1}},
+    vertexShader:`attribute vec3 color; attribute float aSize; varying vec3 vc; uniform float uK,uMin,uMax,uAmp;
+      void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,0.05); float raw=aSize*uK/d; float px=clamp(raw,uMin,uMax);
+        gl_PointSize=px; vc=color*uAmp*min(1.0,raw/uMin+0.25); if(mv.z>-0.05) vc*=0.0; gl_Position=projectionMatrix*mv; }`,
+    fragmentShader:`varying vec3 vc; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); a=a*a; gl_FragColor=vec4(vc*a,1.0);} `});
+  m.customProgramCacheKey=()=>key; return m; }
+function makePoints(n,order){ const g=new THREE.BufferGeometry(); const pos=new Float32Array(n*3), col=new Float32Array(n*3), sz=new Float32Array(n);
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
+  const p=new THREE.Points(g,pointsMat()); p.frustumCulled=false; p.renderOrder=order||0; scene.add(p); return {p,g,pos,col,sz,n}; }
+const TEAL=[0.10,0.85,0.80], GOLD=[1.0,0.66,0.22], CREAM=[1.0,0.90,0.76], ICE=[0.30,0.95,1.0];
+// ------------------------------------------------------------------ the space grid (one sheet under the ship)
+const GL=[]; // grid vertices: lane index, Lagrangian coordinate u, kind (0 transverse, 1 lane line)
+const NK=160, NU=640;
+for(let k=-80;k<80;k++) for(let j=0;j<NL;j++) GL.push([j,k,0]);                    // transverse lines (across the flow), spacing 1
+for(let j=0;j<NL;j+=5) for(let i=0;i<NU;i++) GL.push([j,-80+i*0.25,1]);           // lane lines (along the flow), every 1 unit
+const GPOS=new Float32Array(GL.length*3), GCOL=new Float32Array(GL.length*3);
+const idx=[]; for(let k=0;k<NK;k++) for(let j=0;j<NL-1;j++) idx.push(k*NL+j,k*NL+j+1);
+const LB=NK*NL; for(let l=0;l<Math.ceil(NL/5);l++) for(let i=0;i<NU-1;i++) idx.push(LB+l*NU+i,LB+l*NU+i+1);
+const gG=new THREE.BufferGeometry(); gG.setAttribute('position',new THREE.BufferAttribute(GPOS,3)); gG.setAttribute('color',new THREE.BufferAttribute(GCOL,3)); gG.setIndex(idx);
+const gLines=new THREE.LineSegments(gG,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
+gLines.frustumCulled=false; gLines.renderOrder=1; scene.add(gLines);
+const NODES=[]; for(let k=0;k<NK;k++) for(let j=0;j<NL;j+=5) NODES.push(k*NL+j);  // glowing nodes where the two families cross
+const grid=makePoints(NODES.length,1);
+function updateGrid(t){
+  const sg=sigma(t), A=amp(t);
+  for(let i=0;i<GL.length;i++){ const [j,u,kind]=GL[i]; const L=LANE[j]; const x0=wrap(u-sg,-XL,2*XL); const z=L.z;
+    const e=Math.exp(-(x0*x0)/(WW*WW)); const k=A*WA*L.g; const x=x0+k*e;
+    const J=1-k*e*2*x0/(WW*WW);                      // local spacing ratio dx'/dx: <1 squeezed, >1 stretched
+    const sq=clamp((1-J)*1.6,0,0.92), st=clamp((J-1)*1.6,0,0.92);
+    GPOS[i*3]=x; GPOS[i*3+1]=Y0-0.45*(1-J); GPOS[i*3+2]=z;
+    const fog=1-sstep(13,32,Math.sqrt(x*x*0.8+z*z*1.1));
+    const base=(kind?0.34:0.48)*GRIDLV;
+    const mixc=(c)=>{ const tb=TEAL[c]*base; return (tb*(1-sq-st)+GOLD[c]*sq*2.0+ICE[c]*st*1.5)*fog; };
+    GCOL[i*3]=mixc(0); GCOL[i*3+1]=mixc(1); GCOL[i*3+2]=mixc(2);
+  }
+  for(let n=0;n<NODES.length;n++){ const i=NODES[n]; for(let d=0;d<3;d++){ grid.pos[n*3+d]=GPOS[i*3+d]; grid.col[n*3+d]=GCOL[i*3+d]*1.3; } grid.sz[n]=0.06; }
+  gG.attributes.position.needsUpdate=true; gG.attributes.color.needsUpdate=true;
+  grid.g.attributes.position.needsUpdate=true; grid.g.attributes.color.needsUpdate=true; grid.g.attributes.aSize.needsUpdate=true;
+}
+let GRIDLV=1;
+// ------------------------------------------------------------------ stars (flow with far space; period along x = SIG_TOTAL so the loop is seamless)
+const NST=16000, ST=[]; const stars=makePoints(NST,0);
+for(let i=0;i<NST;i++){ let y,z; do{ y=(R()*2-1)*70; z=(R()*2-1)*70; }while(y*y+z*z<36); const x=-90+R()*SIG_TOTAL; const k=R();
+  const c=k<0.6?CREAM:(k<0.85?TEAL:GOLD); const b=0.25+Math.pow(R(),3)*1.4; ST.push([x,y,z]);
+  stars.col[i*3]=c[0]*b; stars.col[i*3+1]=c[1]*b; stars.col[i*3+2]=c[2]*b; stars.sz[i]=0.05+R()*0.12; }
+function updateStars(t){ const s=sigma(t); for(let i=0;i<NST;i++){ stars.pos[i*3]=wrap(ST[i][0]-s,-90,SIG_TOTAL); stars.pos[i*3+1]=ST[i][1]; stars.pos[i*3+2]=ST[i][2]; }
+  stars.g.attributes.position.needsUpdate=true; }
+// ------------------------------------------------------------------ inside the bubble: a still, square lattice (flat space that rides along)
+const IN=[]; for(let x=-2.4;x<=2.41;x+=0.6) for(let y=-2.4;y<=2.41;y+=0.6) for(let z=-2.4;z<=2.41;z+=0.6){ const r=Math.hypot(x,y,z); if(r<2.55 && !(Math.abs(y)<0.55&&Math.abs(z)<0.55&&x>-1.6&&x<1.7)) IN.push([x,y,z,r]); }
+const inner=makePoints(IN.length,2);
+IN.forEach((p,i)=>{ inner.pos[i*3]=p[0]; inner.pos[i*3+1]=p[1]; inner.pos[i*3+2]=p[2]; inner.sz[i]=0.028; });
+function updateInner(t,lv){ const a=amp(t)*lv; IN.forEach((p,i)=>{ const e=(1-sstep(1.8,2.55,p[3]))*a; inner.col[i*3]=CREAM[0]*0.55*e; inner.col[i*3+1]=CREAM[1]*0.55*e; inner.col[i*3+2]=CREAM[2]*0.55*e; }); inner.g.attributes.color.needsUpdate=true; }
+// ------------------------------------------------------------------ the bubble wall
+const shellMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  uniforms:{uA:{value:0},uT:{value:0},uF:{value:0},uFl:{value:0},uIn:{value:1}},
+  vertexShader:`varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vP=position; vec4 mv=modelViewMatrix*vec4(position,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`varying vec3 vN; varying vec3 vV; varying vec3 vP; uniform float uA,uT,uF,uFl,uIn;
+    void main(){ float fr=pow(1.0-abs(dot(normalize(vN),normalize(vV))),2.6); float nx=vP.x/${BR.toFixed(2)};
+      vec3 front=vec3(1.0,0.62,0.20), back=vec3(0.12,0.80,0.85); vec3 c=mix(back,front,smoothstep(-0.6,0.6,nx));
+      float bands=0.55+0.45*sin(nx*16.0+uT*9.0); float ign=uF*exp(-pow((nx+1.0-uF*2.2),2.0)*6.0);
+      float a=uA*(pow(fr,1.6)*(0.5+0.5*bands)*0.75+0.012)+ign*0.35*fr; a*=(1.0-uFl)*uIn; gl_FragColor=vec4(c*a,1.0);} `});
+const shell=new THREE.Mesh(new THREE.SphereGeometry(BR,96,64),shellMat); shell.renderOrder=6; scene.add(shell);
+// ------------------------------------------------------------------ the ship: our own craft (lathe hull + gold halo ring)
+const hullPts=[]; const prof=[[1.55,0],[1.45,0.07],[1.2,0.17],[0.8,0.27],[0.3,0.33],[-0.3,0.33],[-0.8,0.29],[-1.15,0.24],[-1.25,0.18],[-1.22,0]];
+prof.forEach(p=>hullPts.push(new THREE.Vector2(p[1],p[0])));
+const hullG=new THREE.LatheGeometry(hullPts,64); hullG.rotateZ(-Math.PI/2);
+const hullM=new THREE.MeshStandardMaterial({color:0xb9b0a0,metalness:0.7,roughness:0.34,envMap:envTex,envMapIntensity:0.32});
+const ship=new THREE.Group(); ship.scale.setScalar(0.72); scene.add(ship); ship.add(new THREE.Mesh(hullG,hullM));
+const ringM=new THREE.MeshStandardMaterial({color:0xffb64a,emissive:0xff9a2a,emissiveIntensity:0.5,metalness:0.8,roughness:0.25,envMap:envTex});
+const ring=new THREE.Mesh(new THREE.TorusGeometry(0.62,0.026,24,160),ringM); ring.rotation.y=Math.PI/2; ring.position.x=-0.25; ship.add(ring);
+for(const a of [0,2.094,4.189]){ const strut=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.32,8),hullM); strut.position.set(-0.25,Math.cos(a)*0.46,Math.sin(a)*0.46); strut.rotation.x=a; ship.add(strut); }
+const stripM=new THREE.MeshBasicMaterial({color:0x2be0d0}); for(const s of [-1,1]){ const strip=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.012,0.012),stripM); strip.position.set(0.25,0.0,s*0.325); ship.add(strip); }
+const winM=new THREE.MeshBasicMaterial({color:0xffe2a8}); const win=new THREE.Mesh(new THREE.SphereGeometry(0.11,24,16),winM); win.scale.set(1.6,0.6,0.9); win.position.set(1.05,0.16,0); ship.add(win);
+const engM=new THREE.MeshBasicMaterial({color:0x101418}); const eng=new THREE.Mesh(new THREE.CircleGeometry(0.17,32),engM); eng.rotation.y=-Math.PI/2; eng.position.x=-1.23; ship.add(eng); // engine dark: nothing pushes
+scene.add(new THREE.HemisphereLight(0x8fb6c8,0x10141c,0.45));
+const key=new THREE.DirectionalLight(0xffe0b0,1.25); key.position.set(4,6,5); scene.add(key);
+const rim=new THREE.DirectionalLight(0x40e0d0,1.6); rim.position.set(-6,1,-4); scene.add(rim);
+const shipLight=new THREE.PointLight(0xffa040,0,6,2); shipLight.position.set(0,-1.6,0); scene.add(shipLight);
+// ------------------------------------------------------------------ the light beam (fired forward beside the ship; the bubble outruns it)
+const T_LIGHT=12.3, LZ=4.6, LY=Y0+0.35;
+const NB=420; const beam=makePoints(NB,4);
+function lightState(t){ // returns {head, tail} x positions in the ship frame, or null
+  if(t<T_LIGHT) return null; const s0=sigma(T_LIGHT), s=sigma(t);
+  const tail=0.6-(s-s0);                                  // emission point: fixed in far space, flows back at -V
+  const c=0.62*VSCALE;                                    // light speed in scene units: the bubble's cruise speed is 1/0.62 = 1.6x light
+  const head=tail+c*(t-T_LIGHT); return {head,tail}; }
+function updateBeam(t){ const L=lightState(t); const vis=L?(1-sstep(T_SLOW+0.3,T_TWIST,t)):0;
+  for(let i=0;i<NB;i++){ const u=i/(NB-1); const x=L?lerp(L.tail,L.head,Math.pow(u,0.7)):0; beam.pos[i*3]=x; beam.pos[i*3+1]=LY; beam.pos[i*3+2]=LZ;
+    const hd=u>0.985?4.0:0; const b=(0.35+1.2*Math.pow(u,5)+hd)*vis; beam.col[i*3]=1.0*b; beam.col[i*3+1]=0.93*b; beam.col[i*3+2]=0.78*b; beam.sz[i]=u>0.985?0.45:0.10; }
+  beam.g.attributes.position.needsUpdate=true; beam.g.attributes.color.needsUpdate=true; beam.g.attributes.aSize.needsUpdate=true; }
+// ------------------------------------------------------------------ camera: Catmull-Rom keys [t, pos, target]; t=22 equals t=0 so the loop closes
+const CK=[
+ [-1.0,[-4.6,2.5,2.8],[0.7,-0.3,0]],
+ [0.0,[-4.4,2.4,2.6],[0.7,-0.3,0]],
+ [1.9,[-3.8,2.15,2.15],[0.75,-0.3,0]],
+ [3.3,[-9.0,6.0,2.6],[3.0,-2.0,0]],
+ [5.6,[-12.5,8.4,1.3],[4.5,-2.6,0]],
+ [7.8,[-12.0,8.0,-1.0],[4.5,-2.6,0],0.3],
+ [9.0,[-2.05,1.75,0.95],[1.4,-1.1,-0.3],0.0],
+ [10.9,[-1.85,1.65,0.75],[1.4,-1.1,-0.2],0.0],
+ [12.4,[-15.0,17.0,3.2],[-4.0,-3.0,1.8],0.4],
+ [15.0,[-14.0,16.0,2.6],[-5.0,-3.0,1.8]],
+ [16.3,[-8.5,6.2,4.0],[1.0,-1.0,0]],
+ [18.8,[-7.0,5.0,3.0],[1.0,-1.0,0]],
+ [20.6,[-5.0,2.9,2.9],[0.7,-0.3,0]],
+ [22.0,[-4.4,2.4,2.6],[0.7,-0.3,0]],
+ [23.0,[-4.2,2.3,2.4],[0.7,-0.3,0]]];
+// cubic Hermite with Catmull tangents scaled per key (key[3]=0 stops the camera path from overshooting a key, see playbook lessons)
+function cr(p0,p1,p2,p3,u,k1,k2,d01,d12,d23){ const m1=k1*(p2-p0)/(d01+d12)*d12, m2=k2*(p3-p1)/(d12+d23)*d12; const u2=u*u,u3=u2*u;
+  return (2*u3-3*u2+1)*p1+(u3-2*u2+u)*m1+(-2*u3+3*u2)*p2+(u3-u2)*m2; }
+function camAt(t){ let i=1; while(i<CK.length-3 && CK[i+1][0]<=t) i++; const k0=CK[i-1],k1=CK[i],k2=CK[i+1],k3=CK[i+2]; const u=clamp((t-k1[0])/(k2[0]-k1[0])); const w1=k1[3]??1, w2=k2[3]??1, d01=k1[0]-k0[0], d12=k2[0]-k1[0], d23=k3[0]-k2[0];
+  const P=[0,1,2].map(d=>cr(k0[1][d],k1[1][d],k2[1][d],k3[1][d],u,w1,w2,d01,d12,d23)), Tg=[0,1,2].map(d=>cr(k0[2][d],k1[2][d],k2[2][d],k3[2][d],u,w1,w2,d01,d12,d23)); return {P,Tg}; }
+// ------------------------------------------------------------------ post: bloom + soft clamp + grade (teal shadows, warm highlights, vignette, grain)
+const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,cam));
+const clampPass=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:`varying vec2 vU; void main(){vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`uniform sampler2D tDiffuse; varying vec2 vU; void main(){ vec3 c=texture2D(tDiffuse,vU).rgb; c=1.0-exp(-1.25*c); gl_FragColor=vec4(c,1.0);} `}); composer.addPass(clampPass);
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.5,0.5,0.32); composer.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uSeed:{value:0},uFlash:{value:0}},vertexShader:`varying vec2 vU; void main(){vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float uSeed,uFlash; varying vec2 vU; float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233))+uSeed)*43758.5453);}
+   void main(){ vec3 c=texture2D(tDiffuse,vU).rgb; float l=dot(c,vec3(0.299,0.587,0.114)); c=mix(c,c*vec3(0.86,1.02,1.08),1.0-smoothstep(0.0,0.35,l)); c=mix(c,c*vec3(1.06,1.0,0.92),smoothstep(0.45,1.0,l));
+     vec2 d=vU-0.5; d.x*=0.56; float v=1.0-smoothstep(0.30,0.78,length(d)); c*=0.58+0.42*v; c+=uFlash; c+=(h(vU*1000.0)-0.5)*0.035; gl_FragColor=vec4(c,1.0);} `}); composer.addPass(grade);
+composer.addPass(new OutputPass());
+// ------------------------------------------------------------------ one sub-frame
+function frameAt(t){
+  const A=amp(t);
+  updateGrid(t); updateStars(t); updateBeam(t);
+  const insideLv=sstep(7.9,8.8,t)*(1-sstep(11.2,12.2,t))+0.35; updateInner(t,insideLv);
+  // bubble wall: ignition sweep, steady shimmer, flicker during the twist, collapse
+  let fl=0; if(t>T_TWIST&&t<T_GONE){ const k=(t-T_TWIST)/(T_GONE-T_TWIST); fl=clamp((0.5+0.5*Math.sin(t*47.0)*Math.sin(t*13.0))*sstep(0.0,0.5,k)*0.85); }
+  shellMat.uniforms.uA.value=A*(t<T_TWIST?1:1.25); shellMat.uniforms.uT.value=sigma(t)*0.4+t; shellMat.uniforms.uF.value=t>T_IGN&&t<T_IGN+1.0?Math.sin(Math.PI*(t-T_IGN)/1.0):0; shellMat.uniforms.uFl.value=fl;
+  { const d=Math.hypot(...camAt(t).P); shellMat.uniforms.uIn.value=0.3+0.7*sstep(BR-0.4,BR+0.6,d); }
+  const sc=t>T_COLL?lerp(1,0.25,sstep(T_COLL,T_GONE,t)):1; shell.scale.setScalar(sc);
+  ship.rotation.x=0.04*Math.sin(t*2*Math.PI*3/T_END); ship.position.y=0.03*Math.sin(t*2*Math.PI*4/T_END);   // periodic over the reel so the loop is seamless
+  ringM.emissiveIntensity=0.35+0.45*A; shipLight.intensity=3*A*(1-fl);
+  const {P,Tg}=camAt(t); cam.position.set(...P); cam.up.set(0,1,0); cam.lookAt(...Tg);
+  grade.uniforms.uSeed.value=(t*977)%100; grade.uniforms.uFlash.value=0.10*Math.exp(-Math.pow((t-T_IGN-0.12)/0.07,2))+0.08*Math.exp(-Math.pow((t-T_TWIST-0.05)/0.06,2));
+  composer.render();
+}
+// ------------------------------------------------------------------ motion blur: average sub-frames on a 2D canvas
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const ax=acc.getContext('2d');
+window.renderAt=(t,nsub)=>{ const v=vel(t); const camSpeed=(()=>{const a=camAt(t).P,b=camAt(t+1/60).P; return Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])*60;})();
+  const n=nsub||(v>0.5*VSCALE||camSpeed>6?8:(v>0.1*VSCALE||camSpeed>2?4:2)); const shutter=1/60;
+  for(let i=0;i<n;i++){ const ts=t+(i/(n-1||1)-0.5)*shutter; frameAt(ts); ax.globalAlpha=1/(i+1); ax.drawImage(renderer.domElement,0,0); }
+  ax.globalAlpha=1; return acc.toDataURL('image/jpeg',0.94); };
+// screen projections for overlay markers
+window.proj=(t)=>{ frameAt(t); const out={}; const P=(x,y,z)=>{ const v=new THREE.Vector3(x,y,z).project(cam); return [ (v.x*0.5+0.5), (-v.y*0.5+0.5), v.z<1?1:0 ]; };
+  out.ship=P(0,0,0); out.front=P(BR,Y0,0); out.back=P(-BR,Y0,0); const L=lightState(t); out.light=L?P(L.head,LY,LZ):null; out.v=vel(t)/VSCALE; out.sig=sigma(t); out.A=amp(t); return out; };
+window.camAt=camAt;
+window.ready=true;
+</script></body></html>
