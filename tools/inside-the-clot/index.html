@@ -26,6 +26,7 @@ function beat(t){ const ph=((t%BEAT)+BEAT)%BEAT; return Math.exp(-Math.pow((ph-0
 window.BEAT=BEAT;
 // ================================================================== HEART (world origin)
 const CREAM=[1.0,0.9,0.74], GOLD=[1.0,0.66,0.24], TEAL=[0.06,0.78,0.74], AMBER=[0.95,0.5,0.22];
+let _gte=null; function GT_EARLY(){ if(_gte) return _gte; const cv=document.createElement('canvas'); cv.width=cv.height=128; const x=cv.getContext('2d'); const gr=x.createRadialGradient(64,64,0,64,64,64); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.55,'rgba(255,255,255,0.55)'); gr.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=gr; x.fillRect(0,0,128,128); _gte=new THREE.CanvasTexture(cv); return _gte; }
 const heart=new THREE.Group(); heart.rotation.z=0.42; heart.rotation.y=-0.25; scene.add(heart);
 const LVC=new THREE.Vector3(0.22,0,0), RVC=new THREE.Vector3(-0.62,0.22,-0.05);
 function lvR(u){ return 1.22*Math.pow(Math.sin(Math.min(1,u*1.25)*Math.PI/2),0.62)*(1-0.22*sm(0.78,1.0,u)); }
@@ -45,8 +46,8 @@ const CX=[]; for(let i=0;i<=40;i++){ const u=0.96-0.5*i/40; const ph=1.92+0.25*0
 const ladS=[]; for(let i=0;i<=200;i++) ladS.push(ladCurve.getPointAt(i/200));
 function terr(p){ let best=1e9,bi=0; for(let i=0;i<=200;i++){ const d=p.distanceToSquared(ladS[i]); if(d<best){best=d;bi=i;} } const s=bi/200; const lat=Math.sqrt(best);
   const diagD=Math.min(...DIAG.map(d=>d.distanceTo(p))); const along=Math.max(0,s-P_U)*ladCurve.getLength();
-  if(s<P_U-0.02) return -1; if(p.z< LVC.z-0.35 && p.x>LVC.x+0.3) return -1;
-  const w=lat<0.95||diagD<0.6? 1:0; if(!w) return -1; return along+lat*0.8; }
+  if(s<P_U-0.02) return -1; const back=Math.max(0,(LVC.z-0.2)-p.z)*3.0;
+  const out=Math.max(0,Math.min(lat-0.95,diagD-0.6))*4.0; return along+lat*0.8+out+back; }
 function heartMat(){ return new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,
   uniforms:{uBeat:{value:0},uFront:{value:-1},uAmp:{value:1},uK:{value:HALF/TAN},uMin:{value:1.2*SC},uMax:{value:9*SC},uTime:{value:0},uC:{value:new THREE.Vector3(0.22,-0.1,0)}},
   vertexShader:`attribute vec3 color; attribute float aSize; attribute float aT; attribute float aPh; attribute vec3 aN; varying vec3 vc;
@@ -81,6 +82,28 @@ const hm=heartMat(); hm.customProgramCacheKey=()=>'heart';
   for(const [ax,ay,az,ar] of [[0.75,1.42,-0.45,0.58],[-0.85,1.35,-0.35,0.62]]){ for(let f=0;f<44;f++){ const a0=f/44*6.283; for(let k=0;k<90;k++){ const b=0.15+2.6*k/90; const a=a0+0.9*b; const at=new THREE.Vector3(ax,ay,az); const p=new THREE.Vector3(ax+ar*Math.sin(b)*Math.cos(a),ay+ar*Math.cos(b)*0.75,az+ar*Math.sin(b)*Math.sin(a)); if(insideLV(p)||insideRV(p)) continue; add(p,(f%4==0)?GOLD:CREAM,0.34,0.016,at); } } }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(C,3)); g.setAttribute('aSize',new THREE.Float32BufferAttribute(S,1)); g.setAttribute('aT',new THREE.Float32BufferAttribute(T,1)); g.setAttribute('aPh',new THREE.Float32BufferAttribute(PH,1)); g.setAttribute('aN',new THREE.Float32BufferAttribute(NN,3));
   const pts=new THREE.Points(g,hm); pts.frustumCulled=false; pts.renderOrder=1; heart.add(pts); window.heartN=P.length/3; }
+
+// translucent myocardium shell under the fibres: fresnel rim + inner glow; the dying territory goes cold with a red edge
+function shellGeo(ptFn,u0,u1,nu,np,skip){ const P=[],T=[],I=[],IN=[]; for(let i=0;i<=nu;i++){ const u=u0+(u1-u0)*i/nu; for(let j=0;j<=np;j++){ const p=ptFn(u,j/np*6.283,0.985); P.push(p.x,p.y,p.z); T.push(terr(p)); IN.push(skip?skip(p):false); } }
+  for(let i=0;i<nu;i++) for(let j=0;j<np;j++){ const a=i*(np+1)+j, b=a+np+1; if(IN[a]||IN[b]||IN[a+1]||IN[b+1]) continue; I.push(a,b,a+1,b,b+1,a+1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('aT',new THREE.Float32BufferAttribute(T,1)); g.setIndex(I); g.computeVertexNormals(); return g; }
+const shellMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  uniforms:{uBeat:{value:0},uFront:{value:-1},uC:{value:new THREE.Vector3(0.22,-0.1,0)},uAmp:{value:1}},
+  vertexShader:`attribute float aT; uniform float uBeat,uFront; uniform vec3 uC; varying float vF; varying float vDead; varying float vEdge; varying float vFace;
+   void main(){ float dead= aT<0.0?0.0: smoothstep(0.25,-0.05,aT-uFront); vDead=dead; vEdge= aT<0.0?0.0: exp(-pow((aT-uFront)/0.16,2.0))*step(0.0,uFront);
+     vec3 p=uC+(position-uC)*(1.0-0.055*uBeat*(1.0-0.9*dead)); vec4 mv=modelViewMatrix*vec4(p,1.0); vec3 n=normalize(normalMatrix*normal); vec3 v=normalize(-mv.xyz);
+     float d=dot(n,v); vFace=d; vF=pow(1.0-abs(d),2.2); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`uniform float uBeat,uAmp; varying float vF; varying float vDead; varying float vEdge; varying float vFace;
+   void main(){ float front=smoothstep(-0.05,0.25,vFace);
+     vec3 warm=vec3(1.0,0.55,0.22)*vF*0.22*(0.8+0.5*uBeat)+vec3(0.025,0.09,0.11)*front*(0.5+0.25*uBeat)+vec3(0.3,0.1,0.05)*front*0.07;
+     vec3 cold=vec3(0.10,0.14,0.22)*vF*0.35+vec3(0.0,0.0,0.0);
+     vec3 c=mix(warm,cold,vDead)+vec3(1.0,0.16,0.08)*vEdge*front*0.5; gl_FragColor=vec4(c*uAmp*(0.15+0.85*front),1.0);} `});
+shellMat.customProgramCacheKey=()=>'shell';
+{ const lv=new THREE.Mesh(shellGeo(lvPt,0.02,0.99,70,90),shellMat); lv.renderOrder=0.5; heart.add(lv);
+  const rv=new THREE.Mesh(shellGeo((u,ph,sc)=>rvPt(u,ph,sc),0.3,0.99,50,70,p=>insideLV(p)),shellMat); rv.renderOrder=0.4; heart.add(rv); }
+// foreground bokeh: a few large soft motes between camera and heart
+const bokeh=[]; for(let i=0;i<46;i++){ const k=R(); const m=new THREE.Sprite(new THREE.SpriteMaterial({map:GT_EARLY(),color:new THREE.Color(...(k<0.5?CREAM:(k<0.8?TEAL:GOLD))),transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.04+0.08*R()}));
+  const a=R()*6.283; const r=2.2+R()*5; m.position.set(r*Math.cos(a)*1.2,(R()-0.5)*9,2.5+R()*5.5); const sz=0.15+0.9*R()*R(); m.scale.set(sz,sz,1); m.renderOrder=8; m.userData.ph=R()*6.283; scene.add(m); bokeh.push(m); }
 // coronary tubes (gold), flow sparks along them
 function vesselMat(key){ const m=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,
   uniforms:{uTime:{value:0},uCut:{value:2},uDim:{value:0},uO:{value:1},uBeat:{value:0}},
@@ -140,7 +163,12 @@ const wallMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{uTime:{val
      base=mix(base,vec3(1.0,0.22,0.12)*1.7,cr); base+=vec3(1.0,0.7,0.35)*exp(-pow(ds/0.6,2.0))*exp(-pow(dth/0.5,2.0))*uCrack*0.45;
      // downstream of the clot: no flow, cold and dim
      float dn=smoothstep(uS0+0.4,uS0+2.0,s)*uDown; base=mix(base,vec3(0.05,0.06,0.09)*(0.6+0.8*fres),dn);
-     float fog=exp(-vD*uFog); gl_FragColor=vec4(base*fog+uFlash,1.0); }`});
+     // side-branch openings (landmarks that slide past)
+     for(int k=0;k<2;k++){ float os=k==0?13.5:21.0; float ot=k==0?uTh0+2.4:uTh0-2.1; float a=s-os; float b=mod(th-ot+3.14159265,6.2831853)-3.14159265; float r=length(vec2(a*0.9,b*1.25));
+       base=mix(base,vec3(0.005,0.02,0.03),1.0-smoothstep(0.30,0.36,r)); base+=vec3(0.15,0.75,0.7)*exp(-pow((r-0.37)/0.035,2.0))*0.5; }
+     float spec=pow(max(dot(normalize(vN),normalize(vec3(0.0,0.0,1.0)+vV)),0.0)*0.5,24.0)*0.0+pow(fres,6.0)*0.25*(0.6+0.4*band);
+     base+=vec3(0.7,0.95,1.0)*spec;
+     float fog=exp(-vD*uFog); vec3 deep=vec3(0.02,0.07,0.09)+vec3(0.12,0.08,0.03)*uBeat*0.3; gl_FragColor=vec4(mix(deep,base,fog)+uFlash,1.0); }`});
 wallMat.customProgramCacheKey=()=>'wall';
 const wall=new THREE.Mesh(new THREE.TubeGeometry(artCurve,700,1.0,72,false),wallMat); wall.renderOrder=1; wall.frustumCulled=false; scene.add(wall);
 // red blood cells: biconcave discs (amber), instanced
@@ -150,7 +178,7 @@ const rbcGeo=new THREE.LatheGeometry(prof.slice(0,17).concat(prof.slice(18)),24)
 const rbcMat=new THREE.ShaderMaterial({uniforms:{uFog:{value:0.11},uFlash:{value:0}},
   vertexShader:`attribute float aTr; varying vec3 vN; varying vec3 vV; varying float vD; varying float vTr; void main(){ vTr=aTr; vec4 mv=modelViewMatrix*instanceMatrix*vec4(position,1.0); vN=normalize(normalMatrix*mat3(instanceMatrix)*normal); vV=normalize(-mv.xyz); vD=-mv.z; gl_Position=projectionMatrix*mv; }`,
   fragmentShader:`uniform float uFog,uFlash; varying vec3 vN; varying vec3 vV; varying float vD; varying float vTr; void main(){ vec3 n=normalize(vN); float l=0.35+0.65*max(dot(n,normalize(vec3(0.3,0.6,0.7))),0.0); float fr=pow(1.0-abs(dot(n,normalize(vV))),2.0);
-    vec3 c=vec3(0.78,0.30,0.13)*l+vec3(1.0,0.62,0.36)*fr*0.7; c=mix(c,vec3(0.45,0.2,0.12)*l+vec3(0.6,0.35,0.2)*fr*0.4,vTr); gl_FragColor=vec4(c*exp(-vD*uFog)+uFlash,1.0);} `});
+    vec3 c=vec3(0.78,0.30,0.13)*l+vec3(1.0,0.62,0.36)*fr*0.7; c=mix(c,vec3(0.45,0.2,0.12)*l+vec3(0.6,0.35,0.2)*fr*0.4,vTr); float fg=exp(-vD*uFog); gl_FragColor=vec4(mix(vec3(0.02,0.07,0.09),c,fg)+uFlash,1.0);} `});
 rbcMat.customProgramCacheKey=()=>'rbc';
 const NRBC=170; const rbc=new THREE.InstancedMesh(rbcGeo,rbcMat,NRBC); rbc.frustumCulled=false; rbc.renderOrder=2; scene.add(rbc);
 const rbcTr=new Float32Array(NRBC); rbcGeo.setAttribute('aTr',new THREE.InstancedBufferAttribute(rbcTr,1));
@@ -159,6 +187,25 @@ const cells=[]; for(let i=0;i<NRBC;i++) cells.push({s0:R()*30-6,r:Math.sqrt(R())
 const DT=1/240; const DTAB=[0]; function vflow(t){ const base=6.0*(0.75+0.5*beat(t)); const hold=1-0.7*sm(8.4,8.9,t)*(1-sm(9.25,9.45,t)); const stop=1-sm(11.6,T_SHUT,t); return base*hold*stop; }
 for(let i=1;i<=Math.ceil(26/DT);i++){ DTAB.push(DTAB[i-1]+vflow((i-0.5)*DT)*DT); }
 function D(t){ const x=Math.max(0,t)/DT; const i=Math.floor(x); const k=x-i; return DTAB[Math.min(i,DTAB.length-2)]*(1-k)+DTAB[Math.min(i+1,DTAB.length-1)]*k; }
+
+// plasma motes: tiny drifting specks for parallax inside the vessel
+const NMO=2600; const moG=new THREE.BufferGeometry(); const moPos=new Float32Array(NMO*3), moCol=new Float32Array(NMO*3); const motes=[];
+for(let i=0;i<NMO;i++){ motes.push({s0:R()*34,r:Math.sqrt(R())*0.93,th:R()*6.283,k:0.6+0.5*R()}); const k=R(); const c=k<0.6?CREAM:(k<0.85?TEAL:GOLD); const br=0.25+0.5*R(); moCol[i*3]=c[0]*br; moCol[i*3+1]=c[1]*br; moCol[i*3+2]=c[2]*br; }
+moG.setAttribute('position',new THREE.BufferAttribute(moPos,3)); moG.setAttribute('color',new THREE.BufferAttribute(moCol,3));
+const moMat=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uK:{value:HALF/TAN},uFog:{value:0.11}},
+  vertexShader:`attribute vec3 color; uniform float uK,uFog; varying vec3 vc; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,0.05); gl_PointSize=clamp(0.012*uK/d,1.0,14.0); vc=color*exp(-d*uFog)*smoothstep(0.15,0.6,d); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`varying vec3 vc; void main(){ float r=length(gl_PointCoord-0.5)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(vc*a*a,1.0);} `});
+moMat.customProgramCacheKey=()=>'motes';
+const moPts=new THREE.Points(moG,moMat); moPts.frustumCulled=false; moPts.renderOrder=3; scene.add(moPts);
+// cholesterol crystals glinting inside the plaque core
+const NCR=700; const crG=new THREE.BufferGeometry(); { const P=[],K=[]; for(let i=0;i<NCR;i++){ const sx=S0+(R()-0.5)*2.2*PL_W*0.7; const th=TH0+(R()-0.5)*1.3*PL_AW; const f=frameAt(sx); const d=plaqueD(sx,th,1); const p=f.p.clone().add(dirAt(f,th).multiplyScalar(1-d*(0.25+0.6*R()))); P.push(p.x,p.y,p.z); K.push(R()); }
+  crG.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); crG.setAttribute('aK',new THREE.Float32BufferAttribute(K,1)); }
+const crMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uG:{value:0},uT:{value:0},uK:{value:HALF/TAN},uFog:{value:0.11}},
+  vertexShader:`attribute float aK; uniform float uG,uT,uK,uFog; varying float vA; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,0.05); float on=smoothstep(aK*0.8,aK*0.8+0.2,uG);
+    gl_PointSize=on>0.0?clamp(0.03*uK/d,1.0,18.0):0.0; vA=on*(0.35+0.65*pow(0.5+0.5*sin(uT*3.0+aK*60.0),6.0))*exp(-d*uFog*0.8); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`varying float vA; void main(){ vec2 c=gl_PointCoord-0.5; float st=max(exp(-abs(c.x)*40.0)*exp(-abs(c.y)*5.0),exp(-abs(c.y)*40.0)*exp(-abs(c.x)*5.0)); float g=exp(-dot(c,c)*30.0); gl_FragColor=vec4(vec3(1.0,0.93,0.75)*(st*0.8+g*0.6)*vA*0.7,1.0);} `});
+crMat.customProgramCacheKey=()=>'crys';
+const crys=new THREE.Points(crG,crMat); crys.frustumCulled=false; crys.renderOrder=4; scene.add(crys);
 // clot: platelets (gold points) + fibrin (cream lines), revealed by rank from the crack outward
 const CLOT_A=S0-0.75, CLOT_B=S0+0.55;
 const crackPt=(()=>{ const f=frameAt(S0); return f.p.clone().add(dirAt(f,TH0).multiplyScalar(1-PL_MAX)); })();
@@ -182,7 +229,7 @@ const NFB=420; const fbG=new THREE.BufferGeometry(); { const P=[],RK=[]; const t
   fbG.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); fbG.setAttribute('aRank',new THREE.Float32BufferAttribute(RK,1)); }
 const fbMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uFill:{value:0},uFog:{value:0.085}},
   vertexShader:`attribute float aRank; uniform float uFill,uFog; varying float vA; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vA=clamp((uFill-0.15-aRank)/0.1,0.0,1.0)*exp(-(-mv.z)*uFog); gl_Position=projectionMatrix*mv; }`,
-  fragmentShader:`varying float vA; void main(){ gl_FragColor=vec4(vec3(1.0,0.92,0.78)*0.32*vA,1.0);} `});
+  fragmentShader:`varying float vA; void main(){ gl_FragColor=vec4(vec3(1.0,0.92,0.78)*0.62*vA,1.0);} `});
 fbMat.customProgramCacheKey=()=>'fib';
 const fibrin=new THREE.LineSegments(fbG,fbMat); fibrin.frustumCulled=false; fibrin.renderOrder=5; scene.add(fibrin);
 // core debris puff at the crack
@@ -250,8 +297,13 @@ function setT(t){
     const th=c.th; const lim=1-plaqueD(s,th,PGROW)-0.2; const rr=Math.min(c.r,Math.max(0.05,lim)); const f=frameAt(s); pos.copy(f.p).add(dirAt(f,th).multiplyScalar(rr));
     qq.setFromAxisAngle(c.ax,c.ph+c.spin*t*(1-shut*0.9)); sc.setScalar(c.sz*(s>CLOT_B&&shut>0.5? 0.0:1)); if(!inside(t)||pos.distanceTo(cam.position)<0.55) sc.setScalar(0); m4.compose(pos,qq,sc); rbc.setMatrixAt(i,m4); rbcTr[i]=tr; }
   rbc.instanceMatrix.needsUpdate=true; rbcGeo.attributes.aTr.needsUpdate=true;
+  // motes
+  if(inside(t)){ const dm=D(t)*0.85; for(let i=0;i<NMO;i++){ const m=motes[i]; let s=m.s0+dm*m.k; s=camS-2+(((s-(camS-2))%34)+34)%34; if(fill>0.2&&s>CLOT_A-0.3) s=Math.min(s,CLOT_A-0.3+((i%50)/50)*0.2); const lim=1-plaqueD(s,m.th,PGROW)-0.06; const f=frameAt(s); const p=f.p.clone().add(dirAt(f,m.th).multiplyScalar(Math.min(m.r,Math.max(0.03,lim)))); moPos[i*3]=p.x; moPos[i*3+1]=p.y; moPos[i*3+2]=p.z; } moG.attributes.position.needsUpdate=true; }
+  crMat.uniforms.uG.value=PGROW*(1-0.6*sm(T_CRACK,T_CRACK+1.5,t)); crMat.uniforms.uT.value=t;
+  shellMat.uniforms.uBeat.value=b; shellMat.uniforms.uFront.value=front(t);
+  bokeh.forEach(m=>{ m.position.x+=0; m.material.rotation=0; });
   // visibility per world
-  const ins=inside(t); wall.visible=ins; rbc.visible=ins; platelets.visible=ins&&fill>0; fibrin.visible=ins&&fill>0.1; debris.visible=ins&&t>=T_CRACK; heart.visible=!ins; dust.visible=!ins;
+  const ins=inside(t); wall.visible=ins; rbc.visible=ins; platelets.visible=ins&&fill>0; fibrin.visible=ins&&fill>0.1; debris.visible=ins&&t>=T_CRACK; heart.visible=!ins; dust.visible=!ins; moPts.visible=ins; crys.visible=ins&&PGROW>0.1; bokeh.forEach(m=>m.visible=!ins);
   // snap flashes are done by the overlay; a little in-scene lift too
   const fl=0.08*Math.exp(-Math.pow((t-T_SNAP)/0.06,2))+0.06*Math.exp(-Math.pow((t-T_OUT)/0.06,2)); wallMat.uniforms.uFlash.value=fl; rbcMat.uniforms.uFlash.value=fl;
   grade.uniforms.uT.value=t*37.0;

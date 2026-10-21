@@ -1,5 +1,6 @@
 # python3 overlay.py proj.json out.mov  -> RGBA overlay (text, counters, markers, flashes) for Inside the Clot, 1080x1920, 24 s
 import subprocess, math, sys, json
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 PJ=json.load(open(sys.argv[1])); OUT=sys.argv[2]
 W,H,FPS,T=1080,1920,30,24.0; N=int(T*FPS)
@@ -28,10 +29,19 @@ def typed_chip_line(d,y,full,pre,n,font,a):
         xo=x0+tw(d,pre,font); wo=tw(d,txt[len(pre):],font)
         d.rectangle((xo-12,y-6,xo+wo+12,y+font.size+10),fill=RED+(int(a*0.97),)); d.text((xo,y),txt[len(pre):],font=font,fill=CREAM+(a,))
 def solid(c,a): return Image.new("RGBA",(W,H),c+(int(255*a),))
+def streaks(seed,alpha,n=40):
+    rr=np.random.default_rng(seed); im=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(im); cx,cy=540,960
+    for _ in range(n):
+        a=rr.random()*6.283; r0=rr.uniform(260,620); w=rr.uniform(0.003,0.009); r1=1750
+        d.polygon([(cx+r0*math.cos(a),cy+r0*math.sin(a)),(cx+r1*math.cos(a-w),cy+r1*math.sin(a-w)),(cx+r1*math.cos(a+w),cy+r1*math.sin(a+w))],fill=(255,240,220,int(255*alpha)))
+    return im
 def flash(t):
     for ts,amp in ((2.25,0.14),(13.55,0.12)):
         k=t-ts
-        if -0.03<=k<0.2: return solid((255,250,240),amp*(1-clamp(k/0.2)))
+        if -0.2<=k<0.2:
+            lay=streaks(int(ts*100)+int(round(k*30)),0.20*(1-abs(k)/0.2))
+            if k>=-0.03: lay=Image.alpha_composite(lay,solid((255,250,240),amp*(1-clamp(k/0.2))))
+            return lay
     k=t-9.3
     if 0<=k<0.12: return solid((255,120,90),0.10*(1-k/0.12))
     return None
