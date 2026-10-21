@@ -71,3 +71,11 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+### Description block: The Ship Never Moves (warp drive v2)
+> Sound credits (from Freesound). Changes were made: the sounds below were trimmed, layered, pitch/time-processed and mixed with other sounds. All other sounds used are CC0, generated with ElevenLabs, or synthesised.
+> - "Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer)" by chakong, https://freesound.org/people/chakong/sounds/722633/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "JacobsLadderSingle2.flac" by Halleck, https://freesound.org/people/Halleck/sounds/19487/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+> - "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+CC0 files also used: 869757, 768664, 735062, 850262, 814047, 814046, 649445, 238375, 752034, 22331. ElevenLabs: `tools/sfxlib/elevenlabs_warp_field_hum.mp3` (generated for this reel).
