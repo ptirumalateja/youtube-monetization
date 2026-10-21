@@ -55,7 +55,7 @@ for i, (ts, dv) in enumerate(ST):
 # ---- frame-0 hit: the first shovel, big (also the loop landing)
 def hit(at, big, g, low=55):
     d = 3.0 if big else 1.4; x = np.zeros(int(d * SR))
-    c = hp(noise(0.25), 2000) * np.exp(-tt(0.25) * 28); x[:len(c)] += c * 0.55
+    c = lp(hp(noise(0.25), 2000), 9000) * np.exp(-tt(0.25) * 28) * (1 - np.exp(-tt(0.25) * 400)); x[:len(c)] += c * 0.55
     b = body(240 if big else 200, low, 1.4 if big else 0.8, 9 if big else 16); x[:len(b)] += b
     if big: x += ring([(130, 1.0), (196, 0.5), (301, 0.35), (392, 0.2)], d, 1.4)[:len(x)] * 0.25
     place('hit', reverb(x, 2.6 if big else 1.2, 0.3)[:int(d * SR * 1.6)], at, g)
@@ -131,8 +131,14 @@ mix = mix * duck
 s0, s1 = int((EV['drop'][1] + 0.05) * SR), int((EV['drop'][1] + 0.14) * SR)      # held breath: everything but the suck drops out
 mix[s0:s1] *= np.linspace(1, 0.02, s1 - s0); mix[s1:int(h * SR)] *= 0.02
 mix = mix + buses['hit']; mix[int((h - 0.05) * SR):int(h * SR)] = 0                # 50 ms vacuum before the boom
-mix = hp(mix, 30)
+mix = lp(hp(mix, 30), 14000)
 mix = np.tanh(mix * 1.2) ; mix = mix / np.abs(mix).max() * db(-1.5)
+# look-ahead peak limiter (3 ms look-ahead, 80 ms release) so AAC never overshoots, including the frame-0 transient
+need = np.minimum(1.0, db(-4.0) / (np.abs(mix) + 1e-9)); la = int(0.003 * SR)
+need = np.minimum.reduce([np.roll(need, -k) for k in range(la)])
+g = np.empty(N); cur = 1.0; rel = np.exp(-1 / (0.08 * SR))
+for i in range(N): cur = need[i] if need[i] < cur else need[i] + (cur - need[i]) * rel; g[i] = cur
+mix *= g
 fade = np.ones(N); fade[:int(0.002 * SR)] = np.linspace(0, 1, int(0.002 * SR)); fade[-int(0.01 * SR):] = np.linspace(1, 0, int(0.01 * SR)); mix *= fade
 st = np.stack([mix, mix], 1); st[:, 1] = np.roll(st[:, 1], 14); pcm = (np.clip(st, -1, 1) * 32767).astype('<i2')
 with wave.open(sys.argv[1], 'wb') as w: w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes(pcm.tobytes())

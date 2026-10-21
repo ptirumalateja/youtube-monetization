@@ -39,13 +39,13 @@ The reel is a parable, so the only numbers on screen are its own (9.8 m dug, wat
 - Layer thicknesses, the shaft width and the time-lapse are compressed (hence "not to scale").
 
 ## Sound
-Procedural in numpy (`mix.py`), no samples, so no licence credits are needed. Family: earth and water (new for this reel; nothing reused from Night Sky, Scale Ladder or Shadow). Hits only at frame 0 and the 9.80 s reveal; energy kept in the 90-400 Hz band for phones. Delivery target about -15 LUFS, true peak under -1 dBFS after AAC.
+Procedural in numpy (`mix.py`), no samples, so no licence credits are needed. Family: earth and water (new for this reel; nothing reused from Night Sky, Scale Ladder or Shadow). Hits only at frame 0 and the 9.80 s reveal; energy kept in the 90-400 Hz band for phones. Delivered at -15.1 LUFS, true peak -3.1 dBFS after AAC (mix.py has a look-ahead limiter and a soft attack on the cracks; an earlier pass clipped AAC on the frame-0 transient).
 
 ## Build (tools/one-more-shovel/)
 - `gen_timeline.py` -> `timeline.json` (stroke times and depths, events, text).
 - `index.html` (scene, `window.renderAt(t)`), `shot.js` (test stills), `render.js` (frames), `proj.js` (chip anchor positions), `overlay.py`, `mix.py`, `build.sh`.
 - Rebuild: `npm i`, `python3 -m http.server 8790 &`, then 4 workers `node render.js 720 1280 $FRAMES $i 420 4` (i = 0..3), then `FRAMES=$FRAMES OUT=one-more-shovel.mp4 ./build.sh`. About 25 min on 4 CPUs (SwiftShader).
-- Output: `final-reels/one-more-shovel.mp4` in the project files (1080x1920, 30 fps, 14.0 s).
+- Output: `final-reels/one-more-shovel.mp4` in the project files (1080x1920, 30 fps, 14.0 s, 21 MB, H.264 CRF 20 + AAC 192k).
 
 ## Publish copy
 **YouTube Shorts title:** He Stopped 20 cm From Water #shorts
