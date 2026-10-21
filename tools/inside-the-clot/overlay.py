@@ -3,9 +3,9 @@ import subprocess, math, sys, json
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 PJ=json.load(open(sys.argv[1])); OUT=sys.argv[2]
-W,H,FPS,T=1080,1920,30,24.9; N=int(round(T*FPS))
+W,H,FPS,T=1080,1920,30,24.6; N=int(round(T*FPS))
 # video -> scene time (same monotone cubic as index.html)
-WK=[(3.2,0.4),(4.4,2.25),(9.75,8.6),(10.75,9.3),(14.4,13.55),(19.0,18.7),(21.6,21.0),(24.9,24.0)]
+WK=[(3.2,0.4),(3.98,2.25),(9.55,8.6),(10.37,9.3),(14.15,13.55),(17.9,18.7),(20.75,21.0),(24.6,24.0)]
 _d=[(WK[i+1][1]-WK[i][1])/(WK[i+1][0]-WK[i][0]) for i in range(len(WK)-1)]
 _m=[_d[0]]+[0 if _d[i-1]*_d[i]<=0 else 2/(1/_d[i-1]+1/_d[i]) for i in range(1,len(_d))]+[_d[-1]]
 def warp(t):

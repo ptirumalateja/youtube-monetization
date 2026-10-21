@@ -398,7 +398,7 @@ function setCrowd(t){ const b=beat(t); let o=0; const A=new THREE.Vector3(), B=n
   const k=catm(keys,t); cam.position.set(CO.x+k[0],k[1],CO.z+k[2]); const look=new THREE.Vector3(CO.x,k[3],CO.z-1.0).lerp(C,sm(0.6,2.0,t)); cam.up.set(Math.sin(0.03*Math.sin(t)),1,0); cam.lookAt(look); cam.updateMatrixWorld(); }
 window.heroChestScreen=()=>{ const v=heroChest.clone().add(CO).project(cam); return [(v.x+1)/2,(1-v.y)/2]; };
 // video -> scene time warp (monotone cubic through the VO-locked knots)
-const WK=[[3.2,0.4],[4.4,2.25],[9.75,8.6],[10.75,9.3],[14.4,13.55],[19.0,18.7],[21.6,21.0],[24.9,24.0]];
+const WK=[[3.2,0.4],[3.98,2.25],[9.55,8.6],[10.37,9.3],[14.15,13.55],[17.9,18.7],[20.75,21.0],[24.6,24.0]];
 const WM=(()=>{ const n=WK.length, d=[], m=[]; for(let i=0;i<n-1;i++) d.push((WK[i+1][1]-WK[i][1])/(WK[i+1][0]-WK[i][0])); m.push(d[0]); for(let i=1;i<n-1;i++) m.push(d[i-1]*d[i]<=0?0:2/(1/d[i-1]+1/d[i])); m.push(d[n-2]); return m; })();
 function warp(t){ if(t<=WK[0][0]) return WK[0][1]; const n=WK.length; if(t>=WK[n-1][0]) return WK[n-1][1]; let i=0; while(t>WK[i+1][0]) i++; const h=WK[i+1][0]-WK[i][0], u=(t-WK[i][0])/h;
   const h00=2*u*u*u-3*u*u+1, h10=u*u*u-2*u*u+u, h01=-2*u*u*u+3*u*u, h11=u*u*u-u*u; return h00*WK[i][1]+h10*h*WM[i]+h01*WK[i+1][1]+h11*h*WM[i+1]; }

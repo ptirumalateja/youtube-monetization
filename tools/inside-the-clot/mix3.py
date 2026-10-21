@@ -1,6 +1,6 @@
-# python3 mix3.py out.wav <vo prefix>  — v3 mix: crowd opening, voiceover, scene events through the video->scene warp. All FX synthesized.
+# python3 mix3.py out.wav <vo wav>  — v3 mix: crowd opening, voiceover, scene events through the video->scene warp. All FX synthesized.
 import numpy as np, wave, sys
-SR=48000; T=24.9; N=int(SR*T); t=np.arange(N)/SR
+SR=48000; T=24.6; N=int(SR*T); t=np.arange(N)/SR
 rng=np.random.default_rng(66)
 def db(g): return 10**(g/20)
 def sm(a,b,x): k=np.clip((x-a)/(b-a),0,1); return k*k*(3-2*k)
@@ -56,7 +56,7 @@ def bell(t0,f,dur,g,bus='tone'):
     add(bus,s*np.minimum(1,tt/0.002),t0,g)
 
 # ---------------- v3: crowd opening + voiceover; scene events placed through the video->scene warp
-WK=[(3.2,0.4),(4.4,2.25),(9.75,8.6),(10.75,9.3),(14.4,13.55),(19.0,18.7),(21.6,21.0),(24.9,24.0)]
+WK=[(3.2,0.4),(3.98,2.25),(9.55,8.6),(10.37,9.3),(14.15,13.55),(17.9,18.7),(20.75,21.0),(24.6,24.0)]
 _d=[(WK[i+1][1]-WK[i][1])/(WK[i+1][0]-WK[i][0]) for i in range(len(WK)-1)]
 _m=[_d[0]]+[0 if _d[i-1]*_d[i]<=0 else 2/(1/_d[i-1]+1/_d[i]) for i in range(1,len(_d))]+[_d[-1]]
 def warp(x):
@@ -142,13 +142,10 @@ bell(V(21.1),164.8,2.4,-14); boom(V(21.1),160,50,0.8,-14)
 n=int(1.4*SR); tt=np.arange(n)/SR; fr_=220*2**(tt/1.4); add('tone',np.sin(2*np.pi*np.cumsum(fr_)/SR)*(tt/1.4)**2.5*0.5,T-1.45,-22); swell(T,1.0,-22,500,6000)
 # ---------------- voiceover (stand-in TTS lines placed at the frozen starts)
 import soundfile as sf
-VO_DIR=sys.argv[2]; STARTS=[0.15,4.3,7.3,9.9,11.6,14.9,19.0,20.45,21.7]
-vo=np.zeros(N)
-for i,st in enumerate(STARTS):
-    a,sr=sf.read(f"{VO_DIR}_{i}.wav"); a=np.asarray(a,float)
-    if a.ndim>1: a=a.mean(1)
-    if sr!=SR: a=np.interp(np.arange(int(len(a)*SR/sr))/SR,np.arange(len(a))/sr,a)
-    j=int(st*SR); n=min(len(a),N-j); vo[j:j+n]+=a[:n]
+VO_FILE=sys.argv[2]   # fitted ElevenLabs take (vo_fit.py), starts at 0
+a,sr=sf.read(VO_FILE); a=np.asarray(a,float)
+if a.ndim>1: a=a.mean(1)
+vo=np.zeros(N); n=min(len(a),N); vo[:n]=a[:n]
 vo=fft_filter(vo,'hp',90,2); vo=vo/np.max(np.abs(vo))*0.9
 # light presence + warmth on the voice: tiny room, gentle saturation
 vo=np.tanh(vo*1.3)/np.tanh(1.3)
