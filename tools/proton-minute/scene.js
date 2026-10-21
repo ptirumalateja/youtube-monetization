@@ -27,7 +27,7 @@ window.stateAt = state;
 const RE = 10, KM = RE / 6371;
 const scene = new T.Scene(); scene.background = new T.Color('#03060b');
 const cam = new T.PerspectiveCamera(FOV, 9 / 16, 0.05, 8000); cam.up.set(0, 0, 1);
-const SUN = new T.Vector3(-1, -0.14, 0.28).normalize();
+const SUN = new T.Vector3(-1, 0.5, 0.35).normalize();
 const U = { uTime: { value: 0 }, uLaps: { value: 0 }, uHook: { value: 0 }, uPX: { value: PX }, uTrail: { value: 0.3 }, uRecent: { value: 3 }, uSun: { value: SUN }, uGlow: { value: 0 } };
 const loader = new T.TextureLoader();
 const tex = (f) => new Promise(r => loader.load('./tex/' + f, t => { t.colorSpace = T.NoColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.wrapS = T.RepeatWrapping; r(t); }));
@@ -57,9 +57,9 @@ const earthMat = new T.ShaderMaterial({
       vec3 col = day * dif * 1.5 * (1. - 0.45 * clSh);
       col += vec3(1., .93, .8) * spec;
       col = mix(col, vec3(.96, .97, 1.) * (dif * 1.15 + 0.01), cl * 0.85);
-      col += night * vec3(1., .78, .5) * 2.4 * (1. - dayAmt) * (1. - 0.75 * cl);
+      col += night * vec3(1., .78, .5) * 3.6 * (1. - dayAmt) * (1. - 0.75 * cl);
       float fres = pow(1. - max(dot(N, V), 0.), 4.);
-      col += vec3(.28, .52, 1.) * fres * (0.01 + 0.25 * smoothstep(-0.25, 0.5, ndl));
+      col += vec3(.28, .52, 1.) * fres * (0.06 + 0.5 * smoothstep(-0.35, 0.4, ndl));
       col = col / (1. + col * 0.35);
       gl_FragColor = vec4(pow(col, vec3(1. / 2.2)), 1.);
     }` });
@@ -75,9 +75,9 @@ scene.add(atmo);
 // ---- the lap path: every lap is a full orbit of Earth. The orbit tilts (up to ~32 deg) and its node turns,
 // so 448 laps sweep out a glowing belt round the globe. The trail is drawn as a tight coil wrapped round
 // the orbit (a visual style, ~200 km across), so the laps read as spirals. ----
-const R0 = RE * 1.05, PHI0 = -Math.PI / 2, LMAX = F.laps_in_minute, GYR = 46, RHO = 0.26;
-const frameAt = L => { const f = clamp(Math.max(L, 0) / LMAX), th = PHI0 + 2 * Math.PI * L, r = R0 + 0.42 * RE * Math.pow(f, 0.8);
-  const inc = 0.44 * smooth(0, 0.18, f), om = 2 * Math.PI * 1.35 * f;
+const R0 = RE * 1.05, PHI0 = -Math.PI / 2, LMAX = F.laps_in_minute, GYR = 20, RHO = 0.6;
+const frameAt = L => { const f = clamp(Math.max(L, 0) / LMAX), th = PHI0 + 2 * Math.PI * L, r = R0 + 0.3 * RE * Math.pow(f, 0.8);
+  const inc = 0.95 * smooth(0, 0.3, f), om = 2 * Math.PI * 1.6 * f;
   const rot = v => { const y = v.y * Math.cos(inc) - v.z * Math.sin(inc), z = v.y * Math.sin(inc) + v.z * Math.cos(inc); return new T.Vector3(v.x * Math.cos(om) - y * Math.sin(om), v.x * Math.sin(om) + y * Math.cos(om), z); };
   const c = rot(new T.Vector3(r * Math.cos(th), r * Math.sin(th), 0)), rad = rot(new T.Vector3(Math.cos(th), Math.sin(th), 0)), nrm = rot(new T.Vector3(0, 0, 1));
   return { c, rad, nrm }; };
@@ -85,7 +85,7 @@ const spiral = L => frameAt(L).c;
 const coilAt = L => { const { c, rad, nrm } = frameAt(L), ps = 2 * Math.PI * GYR * L, k = RHO * smooth(0, 0.6, L + 0.0);
   return c.addScaledVector(rad, Math.cos(ps) * k).addScaledVector(nrm, Math.sin(ps) * k); };
 {
-  const SEG = GYR * 12, N = Math.ceil(LMAX * SEG) + 1, pos = new Float32Array(N * 3), lap = new Float32Array(N);
+  const SEG = GYR * 14, N = Math.ceil(LMAX * SEG) + 1, pos = new Float32Array(N * 3), lap = new Float32Array(N);
   for (let i = 0; i < N; i++) { const L = i / SEG, p = coilAt(L); pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z; lap[i] = L; }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('aL', new T.BufferAttribute(lap, 1));
   const m = new T.ShaderMaterial({ uniforms: U, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
@@ -94,9 +94,12 @@ const coilAt = L => { const { c, rad, nrm } = frameAt(L), ps = 2 * Math.PI * GYR
       void main(){ if (vL > uLaps || uLaps <= 0.) discard;
         float age = uLaps - vL, recent = exp(-age / uRecent), trail = exp(-age / uTrail);
         vec3 old = vec3(.62, .13, .05), mid = vec3(1., .52, .14), hot = vec3(1., .88, .6);
-        vec3 col = mix(old, mid, recent) * (0.2 + 0.9 * recent) + hot * 2.4 * trail;
-        gl_FragColor = vec4(col * (uGlow > .5 ? 0.5 : 1.), 1.); }` });
-  m.customProgramCacheKey = () => 'coil'; const line = new T.Line(g, m); line.frustumCulled = false; scene.add(line);
+        vec3 col = mix(old, mid, recent) * (0.3 + 0.9 * recent) + hot * 2.2 * trail;
+        gl_FragColor = vec4(col * (uGlow > .5 ? 0.3 + 0.7 * recent : 0.8), 1.); }` });
+  m.customProgramCacheKey = () => 'coil';
+  m.vertexShader = `uniform vec2 uOff; attribute float aL; varying float vL; void main(){ vL = aL; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_Position.xy += uOff * gl_Position.w; }`;
+  for (const [ox, oy] of [[0, 0], [1.1, 0], [0, 1.1]]) { const mm = m.clone(); mm.uniforms = { ...U, uOff: { value: new T.Vector2(2 * ox / W, 2 * oy / H) } }; mm.customProgramCacheKey = () => 'coil';
+    const line = new T.Line(g, mm); line.frustumCulled = false; scene.add(line); }
   // a soft core along the orbit so the belt reads as a solid body, not only wire
   const SC = 48, NC = Math.ceil(LMAX * SC) + 1, cp = new Float32Array(NC * 3), cl = new Float32Array(NC);
   for (let i = 0; i < NC; i++) { const L = i / SC, p = spiral(L); cp.set([p.x, p.y, p.z], i * 3); cl[i] = L; }
@@ -281,12 +284,12 @@ function overlay(t, st) {
   if (fl > 0.005) { ctx.save(); ctx.fillStyle = `rgba(255,240,220,${fl})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
 }
 
-function drawFilm(alpha, glow, zoom = 0) { ctx.save(); ctx.globalAlpha = alpha;
+const small = document.createElement('canvas'); small.width = 270; small.height = 480; const sctx = small.getContext('2d');
+function drawFilm(alpha, glow) { ctx.save(); ctx.globalAlpha = alpha;
   if (!glow) ctx.drawImage(film, 0, 0, 1080, 1920);
-  else { ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(10px)'; ctx.globalAlpha = 0.6; ctx.drawImage(film, 0, 0, 1080, 1920);
-    ctx.filter = 'blur(36px)'; ctx.globalAlpha = 0.45; ctx.drawImage(film, 0, 0, 1080, 1920);
-    if (zoom > 0.01) { ctx.filter = 'none'; const [cx, cy] = proj(new T.Vector3(0, 0, 0));
-      for (let k = 1; k <= 5; k++) { const z = 1 + 0.028 * k * zoom; ctx.globalAlpha = 0.32 * zoom * (1 - k / 6); ctx.drawImage(film, cx - cx * z, cy - cy * z, 1080 * z, 1920 * z); } } }
+  else { sctx.clearRect(0, 0, 270, 480); sctx.drawImage(film, 0, 0, 270, 480);
+    ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(3px)'; ctx.globalAlpha = 0.55; ctx.drawImage(small, 0, 0, 1080, 1920);
+    ctx.filter = 'blur(10px)'; ctx.globalAlpha = 0.45; ctx.drawImage(small, 0, 0, 1080, 1920); }
   ctx.restore(); }
 
 window.renderAt = function (t, frame = Math.round(t * 30)) {
@@ -308,7 +311,7 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   placeCamera(t);
   ctx.fillStyle = '#03060b'; ctx.fillRect(0, 0, 1080, 1920);
   U.uGlow.value = 0; renderer.render(scene, cam); drawFilm(1, false);
-  U.uGlow.value = 1; renderer.render(scene, cam); drawFilm(1, true, t > M0 && t < M0 + ML + 0.4 ? ((rate(Math.min(t, M0 + ML)) - 1) / 4) * (1 - smooth(M0 + ML, M0 + ML + 0.4, t)) : 0); U.uGlow.value = 0;
+  U.uGlow.value = 1; renderer.render(scene, cam); drawFilm(1, true); U.uGlow.value = 0;
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 420, 540, 960, 1180); v.addColorStop(0, 'rgba(3,6,11,0)'); v.addColorStop(1, 'rgba(3,6,11,0.7)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
   ctx.globalAlpha = 0.04; ctx.globalCompositeOperation = 'overlay'; ctx.drawImage(grain[frame % 6], 0, 0, 1080, 1920); ctx.restore();
   overlay(t, st);
