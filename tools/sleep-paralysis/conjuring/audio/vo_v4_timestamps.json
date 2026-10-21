@@ -1,0 +1,574 @@
+{
+ "audio": "vo_v4.mp3",
+ "duration": 19.513,
+ "voice": "Max - Deep and Crisp Voice (ElevenLabs eleven_v4)",
+ "method": "Word times from ElevenLabs Scribe on the original 19.96 s take, scaled to this file (sped up 2.35% with ffmpeg atempo to fit 19.5 s). Cross-checked against the pauses in the audio.",
+ "segments": [
+  {
+   "text": "It's 3 A.M.",
+   "start": 0.08,
+   "end": 1.174,
+   "words": [
+    {
+     "word": "It's",
+     "start": 0.08,
+     "end": 0.393
+    },
+    {
+     "word": "3",
+     "start": 0.549,
+     "end": 0.705
+    },
+    {
+     "word": "A.M.",
+     "start": 0.784,
+     "end": 1.174
+    }
+   ]
+  },
+  {
+   "text": "You wake up...",
+   "start": 1.878,
+   "end": 2.738,
+   "words": [
+    {
+     "word": "You",
+     "start": 1.878,
+     "end": 2.034
+    },
+    {
+     "word": "wake",
+     "start": 2.151,
+     "end": 2.269
+    },
+    {
+     "word": "up...",
+     "start": 2.347,
+     "end": 2.738
+    }
+   ]
+  },
+  {
+   "text": "and you can't move.",
+   "start": 2.972,
+   "end": 4.184,
+   "words": [
+    {
+     "word": "and",
+     "start": 2.972,
+     "end": 3.05
+    },
+    {
+     "word": "you",
+     "start": 3.128,
+     "end": 3.207
+    },
+    {
+     "word": "can't",
+     "start": 3.285,
+     "end": 3.519
+    },
+    {
+     "word": "move.",
+     "start": 3.715,
+     "end": 4.184
+    }
+   ]
+  },
+  {
+   "text": "You can't scream.",
+   "start": 4.457,
+   "end": 5.63,
+   "words": [
+    {
+     "word": "You",
+     "start": 4.457,
+     "end": 4.535
+    },
+    {
+     "word": "can't",
+     "start": 4.614,
+     "end": 4.848
+    },
+    {
+     "word": "scream.",
+     "start": 4.926,
+     "end": 5.63
+    }
+   ]
+  },
+  {
+   "text": "Something is standing in the corner of your room.",
+   "start": 6.021,
+   "end": 8.483,
+   "words": [
+    {
+     "word": "Something",
+     "start": 6.021,
+     "end": 6.411
+    },
+    {
+     "word": "is",
+     "start": 6.489,
+     "end": 6.568
+    },
+    {
+     "word": "standing",
+     "start": 6.646,
+     "end": 6.958
+    },
+    {
+     "word": "in",
+     "start": 7.037,
+     "end": 7.115
+    },
+    {
+     "word": "the",
+     "start": 7.154,
+     "end": 7.193
+    },
+    {
+     "word": "corner",
+     "start": 7.271,
+     "end": 7.506
+    },
+    {
+     "word": "of",
+     "start": 7.584,
+     "end": 7.662
+    },
+    {
+     "word": "your",
+     "start": 7.74,
+     "end": 7.818
+    },
+    {
+     "word": "room.",
+     "start": 7.896,
+     "end": 8.483
+    }
+   ]
+  },
+  {
+   "text": "Doctors call it sleep paralysis.",
+   "start": 8.834,
+   "end": 10.945,
+   "words": [
+    {
+     "word": "Doctors",
+     "start": 8.834,
+     "end": 9.225
+    },
+    {
+     "word": "call",
+     "start": 9.303,
+     "end": 9.382
+    },
+    {
+     "word": "it",
+     "start": 9.46,
+     "end": 9.616
+    },
+    {
+     "word": "sleep",
+     "start": 9.772,
+     "end": 10.007
+    },
+    {
+     "word": "paralysis.",
+     "start": 10.085,
+     "end": 10.945
+    }
+   ]
+  },
+  {
+   "text": "Your mind wakes up...",
+   "start": 11.179,
+   "end": 12.482,
+   "words": [
+    {
+     "word": "Your",
+     "start": 11.179,
+     "end": 11.336
+    },
+    {
+     "word": "mind",
+     "start": 11.453,
+     "end": 11.57
+    },
+    {
+     "word": "wakes",
+     "start": 11.648,
+     "end": 11.883
+    },
+    {
+     "word": "up...",
+     "start": 11.961,
+     "end": 12.482
+    }
+   ]
+  },
+  {
+   "text": "but your body stays asleep.",
+   "start": 12.534,
+   "end": 14.071,
+   "words": [
+    {
+     "word": "but",
+     "start": 12.534,
+     "end": 12.586
+    },
+    {
+     "word": "your",
+     "start": 12.664,
+     "end": 12.743
+    },
+    {
+     "word": "body",
+     "start": 12.899,
+     "end": 13.055
+    },
+    {
+     "word": "stays",
+     "start": 13.212,
+     "end": 13.368
+    },
+    {
+     "word": "asleep.",
+     "start": 13.446,
+     "end": 14.071
+    }
+   ]
+  },
+  {
+   "text": "And every second you're trapped...",
+   "start": 14.517,
+   "end": 16.104,
+   "words": [
+    {
+     "word": "And",
+     "start": 14.517,
+     "end": 14.54
+    },
+    {
+     "word": "every",
+     "start": 14.618,
+     "end": 14.853
+    },
+    {
+     "word": "second",
+     "start": 15.009,
+     "end": 15.322
+    },
+    {
+     "word": "you're",
+     "start": 15.374,
+     "end": 15.478
+    },
+    {
+     "word": "trapped...",
+     "start": 15.556,
+     "end": 16.104
+    }
+   ]
+  },
+  {
+   "text": "it comes closer.",
+   "start": 16.338,
+   "end": 17.432,
+   "words": [
+    {
+     "word": "it",
+     "start": 16.338,
+     "end": 16.416
+    },
+    {
+     "word": "comes",
+     "start": 16.494,
+     "end": 16.729
+    },
+    {
+     "word": "closer.",
+     "start": 16.807,
+     "end": 17.432
+    }
+   ]
+  },
+  {
+   "text": "Don't...",
+   "start": 17.745,
+   "end": 18.331,
+   "words": [
+    {
+     "word": "Don't...",
+     "start": 17.745,
+     "end": 18.331
+    }
+   ]
+  },
+  {
+   "text": "open your eyes.",
+   "start": 18.448,
+   "end": 19.513,
+   "words": [
+    {
+     "word": "open",
+     "start": 18.448,
+     "end": 18.683
+    },
+    {
+     "word": "your",
+     "start": 18.761,
+     "end": 18.839
+    },
+    {
+     "word": "eyes.",
+     "start": 18.917,
+     "end": 19.513
+    }
+   ]
+  }
+ ],
+ "words": [
+  {
+   "word": "It's",
+   "start": 0.08,
+   "end": 0.393
+  },
+  {
+   "word": "3",
+   "start": 0.549,
+   "end": 0.705
+  },
+  {
+   "word": "A.M.",
+   "start": 0.784,
+   "end": 1.174
+  },
+  {
+   "word": "You",
+   "start": 1.878,
+   "end": 2.034
+  },
+  {
+   "word": "wake",
+   "start": 2.151,
+   "end": 2.269
+  },
+  {
+   "word": "up...",
+   "start": 2.347,
+   "end": 2.738
+  },
+  {
+   "word": "and",
+   "start": 2.972,
+   "end": 3.05
+  },
+  {
+   "word": "you",
+   "start": 3.128,
+   "end": 3.207
+  },
+  {
+   "word": "can't",
+   "start": 3.285,
+   "end": 3.519
+  },
+  {
+   "word": "move.",
+   "start": 3.715,
+   "end": 4.184
+  },
+  {
+   "word": "You",
+   "start": 4.457,
+   "end": 4.535
+  },
+  {
+   "word": "can't",
+   "start": 4.614,
+   "end": 4.848
+  },
+  {
+   "word": "scream.",
+   "start": 4.926,
+   "end": 5.63
+  },
+  {
+   "word": "Something",
+   "start": 6.021,
+   "end": 6.411
+  },
+  {
+   "word": "is",
+   "start": 6.489,
+   "end": 6.568
+  },
+  {
+   "word": "standing",
+   "start": 6.646,
+   "end": 6.958
+  },
+  {
+   "word": "in",
+   "start": 7.037,
+   "end": 7.115
+  },
+  {
+   "word": "the",
+   "start": 7.154,
+   "end": 7.193
+  },
+  {
+   "word": "corner",
+   "start": 7.271,
+   "end": 7.506
+  },
+  {
+   "word": "of",
+   "start": 7.584,
+   "end": 7.662
+  },
+  {
+   "word": "your",
+   "start": 7.74,
+   "end": 7.818
+  },
+  {
+   "word": "room.",
+   "start": 7.896,
+   "end": 8.483
+  },
+  {
+   "word": "Doctors",
+   "start": 8.834,
+   "end": 9.225
+  },
+  {
+   "word": "call",
+   "start": 9.303,
+   "end": 9.382
+  },
+  {
+   "word": "it",
+   "start": 9.46,
+   "end": 9.616
+  },
+  {
+   "word": "sleep",
+   "start": 9.772,
+   "end": 10.007
+  },
+  {
+   "word": "paralysis.",
+   "start": 10.085,
+   "end": 10.945
+  },
+  {
+   "word": "Your",
+   "start": 11.179,
+   "end": 11.336
+  },
+  {
+   "word": "mind",
+   "start": 11.453,
+   "end": 11.57
+  },
+  {
+   "word": "wakes",
+   "start": 11.648,
+   "end": 11.883
+  },
+  {
+   "word": "up...",
+   "start": 11.961,
+   "end": 12.482
+  },
+  {
+   "word": "but",
+   "start": 12.534,
+   "end": 12.586
+  },
+  {
+   "word": "your",
+   "start": 12.664,
+   "end": 12.743
+  },
+  {
+   "word": "body",
+   "start": 12.899,
+   "end": 13.055
+  },
+  {
+   "word": "stays",
+   "start": 13.212,
+   "end": 13.368
+  },
+  {
+   "word": "asleep.",
+   "start": 13.446,
+   "end": 14.071
+  },
+  {
+   "word": "And",
+   "start": 14.517,
+   "end": 14.54
+  },
+  {
+   "word": "every",
+   "start": 14.618,
+   "end": 14.853
+  },
+  {
+   "word": "second",
+   "start": 15.009,
+   "end": 15.322
+  },
+  {
+   "word": "you're",
+   "start": 15.374,
+   "end": 15.478
+  },
+  {
+   "word": "trapped...",
+   "start": 15.556,
+   "end": 16.104
+  },
+  {
+   "word": "it",
+   "start": 16.338,
+   "end": 16.416
+  },
+  {
+   "word": "comes",
+   "start": 16.494,
+   "end": 16.729
+  },
+  {
+   "word": "closer.",
+   "start": 16.807,
+   "end": 17.432
+  },
+  {
+   "word": "Don't...",
+   "start": 17.745,
+   "end": 18.331
+  },
+  {
+   "word": "open",
+   "start": 18.448,
+   "end": 18.683
+  },
+  {
+   "word": "your",
+   "start": 18.761,
+   "end": 18.839
+  },
+  {
+   "word": "eyes.",
+   "start": 18.917,
+   "end": 19.513
+  }
+ ]
+}

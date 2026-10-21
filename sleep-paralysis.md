@@ -1,61 +1,69 @@
-# Sleep Paralysis: "The Thing In Your Room"
+# Sleep Paralysis: "The Thing In Your Room" (v4, Conjuring cut)
 
-**Final reel:** `final-reels/sleep-paralysis.mp4`. It runs 20.0 s at 1080x1920 and 30 fps, encoded as H.264 with AAC audio. It is about 13.8 MB and mixed to -15 LUFS integrated. Videos are kept locally and are not committed to git.
-**Earlier visuals-only version, kept for reference:** `final-reels/sleep-paralysis-nightmare-visuals-v2.mp4`. This is the 20 s three.js engraved-nightmare take, which has no text and no audio. The owner replaced it with v3 because it felt too still and had no story.
-**Source:** `tools/sleep-paralysis/chalk/` (v3, the final cut) and `tools/sleep-paralysis/nightmare/` (v2). Rebuild steps are in each folder's README.
+**Final reel:** `final-reels/sleep-paralysis.mp4` in the project files. It runs 20.6 s at 1080x1920 and 30 fps, encoded as H.264 with AAC audio, mixed to about -15 LUFS. Videos are kept in the project folder and are not committed to git.
+**Source:** `tools/sleep-paralysis/conjuring/` (v4, this cut). It reuses the 3D bedroom, the rigged branch wraith and the sleeper asset from `tools/sleep-paralysis/nightmare/` (v2). The rebuild steps are in the folder's README.
+**Earlier versions:** v2 was a wordless engraved three.js take, and v3 (`tools/sleep-paralysis/chalk/`) was a chalk stickman explainer. The owner rejected v3 because it felt funny rather than frightening, and asked for a Conjuring-style look with a story that stays intimidating to the end.
 
 ## Concept
-You wake up and can't move, and something is standing in your room. The reel explains it in 20 s. Your brain wakes up, but your body is still in REM sleep with the muscles switched off. The dream leaks into the room, some people see a figure, and nearly 1 in 10 people will have it at least once.
+It's 3 A.M. You wake up and can't move or scream, and something is standing in the corner. The reel names it, sleep paralysis, then never lets the viewer off the hook. On every cut the figure is closer, and the line ends with "Don't... open your eyes" as it lunges into the lens. Then it hard cuts to black, and two eyes open in the dark.
 
-The style follows the owner's chalk stickman reference clip: chalk white on pitch black, with scribble-hatched blocks and a big-eyed stickman. The horror palette adds cold moonlight blue and blood red for the figure, the key words and the "1 IN 10" stamp.
+**Look:** a dark 3D bedroom with stained 1970s wallpaper, varnished wood, and a dying candle beside a red 3:00 clock. Sickly green-teal moonlight comes through a barred window, and a branch-bodied wraith has red ember eyes. The grade uses a filmic curve with drained colour, keeping only reds and the candle's warmth, plus teal-lifted blacks, heavy moving film grain, lens fringing, a crushing vignette and a red throb on every heartbeat.
 
-## Shot plan (timed from the voiceover word timestamps; the voiceover starts at +0.35 s)
+**Text:** "SLEEP PARALYSIS" (Cinzel, distressed, with a blood-red glow) is large from frame 0, then pinned to the top for the whole reel. Captions in Oswald are word-synced to the voiceover, with the key words in blood red.
+
+## Cut list (voiceover starts at +0.2 s; cuts come from `audio/vo_v4_timestamps.json`)
 | Time | Voiceover | Picture |
 |---|---|---|
-| 0.0–3.0 | "You wake up… but you can't move." | Title slams in. The kid's eyes snap open, he jolts, and his fingers twitch on the blanket. |
-| 3.5–5.8 | "And something is standing in your room." | The camera pulls back. A tall branch-crowned figure with red ember eyes stands by the door. The title shrinks to the top. |
-| 6.3–8.1 | "This is sleep paralysis." | A push into his face, with sweat and red veins in his eyes. |
-| 8.3–12.0 | "Your brain wakes up, but your body is still locked in dream sleep." | A thought-bubble brain sparks awake. Chains wrap the blanket and a red padlock snaps shut. |
-| 12.0–14.3 | "So the dream spills into your bedroom." | Scribble smoke pours from a dream cloud into the figure, which glides to the bedside. The moon dims. |
-| 14.5–16.3 | "Some people even see a figure." | It leans over him and reaches its claws toward his face. The camera shakes. |
-| 16.3–19.4 | "Nearly one in ten people will feel this at least once." | A pull-back to ten bedrooms. His is ringed in red, and "1 IN 10" is stamped on screen. |
-| 19.4–20.0 | (silence) | A rush back into his bed, then a black blink that loops to frame 0. |
+| 0.00–1.96 | "It's 3 A.M." | The title is centred. The clock beside the guttering candle flips from 2:59 to 3:00 on "3". |
+| 1.96–4.52 | "You wake up... and you can't move." | A close-up of his face. The bloodshot eye snaps open on "wake". |
+| 4.52–6.10 | "You can't scream." | Tighter, tilted and trembling. |
+| 6.10–8.91 | "Something is standing in the corner of your room." | His point of view across the dark room. A slow zoom finds the far corner, and the red eyes ignite on "corner". The heartbeat starts. |
+| 8.91–11.28 | "Doctors call it sleep paralysis." | A high wide shot. It has crossed half the room. |
+| 11.28–14.57 | "Your mind wakes up... but your body stays asleep." | A wide shot past the bed. It is at the foot now, and his covered arm tries to lift and fails. The candle gutters. |
+| 14.57–16.44 | "And every second you're trapped..." | Low beside the pillow, looking up past his face at it. Heartbeat push-ins. |
+| 16.44–17.87 | "it comes closer." | From the pillow: it glides in and bends over the bed. |
+| 17.87–18.61 | "Don't..." | The candle is snuffed. Only its eyes remain, right above him. |
+| 18.61–19.75 | "open your eyes." | It lunges into the lens with an accelerating shake. Hard cut to black as the line ends. |
+| 19.75–20.60 | (silence) | Black. Two red eyes open in the dark, then the reel loops to the title. |
 
-## Facts and sources
-- **Prevalence.** A systematic review of 35 studies (Sharpless & Barber, 2011, *Sleep Medicine Reviews* 15(5):311–315) found these lifetime rates:
-  - about 7.6% in the general population
-  - 28.3% in students
-  - 31.9% in psychiatric patients
-
-  The reel says "nearly one in ten", not "one in five".
-- **Mechanism.** Sleep paralysis is REM-sleep atonia persisting into wakefulness, while REM dream imagery intrudes into a waking mind. This is the basis for "brain wakes up, body still locked in dream sleep".
-- **Sensed or seen intruders** are a common hallucination type during episodes, but not universal. The reel says "some people even see a figure" for that reason.
+## Facts
+- Sleep paralysis is REM-sleep muscle atonia persisting into wakefulness while the mind is awake. That is the basis for "your mind wakes up, but your body stays asleep".
+- Sensing or seeing an intruder is a common hallucination during episodes (Sharpless & Barber, 2011, *Sleep Medicine Reviews* 15(5):311–315; lifetime prevalence about 7.6% in the general population).
 
 ## Audio
-- **Voiceover:** ElevenLabs, voice "Max - Deep and Crisp Voice", model eleven_v4, generated in the project on 2026-10-21. Files are `tools/sleep-paralysis/chalk/audio/vo_sleep_paralysis.mp3` and `vo_timestamps.json`.
-- **Sound effects:** title slam, eye tick, figure boom, accelerating heartbeat, padlock snap, swells and drone. All are synthesised locally by `tools/sleep-paralysis/chalk/sfx.py`, with no samples, so no licence credits are needed.
-- **Mix:** the bed is side-chain ducked under the voice. It measures -15 LUFS integrated with a -4.4 dBFS peak.
+- **Voiceover:** ElevenLabs, voice "Max - Deep and Crisp Voice" (eleven_v4), `tools/sleep-paralysis/conjuring/audio/vo_v4.mp3` (19.51 s). Word times are in `vo_v4_timestamps.json`, from ElevenLabs Scribe.
+- **Sound effects:** all synthesised locally by `conjuring/sfx.py` (numpy, no samples), so no licence credits are needed. The bed has:
+  - a sub drone with a minor-second cluster
+  - clock ticks and a 3:00 beep
+  - bowed-metal screeches on the eye opening and the ignition
+  - impacts on every closer cut
+  - an accelerating heartbeat
+  - breathy whispers
+  - a candle snuff and a drop to near silence
+  - a rising scream into the lunge, cut dead on black
+  - a sub thud when the eyes open in the dark
+- **Mix:** the voice is compressed and the bed is side-chain ducked under it.
 
 ## Publish copy
-**YouTube Shorts title:** You Wake Up… But You Can't Move 😨 #sleepparalysis
-**Alternative title:** The Thing Standing In Your Room (Sleep Paralysis Explained)
+**YouTube Shorts title:** It's 3 A.M. Don't Open Your Eyes 😨 #sleepparalysis
+**Alternative title:** Something Is Standing In The Corner Of Your Room
 
 **Description:**
-You wake up. You can't move. And something is standing in your room.
-That's sleep paralysis: your brain wakes up, but your body is still locked in REM (dream) sleep, so the dream spills into your bedroom. Nearly 1 in 10 people will feel it at least once.
-Has it happened to you? Tell us below. 👇
+It's 3 A.M. You wake up, but you can't move. You can't scream. And something is standing in the corner of your room.
+Doctors call it sleep paralysis: your mind wakes up, but your body is still locked in REM sleep, and the dream spills into the room.
+Has it happened to you? 👇
 Source: Sharpless & Barber (2011), Sleep Medicine Reviews.
-#sleepparalysis #sleep #psychology #science #horror #creepy #brain #remsleep #slowlight #shorts
+#sleepparalysis #horror #scary #creepy #3am #psychology #sleep #remsleep #slowlight #shorts
 
 **Instagram / Facebook caption:**
-You wake up… but you can't move. 😶 Something is standing in your room.
-This is sleep paralysis: your brain is awake, but your body is still locked in dream sleep. Nearly 1 in 10 people will feel it at least once.
+It's 3 A.M. You can't move. You can't scream. Something is in the corner. 👁️👁️
+This is sleep paralysis. Don't open your eyes.
 Ever had it? 👇
-#sleepparalysis #psychologyfacts #brainfacts #creepy #horrortok #sciencefacts #slowlight
+#sleepparalysis #horror #creepy #3am #scarystories #psychologyfacts #slowlight
 
-**Pinned comment:** Sleep paralysis isn't dangerous, and it usually passes in seconds to a couple of minutes. If it happens often or disturbs your sleep, talk to a doctor.
+**Pinned comment:** Sleep paralysis isn't dangerous and usually passes within seconds to a couple of minutes. If it happens often or disturbs your sleep, talk to a doctor.
 
 **Upload checks:**
 - Turn on the platform's AI or synthetic content label, because the voice is AI-generated.
-- Keep the first frame as the thumbnail: the title with the sleeping kid.
-- It loops cleanly through the black blink.
+- Thumbnail: frame 0 (title over the 3:00 clock and candle) or the red eyes in the corner at 7.6 s.
+- It loops from the black eyes back to the title.
