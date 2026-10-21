@@ -1,0 +1,20 @@
+{
+ "duration": 22.5,
+ "fps": 30,
+ "facts": {
+  "c_km_s": 299792.458,
+  "equator_km": 40075.017,
+  "laps_per_s": 7.4807,
+  "lhc_energy_TeV": 6.8,
+  "proton_beta_shortfall": 9.52e-9,
+  "gap_m": 2.85,
+  "lhc_ring_km": 26.659,
+  "lhc_laps_per_s": 11245
+ },
+ "slowStart": 2.4,
+ "slowFactor": 10,
+ "shots": [[0, 2.4, "hook: real-speed blur ring"], [2.4, 12.4, "one second slowed 10x: 7.48 laps"], [12.4, 14.4, "7.5 laps: real LHC protons"],
+           [14.4, 14.8, "held breath: and light still wins"], [14.8, 16.6, "plunge to the finish line"], [16.6, 19.6, "by 2.8 metres"],
+           [19.6, 21.0, "nothing with mass catches light"], [21.0, 22.5, "pull back to Earth, loop"]],
+ "reviewTimes": [0.03, 0.8, 1.8, 2.5, 3.5, 5.5, 8.0, 11.0, 12.6, 13.6, 14.6, 15.2, 15.7, 16.2, 16.8, 18.0, 19.8, 20.8, 21.4, 22.0, 22.45]
+}

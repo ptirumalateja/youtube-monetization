@@ -27,6 +27,7 @@ Scope: the wordless "light and scale" reels (Red Sprites, The Sun Vanishes, Nigh
 | Night Sky "the past" | Every light you see is old; Andromeda sees our past | v4 approved (19 s, sound reference); **v8.1 final** `night_sky_past_v81_A.mp4` (19.2 s) | copy ready: `night-sky-v81-publish-copy.md` |
 | Scale Ladder | Earth to the observable universe, ends "YOU ARE HERE." | **`scale_ladder_3d_v4_A/B.mp4`** (26 s, hooks A and B) | copy ready: `scale-ladder-publish-copy.md` |
 | Birthday Paradox | 23 people = 50.7% chance of a shared birthday; count the pairs (253), not the people | `birthday-paradox-21.5s.mp4` (21.5 s, loops) | copy ready: `birthday-paradox-publish-copy.md`; build in `tools/birthday-paradox/` |
+| Proton Laps Earth | An LHC proton could circle Earth 7.48 times in 1 s; light still wins by 2.85 m | `proton-laps-earth.mp4` (22.5 s, loops) | copy ready: `proton-laps-publish-copy.md`; build in `tools/proton-laps/` |
 
 Specs and notes per reel: `night-sky-past-reel.md` (v1-v4), `night-sky-v5-notes.md` (v5-v7), `night-sky-v8-spec.md` (v8 frozen plan + v8.1 pass), `scale-ladder-reel.md`.
 
@@ -106,6 +107,7 @@ Two camera languages, chosen by what the reel says.
 - **Night Sky: the v4 sound is the reference and is used as-is.** Frame-0 hit (explosion + dark accent), sparks charge-up, reverse whoosh into the snap, portal-gate shimmer, per-stop identity (Moon airy glass bell, Sun fire crackle + plasma trail + sub whoosh, Proxima gateway + dark low hit), hyperdrive riser + jet pitch-up + accelerating pulses, held breath, big blast + sub wall, wind and bell on the end plate, loop-link tone. The v8.1 mix is the v4 cue sheet retimed (hyperdrive re-fitted to 1.65 s, hero hit at 10.5 s, dive home with v4's reverse whoosh / riser / warp-in then 0.3 s silence).
 - **Scale Ladder:** brass-and-sub family: chakong brass braaam (92 Hz body) + bass drop + screaming-echo tail on the 18.0 s burst and the 2.0 s Sun slam, harmonic pings on a 106 Hz root for the Solar System, formant choir pad, shepard risers, fire roar, plunge whooshes.
 - **Birthday Paradox:** fully synthesised music-box family (no samples): each month is a pentatonic note so birthday twins ring in unison, a drone that tightens with the odds, accelerating heartbeat, thread sparkle ticks, one big gong-partial hit on the match.
+- **Proton Laps Earth:** synthesised accelerator family: speed whine rising through the slowed second, doppler pass-by each time the proton crosses the front of Earth, climbing digital lap ticks, counter chatter, falling plunge whoosh, a bright pure "zing" for light at the finish.
 - Discarded: the Night Sky v8 "time and glass" tick/shepard mix (it was a replica of the Ladder's character and was rejected). Lesson: ask for the reference sound before designing a new one.
 
 ### 4.3 Loudness and delivery
