@@ -2,7 +2,7 @@
 
 Slow Light take on the reference reel "The Universe Is Moving. Your Sky Just Hides It." We kept only the topic. Everything else is ours: the scene, the data, the text and the sound.
 
-- **Final file:** `final-reels/the-dipper-is-melting.mp4` in the project files. It is 20.0 s, 1080x1920, 30 fps, H.264 + AAC, and it loops.
+- **Final file:** `final-reels/the-dipper-is-melting.mp4` in the project files. It is 20.0 s, 1080x1920 (rendered natively), 30 fps, H.264 at 10 Mb/s two-pass + AAC 192k, 25.6 MB, and it loops. Loudness after AAC: -15.4 LUFS integrated, -3.9 dBFS peak. A CRF 18 master (225 MB, mostly film grain) is not kept; re-encode from frames if you need it.
 - **Source:** `tools/dipper-melting/`. The scene is `index.html` with `window.renderAt(t)`, `stars.py` builds the star data, the timeline is `timeline.json`, `overlay.py` draws the info layer and `mix_dipper.py` makes the sound. `render.js`, `shot.js` and `proj.js` are the Playwright drivers.
 - **Format:** wordless, no voiceover, a few words of on-screen text, one monotonic counter, one paradox beat, a loop (playbook section 1).
 
@@ -95,5 +95,9 @@ python3 overlay.py proj.json overlay.mov
 python3 mix_dipper.py mix.wav
 ffmpeg -framerate 30 -i frames/f%04d.jpg -i overlay.mov -i mix.wav \
   -filter_complex "[0:v][1:v]overlay=0:0,format=yuv420p[v];[2:a]volume=<gain>dB,asoftclip=type=tanh,alimiter=limit=0.89[a]" \
-  -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset slow -c:a aac -b:a 192k -movflags +faststart the-dipper-is-melting.mp4
+  -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset slow -c:a aac -b:a 192k -movflags +faststart master.mp4
+# share size: two-pass 10 Mb/s (the grain makes CRF files huge)
+ffmpeg -i master.mp4 -c:v libx264 -b:v 10M -preset slow -pass 1 -an -f null /dev/null
+ffmpeg -i master.mp4 -c:v libx264 -b:v 10M -maxrate 14M -bufsize 20M -preset slow -pass 2 -c:a copy -movflags +faststart the-dipper-is-melting.mp4
 ```
+The mix used `volume=-4.3dB` (raw mix is -10.7 LUFS).
