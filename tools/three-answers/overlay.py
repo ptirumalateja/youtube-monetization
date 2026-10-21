@@ -1,9 +1,9 @@
-# Overlay for "Three Answers to One Fall" (22 s, 1080x1920, 30 fps): hook, year odometer, answer chips, left ladder, twist, tags.
+# Overlay for "Three Answers to One Fall" (v2: 19 s, 1080x1920, 30 fps): hook, year odometer, answer chips, left ladder, twist, tags.
 # python3 overlay.py out.mov   -> PNG-in-MOV RGBA stream, composited over the 3D frames by build.sh
 import subprocess, math, sys
 from PIL import Image, ImageDraw, ImageFont
 OUT = sys.argv[1] if len(sys.argv) > 1 else "overlay.mov"
-W, H, FPS, T = 1080, 1920, 30, 22.0
+W, H, FPS, T = 1080, 1920, 30, 19.0
 N = int(T * FPS)
 MB = "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"
 MR = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
@@ -37,35 +37,35 @@ def typed(d, y, full, red_from, n, font, a):
 def solid(c, a): return Image.new("RGBA", (W, H), c + (int(255 * a),))
 
 # ---- year odometer: 1687 (Principia) -> 1915 (general relativity) -> 2026 (today). Must only go up.
-YK = [(2.25, 1600), (2.75, 1687), (7.95, 1687), (8.7, 1915), (14.05, 1915), (14.8, 2026), (17.2, 2026)]
+YK = [(1.65, 1600), (2.0, 1687), (5.05, 1687), (5.5, 1915), (10.2, 1915), (10.75, 2026), (13.5, 2026)]
 def year(t):
     for (a, ya), (b, yb) in zip(YK, YK[1:]):
         if a <= t <= b: return int(round(ya + (yb - ya) * sstep(a, b, t)))
     return None
 SECTIONS = [  # start, end, header, chip, meaning lines [(a,b,text,font-key)]
-    (2.2, 7.45, "ANSWER 1 OF 3", "NEWTON", [(2.6, 7.45, "A FORCE PULLS IT DOWN.", "m"), (3.9, 7.45, "EQUAL TIMES, GROWING GAPS: IT SPEEDS UP", "s")]),
-    (7.9, 13.9, "ANSWER 2 OF 3", "EINSTEIN", [(8.4, 10.95, "NO FORCE. TIME RUNS SLOWER BELOW.", "m"), (9.2, 10.95, "1 METRE LOWER: 1 SECOND LOST EVERY ~290 MILLION YEARS", "s"),
-                                                  (11.0, 13.9, "THE APPLE FOLLOWS BENT SPACETIME.", "m"), (11.5, 13.9, "SO DOES LIGHT (MEASURED IN 1919)", "s")]),
-    (14.0, 17.2, "ANSWER 3 OF 3", "QUANTUM GRAVITY", [(14.5, 17.2, "SPACETIME ITSELF MAY TURN TO FOAM", "m"), (15.0, 17.2, "AT 10⁻³⁵ METRES: THE PLANCK LENGTH", "s")]),
+    (1.6, 5.05, "ANSWER 1 OF 3", "NEWTON", [(1.85, 5.05, "A FORCE PULLS IT DOWN.", "m"), (2.6, 5.05, "EQUAL TIMES, GROWING GAPS: IT SPEEDS UP", "s")]),
+    (5.1, 10.05, "ANSWER 2 OF 3", "EINSTEIN", [(5.45, 8.3, "NO FORCE. TIME RUNS SLOWER BELOW.", "m"), (6.0, 8.3, "1 METRE LOWER: 1 SECOND LOST EVERY ~290 MILLION YEARS", "s"),
+                                                  (8.3, 10.05, "THE APPLE FOLLOWS BENT SPACETIME.", "m"), (8.55, 10.05, "SO DOES LIGHT (MEASURED IN 1919)", "s")]),
+    (10.15, 13.5, "ANSWER 3 OF 3", "QUANTUM GRAVITY", [(10.45, 13.5, "SPACETIME ITSELF MAY TURN TO FOAM", "m"), (10.9, 13.5, "AT 10⁻³⁵ METRES: THE PLANCK LENGTH", "s")]),
 ]
 RUNGS = [("NEWTON", 1290), ("EINSTEIN", 1185), ("???", 1080)]
 def impact(t):
     k = int(round(t * FPS))
     if 0 <= k < 4: return solid((255, 255, 255), 0.12 * (1 - k / 4))
-    k = int(round((t - 17.8) * FPS))
+    k = int(round((t - 14.0) * FPS))
     if 0 <= k < 5: return solid((255, 255, 255), 0.15 * (1 - k / 5))
     return None
 
 def main():
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-", "-c:v", "png", OUT], stdin=subprocess.PIPE)
-    fhook = F(MB, 84); fhdr = F(MR, 27); fcnt = F(MB, 104); fchip = F(MB, 48); fm = F(MB, 36); fs = F(MR, 25); ftag = F(MR, 23); frung = F(MB, 30); ftw = F(MB, 80); fstamp = F(MB, 44)
+    fhook = F(MB, 90); fhdr = F(MR, 27); fcnt = F(MB, 104); fchip = F(MB, 48); fm = F(MB, 36); fs = F(MR, 25); ftag = F(MR, 23); frung = F(MB, 30); ftw = F(MB, 80); fstamp = F(MB, 44)
     last_year = 0
     for f in range(N):
         t = f / FPS; im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-        # hook: typed by ~1.3 s
-        if t < 2.15:
-            a = int(255 * (1 - sstep(1.95, 2.15, t))); n = int((t - 0.12) * 16) + 1 if t >= 0.12 else 0
-            typed(d, 820, "WHY DOES IT FALL?", 12, n, fhook, a)
+        # hook: complete on frame 0 (no typing), held until the pull-back; fades back in over the last 0.4 s so the loop lands on it
+        if t < 1.65 or t >= 18.6:
+            a = int(255 * ((1 - sstep(1.45, 1.65, t)) if t < 1.65 else sstep(18.6, 19.0, t)))
+            typed(d, 1150, "WHY DOES IT FALL?", 12, 99, fhook, a)
         # sections
         for (s0, s1, hdr, chip, lines) in SECTIONS:
             if s0 <= t < s1:
@@ -82,13 +82,13 @@ def main():
                         la = int(255 * win(t, a0, a1, 0.2, 0.2))
                         if k == "m": ctext(d, ly["m"], txt, fm, CREAM, la, stroke=4)
                         else: ctext(d, ly["s"], txt, fs, CREAM, int(la * 0.9), sp=1, stroke=3)
-                if chip == "QUANTUM GRAVITY" and t >= 15.6:
-                    sa = int(255 * win(t, 15.6, 17.2, 0.08, 0.2)); txt = "UNKNOWN"; w = tw(d, txt, fstamp, 6); x = (W - w) / 2; yy = 1180
+                if chip == "QUANTUM GRAVITY" and t >= 12.0:
+                    sa = int(255 * win(t, 12.0, 13.5, 0.08, 0.2)); txt = "UNKNOWN"; w = tw(d, txt, fstamp, 6); x = (W - w) / 2; yy = 1180
                     ctext(d, yy, txt, fstamp, CREAM, sa, sp=6, stroke=3)
                     d.rectangle((x - 22, yy - 14, x + w + 22, yy + fstamp.size + 18), outline=RED + (sa,), width=5)
         # left ladder: NEWTON -> EINSTEIN -> ???
-        if 2.2 <= t < 17.2:
-            LA = int(255 * win(t, 2.2, 17.2, 0.3, 0.25)); cur = 0 if t < 7.9 else 1 if t < 14.0 else 2
+        if 1.6 <= t < 13.5:
+            LA = int(255 * win(t, 1.6, 13.5, 0.3, 0.25)); cur = 0 if t < 5.1 else 1 if t < 10.15 else 2
             d.line((64, RUNGS[2][1], 64, RUNGS[0][1]), fill=CREAM + (int(LA * 0.5),), width=3)
             for i, (name, y) in enumerate(RUNGS):
                 if i == cur: d.ellipse((53, y - 11, 75, y + 11), fill=RED + (LA,))
@@ -96,15 +96,15 @@ def main():
                 else: d.ellipse((58, y - 6, 70, y + 6), outline=CREAM + (int(LA * 0.7),), width=2)
                 d.text((92, y - 16), name, font=frung, fill=CREAM + (int(LA * (1.0 if i == cur else 0.6)),), stroke_width=3, stroke_fill=(0, 0, 0, min(LA, 220)))
         # twist
-        if 17.8 <= t < 21.2:
-            a = int(255 * (1 - sstep(20.8, 21.2, t))); n = int((t - 17.84) * 30) + 1 if t >= 17.84 else 0
+        if 14.0 <= t < 17.7:
+            a = int(255 * (1 - sstep(17.3, 17.7, t))); n = int((t - 14.04) * 30) + 1 if t >= 14.04 else 0
             L = ["NOBODY HAS", "THE THIRD", "ANSWER YET."]
             for i, line in enumerate(L):
                 k = n - sum(len(x) for x in L[:i])
                 if k >= 1: typed(d, 330 + i * 104, line, 7 if i == 2 else len(line), k, ftw, a)
         # tag
         if t >= 0.3:
-            ta = int(140 * (1 - sstep(21.4, 21.8, t))); txt = "THOUGHT EXPERIMENT · NOT TO SCALE" + (" · CLOCKS EXAGGERATED" if 7.9 <= t < 14.0 else "")
+            ta = int(140 * (1 - sstep(18.3, 18.7, t))); txt = "THOUGHT EXPERIMENT · NOT TO SCALE" + (" · CLOCKS EXAGGERATED" if 5.1 <= t < 10.1 else "")
             d.text((48, 1500), txt, font=ftag, fill=(235, 235, 235, ta))
         imp = impact(t)
         if imp is not None: im = Image.alpha_composite(im, imp)

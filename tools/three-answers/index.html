@@ -17,7 +17,7 @@ function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return
 const R=rnd(1687);
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)); const sstep=(a,b,x)=>{const k=clamp((x-a)/(b-a));return k*k*(3-2*k)}; const lerp=(a,b,k)=>a+(b-a)*k;
 // ------------------------------------------------------------------ world: Earth radius 12, top of Earth at y=0, apple hangs at y=9 on the fall axis (x=z=0)
-const RE=12, EC=new THREE.Vector3(0,-RE,0), APPLE_TOP=9.0, APPLE_R=0.55, GROUND=APPLE_R*0.92;
+const RE=12, EC=new THREE.Vector3(0,-RE,0), APPLE_TOP=9.0, APPLE_R=0.66, GROUND=APPLE_R*0.92;
 const NOISE=`
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;} vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);} vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
@@ -101,10 +101,11 @@ const leaf=new THREE.Mesh(new THREE.ShapeGeometry(leafShape,12),new THREE.MeshSt
 // ------------------------------------------------------------------ branch: a dark twig entering from the top left of frame
 const brCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-9,13.2,-1.5),new THREE.Vector3(-5,11.4,-0.6),new THREE.Vector3(-2,10.2,-0.1),new THREE.Vector3(0.05,9.62,0),new THREE.Vector3(1.4,9.75,0.2)]);
 const brMat=new THREE.MeshStandardMaterial({color:0x4a3524,roughness:0.85,transparent:true,opacity:1});
-const branch=new THREE.Mesh(new THREE.TubeGeometry(brCurve,80,0.07,10,false),brMat); scene.add(branch);
-const twig=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-3.4,10.75,-0.3),new THREE.Vector3(-3.0,11.6,0.3),new THREE.Vector3(-2.3,12.3,0.4)]),20,0.04,8,false),brMat); scene.add(twig);
+const tree=new THREE.Group(); tree.rotation.y=Math.PI; scene.add(tree);
+const branch=new THREE.Mesh(new THREE.TubeGeometry(brCurve,80,0.07,10,false),brMat); tree.add(branch);
+const twig=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-3.4,10.75,-0.3),new THREE.Vector3(-3.0,11.6,0.3),new THREE.Vector3(-2.3,12.3,0.4)]),20,0.04,8,false),brMat); tree.add(twig);
 const leafMat=new THREE.MeshStandardMaterial({color:0x2e6440,roughness:0.6,side:THREE.DoubleSide,transparent:true,opacity:1});
-[[-4.2,11.15,0.2,0.9],[-2.25,12.35,0.4,0.7],[-1.0,9.95,0.3,0.6],[-6.3,12.0,-0.6,0.8],[1.2,9.8,0.3,0.55]].forEach(([x,y,z,s],i)=>{ const l=new THREE.Mesh(new THREE.ShapeGeometry(leafShape,12),leafMat); l.scale.setScalar(s*2.2); l.position.set(x,y,z); l.rotation.set(0.6+i*0.3,0.4-i*0.5,-0.8+i*0.9); scene.add(l); });
+[[-4.2,11.15,0.2,0.9],[-2.25,12.35,0.4,0.7],[-1.0,9.95,0.3,0.6],[-6.3,12.0,-0.6,0.8],[1.2,9.8,0.3,0.55]].forEach(([x,y,z,s],i)=>{ const l=new THREE.Mesh(new THREE.ShapeGeometry(leafShape,12),leafMat); l.scale.setScalar(s*2.2); l.position.set(x,y,z); l.rotation.set(0.6+i*0.3,0.4-i*0.5,-0.8+i*0.9); tree.add(l); });
 // ------------------------------------------------------------------ lights
 const key=new THREE.DirectionalLight(0xfff0dc,2.7); key.position.copy(LDIR).multiplyScalar(20); scene.add(key);
 const rim=new THREE.DirectionalLight(0x44d8e0,1.9); rim.position.set(5,2,-7); scene.add(rim);
@@ -121,9 +122,10 @@ const AG=arrowGeo();
 const forceMat=new THREE.MeshBasicMaterial({color:new THREE.Color(1.0,0.72,0.26),transparent:true,opacity:0,depthWrite:false});
 const force=new THREE.Mesh(AG,forceMat); force.renderOrder=30; scene.add(force);
 const forceGlow=glow([1.0,0.65,0.2],1.6);
+const fieldGroup=new THREE.Group(); scene.add(fieldGroup);
 const field=[]; const fieldMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0.12,0.75,0.72),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
 for(const rr of [14.6,17.5,20.8]) for(let k=-6;k<=6;k++){ const th=k*0.13+(rr>15?0.065:0); for(const zz of [0,-1]){ if(zz && Math.abs(k)%2) continue; const ang=th; const dir=new THREE.Vector3(Math.sin(ang),Math.cos(ang),zz?-0.35:0).normalize();
-  const p=EC.clone().add(dir.clone().multiplyScalar(rr)); const m=new THREE.Mesh(AG,fieldMat); m.position.copy(p); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir.clone().negate()); const len=0.9*Math.pow(14.6/rr,2); m.scale.set(0.7,len,0.7); m.userData={len,rr,k}; scene.add(m); field.push(m);} }
+  const p=EC.clone().add(dir.clone().multiplyScalar(rr)); const m=new THREE.Mesh(AG,fieldMat); m.position.copy(p); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir.clone().negate()); const len=0.9*Math.pow(14.6/rr,2); m.scale.set(0.7,len,0.7); m.userData={len,rr,k}; fieldGroup.add(m); field.push(m);} }
 const ghostMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0.15,0.8,0.75),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
 const ghosts=[]; for(let i=0;i<9;i++){ const g=new THREE.Mesh(appleGeo,ghostMat.clone()); g.scale.setScalar(APPLE_R); g.visible=false; scene.add(g); ghosts.push(g); }
 // ------------------------------------------------------------------ EINSTEIN: clock rings stacked along the fall; lower clocks tick slower (exaggerated); light ray bends
@@ -138,7 +140,7 @@ const rings=[]; for(let i=0;i<RING_Y.length;i++){ const y=RING_Y[i]; const h=y/8
   const omega=6.283/(1.15/(0.22+0.78*h));       // revolutions: top ring ~1.15 s, bottom ring ~3.4 s (exaggerated ~10^16x)
   rings.push({torus,notches,beads,omega,y,col,h}); }
 window.RINGS=rings.map(r=>({y:r.y,omega:r.omega}));
-const EIN_T0=8.0;   // clock phase origin
+const EIN_T0=5.4;   // clock phase origin
 const rayMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0.25,0.95,1.0),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
 const refMat=new THREE.LineDashedMaterial({color:0xf6f0e4,dashSize:0.25,gapSize:0.18,transparent:true,opacity:0});
 const RAY_Y=2.9, RAY_S=0.24, RAY_B=1.8;
@@ -179,89 +181,117 @@ bubMat.customProgramCacheKey=()=>'bub';
   for(let i=0;i<n;i++){ pos[i*3]=QC.x+(R()*2-1)*ext; pos[i*3+1]=QC.y+(R()*2-1)*ext; pos[i*3+2]=QC.z+(R()*2-1)*ext; const k=R(); const c=k<0.45?CREAM:(k<0.8?TEAL:[0.6,0.4,1.0]); const b=0.35+R()*0.5; for(let j=0;j<3;j++) col[i*3+j]=c[j]*b; sd[i]=R()*100; }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('aSeed',new THREE.BufferAttribute(sd,1));
   var bubbles=new THREE.Points(g,bubMat); bubbles.frustumCulled=false; bubbles.renderOrder=61; scene.add(bubbles); }
+// ------------------------------------------------------------------ v2 layers: nebula backdrop, frozen motes around the hook apple, freeze ripple, landing shockwaves
+const neb=new THREE.Mesh(new THREE.SphereGeometry(1400,64,48),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,depthTest:false,uniforms:{uO:{value:1}},
+ vertexShader:`varying vec3 vD; void main(){ vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`${NOISE} varying vec3 vD; uniform float uO; void main(){ vec3 d=normalize(vD);
+  float band=exp(-pow(dot(d,normalize(vec3(0.35,0.55,-0.75)))/0.28,2.0));
+  float n=fbm(d*1.3+vec3(4.0,1.0,2.0))*0.5+0.5; float n2=fbm(d*2.6+9.0)*0.5+0.5;
+  vec3 c=vec3(0.02,0.07,0.09)*smoothstep(0.5,0.95,n)*0.8+vec3(0.05,0.03,0.08)*smoothstep(0.55,1.0,n2)*0.6;
+  c+=vec3(0.07,0.06,0.05)*band*(0.4+0.6*smoothstep(0.4,0.85,n2));
+  gl_FragColor=vec4(c*uO,1.0);} `}));
+neb.material.customProgramCacheKey=()=>'neb'; neb.renderOrder=-20; scene.add(neb);
+const motes=makePoints(520,pointsMat({uAmp:{value:0}}));
+for(let i=0;i<motes.n;i++){ const a=R()*6.283, b=Math.acos(2*R()-1), r=0.9+Math.pow(R(),0.6)*4.2; motes.pos[i*3]=r*Math.sin(b)*Math.cos(a); motes.pos[i*3+1]=8.6+r*Math.cos(b)*0.9; motes.pos[i*3+2]=r*Math.sin(b)*Math.sin(a);
+  const k=R(); const c=k<0.6?CREAM:(k<0.85?GOLD:TEAL); const br=0.5+R()*0.5; for(let j=0;j<3;j++) motes.col[i*3+j]=c[j]*br; motes.sz[i]=0.02+R()*0.045; motes.ph[i]=R(); }
+motes.pts.renderOrder=35;
+function ringMesh(color){ const m=new THREE.Mesh(new THREE.RingGeometry(0.975,1.0,160),new THREE.MeshBasicMaterial({color:new THREE.Color(...color),transparent:true,opacity:0,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide})); m.renderOrder=34; scene.add(m); return m; }
+const ripple=ringMesh([1.0,0.9,0.75]); const ripple2=ringMesh([0.2,0.9,0.85]);
+const shock=[ringMesh([1.0,0.78,0.45]),ringMesh([0.2,0.9,0.85])]; shock.forEach(m=>{ m.rotation.x=-Math.PI/2; m.position.y=0.03; });
+const landGlow=glow([1.0,0.75,0.4],3.0); landGlow.renderOrder=33;
 // ------------------------------------------------------------------ post: bloom + grade (teal shadows, warm highlights, vignette, grain)
 const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,cam));
 const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.5,0.45,0.72); composer.addPass(bloom);
-const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uV:{value:1}},vertexShader:`varying vec2 vU; void main(){vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
- fragmentShader:`uniform sampler2D tDiffuse; uniform float uT,uV; varying vec2 vU; float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
-  void main(){ vec3 c=texture2D(tDiffuse,vU).rgb; float l=dot(c,vec3(0.299,0.587,0.114)); c+=vec3(-0.004,0.006,0.012)*(1.0-l)+vec3(0.02,0.008,-0.012)*l;
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uV:{value:1},uWhip:{value:0}},vertexShader:`varying vec2 vU; void main(){vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`uniform sampler2D tDiffuse; uniform float uT,uV,uWhip; varying vec2 vU; float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+  void main(){ vec3 c=vec3(0.0); vec2 dc=vU-0.5; if(uWhip<0.002){ c=texture2D(tDiffuse,vU).rgb; } else { for(int i=0;i<10;i++){ float k=float(i)/9.0; vec2 o=dc*(1.0-uWhip*0.10*k); c.r+=texture2D(tDiffuse,0.5+o*(1.0+uWhip*0.012)).r; c.g+=texture2D(tDiffuse,0.5+o).g; c.b+=texture2D(tDiffuse,0.5+o*(1.0-uWhip*0.012)).b; } c/=10.0; } float l=dot(c,vec3(0.299,0.587,0.114)); c+=vec3(-0.004,0.006,0.012)*(1.0-l)+vec3(0.02,0.008,-0.012)*l;
    vec2 d=vU-0.5; d.x*=0.75; float v=1.0-smoothstep(0.35,0.85,length(d))*0.55*uV; c*=v; c+=(h(vU*vec2(${W}.0,${H}.0)+uT)-0.5)*0.022; gl_FragColor=vec4(c,1.0);} `});
 composer.addPass(grade); composer.addPass(new OutputPass());
-// ------------------------------------------------------------------ timeline
-// Apple height y(t). Three falls: hook (released at frame 0, freezes mid-air), Newton fall, Einstein fall; rewinds lift it back to the branch.
-const G=2.6;   // scene gravity for the strobe spacing (units/s^2), thought experiment
+// ------------------------------------------------------------------ timeline (v2: 19 s, no dead time)
+// Apple height y(t). Three falls: hook (released at frame 0, freezes mid-air), Newton fall, Einstein fall. Between answers a whip-pan hides the apple snapping back to the branch.
+const G=3.4;   // scene gravity (units/s^2), thought experiment
 function fallY(y0,dt){ return Math.max(GROUND,y0-0.5*G*dt*dt); }
-const HOOK_Y=fallY(APPLE_TOP,0.55);
-const N_T0=3.0; const N_LAND=N_T0+Math.sqrt(2*(HOOK_Y-GROUND)/G);
-const E_T0=8.9; const E_LAND=E_T0+Math.sqrt(2*(APPLE_TOP-GROUND)/G);
-window.TIMES={N_T0,N_LAND,E_T0,E_LAND};
+const T_END=19.0, FREEZE=0.45, HOOK_Y=fallY(APPLE_TOP,FREEZE);
+const N_ARROW=1.6, N_T0=2.1; const N_LAND=N_T0+Math.sqrt(2*(HOOK_Y-GROUND)/G);
+const WHIP1=[4.95,5.35], E_RINGS=5.3, E_T0=6.0; const E_LAND=E_T0+Math.sqrt(2*(APPLE_TOP-GROUND)/G);
+const RAY=[8.35,9.45], WHIP2=[9.9,10.45], BREATH=[13.5,14.0], HIT=14.0, WIDE=[15.2,17.4], RET=[17.4,19.0];
+window.TIMES={FREEZE,N_ARROW,N_T0,N_LAND,WHIP1,E_RINGS,E_T0,E_LAND,RAY,WHIP2,BREATH,HIT,WIDE,RET,T_END};
 function easeIO(k){return k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;}
+function bounce(b){ return Math.max(0,0.36*Math.sin(Math.min(b/0.3,1)*Math.PI))*Math.exp(-b*3); }
 function appleY(t){
-  if(t<0.55) return fallY(APPLE_TOP,t);
+  if(t<FREEZE) return fallY(APPLE_TOP,t);
   if(t<N_T0) return HOOK_Y;
   if(t<N_LAND) return fallY(HOOK_Y,t-N_T0);
-  if(t<6.9){ const b=t-N_LAND; return GROUND+Math.max(0,0.32*Math.sin(Math.min(b/0.32,1)*Math.PI))*Math.exp(-b*3); }
-  if(t<7.9) return lerp(GROUND,APPLE_TOP,easeIO((t-6.9)/1.0));
+  if(t<5.15) return GROUND+bounce(t-N_LAND);
   if(t<E_T0) return APPLE_TOP;
   if(t<E_LAND) return fallY(APPLE_TOP,t-E_T0);
-  if(t<12.7) return GROUND;
-  if(t<13.7) return lerp(GROUND,APPLE_TOP,easeIO((t-12.7)/1.0));
+  if(t<10.15) return GROUND+bounce(t-E_LAND);
   return APPLE_TOP;
 }
-// camera keys: t, distance, azimuth (rad), elevation (deg), look-at y. Monotone cubic (no overshoot).
-const CK=[[0,12.6,0.00,3,6.0],[2.2,11.8,0.04,4,6.0],[3.0,18.6,0.10,6,6.0],[5.2,19.4,0.20,7,5.9],[7.4,19.4,0.30,7,6.0],[8.6,17.6,0.44,15,6.3],[11.4,17.2,0.62,14,6.0],[12.9,16.4,0.72,10,5.6],[14.0,9.5,0.82,9,4.5],[16.6,4.3,0.96,8,4.6],[17.8,4.0,0.98,8,4.6],[19.0,52.0,1.10,16,-5.0],[20.3,54.0,1.16,16,-5.0],[21.3,20.0,0.30,6,5.0],[22.0,12.6,0.00,3,6.0]];
+// camera keys: t, distance, azimuth (rad), elevation (deg), look-at y. Monotone cubic (no overshoot). Negative azimuth = the day side of Earth.
+const CK=[[0,9.6,0.00,2,7.7],[1.5,9.0,-0.42,6,7.5],[2.25,18.6,-0.50,6,6.0],[4.3,19.4,-0.58,7,5.9],[4.95,19.2,-0.62,7,6.0],[5.35,17.6,-1.05,14,6.3],[8.3,17.0,-1.22,13,6.0],[9.9,16.4,-1.32,10,5.6],[10.6,6.8,-1.44,9,4.6],[13.5,4.0,-1.62,8,4.6],[14.0,3.9,-1.63,8,4.6],[15.2,52.0,-1.85,16,-5.0],[17.4,55.0,-2.05,16,-5.0],[18.45,15.0,-0.30,5,7.0],[19.0,9.6,0.00,2,7.7]];
 function pchip(keys,col,t){ const n=keys.length; if(t<=keys[0][0]) return keys[0][col]; if(t>=keys[n-1][0]) return keys[n-1][col];
   let i=0; while(keys[i+1][0]<t) i++; const x=keys.map(k=>k[0]), y=keys.map(k=>k[col]); const d=[]; const m=[];
   for(let k=0;k<n-1;k++) d.push((y[k+1]-y[k])/(x[k+1]-x[k]));
   for(let k=0;k<n;k++){ if(k===0||k===n-1){ m.push(0); continue; } if(d[k-1]*d[k]<=0){ m.push(0); continue; } const w1=2*(x[k+1]-x[k])+(x[k]-x[k-1]), w2=(x[k+1]-x[k])+2*(x[k]-x[k-1]); m.push((w1+w2)/(w1/d[k-1]+w2/d[k])); }
   const h=x[i+1]-x[i], s=(t-x[i])/h; const h00=2*s*s*s-3*s*s+1, h10=s*s*s-2*s*s+s, h01=-2*s*s*s+3*s*s, h11=s*s*s-s*s; return h00*y[i]+h10*h*m[i]+h01*y[i+1]+h11*h*m[i+1]; }
+const kick=(t,t0,amp,dec)=>t>t0?Math.exp(-(t-t0)*dec)*amp:0;
 function camAt(t){ const d=pchip(CK,1,t), az=pchip(CK,2,t), el=pchip(CK,3,t)*Math.PI/180, ly=pchip(CK,4,t);
-  const shake=Math.exp(-Math.max(t,0)*6)*0.06+(t>17.8&&t<18.4?Math.exp(-(t-17.8)*8)*0.05:0);
+  const shake=Math.exp(-Math.max(t,0)*6)*0.05+kick(t,HIT,0.06,7)+kick(t,N_LAND,0.05,9)+kick(t,E_LAND,0.04,9);
   cam.position.set(Math.sin(az)*Math.cos(el)*d+shake*Math.sin(t*90),ly+Math.sin(el)*d+shake*Math.cos(t*77),Math.cos(az)*Math.cos(el)*d); cam.lookAt(0,ly,0); return az; }
 window.camAt=camAt;
+const bump=(t,a,b)=>{ if(t<=a||t>=b) return 0; const k=(t-a)/(b-a); return Math.sin(Math.PI*k)**2; };
 // scene time for the foam (held breath freezes it)
-const fT=t=>t<17.2?t:(t<17.8?17.2:t-0.6);
+const fT=t=>t<BREATH[0]?t:(t<BREATH[1]?BREATH[0]:t-(BREATH[1]-BREATH[0]));
 function setState(t){
   const az=camAt(t);
-  stars.pts.material.uniforms.uTime.value=t; dust.pts.material.uniforms.uTime.value=t;
-  earthMat.uniforms.uTime.value=t; earth.rotation.y=0.05*Math.sin(t*2*Math.PI/22);
+  stars.pts.material.uniforms.uTime.value=t; dust.pts.material.uniforms.uTime.value=t; motes.pts.material.uniforms.uTime.value=t;
+  earthMat.uniforms.uTime.value=t; earth.rotation.y=0.05*Math.sin(t*2*Math.PI/T_END);
   // apple
   const y=appleY(t); apple.position.set(0,y,0);
-  const spin=(t<0.55?t*0.4:0)+(t>N_T0&&t<N_LAND?(t-N_T0)*0.5:0)+(t>E_T0&&t<E_LAND?(t-E_T0)*0.5:0);
-  apple.rotation.set(0.08*Math.sin(t*1.1),0.3*Math.sin(t*2*Math.PI/22)+spin*0.3,0.06*Math.sin(t*0.9));
-  dropGlow.position.set(0,APPLE_TOP+0.35,0); dropGlow.material.opacity=0.55*Math.exp(-t*7)+0.4*Math.exp(-Math.pow((t-22.0)/0.12,2));
+  const spin=(t<FREEZE?t*0.5:0)+(t>=FREEZE&&t<N_T0?(t-FREEZE)*0.12:0)+(t>N_T0&&t<N_LAND?(t-N_T0)*0.6:0)+(t>E_T0&&t<E_LAND?(t-E_T0)*0.6:0);
+  apple.rotation.set(0.08*Math.sin(t*1.1),0.3*Math.sin(t*2*Math.PI/T_END)+spin*0.3,0.06*Math.sin(t*0.9));
+  dropGlow.position.set(0,APPLE_TOP+0.4,0); dropGlow.material.opacity=0.55*Math.exp(-t*7)+0.4*Math.exp(-Math.pow((t-T_END)/0.12,2));
+  // hook: frozen motes + freeze ripple
+  const mo=sstep(0.25,0.6,t)*(1-sstep(2.0,2.6,t)); motes.pts.material.uniforms.uAmp.value=0.9*mo; motes.pts.visible=mo>0.01;
+  const rk=clamp((t-FREEZE)/0.7); ripple.position.set(0,HOOK_Y,0); ripple.quaternion.copy(cam.quaternion); ripple.scale.setScalar(0.8+2.6*(1-Math.pow(1-rk,3))); ripple.material.opacity=t>FREEZE?0.55*(1-rk):0; ripple.visible=t>FREEZE&&rk<1;
+  const rk2=clamp((t-FREEZE-0.12)/0.9); ripple2.position.copy(ripple.position); ripple2.quaternion.copy(cam.quaternion); ripple2.scale.setScalar(0.8+3.8*(1-Math.pow(1-rk2,3))); ripple2.material.opacity=t>FREEZE+0.12?0.35*(1-rk2):0; ripple2.visible=t>FREEZE+0.12&&rk2<1;
+  // landing shockwaves
+  let lg=0; shock.forEach((m,i)=>{ const tl=i?E_LAND:N_LAND; const k=clamp((t-tl)/0.8); m.visible=t>tl&&k<1; m.scale.setScalar(0.4+4.2*(1-Math.pow(1-k,2.5))); m.material.opacity=0.8*(1-k); lg+=t>tl?Math.exp(-(t-tl)*6):0; });
+  landGlow.position.set(0,0.3,0); landGlow.material.opacity=0.6*Math.min(lg,1);
   // branch fades in the wide twist shot
-  const wide=sstep(18.2,18.9,t)*(1-sstep(20.4,21.1,t)); brMat.opacity=1-wide; leafMat.opacity=1-wide; branch.visible=twig.visible=brMat.opacity>0.02;
+  const wide=sstep(14.6,15.2,t)*(1-sstep(17.6,18.2,t)); brMat.opacity=1-wide; leafMat.opacity=1-wide; branch.visible=twig.visible=brMat.opacity>0.02;
   // NEWTON
-  const fN=sstep(2.2,2.9,t)*(1-sstep(6.9,7.5,t));
-  const fl=lerp(0.2,2.3,easeIO(clamp((t-2.2)/0.8)))*(t<N_LAND?1:lerp(1,0.7,sstep(N_LAND,N_LAND+0.3,t)));
-  force.position.set(0,y-APPLE_R*0.95,0); force.scale.set(1.1,fl,1.1); forceMat.opacity=0.95*fN; forceGlow.position.set(0,y-APPLE_R*0.95-fl-0.1,0); forceGlow.material.opacity=0.5*fN;
-  const fF=sstep(2.6,3.4,t)*(1-sstep(6.8,7.4,t)); fieldMat.opacity=0.55*fF;
-  for(const m of field){ const pul=0.85+0.15*Math.sin(t*5-m.userData.rr*0.8); m.scale.set(0.6,m.userData.len*pul*lerp(0.3,1,sstep(2.6+Math.abs(m.userData.k)*0.05,3.4+Math.abs(m.userData.k)*0.05,t)),0.6); m.visible=fF>0.01; }
-  for(let i=0;i<ghosts.length;i++){ const tg=N_T0+i*0.3; const g=ghosts[i]; const show=t>tg && tg<N_LAND && t<7.5; g.visible=show; if(show){ g.position.set(0,fallY(HOOK_Y,tg-N_T0),0); g.material.opacity=0.22*sstep(tg,tg+0.08,t)*(1-sstep(6.8,7.4,t)); } }
+  const fN=sstep(N_ARROW,N_ARROW+0.35,t)*(1-sstep(4.85,5.1,t));
+  const fl=lerp(0.2,2.4,easeIO(clamp((t-N_ARROW)/0.45)))*(t<N_LAND?1:lerp(1,0.7,sstep(N_LAND,N_LAND+0.3,t)));
+  force.position.set(0,y-APPLE_R*0.95,0); force.scale.set(1.15,fl,1.15); forceMat.opacity=0.95*fN; forceGlow.position.set(0,y-APPLE_R*0.95-fl-0.1,0); forceGlow.material.opacity=0.55*fN;
+  fieldGroup.rotation.y=az;
+  const fF=sstep(1.85,2.4,t)*(1-sstep(4.8,5.1,t)); fieldMat.opacity=0.6*fF;
+  for(const m of field){ const kk=Math.abs(m.userData.k)*0.035; const pul=0.85+0.15*Math.sin(t*6-m.userData.rr*0.8); m.scale.set(0.6,m.userData.len*pul*lerp(0.25,1,sstep(1.85+kk,2.4+kk,t)),0.6); m.visible=fF>0.01; }
+  for(let i=0;i<ghosts.length;i++){ const tg=N_T0+i*0.27; const g=ghosts[i]; const show=t>tg && tg<N_LAND && t<5.1; g.visible=show; if(show){ g.position.set(0,fallY(HOOK_Y,tg-N_T0),0); g.material.opacity=0.24*sstep(tg,tg+0.06,t)*(1-sstep(4.85,5.1,t)); } }
   // EINSTEIN rings
-  const fE=sstep(7.9,8.8,t)*(1-sstep(13.3,14.4,t));
-  rings.forEach((r,i)=>{ const appear=sstep(7.9+i*0.08,8.5+i*0.08,t)*(1-sstep(13.3,14.4,t)); const th=r.omega*Math.max(t-EIN_T0,0);
+  rings.forEach((r,i)=>{ const appear=sstep(E_RINGS+i*0.07,E_RINGS+0.45+i*0.07,t)*(1-sstep(9.85,10.35,t)); const th=r.omega*Math.max(t-EIN_T0,0);
     const tickPh=(th/(6.283/12))%1; const flash=Math.exp(-tickPh*9);
-    r.torus.material.opacity=appear*(0.42+0.25*flash); r.torus.visible=appear>0.01;
+    r.torus.material.opacity=appear*(0.42+0.3*flash); r.torus.visible=appear>0.01;
     r.notches.forEach((b,n)=>{ b.material.opacity=appear*0.85; b.visible=appear>0.01; });
     r.beads.forEach((s,k)=>{ const a=th-k*r.omega*0.045; s.position.set(Math.sin(a)*RING_R,r.y,Math.cos(a)*RING_R); s.material.opacity=appear*(k?0.5*(1-k/12):1.0); });
   });
   // apple fall trail (Einstein fall)
-  const tr=sstep(E_T0,E_T0+0.1,t)*(1-sstep(11.6,12.4,t)); const top=APPLE_TOP, bot=Math.max(y,GROUND); fallTrail.position.set(0,(top+bot)/2,0); fallTrail.scale.set(1,Math.max(top-bot,0.001),1); fallTrailMat.opacity=0.35*tr; fallTrail.visible=tr>0.01&&t>E_T0;
+  const tr=sstep(E_T0,E_T0+0.1,t)*(1-sstep(9.6,10.1,t)); const top=APPLE_TOP, bot=Math.max(y,GROUND); fallTrail.position.set(0,(top+bot)/2,0); fallTrail.scale.set(1,Math.max(top-bot,0.001),1); fallTrailMat.opacity=0.4*tr; fallTrail.visible=tr>0.01&&t>E_T0&&t<10.15;
   // light ray (bends toward Earth)
-  rayGroup.rotation.y=az; const rk=clamp((t-10.9)/1.3); const fR=sstep(10.9,11.1,t)*(1-sstep(12.9,13.6,t));
-  const xh=-11+22*easeIO(rk)*0.5+22*rk*0.5; rayTube.geometry.setDrawRange(0,Math.floor(rayTube.geometry.index.count*clamp((xh+11)/22))); rayHalo.geometry.setDrawRange(0,Math.floor(rayHalo.geometry.index.count*clamp((xh+11)/22)));
-  rayMat.opacity=0.95*fR; rayHalo.material.opacity=0.35*fR; refMat.opacity=0.4*fR*sstep(11.2,11.6,t);
-  const ph=new THREE.Vector3(xh,rayY(xh),0).applyAxisAngle(new THREE.Vector3(0,1,0),az); photon.position.copy(ph); photon.material.opacity=fR*(rk<1?1:0.0);
+  rayGroup.rotation.y=az; const rr=clamp((t-RAY[0])/(RAY[1]-RAY[0])); const fR=sstep(RAY[0],RAY[0]+0.15,t)*(1-sstep(9.8,10.3,t));
+  const xh=-11+22*easeIO(rr)*0.5+22*rr*0.5; rayTube.geometry.setDrawRange(0,Math.floor(rayTube.geometry.index.count*clamp((xh+11)/22))); rayHalo.geometry.setDrawRange(0,Math.floor(rayHalo.geometry.index.count*clamp((xh+11)/22)));
+  rayMat.opacity=0.95*fR; rayHalo.material.opacity=0.4*fR; refMat.opacity=0.45*fR*sstep(RAY[0]+0.2,RAY[0]+0.5,t);
+  const ph=new THREE.Vector3(xh,rayY(xh),0).applyAxisAngle(new THREE.Vector3(0,1,0),az); photon.position.copy(ph); photon.material.opacity=fR*(rr<1?1:0.0);
   // QUANTUM foam
-  const T=fT(t); const fQ=sstep(13.9,14.7,t)*(1-sstep(18.4,19.4,t));
+  const T=fT(t); const fQ=sstep(10.15,10.7,t)*(1-sstep(14.9,15.7,t));
   latMat.uniforms.uT.value=T; bubMat.uniforms.uT.value=T;
-  const J=sstep(14.9,16.7,t); latMat.uniforms.uJ.value=J; latMat.uniforms.uO.value=fQ*(1-0.25*J); latMat.uniforms.uE.value=1+3.5*Math.pow(sstep(17.8,19.4,t),1.4); lattice.visible=fQ>0.01;
-  bubMat.uniforms.uB.value=fQ*sstep(15.3,16.8,t)*0.75; bubMat.uniforms.uE.value=latMat.uniforms.uE.value; bubbles.visible=bubMat.uniforms.uB.value>0.01;
-  const breath=t>17.2&&t<17.8?0.55:1; latMat.uniforms.uO.value*=breath; bubMat.uniforms.uB.value*=breath;
-  bloom.strength=0.5+0.35*Math.exp(-Math.max(t-17.8,0)*3)*(t>17.8?1:0);
+  const J=sstep(10.9,12.4,t); latMat.uniforms.uJ.value=J; latMat.uniforms.uO.value=fQ*(1.25-0.35*J); latMat.uniforms.uE.value=1+3.5*Math.pow(sstep(HIT,15.6,t),1.4); lattice.visible=fQ>0.01;
+  bubMat.uniforms.uB.value=fQ*sstep(11.2,12.5,t)*0.85; bubMat.uniforms.uE.value=latMat.uniforms.uE.value; bubbles.visible=bubMat.uniforms.uB.value>0.01;
+  const breath=t>BREATH[0]&&t<BREATH[1]?0.5:1; latMat.uniforms.uO.value*=breath; bubMat.uniforms.uB.value*=breath;
+  bloom.strength=0.5+0.4*kick(t,HIT,1,3)+0.15*kick(t,N_LAND,1,5)+0.12*kick(t,E_LAND,1,5);
   grade.uniforms.uT.value=t;
+  grade.uniforms.uWhip.value=Math.max(bump(t,WHIP1[0],WHIP1[1]),bump(t,WHIP2[0],WHIP2[1])*0.8,bump(t,HIT,HIT+0.6)*0.9,bump(t,RET[0]+0.3,RET[1]-0.05)*0.7);
 }
 window.renderAt=(t)=>{
   const acc=window._acc||(window._acc=Object.assign(document.createElement('canvas'),{width:W,height:H})); const cx=acc.getContext('2d');

@@ -6,16 +6,16 @@
 import sys, math, numpy as np
 from scipy.signal import fftconvolve, butter, sosfilt
 OUT = sys.argv[1] if len(sys.argv) > 1 else "three_answers_mix.wav"
-SR = 48000; T = 22.0; N = int(SR * T)
+SR = 48000; T = 19.0; N = int(SR * T)
 rng = np.random.default_rng(1915)
-# ---- sync constants (from index.html)
-G = 2.6; APPLE_TOP = 9.0; GROUND = 0.55 * 0.92
-HOOK_Y = APPLE_TOP - 0.5 * G * 0.55 ** 2
-N_T0 = 3.0; N_LAND = N_T0 + math.sqrt(2 * (HOOK_Y - GROUND) / G)
-E_T0 = 8.9; E_LAND = E_T0 + math.sqrt(2 * (APPLE_TOP - GROUND) / G)
-RING_Y = [8.2, 7.1, 6.0, 4.9, 3.8, 2.7, 1.6]; EIN_T0 = 8.0
+# ---- sync constants (v2 cut, from index.html TIMES)
+G = 3.4; APPLE_TOP = 9.0; GROUND = 0.66 * 0.92; FREEZE = 0.45
+HOOK_Y = APPLE_TOP - 0.5 * G * FREEZE ** 2
+N_ARROW = 1.6; N_T0 = 2.1; N_LAND = N_T0 + math.sqrt(2 * (HOOK_Y - GROUND) / G)
+WHIP1 = 4.95; E_RINGS = 5.3; E_T0 = 6.0; E_LAND = E_T0 + math.sqrt(2 * (APPLE_TOP - GROUND) / G)
+RAY = 8.35; WHIP2 = 9.9; Q0 = 10.15; BREATH = 13.5; HIT = 14.0; RET = 17.4
+RING_Y = [8.2, 7.1, 6.0, 4.9, 3.8, 2.7, 1.6]; EIN_T0 = 5.4
 OMEGA = [2 * math.pi * (0.22 + 0.78 * y / 8.2) / 1.15 for y in RING_Y]
-HIT = 17.8
 def bus(): return np.zeros((2, N))
 hit, sfx, bed, tick, air = bus(), bus(), bus(), bus(), bus()
 def tt(n): return np.arange(n) / SR
@@ -66,69 +66,70 @@ def whoosh(dur, lo=300, hi=3000, rev=False):
     return out[::-1] if rev else out
 
 # ---------------- 0.0  stem snap + release hit, fall whoosh, tape-stop freeze, suspended shimmer
-place(hit, 0.0, boom(0.55, 260, 70, 1.8))
+place(hit, 0.0, boom(0.6, 260, 70, 1.8))
 place(sfx, 0.0, hp(noise(int(0.05 * SR)), 1800) * np.exp(-tt(int(0.05 * SR)) * 120), 0.9, -0.2)
-place(sfx, 0.02, whoosh(0.55, 400, 2400), 0.5)
-ts_n = int(0.45 * SR); ts = np.sin(2 * np.pi * np.cumsum(np.linspace(520, 40, ts_n)) / SR) * np.linspace(1, 0, ts_n) ** 1.5
-place(sfx, 0.55, ts, 0.35)
-place(bed, 0.6, pad([587.3, 880, 1174.7], 1.8, 0.4, 0.6), 0.6)           # held, glassy suspension during the hook
-hd = int(1.75 * SR); place(bed, 0.5, (np.sin(2 * np.pi * 98 * tt(hd)) + 0.6 * np.sin(2 * np.pi * 147 * tt(hd))) * (0.6 + 0.4 * np.sin(2 * np.pi * 6 * tt(hd))) * np.minimum(1, tt(hd) / 0.3) * np.minimum(1, (1.75 - tt(hd)) / 0.3), 0.35)
-place(sfx, 1.55, whoosh(0.65, 300, 3500), 0.55)                          # carries the hook into the first answer
-# ---------------- NEWTON 2.2-7.4: brass swell under the arrow, strobe plucks, rising whistle that accelerates, landing thud, rewind
-place(bed, 2.2, saw_swell([73.4, 110, 146.8, 220], 5.2, 0.6, 0.8, 900), 0.55)
-place(hit, 2.2, thud(0.6))
+place(sfx, 0.02, whoosh(0.45, 400, 2400), 0.5)
+ts_n = int(0.4 * SR); ts = np.sin(2 * np.pi * np.cumsum(np.linspace(520, 40, ts_n)) / SR) * np.linspace(1, 0, ts_n) ** 1.5
+place(sfx, FREEZE, ts, 0.4)
+place(air, FREEZE, click_tone(2349, 0.9) * 0.6, 0.5)                     # the freeze ripple: a single glass ping
+place(bed, FREEZE + 0.05, pad([587.3, 880, 1174.7], 1.25, 0.25, 0.4), 0.6) # held, glassy suspension during the hook
+hd = int(1.3 * SR); place(bed, 0.4, (np.sin(2 * np.pi * 98 * tt(hd)) + 0.6 * np.sin(2 * np.pi * 147 * tt(hd))) * (0.6 + 0.4 * np.sin(2 * np.pi * 7 * tt(hd))) * np.minimum(1, tt(hd) / 0.25) * np.minimum(1, (1.3 - tt(hd)) / 0.25), 0.35)
+place(sfx, 1.05, whoosh(0.6, 300, 3500), 0.6)                           # pull-back into the first answer
+# ---------------- NEWTON 1.6-5.0: brass swell under the arrow, strobe plucks, rising whistle that accelerates, landing hit
+place(bed, N_ARROW, saw_swell([73.4, 110, 146.8, 220], 3.5, 0.4, 0.5, 900), 0.6)
+place(hit, N_ARROW, thud(0.6))
 for i in range(9):
-    tg = N_T0 + i * 0.3
-    if tg < N_LAND: place(tick, tg, pluck(392 * 2 ** (-i / 12), 0.45), 0.32, -0.4 + 0.1 * i)
+    tg = N_T0 + i * 0.27
+    if tg < N_LAND: place(tick, tg, pluck(392 * 2 ** (-i / 12), 0.4), 0.32, -0.4 + 0.1 * i)
 fd = N_LAND - N_T0; fn = int(fd * SR); ft = tt(fn); fr = 220 + 900 * (ft / fd) ** 2
 place(sfx, N_T0, np.sin(2 * np.pi * np.cumsum(fr) / SR) * (ft / fd) ** 1.5 * 0.25 + whoosh(fd, 200, 1500) * (ft / fd) * 0.6, 0.6)
-place(hit, N_LAND, thud(1.0))
-place(sfx, 6.9, whoosh(1.0, 300, 2600, rev=True), 0.45)
-place(sfx, 6.9, sweep_sine(200, 900, 1.0, 1.5) * np.sin(np.pi * tt(int(1.0 * SR)) / 1.0) ** 2, 0.12)
-place(hit, 7.9, thud(0.5)); place(air, 7.9, click_tone(1760, 0.6), 0.25)   # snap into the second lens
-place(sfx, 7.35, whoosh(0.6, 400, 3000), 0.45)
-# ---------------- EINSTEIN 7.9-13.9: warm pad, clock polyrhythm (lower = slower = lower pitch), glass sweep for the light, thud
-place(bed, 7.9, pad([146.8, 220, 277.2, 329.6], 6.2, 0.7, 1.0), 0.5)
+place(hit, N_LAND, boom(0.45, 220, 60, 1.2)); place(hit, N_LAND, thud(0.9))
+# ---------------- whip 1 (4.95-5.35): swish + snap into the second lens
+place(sfx, WHIP1 - 0.05, whoosh(0.45, 500, 5000), 0.7)
+place(hit, 5.3, thud(0.45)); place(air, 5.3, click_tone(1760, 0.6), 0.25)
+# ---------------- EINSTEIN 5.3-10.0: warm pad, clock polyrhythm (lower = slower = lower pitch), glass sweep for the light, landing hit
+place(bed, E_RINGS, pad([146.8, 220, 277.2, 329.6], 4.8, 0.5, 0.6), 0.5)
 for i, (y, w) in enumerate(zip(RING_Y, OMEGA)):
     step = (2 * math.pi / 12) / w; k = 1; freq = 900 * 2 ** ((y - 1.6) / 6.6 * 1.9); pan = (-0.55 if i % 2 else 0.55) * (0.4 + 0.6 * i / 6)
     while True:
         t0 = EIN_T0 + k * step; k += 1
-        if t0 > 13.7: break
-        if t0 < 8.4 + i * 0.08: continue
-        g = 0.20 * min(1, (t0 - 8.3) / 0.5) * (1 - max(0, (t0 - 13.2) / 0.5)) * (0.6 if (k % 3) else 1.0)
+        if t0 > 9.95: break
+        if t0 < E_RINGS + 0.3 + i * 0.07: continue
+        g = 0.20 * min(1, (t0 - E_RINGS - 0.2) / 0.4) * (1 - max(0, (t0 - 9.5) / 0.45)) * (0.6 if (k % 3) else 1.0)
         place(tick, t0, click_tone(freq), g, pan)
-place(hit, E_LAND, thud(0.8))
-gl_n = int(1.4 * SR); glass = sum(np.sin(2 * np.pi * np.cumsum(np.full(gl_n, f) * (1 + 0.15 * (tt(gl_n) / 1.4))) / SR) for f in (1318.5, 1975.5, 2637)) / 3
-place(air, 10.9, glass * env(gl_n, 0.25, 1.4, 1.5) * 0.5, 1.0, 0.0)
-place(air, 10.9, whoosh(1.4, 1500, 7000), 0.25)
-place(sfx, 12.7, whoosh(1.0, 300, 2600, rev=True), 0.4)
-# ---------------- QUANTUM 14.0-17.2: low detuned drone, granular crackle and fizz rising with the foam
-qd = 17.2 - 13.9; qn = int(qd * SR); qt = tt(qn)
-J = np.clip((qt - (14.9 - 13.9)) / 1.8, 0, 1); J = J * J * (3 - 2 * J)
-drone = (np.sin(2 * np.pi * 55 * qt) + np.sin(2 * np.pi * 55.7 * qt) + 0.5 * np.sin(2 * np.pi * 82.6 * qt)) * np.minimum(1, qt / 0.8)
-place(bed, 13.9, drone * 0.22)
-fizz = bp(noise(qn), 3000, 9000) * (0.15 + 0.85 * J) * np.minimum(1, qt / 0.6)
-place(air, 13.9, np.vstack([fizz, bp(noise(qn), 3000, 9000) * (0.15 + 0.85 * J) * np.minimum(1, qt / 0.6)]), 0.12)
-grains = np.zeros((2, qn)); dens = 15 + 260 * J
+place(hit, E_LAND, boom(0.4, 220, 60, 1.2)); place(hit, E_LAND, thud(0.8))
+gl_d = RAY_D = 1.1; gl_n = int(gl_d * SR); glass = sum(np.sin(2 * np.pi * np.cumsum(np.full(gl_n, f) * (1 + 0.15 * (tt(gl_n) / gl_d))) / SR) for f in (1318.5, 1975.5, 2637)) / 3
+place(air, RAY, glass * env(gl_n, 0.2, gl_d, 1.5) * 0.5, 1.0, 0.0)
+place(air, RAY, whoosh(gl_d, 1500, 7000), 0.25)
+# ---------------- whip 2 / dive (9.9-10.6)
+place(sfx, WHIP2 - 0.1, whoosh(0.8, 200, 2400), 0.85)
+place(sfx, WHIP2 - 0.2, sweep_sine(110, 330, 0.8, 1.5) * np.sin(np.pi * tt(int(0.8 * SR)) / 0.8), 0.25)
+# ---------------- QUANTUM 10.15-13.5: low detuned drone, granular crackle and fizz rising with the foam
+qd = BREATH - Q0; qn = int(qd * SR); qt = tt(qn)
+J = np.clip((qt - (10.9 - Q0)) / 1.5, 0, 1); J = J * J * (3 - 2 * J)
+drone = (np.sin(2 * np.pi * 55 * qt) + np.sin(2 * np.pi * 55.7 * qt) + 0.5 * np.sin(2 * np.pi * 82.6 * qt)) * np.minimum(1, qt / 0.6)
+place(bed, Q0, drone * 0.3)
+place(air, Q0, np.vstack([bp(noise(qn), 3000, 9000), bp(noise(qn), 3000, 9000)]) * (0.15 + 0.85 * J) * np.minimum(1, qt / 0.5), 0.12)
+grains = np.zeros((2, qn)); dens = 15 + 280 * J
 for i in range(qn // 64):
     j = i * 64
     if rng.random() < dens[j] * 64 / SR:
         gl = int(SR * rng.uniform(0.002, 0.012)); f = rng.uniform(600, 6000); g = np.sin(2 * np.pi * f * tt(gl)) * np.hanning(gl) * rng.uniform(0.3, 1.0)
         c = rng.random(); e = min(qn, j + gl) - j; grains[0, j:j + e] += g[:e] * c; grains[1, j:j + e] += g[:e] * (1 - c)
-place(sfx, 13.9, grains, 0.5)
-place(sfx, 13.6, whoosh(1.0, 200, 1800), 0.8)            # push into the lattice
-place(sfx, 13.4, sweep_sine(110, 330, 0.9, 1.5) * np.sin(np.pi * tt(int(0.9 * SR)) / 0.9), 0.25)
-# ---------------- held breath 17.2-17.8, reversed suck, 60 ms vacuum, THE hit at 17.8
+place(sfx, Q0, grains, 0.5)
+place(hit, 12.0, thud(0.4))                                              # UNKNOWN stamp
+# ---------------- held breath 13.5-14.0, reversed suck, 60 ms vacuum, THE hit at 14.0
 suck = whoosh(0.5, 400, 4000)[::-1] * np.linspace(0, 1, int(0.5 * SR)) ** 2
 place(sfx, HIT - 0.56, suck, 0.35)
 place(hit, HIT, boom(1.0, 330, 55, 3.6))
 place(sfx, HIT, whoosh(1.5, 150, 2000), 0.5)
-# ---------------- twist tail: dark pad, one pendulum clock still ticking, rising link tone into frame 0
-place(bed, 18.0, pad([65.4, 98, 130.8, 155.6, 196], 3.9, 0.3, 1.0), 0.9)
-for k, t0 in enumerate([19.0, 20.0, 21.0]): place(tick, t0, click_tone(700, 0.25), 0.35, -0.3 if k % 2 else 0.3)
-place(sfx, 21.25, sweep_sine(180, 720, 0.75, 2.0) * np.linspace(0, 1, int(0.75 * SR)) ** 2, 0.18)
-place(sfx, 21.4, whoosh(0.6, 500, 3000, rev=True), 0.35)
-
+# ---------------- twist tail: dark pad, one pendulum clock still ticking, return plunge, rising link tone into frame 0
+place(bed, HIT + 0.2, pad([65.4, 98, 130.8, 155.6, 196], 3.6, 0.3, 0.9), 0.9)
+for k, t0 in enumerate([15.2, 16.2, 17.2]): place(tick, t0, click_tone(700, 0.25), 0.35, -0.3 if k % 2 else 0.3)
+place(sfx, RET + 0.1, whoosh(1.2, 250, 4000), 1.2)
+place(bed, RET, pad([130.8, 196, 261.6], 1.6, 0.6, 0.3), 0.7)
+place(sfx, 18.25, sweep_sine(180, 720, 0.75, 2.0) * np.linspace(0, 1, int(0.75 * SR)) ** 2, 0.32)
+place(sfx, 18.4, whoosh(0.6, 500, 3000, rev=True), 0.35)
 # ---------------- mixing: bass management, reverb, ducking under hits, held-breath gate, master
 def stereo(f, b): return np.vstack([f(b[0]), f(b[1])])
 for b in (sfx, bed, tick, air): b[:] = stereo(lambda x: hp(x, 90), b)
@@ -142,7 +143,7 @@ henv = np.abs(hit).max(axis=0); k = int(0.03 * SR); henv = np.convolve(henv, np.
 duck = 1 / (1 + 2.5 * henv / (henv.max() + 1e-9))
 mix = hit * 1.0 + (sfx * 1.0 + bed * 1.4 + tick * 1.3 + air * 1.0) * duck
 t = tt(N); gate = np.ones(N)
-gate *= 1 - (np.clip((t - 17.12) / 0.08, 0, 1) * (1 - np.clip((t - (HIT - 0.06)) / 0.001, 0, 1)) * 0.985)   # held breath: near silence until the hit
+gate *= 1 - (np.clip((t - (BREATH - 0.08)) / 0.08, 0, 1) * (1 - np.clip((t - (HIT - 0.06)) / 0.001, 0, 1)) * 0.985)   # held breath: near silence until the hit
 mix *= gate
 # put the reversed suck back on top of the gate (quiet), then a 60 ms vacuum before the hit
 sk = np.zeros((2, N)); place(sk, HIT - 0.56, suck, 0.08); sk[:, int((HIT - 0.06) * SR):int(HIT * SR)] = 0; mix += sk
