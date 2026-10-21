@@ -71,3 +71,13 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+## 4. ElevenLabs-generated sound effects (no credit required)
+
+| File | Prompt (short) | Used in |
+|---|---|---|
+| `tools/one-step-a-day/sfx/el_laugh1/2/4.mp3` | small crowd laughing mockingly, no words | One Step a Day |
+| `tools/one-step-a-day/sfx/el_thud2/3.mp3` | heavy stone block set down on stone | One Step a Day |
+| `tools/one-step-a-day/sfx/el_hit1/3.mp3` | cinematic stone slab impact | One Step a Day |
+
+Generated with ElevenLabs Sound Effects (`eleven_text_to_sound_v2`) on the channel owner's account, flow "Slow Light - One Step a Day SFX". Commercial use is allowed on paid ElevenLabs plans; confirm the plan before a monetised upload. All other One Step a Day sounds are synthesised in `mix.py`.

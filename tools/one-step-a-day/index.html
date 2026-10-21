@@ -1,0 +1,388 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>One Step a Day</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+// Slow Light reel: "One Step a Day" (stickman series).
+// window.renderAt(t, samples) -> JPEG dataURL of the frame at video time t (s).
+// World units are metres. The stair runs along +x and rises along +y; the camera lives on the +z side.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get('w')||1080), H = +(Q.get('h')||1920);
+const DUR = 17.5, FPS = 30;
+const RISE = 0.17, TREAD = 0.30, N = 365;
+
+// ---------- helpers ----------
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,u)=>a+(b-a)*u;
+const sstep=(a,b,x)=>{const u=clamp((x-a)/(b-a),0,1);return u*u*(3-2*u);};
+const ease=u=>u<0.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+// monotone cubic (PCHIP) through keys [[t,v],...]
+function pchip(keys){
+  const n=keys.length,x=keys.map(k=>k[0]),y=keys.map(k=>k[1]),d=[],m=new Array(n);
+  for(let i=0;i<n-1;i++)d.push((y[i+1]-y[i])/(x[i+1]-x[i]));
+  m[0]=d[0];m[n-1]=d[n-2];
+  for(let i=1;i<n-1;i++){ if(d[i-1]*d[i]<=0)m[i]=0; else{const w1=2*(x[i+1]-x[i])+(x[i]-x[i-1]),w2=(x[i+1]-x[i])+2*(x[i]-x[i-1]);m[i]=(w1+w2)/(w1/d[i-1]+w2/d[i]);} }
+  return t=>{ if(t<=x[0])return y[0]+m[0]*(t-x[0]); if(t>=x[n-1])return y[n-1];
+    let i=0;while(t>x[i+1])i++; const h=x[i+1]-x[i],s=(t-x[i])/h,s2=s*s,s3=s2*s;
+    return (2*s3-3*s2+1)*y[i]+(s3-2*s2+s)*h*m[i]+(-2*s3+3*s2)*y[i+1]+(s3-s2)*h*m[i+1]; };
+}
+
+// ---------- the work clock ----------
+// C(t): continuous count of work cycles. Step m is set down when C passes m-0.2 (cycle phase 0.8).
+const CK=[[0,0.70],[0.8,1.77],[1.6,2.85],[2.4,4.3],[3.2,8],[4.2,22],[5.5,70],[7.0,150],[8.5,250],[9.6,330],[10.3,357],[10.8,363.3],[11.2,364.0],[12.0,364.8],[12.6,365.0],[DUR,365.0]];
+const Cf=pchip(CK);
+const C=t=>Math.min(365,Cf(t));
+const placed=t=>Math.min(N,Math.floor(C(t)+0.2+1e-9));
+window.placed=placed; window.C=C;
+// placement times, for the sound mix
+window.placeTimes=()=>{const out=[];let m=1;for(let f=0;f<=DUR*2000;f++){const t=f/2000;while(m<=N&&C(t)+0.2>=m){out.push(+t.toFixed(4));m++;}}return out;};
+
+// ---------- renderer ----------
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(W,H);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const FOG=new THREE.Color('#16233a');
+scene.fog=new THREE.FogExp2(FOG,0.0055);
+const camera=new THREE.PerspectiveCamera(46,W/H,0.05,4000);
+
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W/2,H/2),0.45,0.6,0.78);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------- sun & sky ----------
+// sun rises in the +x direction (the way he climbs); breaks the horizon at the last step
+const sunElev=pchip([[0,-9],[6,-6],[11.5,-1.5],[12.1,1.6],[DUR,3.6]]);
+const sunUp=t=>sstep(-7,2,sunElev(t));
+function sunDir(t){const e=THREE.MathUtils.degToRad(sunElev(t)),a=THREE.MathUtils.degToRad(-22);return new THREE.Vector3(Math.cos(e)*Math.cos(a),Math.sin(e),Math.cos(e)*Math.sin(a));}
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{sun:{value:new THREE.Vector3(1,0,0)},up:{value:0}},
+  vertexShader:`varying vec3 vd;void main(){vd=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position.z=gl_Position.w;}`,
+  fragmentShader:`varying vec3 vd;uniform vec3 sun;uniform float up;
+  float h(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+  void main(){vec3 d=normalize(vd);float el=d.y;
+    vec3 zen=vec3(0.020,0.035,0.075),hor=vec3(0.075,0.115,0.180),low=vec3(0.045,0.065,0.105);
+    vec3 c=mix(hor,zen,smoothstep(0.,0.55,el));c=mix(c,low,smoothstep(0.,-0.25,el));
+    float s=max(dot(d,sun),0.);
+    float band=exp(-abs(el)*7.);
+    vec3 gold=vec3(1.0,0.62,0.26),teal=vec3(0.10,0.30,0.36);
+    c+=teal*band*0.25*(1.-up);
+    c+=gold*band*pow(s,3.)*(0.25+1.1*up);
+    c+=gold*pow(s,40.)*(0.2+1.4*up);
+    // stars, fading with the dawn
+    vec3 g=floor(d*420.);float st=step(0.9975,h(g));c+=vec3(0.85,0.88,1.)*st*smoothstep(0.05,0.4,el)*(1.-up)*0.9;
+    gl_FragColor=vec4(c,1.);}`});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(3000,48,24),skyMat);scene.add(sky);
+// sun disc (sprite), shown once it clears the horizon
+function glowTex(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');const gr=g.createRadialGradient(128,128,0,128,128,128);
+  gr.addColorStop(0,'rgba(255,240,210,1)');gr.addColorStop(0.12,'rgba(255,214,150,0.95)');gr.addColorStop(0.3,'rgba(255,170,90,0.35)');gr.addColorStop(1,'rgba(255,140,60,0)');g.fillStyle=gr;g.fillRect(0,0,256,256);return new THREE.CanvasTexture(c);}
+const sunSprite=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
+sunSprite.scale.set(260,260,1);scene.add(sunSprite);
+
+// distant ridges: three rings of low mountains for parallax
+function ridge(r,hgt,seed,col){const R=rng(seed),seg=360,pos=[],idx=[];const ph=[R()*6,R()*6,R()*6];
+  for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2;const y=hgt*(0.45+0.3*Math.sin(a*3+ph[0])+0.18*Math.sin(a*11+ph[1])+0.08*Math.sin(a*29+ph[2]));
+    pos.push(Math.cos(a)*r,-2,Math.sin(a)*r, Math.cos(a)*r,y,Math.sin(a)*r);}
+  for(let i=0;i<seg;i++){const k=i*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  return new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,side:THREE.DoubleSide,fog:true}));}
+scene.add(ridge(900,70,3,'#0d1626'));scene.add(ridge(1400,140,7,'#101b2e'));scene.add(ridge(600,38,11,'#0b1320'));
+
+// ground
+function noiseTex(size,seed,base,amp,speck){const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');const R=rng(seed);
+  const im=g.createImageData(size,size);for(let i=0;i<size*size;i++){let v=base+(R()-0.5)*amp;if(R()<speck)v+=(R()-0.5)*amp*3;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=clamp(v,0,255);im.data[i*4+3]=255;}
+  g.putImageData(im,0,0);g.globalAlpha=0.35;for(let k=0;k<40;k++){g.fillStyle=R()<0.5?'#000':'#fff';g.beginPath();g.arc(R()*size,R()*size,R()*size*0.12,0,7);g.fill();}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+const gTex=noiseTex(256,5,120,60,0.02);gTex.repeat.set(160,160);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),new THREE.MeshStandardMaterial({color:'#2a3850',roughness:1,bumpMap:gTex,bumpScale:0.6,map:gTex}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+// ---------- lights ----------
+const hemi=new THREE.HemisphereLight('#6f86b8','#1a2236',0.9);scene.add(hemi);
+const key=new THREE.DirectionalLight('#9fb4e0',1.2);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=-7;key.shadow.camera.right=7;key.shadow.camera.top=7;key.shadow.camera.bottom=-7;key.shadow.camera.near=1;key.shadow.camera.far=80;key.shadow.bias=-0.0006;key.shadow.normalBias=0.02;
+scene.add(key);scene.add(key.target);
+const sunLight=new THREE.DirectionalLight('#ffb36b',0);scene.add(sunLight);scene.add(sunLight.target);
+const topLamp=new THREE.PointLight('#ffcf8a',0,9,2);scene.add(topLamp); // warm light on "today's" stone
+
+// ---------- stones ----------
+function stoneTex(){const sz=256,c=document.createElement('canvas');c.width=c.height=sz;const g=c.getContext('2d');const R=rng(9);const im=g.createImageData(sz,sz);
+  for(let y=0;y<sz;y++)for(let x=0;x<sz;x++){const i=y*sz+x;let v=196+(R()-0.5)*26+10*Math.sin(y*0.19+Math.sin(x*0.05)*2)+6*Math.sin(x*0.07+y*0.03);if(R()<0.01)v-=40;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=clamp(v,0,255);im.data[i*4+3]=255;}
+  g.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+const sTex=stoneTex();
+const stoneMat=new THREE.MeshStandardMaterial({color:'#d8cfbf',roughness:0.88,metalness:0,map:sTex,bumpMap:sTex,bumpScale:0.25,emissive:new THREE.Color('#2b3244'),emissiveIntensity:0.6});
+function stoneGeo(){const g=new THREE.BoxGeometry(TREAD*0.97,0.30,1.15,3,2,4);const p=g.attributes.position;const R=rng(21);
+  for(let i=0;i<p.count;i++){p.setXYZ(i,p.getX(i)*(1+(R()-0.5)*0.03),p.getY(i)+(R()-0.5)*0.012,p.getZ(i)*(1+(R()-0.5)*0.02));}g.computeVertexNormals();return g;}
+const SG=stoneGeo();
+const steps=new THREE.InstancedMesh(SG,stoneMat,N);steps.castShadow=true;steps.receiveShadow=true;
+const stepPos=[];{const R=rng(77),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),col=new THREE.Color();
+  for(let i=0;i<N;i++){const p=new THREE.Vector3(i*TREAD,(i+1)*RISE-0.15,(R()-0.5)*0.03);stepPos.push(p);
+    e.set((R()-0.5)*0.02,(R()-0.5)*0.05,(R()-0.5)*0.02);q.setFromEuler(e);m.compose(p,q,new THREE.Vector3(1,1+(R()-0.5)*0.06,1+(R()-0.5)*0.08));steps.setMatrixAt(i,m);
+    const v=0.86+R()*0.22;col.setRGB(v,v*(0.97+R()*0.03),v*(0.92+R()*0.06));steps.setColorAt(i,col);} }
+steps.count=0;steps.frustumCulled=false;scene.add(steps);
+const carried=new THREE.Mesh(SG,stoneMat.clone());carried.castShadow=true;scene.add(carried);
+carried.material.emissive=new THREE.Color('#ffb04a');carried.material.emissiveIntensity=0.0;
+// the newest stone glows faintly gold ("today's step")
+const newest=new THREE.Mesh(SG,stoneMat.clone());newest.material.emissive=new THREE.Color('#ffae45');newest.castShadow=true;newest.receiveShadow=true;scene.add(newest);
+
+// ---------- stickman rig ----------
+const L={thigh:0.46,shin:0.46,torso:0.56,neck:0.07,head:0.125,upper:0.31,fore:0.29};
+function makeFigure(color,emis,r){
+  const mat=new THREE.MeshStandardMaterial({color,roughness:0.55,metalness:0,emissive:new THREE.Color(emis),emissiveIntensity:1});
+  const g=new THREE.Group();const cyl=new THREE.CylinderGeometry(r,r,1,10,1,true),sph=new THREE.SphereGeometry(r,12,8);
+  const bones=[],joints=[];for(let i=0;i<9;i++){const b=new THREE.Mesh(cyl,mat);b.castShadow=true;g.add(b);bones.push(b);}
+  for(let i=0;i<12;i++){const j=new THREE.Mesh(sph,mat);j.castShadow=true;g.add(j);joints.push(j);}
+  const head=new THREE.Mesh(new THREE.SphereGeometry(L.head,24,16),mat);head.castShadow=true;g.add(head);
+  return {g,mat,bones,joints,head};
+}
+const UP=new THREE.Vector3(0,1,0),tmp=new THREE.Vector3();
+function bone(m,a,b){tmp.subVectors(b,a);const len=tmp.length();m.position.addVectors(a,b).multiplyScalar(0.5);m.scale.set(1,Math.max(len,1e-4),1);m.quaternion.setFromUnitVectors(UP,tmp.normalize());}
+// pose: p torso pitch fwd, tilt head, aL/aR thigh angle, kL/kR knee bend, sL/sR arm angle, eL/eR elbow flex, lift foot heights; all radians.
+const P0={p:0.05,tilt:0,aL:0.05,aR:-0.05,kL:0.05,kR:0.05,sL:0.12,sR:-0.05,eL:0.2,eR:0.2,dy:0};
+const POSES={
+  stand:{...P0},
+  crouch:{p:1.05,tilt:-0.35,aL:1.25,aR:1.05,kL:2.0,kR:1.8,sL:0.15,sR:0.25,eL:0.0,eR:0.05,dy:0},
+  carry:{p:0.12,tilt:0.05,aL:0.1,aR:-0.1,kL:0.15,kR:0.12,sL:0.55,sR:0.6,eL:1.35,eR:1.35,dy:0},
+  place:{p:0.75,tilt:-0.2,aL:0.75,aR:0.2,kL:0.9,kR:0.35,sL:1.05,sR:1.1,eL:0.45,eR:0.45,dy:0},
+  lookup:{p:-0.08,tilt:-0.65,aL:0.06,aR:-0.06,kL:0.04,kR:0.04,sL:0.04,sR:-0.04,eL:0.1,eR:0.1,dy:0},
+};
+// returns joint positions in the figure's local frame (+x forward, +y up, z lateral)
+function solve(P){
+  const leg=(a,k)=>{const knee=new THREE.Vector2(Math.sin(a)*L.thigh,-Math.cos(a)*L.thigh);const b=a-k;return [knee,new THREE.Vector2(knee.x+Math.sin(b)*L.shin,knee.y-Math.cos(b)*L.shin)];};
+  const [kl,fl]=leg(P.aL,P.kL),[kr,fr]=leg(P.aR,P.kR);
+  const hipY=-Math.min(fl.y,fr.y)+P.dy; const hipX=-(fl.x+fr.x)*0.5*0.6; // keep feet roughly under the body
+  const V=(v,z)=>new THREE.Vector3(hipX+v.x,hipY+v.y,z);
+  const hip=new THREE.Vector3(hipX,hipY,0);
+  const neck=new THREE.Vector3(hipX+Math.sin(P.p)*L.torso,hipY+Math.cos(P.p)*L.torso,0);
+  const hd=P.p+P.tilt;const head=new THREE.Vector3(neck.x+Math.sin(hd)*(L.neck+L.head),neck.y+Math.cos(hd)*(L.neck+L.head),0);
+  const sh=new THREE.Vector3(neck.x-Math.sin(P.p)*0.05,neck.y-Math.cos(P.p)*0.05,0);
+  const arm=(s,e,z)=>{const el=new THREE.Vector3(sh.x+Math.sin(s)*L.upper,sh.y-Math.cos(s)*L.upper,z);const f=s+e;return [el,new THREE.Vector3(el.x+Math.sin(f)*L.fore,el.y-Math.cos(f)*L.fore,z)];};
+  const [elL,hL]=arm(P.sL,P.eL,0.17),[elR,hR]=arm(P.sR,P.eR,-0.17);
+  return {hip,hipL:new THREE.Vector3(hipX,hipY,0.09),hipR:new THREE.Vector3(hipX,hipY,-0.09),kL:V(kl,0.1),fL:V(fl,0.1),kR:V(kr,-0.1),fR:V(fr,-0.1),neck,head,shL:new THREE.Vector3(sh.x,sh.y,0.17),shR:new THREE.Vector3(sh.x,sh.y,-0.17),elL,hL,elR,hR};
+}
+function applyPose(F,J){
+  const B=F.bones;bone(B[0],J.hip,J.neck);bone(B[1],J.hipL,J.kL);bone(B[2],J.kL,J.fL);bone(B[3],J.hipR,J.kR);bone(B[4],J.kR,J.fR);
+  bone(B[5],J.shL,J.elL);bone(B[6],J.elL,J.hL);bone(B[7],J.shR,J.elR);bone(B[8],J.elR,J.hR);
+  const js=[J.hipL,J.hipR,J.kL,J.kR,J.fL,J.fR,J.shL,J.shR,J.elL,J.elR,J.hL,J.hR];js.forEach((p,i)=>F.joints[i].position.copy(p));
+  F.head.position.copy(J.head);
+}
+function blendPose(a,b,u){const o={};for(const k in P0)o[k]=lerp(a[k],b[k],u);return o;}
+// work cycle: phase u in [0,1): stand->crouch (pick) ->carry ->place (u=0.8, stone down) -> stand while stepping up
+function workPose(u){
+  if(u<0.28)return blendPose(POSES.stand,POSES.crouch,ease(u/0.28));
+  if(u<0.52)return blendPose(POSES.crouch,POSES.carry,ease((u-0.28)/0.24));
+  if(u<0.8)return blendPose(POSES.carry,POSES.place,ease((u-0.52)/0.28));
+  const v=(u-0.8)/0.2;const P=blendPose(POSES.place,POSES.stand,ease(v));P.aL+=Math.sin(v*Math.PI)*0.5;P.kL+=Math.sin(v*Math.PI)*0.7;return P;
+}
+// climbing while carrying (used when days fly by)
+function climbPose(ph){const s=Math.sin(ph*Math.PI*2),c=Math.cos(ph*Math.PI*2);const P=blendPose(POSES.carry,POSES.stand,0.0);
+  P.p=0.22;P.aL=0.35+0.35*s;P.aR=0.35-0.35*s;P.kL=0.35+0.45*Math.max(0,c);P.kR=0.35+0.45*Math.max(0,-c);P.dy=-0.06;return P;}
+
+const hero=makeFigure('#efe6d4','#2a241a',0.045);scene.add(hero.g);
+// ---------- crowd ----------
+const crowd=[];{const R=rng(404);
+  const spots=[[-3.6,-3.2],[-2.2,-5.0],[-1.0,-4.2],[0.4,-5.6],[1.6,-4.6],[2.8,-5.4],[-3.0,-6.6],[-0.4,-7.0],[1.2,-6.8],[3.6,-6.4],[-1.8,-8.2],[0.6,-8.6],[2.4,-8.0],[-4.2,-5.0]];
+  spots.forEach(([x,z],i)=>{const f=makeFigure('#8391ab','#10151f',0.04);const s=0.9+R()*0.18;f.g.scale.setScalar(s);f.g.position.set(x,0,z);scene.add(f.g);
+    const pops=[];let tt=R()*0.5;while(tt<9){pops.push(tt);tt+=0.35+R()*0.55;}
+    crowd.push({f,x,z,ph:R()*6.28,style:i%3,pops,seed:R()});});}
+const leader=crowd[0]; // he picks up a stone at the end (the loop)
+// HA sprites
+function haTex(txt){const c=document.createElement('canvas');c.width=256;c.height=128;const g=c.getContext('2d');g.font='bold 92px "Liberation Mono", monospace';g.textAlign='center';g.textBaseline='middle';
+  g.lineWidth=14;g.strokeStyle='rgba(5,8,14,0.9)';g.strokeText(txt,128,66);g.fillStyle='#f1e7d2';g.fillText(txt,128,66);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
+const HA=[haTex('HA'),haTex('HA!'),haTex('HAHA')];
+const haPool=[];for(let i=0;i<60;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:HA[i%3],transparent:true,depthWrite:false,fog:false}));s.visible=false;scene.add(s);haPool.push(s);}
+const laugh=t=>1-sstep(3.6,7.2,t); // they stop laughing as the stair rises
+const leaderStone=new THREE.Mesh(SG,stoneMat);leaderStone.castShadow=true;scene.add(leaderStone);
+
+// ---------- mist deck ----------
+function puffTex(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');const R=rng(31);
+  for(let k=0;k<26;k++){const x=60+R()*136,y=70+R()*116,r=30+R()*60;const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,'rgba(255,255,255,0.22)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,256,256);}
+  return new THREE.CanvasTexture(c);}
+const PT=puffTex();
+const mistMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:false,
+  uniforms:{map:{value:PT},camPos:{value:new THREE.Vector3()},lit:{value:new THREE.Color()},shade:{value:new THREE.Color()},op:{value:1},below:{value:1}},
+  vertexShader:`attribute vec3 offset;attribute float size;attribute float rot;varying vec2 vUv;varying float vFade;varying float vH;uniform vec3 camPos;
+    void main(){vUv=uv;vec3 c=offset;float d=distance(camPos,c);vFade=smoothstep(size*0.15,size*0.9,d)*(1.-smoothstep(260.,520.,d));vH=uv.y;
+      vec4 mv=modelViewMatrix*vec4(c,1.);float cr=cos(rot),sr=sin(rot);vec2 p=position.xy*size;p=vec2(cr*p.x-sr*p.y,sr*p.x+cr*p.y);mv.xy+=p;gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`uniform sampler2D map;uniform vec3 lit;uniform vec3 shade;uniform float op;uniform float below;varying vec2 vUv;varying float vFade;varying float vH;
+    void main(){float a=texture2D(map,vUv).a*vFade*op;vec3 c=mix(shade,lit,smoothstep(0.25,0.9,vH)*below);gl_FragColor=vec4(c,a*(0.55+0.6*below));}`});
+{const n=2200,R=rng(55);const base=new THREE.PlaneGeometry(1,1);const g=new THREE.InstancedBufferGeometry();g.index=base.index;g.attributes.position=base.attributes.position;g.attributes.uv=base.attributes.uv;
+  const off=[],sz=[],ro=[];let made=0;while(made<n*0.6){const r=Math.sqrt(R())*460,a=R()*6.283;const cx=55+Math.cos(a)*r,cz=Math.sin(a)*r*0.8-40;
+    // keep a clear well around the stair so the ground shows through from the top
+    const sx=clamp(cx,0,110),dw=Math.hypot(cx-sx,cz);if(dw<14+R()*10&&cx<100)continue;
+    const patch=0.5+0.5*Math.sin(cx*0.031+1.3)*Math.sin(cz*0.027+0.4);if(R()>0.1+0.9*patch*patch)continue;
+    off.push(cx,35+R()*5+Math.sin(cx*0.05)*1.5,cz);sz.push(7+R()*13);ro.push(R()*6.28);made++;}
+  g.setAttribute('offset',new THREE.InstancedBufferAttribute(new Float32Array(off),3));g.setAttribute('size',new THREE.InstancedBufferAttribute(new Float32Array(sz),1));g.setAttribute('rot',new THREE.InstancedBufferAttribute(new Float32Array(ro),1));
+  g.instanceCount=n;const mist=new THREE.Mesh(g,mistMat);mist.frustumCulled=false;mist.renderOrder=5;scene.add(mist);}
+
+// ---------- drifting motes (world-fixed, camera-wrapped: true parallax) ----------
+const moteMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+  uniforms:{camPos:{value:new THREE.Vector3()},box:{value:24},t:{value:0},col:{value:new THREE.Color('#ffd9a0')},pxs:{value:H/1920}},
+  vertexShader:`uniform vec3 camPos;uniform float box;uniform float t;uniform float pxs;attribute float seed;varying float vA;
+    void main(){vec3 p=position*box;p.y+=sin(t*0.4+seed*6.)*0.3;p.x+=t*0.25;vec3 rel=mod(p-camPos+box*0.5,box)-box*0.5;vec3 w=camPos+rel;
+      vec4 mv=modelViewMatrix*vec4(w,1.);float d=-mv.z;vA=smoothstep(0.4,2.,d)*(1.-smoothstep(box*0.3,box*0.5,length(rel)))*(0.35+0.65*seed);
+      gl_PointSize=clamp(46./d,1.,6.)*pxs*1.8;gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`uniform vec3 col;varying float vA;void main(){vec2 c=gl_PointCoord-0.5;float a=smoothstep(0.5,0.,length(c));gl_FragColor=vec4(col,a*vA*0.55);}`});
+{const n=2600,R=rng(91),p=[],s=[];for(let i=0;i<n;i++){p.push(R(),R(),R());s.push(R());}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('seed',new THREE.Float32BufferAttribute(s,1));
+  const pts=new THREE.Points(g,moteMat);pts.frustumCulled=false;scene.add(pts);}
+
+// ---------- hero placement along the stair ----------
+const standX=k=>k<=0?-0.42:(k-1)*TREAD+0.02;   // where he stands on step k (k=0: ground)
+const standY=k=>k<=0?0:k*RISE;
+function heroState(t){
+  const c=C(t),k=Math.floor(c),u=c-k;
+  const dt=1/240;const rate=(C(t+dt)-C(t-dt))/(2*dt);
+  const W=1-sstep(3.0,5.5,rate); // 1 = full work animation, 0 = climbing blur
+  // work mode: stands on step k until u=0.8 then steps up onto k+1
+  const v=u<0.8?0:ease((u-0.8)/0.2);
+  const wx=lerp(standX(k),standX(k+1),v),wy=lerp(standY(k),standY(k+1),v);
+  const fx=standX(c),fy=standY(c);
+  const x=lerp(fx,wx,W),y=lerp(fy,wy,W);
+  // climbing phase clock: integral of a capped rate (approx: smooth function of t)
+  const ph=t*2.4;
+  const pose=blendPose(climbPose(ph),workPose(c>=365?0:u),W);
+  return {c,k,u,W,x,y,pose,rate};
+}
+window.heroState=t=>{const s=heroState(t);return {x:s.x,y:s.y,c:s.c,W:s.W,rate:s.rate};};
+
+// ---------- camera ----------
+// Part 1 (0-12 s): offsets relative to the hero. Part 2 (12-17.5 s): absolute keys (reveal, hold, dive home).
+const OFFK=[ // t, offset(x,y,z), look offset(x,y,z)
+  [0.0, [0.55,1.05,4.3],[0.45,0.5,0]],
+  [2.2, [0.2,1.45,5.6],[0.5,0.55,0]],
+  [4.2, [-1.4,2.6,8.2],[0.6,0.6,0]],
+  [6.8, [-2.6,3.9,10.2],[0.4,-0.3,0]],
+  [9.2, [-2.2,3.6,9.5],[0.5,0.1,0]],
+  [10.6,[-0.9,1.6,5.4],[0.6,0.95,0]],
+  [12.0,[-0.55,1.25,4.25],[0.55,0.95,0]],
+];
+function keyLerp(K,t,j){if(t<=K[0][0])return new THREE.Vector3(...K[0][j]);for(let i=0;i<K.length-1;i++){if(t<=K[i+1][0]){const u=ease((t-K[i][0])/(K[i+1][0]-K[i][0]));return new THREE.Vector3(...K[i][j]).lerp(new THREE.Vector3(...K[i+1][j]),u);}}return new THREE.Vector3(...K[K.length-1][j]);}
+// smooth the hero track for the camera so it does not pick up the stepping bob
+function heroTrack(t){let x=0,y=0,n=0;for(let d=-0.25;d<=0.25001;d+=0.05){const s=heroState(clamp(t+d,0,DUR));x+=s.x;y+=s.y;n++;}return new THREE.Vector3(x/n,y/n,0);}
+const TOP=new THREE.Vector3(standX(365),standY(365),0);
+const LEAD_YAW=0;
+function leaderCam(dx,dy,dz){return new THREE.Vector3(leader.x+dx,dy,leader.z+dz);}
+function cameraAt(t){
+  if(t<12.0){const h=heroTrack(t);return {pos:h.clone().add(keyLerp(OFFK,t,1)),look:h.clone().add(keyLerp(OFFK,t,2)),roll:0};}
+  const h12=heroTrack(12.0);
+  const A=[ // absolute keys after the last step
+    [12.0, h12.clone().add(new THREE.Vector3(-0.55,1.25,4.25)), h12.clone().add(new THREE.Vector3(0.55,0.95,0))],
+    [12.9, TOP.clone().add(new THREE.Vector3(-2.5,2.6,7.5)), TOP.clone().add(new THREE.Vector3(0.0,0.9,0))],
+    [14.1, new THREE.Vector3(TOP.x+6.5,TOP.y+6.2,1.5), new THREE.Vector3(TOP.x-40,TOP.y-34,-1.5)],
+    [15.9, new THREE.Vector3(TOP.x+8.5,TOP.y+8.6,1.2), new THREE.Vector3(TOP.x-40,TOP.y-35,-1.5)],
+    [16.75,new THREE.Vector3(30,18,14), new THREE.Vector3(leader.x+0.4,0.6,leader.z)],
+    [17.5, leaderCam(0.55,1.05,4.3), new THREE.Vector3(leader.x+0.45,0.5,leader.z)],
+  ];
+  for(let i=0;i<A.length-1;i++){if(t<=A[i+1][0]){
+    let u=(t-A[i][0])/(A[i+1][0]-A[i][0]);
+    let ue=ease(u); if(i===3)ue=u*u; if(i===4)ue=1-Math.pow(1-u,2.2);
+    // log-distance interpolation so pull-backs and dives feel like one motion
+    const p0=A[i][1],p1=A[i+1][1];const pos=p0.clone().lerp(p1,ue);const look=A[i][2].clone().lerp(A[i+1][2],(i===3||i===4)?Math.pow(ue,0.7):ue);
+    return {pos,look,roll:0};}}
+  return {pos:A[A.length-1][1],look:A[A.length-1][2],roll:0};
+}
+window.cameraAt=t=>{const c=cameraAt(t);return {pos:c.pos.toArray(),look:c.look.toArray()};};
+
+// ---------- scene update ----------
+const HAPOS=new THREE.Vector3();
+function update(t){
+  const S=heroState(t);
+  // stair
+  const n=placed(t);steps.count=Math.max(0,n-1);steps.instanceMatrix.needsUpdate=true;
+  if(n>=1){const p=stepPos[n-1];const tp=(()=>{let lo=0,hi=t;for(let i=0;i<30;i++){const mid=(lo+hi)/2;if(placed(mid)>=n)hi=mid;else lo=mid;}return hi;})();
+    const age=t-tp;const drop=S.W<0.5?Math.max(0,0.25*(1-age/0.06)):0;
+    newest.visible=true;newest.position.set(p.x,p.y+drop,p.z);const m=new THREE.Matrix4();steps.getMatrixAt(n-1,m);newest.quaternion.setFromRotationMatrix(m);
+    newest.material.emissiveIntensity=0.10+0.5*Math.exp(-age*3)+(n>=N?0.25*sstep(12,12.4,t):0);
+  } else newest.visible=false;
+  // hero
+  hero.g.position.set(S.x,S.y,0);const J=solve(S.pose);applyPose(hero,J);
+  // carried stone: in hands, then down onto step k+1 at u=0.8 (work mode); in hands while climbing
+  const hands=J.hL.clone().add(J.hR).multiplyScalar(0.5);hands.z=0;
+  const inHand=hero.g.position.clone().add(hands).add(new THREE.Vector3(0.06,0.0,0));
+  let showC=true;let cp=inHand.clone();
+  if(S.W>0.5){const u=S.u;const k=S.k;
+    if(S.c>=365||k>=N){showC=false;}
+    else if(u<0.2){cp=new THREE.Vector3(standX(k)+0.42,standY(k)+0.15,0.0);} // today's stone appears at his feet
+    else if(u<0.32){const a=new THREE.Vector3(standX(k)+0.42,standY(k)+0.15,0);cp=a.lerp(inHand,sstep(0.2,0.32,u));}
+    if(u>=0.66&&k<N){const dest=stepPos[k];cp=cp.lerp(dest,sstep(0.66,0.8,u));}
+    if(u>=0.8)showC=false;
+    carried.material.emissiveIntensity=(u<0.2?0.6*(1-u/0.2):0);
+    const sc=u<0.2?0.6+0.4*sstep(0,0.06,u):1;carried.scale.setScalar(sc);
+  } else {carried.scale.setScalar(1);carried.material.emissiveIntensity=0;}
+  carried.visible=showC;carried.position.copy(cp);carried.rotation.set(0,0,0);
+  // crowd
+  const Lg=laugh(t);let hp=0;
+  const tipY=S.y+1.6;
+  crowd.forEach((m,i)=>{
+    const F=m.f;let yaw=Math.atan2(-(0-m.z),(S.x-m.x));// face the hero
+    let P;
+    const lp=Math.sin(t*2*Math.PI*(4.2+m.seed*1.2)+m.ph);
+    const laughP=m.style===0?{...POSES.stand,p:-0.22+0.05*lp,tilt:-0.35,sL:0.7,eL:1.7,sR:0.6,eR:1.6}:
+                  m.style===1?{...POSES.stand,p:0.55+0.08*lp,tilt:0.25,aL:0.3,aR:0.2,kL:0.5,kR:0.4,sL:0.35,sR:0.25,eL:0.2,eR:0.1}:
+                  {...POSES.stand,p:-0.1+0.05*lp,tilt:-0.2,sL:1.45,eL:0.05,sR:0.65,eR:1.65};
+    const dx=S.x-m.x,dz=-m.z,dh=Math.hypot(dx,dz);const look=-clamp(Math.atan2(tipY-1.6,dh)*0.9,0,1.0);
+    const up={...POSES.lookup,tilt:look-0.05,p:-0.05+look*0.12};
+    P=blendPose(up,laughP,Lg);
+    if(m===leader&&t>15.6){ // the loop: he turns to the stair and starts his own first step
+      yaw=lerp(yaw,LEAD_YAW,sstep(15.6,16.4,t));
+      const cc=clamp((t-17.5)*1.333+0.70-1/30*1.333,0,0.8);// reaches the frame-0 phase exactly at the cut
+      const u=t<16.95?0:cc;P=blendPose(P,workPose(u),sstep(16.4,16.95,t));
+    }
+    F.g.rotation.y=yaw;F.g.position.y=0;
+    applyPose(F,solve(P));
+    if(m===leader){const w=sstep(16.2,17.2,t);F.mat.color.set('#8391ab').lerp(new THREE.Color('#f3ead8'),w);F.mat.emissive.set('#10151f').lerp(new THREE.Color('#3a3122'),w);}
+    // HA pops
+    m.pops.forEach(pt=>{const a=t-pt;if(a>=0&&a<0.75&&hp<haPool.length&&Lg>0.02){const s=haPool[hp++];s.visible=true;const k=a/0.75;
+      s.position.set(m.x+(m.seed-0.5)*0.5,1.95+k*0.55,m.z);const sc=0.55*(0.6+0.4*Math.min(1,a*8))*(0.8+m.seed*0.4);s.scale.set(sc,sc*0.5,1);
+      s.material.opacity=Math.min(1,a*10)*(1-sstep(0.5,0.75,a))*Lg;}});
+  });
+  for(let i=hp;i<haPool.length;i++)haPool[i].visible=false;
+  // leader's stone
+  if(t>16.6){leaderStone.visible=true;const J2=solve(blendPose(POSES.stand,POSES.stand,0));leaderStone.position.set(leader.x+0.42,0.15,leader.z);}else leaderStone.visible=false;
+  if(t>16.95){const cc=clamp((t-17.5)*1.333+0.70-1/30*1.333,0,0.8);
+    const F=leader.f;const J3=solve(workPose(cc));const hands3=J3.hL.clone().add(J3.hR).multiplyScalar(0.5);hands3.z=0;
+    const sc=F.g.scale.x;const hw=new THREE.Vector3(hands3.x*sc+0.06,hands3.y*sc,0).applyAxisAngle(UP,F.g.rotation.y).add(F.g.position);
+    if(cc>=0.2)leaderStone.position.lerp(hw,sstep(0.2,0.32,cc));
+    leaderStone.scale.setScalar(0.6+0.4*sstep(0,0.06,cc));}
+  else leaderStone.scale.setScalar(0.001);
+
+  // sky / light
+  const sd=sunDir(t),up=sunUp(t);skyMat.uniforms.sun.value.copy(sd);skyMat.uniforms.up.value=up;
+  sunSprite.position.copy(sd).multiplyScalar(2500);sunSprite.material.opacity=sstep(-1.5,1.5,sunElev(t))*0.95;
+  const cam=cameraAt(t);
+  key.position.copy(cam.look).add(new THREE.Vector3(-9,16,11));key.target.position.copy(S.y>0?new THREE.Vector3(S.x,S.y,0):cam.look);
+  key.intensity=1.15*(1-0.35*up);
+  sunLight.intensity=2.0*up;sunLight.position.copy(new THREE.Vector3(S.x,S.y,0)).add(sd.clone().multiplyScalar(40));sunLight.target.position.set(S.x,S.y,0);
+  hemi.intensity=0.85+0.35*up;
+  topLamp.position.set(stepPos[Math.max(0,n-1)].x+0.2,stepPos[Math.max(0,n-1)].y+0.9,0.9);topLamp.intensity=0.5+1.2*sstep(11.6,12.2,t)*(1-sstep(13,15,t));
+  scene.fog.color.copy(FOG).lerp(new THREE.Color('#3a3a48'),up*0.35);
+  mistMat.uniforms.lit.value.set('#9fb0cc').lerp(new THREE.Color('#ffc58a'),up);mistMat.uniforms.shade.value.set('#26324a').lerp(new THREE.Color('#6a6170'),up);
+  bloom.strength=0.42+0.25*sstep(11.9,12.3,t)*(1-sstep(13,14.5,t));
+  // camera
+  camera.position.copy(cam.pos);camera.lookAt(cam.look);
+  mistMat.uniforms.camPos.value.copy(camera.position);mistMat.uniforms.below.value=sstep(28,40,camera.position.y);mistMat.uniforms.op.value=1-0.62*sstep(12.5,13.6,t)*(1-sstep(15.9,16.5,t));mistMat.visible=!Q.has('nomist');moteMat.uniforms.camPos.value.copy(camera.position);moteMat.uniforms.t.value=t;
+  moteMat.uniforms.box.value=24+Math.min(120,cam.pos.distanceTo(cam.look)*1.2);
+}
+
+// ---------- frame accumulation (motion blur) ----------
+const acc=document.createElement('canvas');acc.width=W;acc.height=H;const actx=acc.getContext('2d');
+window.renderAt=(t,samples)=>{
+  const n=samples||1;const shutter=1/60;
+  for(let i=0;i<n;i++){const tt=Math.max(0,t-shutter*(n>1?i/(n-1):0)+ (n>1?shutter*0.5:0));update(Math.min(DUR,tt));composer.render();
+    actx.globalAlpha=1/(i+1);actx.drawImage(renderer.domElement,0,0);}
+  actx.globalAlpha=1;return acc.toDataURL('image/jpeg',0.94);
+};
+window.DUR=DUR;window.ready=true;
+</script></body></html>
