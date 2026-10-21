@@ -43,7 +43,7 @@ Every sound is synthesized in `mix.py` (numpy): no samples, so nothing to credit
 - Pulsatile flow bed inside the artery; a turbulence hiss (a "bruit") rises as the plaque narrows the lumen; flow sound closes down as the clot shuts it.
 - Year ticks with rising pitch for the AGE counter; clock ticks every 5 minutes for the MINUTES counter; dark two-note drone under the dying muscle.
 - Hit hierarchy: crack at 9.3 s is the biggest (reverse swell, short vacuum, brittle micro-fracture cascade, pitch-drop body, sub, debris hiss, bell); frame-0 heartbeat hit; seal thud at 13.0 s; low gong on the twist; soft bell on the end line; a rising tone into frame 0 for the loop.
-- Mastered to about -15 LUFS integrated, true peak checked after AAC.
+- Mastered with two-pass loudnorm: -15.1 LUFS integrated, true peak -0.5 dBTP measured after AAC. Video: 9 Mb/s two-pass H.264, 27.8 MB.
 
 ## Facts and sources
 | On screen / in copy | Fact | Source |
