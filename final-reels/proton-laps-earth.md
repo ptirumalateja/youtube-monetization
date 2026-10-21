@@ -1,7 +1,7 @@
 # Proton Laps Earth (v1, with the light-wins ending)
 
 - **Video:** `final-reels/proton-laps-earth.mp4` (local only, not in git). 22.5 s, 1080x1920, 30 fps, loops, no voiceover.
-- **Status:** delivered 21 Oct 2026. Teja then asked for a new cut: a realistic Earth, and one full minute of laps (448) compressed into about 20 s. That cut is being built in `tools/proton-minute/` and will get its own file here.
+- **Status:** delivered 21 Oct 2026. Teja then asked for a new cut: a realistic Earth, and one full minute of laps (448) compressed into about 20 s. That cut is `proton-laps-one-minute.md`.
 - **Build:** `tools/proton-laps/` (see its README); publish copy `proton-laps-publish-copy.md`.
 
 ## Concept

@@ -1,0 +1,21 @@
+{
+ "duration": 30.0,
+ "fps": 30,
+ "facts": {
+  "c_km_s": 299792.458,
+  "equator_km": 40075.017,
+  "laps_per_s": 7.48078,
+  "minute_s": 60,
+  "laps_in_minute": 448.847,
+  "full_laps": 448,
+  "km_in_minute": 17987547,
+  "moon_km": 384400,
+  "moon_trips": 46
+ },
+ "minuteStart": 3.0,
+ "minuteLen": 20.0,
+ "rampB": 0.1,
+ "shots": [[0, 3.0, "hook: real-speed proton around a real Earth"], [3.0, 23.0, "one minute in 20 s, playback ramps x1 to x5, ring disc of 448 laps"],
+           [23.0, 25.2, "448 laps, 17,987,547 km"], [25.2, 28.6, "pull back to the Moon: 46 trips"], [28.6, 29.3, "in one minute"], [29.3, 30.0, "snap back to Earth, loop"]],
+ "reviewTimes": [0.03, 1.0, 2.2, 3.4, 5.0, 8.0, 9.4, 12.0, 15.0, 18.0, 21.0, 22.9, 23.6, 24.6, 25.8, 26.6, 27.4, 28.2, 28.9, 29.5, 29.97]
+}
