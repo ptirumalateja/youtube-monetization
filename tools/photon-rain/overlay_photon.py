@@ -67,23 +67,23 @@ for f in range(N):
         a=int(255*win(t,6.75,9.6,0.2,0.3)); z=max(prev['z'],ZREF/math.exp(lD(t))); prev['z']=z
         text(d,W/2,224,"ZOOM",fsmall,CREAM,int(a*0.85),sp=8,stroke=3,anchor='c'); text(d,W/2,262,"×"+fmt(round(z)),fcnt,CREAM,a,stroke=6,anchor='c')
     if 8.6<=t<11.0:
-        a=int(255*win(t,8.6,11.0,0.25,0.25)); text(d,W/2,1250,"1 CAMERA PIXEL",fcap,CREAM,a,stroke=5,anchor='c'); text(d,W/2,1320,"= 100 PHONE PIXELS",fcap,GOLD,a,stroke=5,anchor='c')
+        a=int(255*win(t,8.6,11.0,0.25,0.25)); text(d,W/2,440,"1 CAMERA PIXEL",fcap,CREAM,a,stroke=5,anchor='c'); text(d,W/2,508,"= 100 PHONE PIXELS",fcap,GOLD,a,stroke=5,anchor='c')
     # ---- buckets: two photon counters (monotonic), red markers on the two followed pixels
     if 9.45<=t<15.0:
         a=int(255*win(t,9.45,15.0,0.25,0.35)); cph=max(prev['ph'],I['cPh']); cff=max(prev['ff'],I['cFF']); prev['ph']=cph; prev['ff']=cff
         text(d,W/2,200,"PHOTONS CAUGHT",fsmall,CREAM,int(a*0.85),sp=7,stroke=3,anchor='c')
         text(d,150,246,"PHONE PIXEL",flab,CREAM,int(a*0.9),sp=1,stroke=4); text(d,W-150,236,fmt(cph),fcnt2,GOLD,a,stroke=5,anchor='r')
         text(d,150,326,"CAMERA PIXEL",flab,CREAM,int(a*0.9),sp=1,stroke=4); text(d,W-150,316,fmt(cff),fcnt2,GOLD,a,stroke=5,anchor='r')
-        for q,lw in [(I['qPh'],3),(I['qFF'],4)]:
+        for q,lw in [(I["qPh"],4),(I["qFF"],6)]:
             pts=[P(c) for c in q]; cx=sum(x for x,_ in pts)/4; cy=sum(y for _,y in pts)/4
-            g=1.35 if lw==3 else 1.08; pts=[(cx+(x-cx)*g,cy+(y-cy)*g) for x,y in pts]
+            g=1.6 if lw==4 else 1.10; pts=[(cx+(x-cx)*g,cy+(y-cy)*g) for x,y in pts]
             d.line(pts+[pts[0]],fill=RED+(int(a*0.95),),width=lw,joint='curve')
-    if 11.0<=t<13.0:
-        a=int(255*win(t,11.0,13.0)); text(d,W/2,1250,"EVERY PIXEL IS",fcap,CREAM,a,stroke=5,anchor='c'); text(d,W/2,1320,"A BUCKET OF LIGHT.",fcap,CREAM,a,stroke=5,anchor='c')
+    if 11.15<=t<13.0:
+        a=int(255*win(t,11.15,13.0)); text(d,W/2,440,"EVERY PIXEL IS",fcap,CREAM,a,stroke=5,anchor='c'); text(d,W/2,508,"A BUCKET OF LIGHT.",fcap,CREAM,a,stroke=5,anchor='c')
     if 13.0<=t<14.95:
         a=int(255*win(t,13.0,14.95,0.2,0.3))
-        text(d,W/2,1180,"SMALL BUCKETS: ±10% NOISE",fcap,CREAM,a,stroke=5,anchor='c')
-        text(d,W/2,1262,"BIG BUCKETS: ±1%",fchip,CREAM,a,sp=2,chip=RED,anchor='c')
+        text(d,W/2,440,"SMALL BUCKETS: ±10% NOISE",fcap,CREAM,a,stroke=5,anchor='c')
+        text(d,W/2,518,"BIG BUCKETS: ±1%",fchip,CREAM,a,sp=2,chip=RED,anchor='c')
     # ---- reveal: the two photos
     if 17.5<=t<20.7:
         a=int(255*win(t,17.5,20.7,0.25,0.3)); phx,phy=P(I['phR']); ffx,ffy=P(I['ffBot'])
@@ -92,7 +92,7 @@ for f in range(N):
     if 17.9<=t<21.2:
         a=int(255*(1-sstep(20.85,21.2,t))); typed(d,214,"MEGAPIXELS COUNT BUCKETS.","LIGHT FILLS THEM.",int((t-17.9)*24),fend,a)
     # ---- tag (always on, so the loop is seamless)
-    d.text((48,1500),"THOUGHT EXPERIMENT  ·  SENSOR AREAS TO SCALE",font=ftag,fill=(235,235,235,130))
+    d.text((48,1556),"THOUGHT EXPERIMENT  ·  SENSOR AREAS TO SCALE",font=ftag,fill=(235,235,235,130))
     # ---- flashes: frame 0 shutter and the reveal
     k=f;
     if k<3: im=Image.alpha_composite(im,solid((255,255,255),0.10*(1-k/3)))

@@ -20,6 +20,6 @@ The scripts expect Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chro
 Assemble:
 ```
 ffmpeg -framerate 30 -i frames/f%04d.jpg -i photon_overlay.mov -i photon_mix.wav \
-  -filter_complex "[0][1]overlay=format=auto,format=yuv420p[v];[2]volume=1dB,alimiter=limit=0.89:level=false[a]" \
-  -map "[v]" -map "[a]" -c:v libx264 -crf 17 -preset slow -c:a aac -b:a 192k -movflags +faststart photon-rain.mp4
+  -filter_complex "[0][1]overlay=format=auto,format=yuv420p[v];[2]volume=2.5dB,alimiter=limit=0.70:attack=1:release=60:level=false,asoftclip=type=tanh[a]" \
+  -map "[v]" -map "[a]" -c:v libx264 -preset slow -crf 19 -maxrate 9M -bufsize 18M -c:a aac -b:a 192k -movflags +faststart photon-rain.mp4
 ```

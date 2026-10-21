@@ -76,7 +76,7 @@ def shutter(big):
         for f,a,d in [(392,0.22,1.2),(587,0.14,0.9),(784,0.10,0.7),(1175,0.06,0.5)]: s+=np.sin(2*np.pi*f*x)*np.exp(-x/d)*a
         s+=np.sin(2*np.pi*55*x)*np.exp(-x/0.5)*0.45  # small real sub
     return s
-place(hit,shutter(False),0.0); place(hit,shutter(True),17.40)
+place(hit,shutter(False),0.025); place(hit,shutter(True),17.40)
 # loop-link: a rising tone into frame 0
 lk=(t>21.2); ff=600+900*sm(21.2,22.0,t); lt=np.sin(2*np.pi*np.cumsum(ff)/SR)*0.05*sm(21.2,21.9,t)*lk; fill+=lt
 # ---------------- mix: bass management on everything but the hit bus, side-chain duck under hits

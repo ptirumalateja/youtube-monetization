@@ -2,6 +2,7 @@
 
 - **Video:** `final-reels/photon-rain.mp4` in the project files (not in git). 22.0 s, 1080x1920 rendered natively, 30 fps, loops, no voiceover.
 - **Status:** delivered 21 Oct 2026, reel #1 of the reference remakes (`ref-remakes-plan.md`). Not posted yet.
+- **QA:** -14.7 LUFS integrated, true peak -2.3 dBFS measured after AAC; 26 MB; counters asserted monotonic in the overlay; last frame flows into frame 0 (the next wave of photons is already falling). Contact sheet: `final-reels/photon-rain_contact_2fps.jpg` in the project files.
 - **Build:** `tools/photon-rain/` (see its README). Sound is fully synthesised, so no credits are needed.
 - **Reference:** the 88 s voiced "200 megapixels… and still beaten by a 24 MP camera" explainer (flat navy line art). We took only the topic. Our version is one continuous 3D camera move with true sensor areas, real Poisson photon counts and a photo that develops on the sensors. It has no voiceover and no line-art layout.
 
@@ -33,7 +34,7 @@ Megapixels count buckets, and light is what fills them. A 200 MP phone sensor an
 New family, "glass rain + filling bottle + shutter":
 - Every photon landing is a tiny glass tick, and the tick rate follows the visible rain. A hiss bed sits under the ticks.
 - While the buckets fill, a resonance rises in pitch like a bottle being filled, with a fluttering voice an octave higher for the phone field.
-- A small shutter hit lands on frame 0. The big hit at 17.4 s is a double click, a pitch-dropping body, gong partials and a small sub.
+- A small shutter hit lands on frame 0 (at 25 ms, because a click on sample 0 made the AAC encoder overshoot by +5 dB). The big hit at 17.4 s is a double click, a pitch-dropping body, gong partials and a small sub.
 - A whoosh carries the dive, and a reversed swell with a 40 ms vacuum leads into the reveal. The held breath sits at 14.6-15.3 s, and a rising tone links back to frame 0.
 - Everything except the hit bus is high-passed at 90 Hz.
 
