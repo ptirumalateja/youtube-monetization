@@ -5,7 +5,7 @@ const fs = require('node:fs'), path = require('node:path'), http = require('node
 const root = __dirname, output = path.join(root, 'output'); fs.mkdirSync(output, { recursive: true });
 const spec = JSON.parse(fs.readFileSync(path.join(root, 'timeline.json'), 'utf8'));
 const total = Math.round(spec.duration * spec.fps);
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png' };
 const server = http.createServer((req, res) => {
   const file = path.resolve(root, '.' + decodeURIComponent(req.url.split('?')[0] === '/' ? '/index.html' : req.url.split('?')[0]));
   if (!file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
@@ -20,7 +20,7 @@ const server = http.createServer((req, res) => {
     const page = await browser.newPage({ viewport: { width: 540, height: 960 }, deviceScaleFactor: 1 });
     page.on('pageerror', e => { console.error('[pageerror]', e.message); process.exitCode = 1; });
     page.on('console', m => { if (m.type() === 'error') console.error('[console]', m.text()); });
-    await page.goto(`http://127.0.0.1:${server.address().port}/?w=${w}`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/?w=${w}${process.env.PHI ? '&phi=' + process.env.PHI : ''}`);
     await page.waitForFunction(() => window.ready === true, null, { timeout: 120000 });
     // counters must never go backwards inside one loop
     const mono = await page.evaluate(({ total, fps }) => { let prev = { days: 0, months: 0 }; for (let f = 0; f < total; f++) { const s = window.stateAt(f / fps);

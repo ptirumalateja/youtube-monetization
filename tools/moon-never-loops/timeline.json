@@ -9,12 +9,14 @@
   "earth_sun_km": 149598000,
   "earth_moon_km": 384400,
   "distance_ratio": 389.2,
-  "sun_pull_vs_earth_pull": 2.2,
-  "moon_speed_vs_sun_km_s": [28.8, 30.8]
+  "sun_pull_vs_earth_pull": 2.2
  },
  "myth_r_over_R": 0.24,
- "shots": [[0, 2.4, "hook: the loopy path everyone draws, THIS IS WRONG"], [2.4, 5.0, "shrink the Moon's orbit to true scale: loops unwind into a circle"],
-           [5.0, 7.0, "plunge from the whole orbit to a chase camera behind Earth"], [7.0, 15.6, "ride one year: Moon weaves around Earth's track, both bend toward the Sun"],
-           [15.6, 16.2, "held breath"], [16.2, 19.6, "pull back: IT NEVER GOES BACKWARDS"], [19.6, 21.0, "orbit grows back to the myth, loop"]],
- "reviewTimes": [0.03, 1.0, 2.0, 2.6, 3.4, 4.2, 4.9, 5.6, 6.4, 7.2, 8.5, 10.0, 11.5, 13.0, 14.5, 15.9, 16.6, 17.5, 18.8, 19.9, 20.5, 20.97]
+ "moon_phase_offset": 2.8,
+ "clock": { "months": 12, "base_days_per_s": 0.8, "ride": [5.6, 7.4, 13.6, 15.0] },
+ "shots": [[0, 1.0, "close-up: Earth and Moon, day side, Sun light"], [1.0, 2.4, "pull back to the whole orbit; the usual loopy drawing appears"],
+           [2.2, 2.9, "NOT LIKE THIS."], [2.9, 4.8, "the drawing unwinds to real scale and lands on the real path"], [5.0, 7.0, "dive to fly beside Earth and Moon"],
+           [7.0, 11.0, "ride, looking sunward: trails arc toward the Sun; pull beams"], [11.0, 14.6, "ride, day side: curves toward the Sun"],
+           [14.6, 15.2, "held breath"], [15.2, 18.4, "hero wide: IT NEVER GOES BACKWARDS."], [18.4, 21.0, "dive back to the close-up (loop)"]],
+ "reviewTimes": [0.03, 0.7, 1.5, 2.3, 3.2, 4.2, 4.9, 5.6, 6.4, 7.2, 8.5, 9.8, 11.0, 12.0, 13.2, 14.4, 15.0, 15.6, 16.8, 18.2, 19.2, 20.2, 20.97]
 }

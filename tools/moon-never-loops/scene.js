@@ -1,156 +1,229 @@
 import * as T from 'three';
-// The Moon Never Loops. Open on the loopy Moon path everyone draws, shrink the Moon's orbit to true
-// scale (the loops unwind into Earth's circle), then ride one year behind Earth: the Moon weaves
-// across Earth's track 12.4 times but its path always bends toward the Sun. Never a loop.
-// Units: 1 world unit = 1 million km. Distances are true; Sun, Earth and Moon discs are enlarged.
+// The Moon Never Loops (v2, cinematic). Close on a real-looking Earth and Moon, pull back to the loopy
+// drawing everyone has seen, unwind it to the real path, then fly beside Earth and the Moon for a year:
+// the Moon's trail weaves around Earth's and always curves toward the Sun. Never a loop.
+// Units: 1 world unit = 1 million km. Orbits and paths are true; the Sun, Earth and Moon are enlarged.
 const spec = await fetch('./timeline.json').then(r => r.json());
 window.filmSpec = spec;
-const F = spec.facts, DUR = spec.duration;
+const F = spec.facts, DUR = spec.duration, CL = spec.clock;
 const Y = F.year_days, MS = F.sidereal_month_days, SYN = F.synodic_month_days;
 const R = F.earth_sun_km / 1e6, RM = F.earth_moon_km / 1e6, RMYTH = spec.myth_r_over_R * R;
-const WE = 2 * Math.PI / Y, WM = 2 * Math.PI / MS, PHI = Math.PI; // day 0: new Moon, between Earth and Sun
+const D_TOT = CL.months * SYN;                 // whole months, so the Moon's phase matches at the loop point
+const WE = 2 * Math.PI / Y, WM = 2 * Math.PI / MS;
+const RE_D = 0.05, RMO_D = 0.022, RS_D = 5.0;  // display radii (Earth ~8x, Moon ~13x, Sun ~7x real)
 const params = new URLSearchParams(location.search), W = +(params.get('w') || 720), H = Math.round(W * 16 / 9);
 const film = document.querySelector('#film');
-const renderer = new T.WebGLRenderer({ canvas: film, antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+const renderer = new T.WebGLRenderer({ canvas: film, antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.outputColorSpace = T.SRGBColorSpace;
 const FOV = 50, PX = H / (2 * Math.tan(FOV * Math.PI / 360));
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const smooth = (a, b, x) => { const s = clamp((x - a) / (b - a)); return s * s * (3 - 2 * s); };
 const mixv = (a, b, s) => a + (b - a) * s;
 
+// ---------- the clock: slow in the close-ups, fast while riding; integrates to exactly 12 synodic months ----------
+const rideW = t => smooth(CL.ride[0], CL.ride[1], t) * (1 - smooth(CL.ride[2], CL.ride[3], t));
+const STEP = 1 / 600, NT = Math.round(DUR / STEP);
+let wsum = 0; for (let i = 0; i < NT; i++) wsum += rideW((i + 0.5) * STEP) * STEP;
+const RATE_A = (D_TOT - CL.base_days_per_s * DUR) / wsum;
+const DAY = new Float64Array(NT + 1); for (let i = 0; i < NT; i++) DAY[i + 1] = DAY[i] + (CL.base_days_per_s + RATE_A * rideW((i + 0.5) * STEP)) * STEP;
+const dayAt = t => { const x = clamp(t / STEP, 0, NT), i = Math.min(NT - 1, Math.floor(x)); return mixv(DAY[i], DAY[i + 1], x - i); };
+
+// local frame that turns with Earth: N points away from the Sun, Tg along the motion, Z up
+const frameAt = d => { const e = WE * d; return { N: new T.Vector3(Math.cos(e), Math.sin(e), 0), Tg: new T.Vector3(-Math.sin(e), Math.cos(e), 0), Z: new T.Vector3(0, 0, 1) }; };
+const local = (d, n, tg, z) => { const f = frameAt(d); return f.N.clone().multiplyScalar(n).addScaledVector(f.Tg, tg).addScaledVector(f.Z, z); };
 const earthAt = d => new T.Vector3(R * Math.cos(WE * d), R * Math.sin(WE * d), 0);
-const moonAt = (d, r) => earthAt(d).add(new T.Vector3(r * Math.cos(WM * d + PHI), r * Math.sin(WM * d + PHI), 0));
+// close-up camera direction (day side, a little ahead); the Moon starts behind Earth, off to one side
+const C0_DIR = new T.Vector3(-0.5, 0.8, 0.3).normalize();
+const PHI = Math.atan2(C0_DIR.y, C0_DIR.x) + (params.has('phi') ? +params.get('phi') : spec.moon_phase_offset);
+const moonVec = (d, r) => new T.Vector3(r * Math.cos(WM * d + PHI), r * Math.sin(WM * d + PHI), 0);
+const moonAt = (d, r = RM) => earthAt(d).add(moonVec(d, r));
 
-const scene = new T.Scene(); scene.background = new T.Color('#050a12');
-const cam = new T.PerspectiveCamera(FOV, 9 / 16, 0.01, 8000); cam.up.set(0, 0, 1);
+const scene = new T.Scene(); scene.background = new T.Color('#03060c');
+const cam = new T.PerspectiveCamera(FOV, 9 / 16, 0.0005, 9000); cam.up.set(0, 0, 1);
 const U = { uPX: { value: PX }, uH: { value: H }, uAspect: { value: 9 / 16 }, uTime: { value: 0 } };
+// shaders work on the raw texture values (no sRGB decode), since ShaderMaterial output is not re-encoded
+const tex = url => new Promise(res => new T.TextureLoader().load(url, t => { t.colorSpace = T.NoColorSpace; t.anisotropy = 8; res(t); }));
+const [tDay, tNight, tClouds, tWater, tMoon, tMoonN] = await Promise.all([tex('assets/earth_day.jpg'), tex('assets/earth_night.jpg'), tex('assets/earth_clouds.jpg'),
+  tex('assets/earth_water.jpg'), tex('assets/moon_albedo.jpg'), tex('assets/moon_normal.png')]);
 
-// ---------- stars (far shell) and orbit dust (parallax while riding) ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 function points(pos, col, key, vs, fs, extra = {}) {
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); if (col) g.setAttribute('aC', new T.Float32BufferAttribute(col, 1));
   const m = new T.ShaderMaterial({ uniforms: { ...U, ...extra }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, vertexShader: vs, fragmentShader: fs });
-  m.customProgramCacheKey = () => key; const p = new T.Points(g, m); p.frustumCulled = false; scene.add(p); return m;
+  m.customProgramCacheKey = () => key; const p = new T.Points(g, m); p.frustumCulled = false; return { m, p };
 }
-let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+// ---------- sky: stars plus a soft procedural Milky Way band (follows the camera, infinitely far) ----------
+const sky = new T.Group(); scene.add(sky);
 {
   const pos = [], col = [];
-  for (let i = 0; i < 5000; i++) { const u = rnd() * 2 - 1, a = rnd() * 2 * Math.PI, s = Math.sqrt(1 - u * u); pos.push(4000 * s * Math.cos(a), 4000 * s * Math.sin(a), 4000 * u); col.push(Math.pow(rnd(), 3)); }
-  points(pos, col, 'stars', `attribute float aC; varying float vC; void main(){ vC = aC; vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv; gl_PointSize = 1.2 + 2.4*aC; }`,
-    `varying float vC; void main(){ vec2 c=gl_PointCoord*2.-1.; float r=dot(c,c); if(r>1.)discard; vec3 col = mix(vec3(.62,.72,.85), vec3(1.,.9,.72), step(.7, fract(vC*37.)));
-      gl_FragColor = vec4(col*(0.25+0.75*vC)*(1.-r), 1.); }`);
+  for (let i = 0; i < 9000; i++) { const u = rnd() * 2 - 1, a = rnd() * 2 * Math.PI, s = Math.sqrt(1 - u * u); pos.push(4000 * s * Math.cos(a), 4000 * s * Math.sin(a), 4000 * u); col.push(Math.pow(rnd(), 4)); }
+  // band: tilted great circle, gaussian thickness, dust lane carved out of the middle
+  const tilt = new T.Matrix4().makeRotationX(1.05).multiply(new T.Matrix4().makeRotationZ(0.4));
+  for (let i = 0; i < 70000; i++) { const a = rnd() * 2 * Math.PI, g = (rnd() + rnd() + rnd() - 1.5) * 0.16;
+    if (Math.abs(g + 0.03 * Math.sin(a * 5)) < 0.018 && rnd() < 0.85) continue;
+    const v = new T.Vector3(Math.cos(a) * Math.cos(g), Math.sin(a) * Math.cos(g), Math.sin(g)).applyMatrix4(tilt).multiplyScalar(4000);
+    pos.push(v.x, v.y, v.z); col.push(-0.05 - 0.25 * rnd() * (0.6 + 0.4 * Math.cos(a))); }
+  const st = points(pos, col, 'sky', `attribute float aC; varying float vC; void main(){ vC = aC; vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv;
+      gl_PointSize = aC >= 0. ? 1.1 + 2.6*aC : 1.6; }`,
+    `varying float vC; void main(){ vec2 c=gl_PointCoord*2.-1.; float r=dot(c,c); if(r>1.)discard;
+      vec3 col; float b; if (vC >= 0.) { col = mix(vec3(.65,.75,.92), vec3(1.,.88,.72), step(.7, fract(vC*37.))); b = 0.3+0.9*vC; }
+      else { col = mix(vec3(.55,.62,.85), vec3(.95,.82,.65), fract(-vC*13.)); b = -vC*0.55; }
+      gl_FragColor = vec4(col*b*(1.-r), 1.); }`);
+  sky.add(st.p);
 }
-const dustMat = (() => {
-  const pos = [], col = [];
-  for (let i = 0; i < 60000; i++) { const a = rnd() * 2 * Math.PI, rr = R + (rnd() - .5) * 30, z = (rnd() - .5) * 12; pos.push(rr * Math.cos(a), rr * Math.sin(a), z); col.push(rnd()); }
-  return points(pos, col, 'dust', `uniform float uPX; attribute float aC; varying float vA; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv;
-      float d = -mv.z; gl_PointSize = clamp(0.06*uPX/d, 1.0, 5.); vA = (0.3+0.7*aC) * smoothstep(60., 6., d) * smoothstep(0.3, 1.5, d); }`,
-    `uniform float uDust; varying float vA; void main(){ vec2 c=gl_PointCoord*2.-1.; float r=dot(c,c); if(r>1.)discard; gl_FragColor = vec4(vec3(.55,.68,.78)*.5*vA*uDust*(1.-r),1.); }`,
-    { uDust: { value: 0 } });
-})();
 
-// ---------- the Sun: a dotted globe (latitude rings of gold dots) inside a soft corona ----------
-const SUN_R = 12; // enlarged (true radius 0.7 units)
-const sunMat = (() => {
-  const pos = [], col = [];
-  for (let lat = -84; lat <= 84; lat += 4) { const c = Math.cos(lat * Math.PI / 180), n = Math.max(6, Math.round(150 * c));
-    for (let k = 0; k < n; k++) { const a = 2 * Math.PI * (k + 0.5 * (lat / 4 % 2)) / n; pos.push(SUN_R * c * Math.cos(a), SUN_R * c * Math.sin(a), SUN_R * Math.sin(lat * Math.PI / 180)); col.push(rnd()); } }
-  return points(pos, col, 'sundots', `uniform float uPX; uniform float uTime; attribute float aC; varying float vL; varying float vC; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.);
-      gl_Position = projectionMatrix*mv; gl_PointSize = clamp(0.32*uPX/-mv.z, 1.4, 7.); vec3 n = normalize(normalMatrix*normalize(position)); vL = pow(clamp(n.z,0.,1.), 0.6);
-      vC = aC; }`,
-    `uniform float uTime; varying float vL; varying float vC; void main(){ vec2 c=gl_PointCoord*2.-1.; float r=dot(c,c); if(r>1.)discard;
-      float fl = 0.75 + 0.25*sin(uTime*2.3 + vC*40.); vec3 col = mix(vec3(.95,.55,.2), vec3(1.,.92,.7), vL);
-      gl_FragColor = vec4(col*(0.25+0.9*vL)*fl*(1.-r), 1.); }`);
-})();
-const glowSprite = (size, col, key, power) => {
-  const m = new T.ShaderMaterial({ uniforms: { ...U, uA: { value: 1 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
-    vertexShader: `varying vec2 vUv; void main(){ vUv = uv*2.-1.; gl_Position = projectionMatrix*(modelViewMatrix*vec4(0.,0.,0.,1.) + vec4(position.xy, 0., 0.)); }`,
-    fragmentShader: `uniform float uA; varying vec2 vUv; void main(){ float r = length(vUv); float g = pow(max(0., 1.-r), ${power.toFixed(1)}); gl_FragColor = vec4(vec3(${col})*g*uA, 1.); }` });
-  m.customProgramCacheKey = () => key; const s = new T.Mesh(new T.PlaneGeometry(size, size), m); s.frustumCulled = false; scene.add(s); return s;
-};
-const sunCore = new T.Mesh(new T.SphereGeometry(SUN_R * 0.97, 64, 48), new T.MeshBasicMaterial({ color: '#2a1406' })); scene.add(sunCore);
-const corona = glowSprite(SUN_R * 9, '1.,.72,.38', 'corona', 3.2); corona.material.uniforms.uA.value = 0.55;
+// ---------- the Sun: animated granulation, limb darkening, corona and streamers ----------
+const NOISE = `vec3 h3(vec3 p){ p = vec3(dot(p,vec3(127.1,311.7,74.7)), dot(p,vec3(269.5,183.3,246.1)), dot(p,vec3(113.5,271.9,124.6))); return -1.+2.*fract(sin(p)*43758.5453); }
+  float n3(vec3 p){ vec3 i=floor(p), f=fract(p), u=f*f*(3.-2.*f);
+    return mix(mix(mix(dot(h3(i),f), dot(h3(i+vec3(1,0,0)),f-vec3(1,0,0)),u.x), mix(dot(h3(i+vec3(0,1,0)),f-vec3(0,1,0)), dot(h3(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
+               mix(mix(dot(h3(i+vec3(0,0,1)),f-vec3(0,0,1)), dot(h3(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x), mix(dot(h3(i+vec3(0,1,1)),f-vec3(0,1,1)), dot(h3(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z); }`;
+const LOGV = ['#include <common>\n#include <logdepthbuf_pars_vertex>\n', '\n#include <logdepthbuf_vertex>\n'];
+const LOGF = ['#include <logdepthbuf_pars_fragment>\n', '\n#include <logdepthbuf_fragment>\n'];
+const sun = new T.Mesh(new T.SphereGeometry(RS_D, 96, 64), new T.ShaderMaterial({ uniforms: U,
+  vertexShader: `${LOGV[0]} varying vec3 vP; varying vec3 vN; varying vec3 vV; void main(){ vP = position; vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz);
+    gl_Position = projectionMatrix*mv; ${LOGV[1]} }`,
+  fragmentShader: `${LOGF[0]} uniform float uTime; varying vec3 vP; varying vec3 vN; varying vec3 vV; ${NOISE}
+    void main(){ ${LOGF[1]} vec3 p = normalize(vP); float g = 0.; float a = 0.5; vec3 q = p*7. + vec3(0., 0., uTime*0.12);
+      for (int i=0;i<4;i++){ g += a*abs(n3(q)); q *= 2.3; a *= 0.5; }
+      float spots = smoothstep(0.42, 0.55, n3(p*2.2 + 3.1))*smoothstep(0.62, 0.3, abs(p.z));
+      float mu = clamp(dot(vN, vV), 0., 1.); float limb = 0.38 + 0.62*pow(mu, 0.55);
+      vec3 col = mix(vec3(1.,.55,.16), vec3(1.,.93,.75), clamp(1.15 - 1.6*g, 0., 1.)) * limb * (1. - 0.75*spots);
+      gl_FragColor = vec4(col*vec3(.78,.7,.6), 1.); }` }));
+sun.material.customProgramCacheKey = () => 'sun'; scene.add(sun);
+function sprite(size, key, frag, extra = {}) {
+  const m = new T.ShaderMaterial({ uniforms: { ...U, uA: { value: 1 }, ...extra }, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending,
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv*2.-1.; gl_Position = projectionMatrix*(modelViewMatrix*vec4(0.,0.,0.,1.) + vec4(position.xy, 0., 0.)); }`, fragmentShader: frag });
+  m.customProgramCacheKey = () => key; const s = new T.Mesh(new T.PlaneGeometry(size, size), m); s.frustumCulled = false; s.renderOrder = -1; scene.add(s); return s;
+}
+const corona = sprite(RS_D * 16, 'corona', `uniform float uA; uniform float uTime; varying vec2 vUv; ${NOISE}
+  void main(){ float r = length(vUv)*8.; float ang = atan(vUv.y, vUv.x);
+    float glow = 0.9*exp(-(r-1.)*2.6) + 0.35*exp(-(r-1.)*0.7);
+    float streak = pow(0.5+0.5*n3(vec3(cos(ang)*3., sin(ang)*3., uTime*0.05)), 3.)*exp(-(r-1.)*0.9)*1.1;
+    float a = r < 0.98 ? 0. : (glow + streak)*smoothstep(8., 2., r);
+    gl_FragColor = vec4(vec3(1.,.72,.4)*a*uA, 1.); }`);
 
-// ---------- the two paths: screen-space ribbons evaluated in the vertex shader ----------
-// mode 0 = Earth (teal), 1 = Moon (gold). uR is the Moon's orbit radius (morphs from myth to true).
-const NSEG = 12000;
-function pathRibbon(mode, key) {
+// ---------- Earth: Blue Marble day, city lights at night, clouds, ocean glint, atmosphere ----------
+const earthGroup = new T.Group(); scene.add(earthGroup);
+const earthSpin = new T.Group(); earthSpin.rotation.x = Math.PI / 2; earthGroup.add(earthSpin); // sphere poles (y) -> world z
+const EU = { ...U, uDay: { value: tDay }, uNight: { value: tNight }, uClouds: { value: tClouds }, uWater: { value: tWater }, uSunDir: { value: new T.Vector3(1, 0, 0) }, uCloudShift: { value: 0 } };
+const earthMesh = new T.Mesh(new T.SphereGeometry(RE_D, 160, 120), new T.ShaderMaterial({ uniforms: EU,
+  vertexShader: `${LOGV[0]} varying vec2 vUv; varying vec3 vNw; varying vec3 vPw; void main(){ vUv = uv; vNw = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vPw = w.xyz;
+    gl_Position = projectionMatrix*viewMatrix*w; ${LOGV[1]} }`,
+  fragmentShader: `${LOGF[0]} uniform sampler2D uDay; uniform sampler2D uNight; uniform sampler2D uClouds; uniform sampler2D uWater; uniform vec3 uSunDir; uniform float uCloudShift;
+    varying vec2 vUv; varying vec3 vNw; varying vec3 vPw;
+    void main(){ ${LOGF[1]} vec3 n = normalize(vNw), L = normalize(uSunDir), V = normalize(cameraPosition - vPw); float l = dot(n, L);
+      vec3 day = texture2D(uDay, vUv).rgb; float cl = texture2D(uClouds, vUv + vec2(uCloudShift, 0.)).r; float water = texture2D(uWater, vUv).r;
+      float lit = smoothstep(-0.08, 0.25, l);
+      day = mix(day, vec3(dot(day, vec3(.3,.5,.2))), 0.18); vec3 col = day*(0.05 + 1.3*max(l, 0.));
+      col = mix(col, vec3(1.)*(0.04 + 1.15*max(l,0.)), cl*0.85);
+      vec3 Hh = normalize(L + V); col += water*(1.-cl)*vec3(1.,.9,.75)*pow(max(dot(n, Hh), 0.), 60.)*0.9*lit;
+      vec3 night = texture2D(uNight, vUv).rgb; col += night*night*vec3(1.4,1.05,0.65)*(1.-lit)*(1.-cl*0.8)*1.8;
+      float fr = pow(1. - max(dot(n, V), 0.), 2.6); col += vec3(.35,.6,1.)*fr*smoothstep(-0.25, 0.4, l)*0.9;
+      col += vec3(.45,.2,.06)*exp(-pow((l-0.02)/0.035, 2.))*0.12*(1.-cl);
+      gl_FragColor = vec4(col, 1.); }` }));
+earthMesh.material.customProgramCacheKey = () => 'earth'; earthSpin.add(earthMesh);
+const atmo = new T.Mesh(new T.SphereGeometry(RE_D * 1.06, 96, 64), new T.ShaderMaterial({ uniforms: EU, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.BackSide,
+  vertexShader: `${LOGV[0]} varying vec3 vNw; varying vec3 vPw; void main(){ vNw = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vPw = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; ${LOGV[1]} }`,
+  fragmentShader: `${LOGF[0]} uniform vec3 uSunDir; varying vec3 vNw; varying vec3 vPw; void main(){ ${LOGF[1]} vec3 n = normalize(vNw), V = normalize(cameraPosition - vPw);
+    float rim = clamp(1. - abs(dot(n, V)), 0., 1.); float side = smoothstep(-0.35, 0.5, dot(n, normalize(uSunDir)));
+    float a = pow(rim, 5.)*1.6; gl_FragColor = vec4(vec3(.32,.58,1.)*a*side, 1.); }` }));
+atmo.material.customProgramCacheKey = () => 'atmo'; earthGroup.add(atmo);
+
+// ---------- Moon: procedural albedo and object-space normals, tidally locked ----------
+const moonGroup = new T.Group(); scene.add(moonGroup);
+const moonSpin = new T.Group(); moonSpin.rotation.x = Math.PI / 2; moonGroup.add(moonSpin);
+const moonMesh = new T.Mesh(new T.SphereGeometry(RMO_D, 128, 96), new T.ShaderMaterial({ uniforms: { ...U, uAlb: { value: tMoon }, uNrm: { value: tMoonN }, uSunDir: { value: new T.Vector3(1, 0, 0) } },
+  vertexShader: `${LOGV[0]} varying vec2 vUv; varying vec3 vPw; varying vec3 vM0; varying vec3 vM1; varying vec3 vM2; void main(){ vUv = uv; vM0 = modelMatrix[0].xyz; vM1 = modelMatrix[1].xyz; vM2 = modelMatrix[2].xyz;
+    vec4 w = modelMatrix*vec4(position,1.); vPw = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; ${LOGV[1]} }`,
+  fragmentShader: `${LOGF[0]} varying vec3 vM0; varying vec3 vM1; varying vec3 vM2; uniform sampler2D uAlb; uniform sampler2D uNrm; uniform vec3 uSunDir; varying vec2 vUv; varying vec3 vPw;
+    void main(){ ${LOGF[1]} vec3 no = texture2D(uNrm, vUv).xyz*2.-1.;
+      // texture space (x lon0, y lon90, z north) -> three sphere local (x, z north -> y, y -> -z)
+      vec3 nObj = vec3(no.x, no.z, -no.y); vec3 n = normalize(mat3(vM0, vM1, vM2)*nObj); float l = dot(n, normalize(uSunDir));
+      vec3 alb = texture2D(uAlb, vUv).rgb; vec3 col = alb*vec3(1.,.98,.94)*(0.05 + 1.35*max(l, 0.));
+      gl_FragColor = vec4(col, 1.); }` }));
+moonMesh.material.customProgramCacheKey = () => 'moon'; moonSpin.add(moonMesh);
+
+function marker(rgb, px, key) {
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([0, 0, 0], 3));
+  const m = new T.ShaderMaterial({ uniforms: { uA: { value: 0 } }, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending,
+    vertexShader: `void main(){ gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); gl_PointSize = ${px.toFixed(1)}; }`,
+    fragmentShader: `uniform float uA; void main(){ vec2 c=gl_PointCoord*2.-1.; float r=dot(c,c); if(r>1.)discard; gl_FragColor = vec4(vec3(${rgb})*(exp(-r*7.)*1.4 + 0.25*(1.-r))*uA, 1.); }` });
+  m.customProgramCacheKey = () => key; const p = new T.Points(g, m); p.frustumCulled = false; p.renderOrder = 20; scene.add(p); return p;
+}
+const earthGlow = marker('.45,.75,1.', 26, 'eglow'), moonGlow = marker('1.,.97,.9', 18, 'mglow');
+
+// ---------- paths: screen-space ribbons evaluated in the vertex shader ----------
+// kind 0 = Earth (teal), 1 = Moon's real path (gold), 2 = the usual drawing (cream dashes, radius morphs)
+function ribbon(kind, d0, d1, nseg, key) {
   const tau = [], side = [], idx = [];
-  for (let i = 0; i <= NSEG; i++) { const d = Y * i / NSEG; tau.push(d, d); side.push(-1, 1); if (i < NSEG) { const a = 2 * i; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
+  for (let i = 0; i <= nseg; i++) { const d = d0 + (d1 - d0) * i / nseg; tau.push(d, d); side.push(-1, 1); if (i < nseg) { const a = 2 * i; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(new Array(tau.length * 3).fill(0), 3));
   g.setAttribute('aTau', new T.Float32BufferAttribute(tau, 1)); g.setAttribute('aSide', new T.Float32BufferAttribute(side, 1)); g.setIndex(idx);
-  const m = new T.ShaderMaterial({ uniforms: { ...U, uR: { value: RMYTH }, uNow: { value: 0 }, uWidth: { value: 3 }, uFuture: { value: 1 }, uHead: { value: 20 }, uA: { value: 1 }, uBase: { value: 0.8 } },
-    transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, side: T.DoubleSide,
-    vertexShader: `uniform float uR; uniform float uWidth; uniform float uH; uniform float uAspect; attribute float aTau; attribute float aSide; varying float vTau; varying float vSide;
-      vec3 P(float d){ float e = ${WE.toFixed(9)}*d, m = ${WM.toFixed(9)}*d + ${PHI.toFixed(6)}; return vec3(${R.toFixed(4)}*cos(e), ${R.toFixed(4)}*sin(e), 0.) + ${mode.toFixed(1)}*uR*vec3(cos(m), sin(m), 0.); }
-      void main(){ vTau = aTau; vSide = aSide; float dt = ${(Y / NSEG).toFixed(6)};
-        vec4 p0 = projectionMatrix*modelViewMatrix*vec4(P(aTau),1.), p1 = projectionMatrix*modelViewMatrix*vec4(P(aTau+dt),1.), pm = projectionMatrix*modelViewMatrix*vec4(P(aTau-dt),1.);
-        vec2 s0 = p0.xy/max(p0.w,1e-4), s1 = p1.xy/max(p1.w,1e-4), sm = pm.xy/max(pm.w,1e-4);
-        vec2 dir = (s1 - sm)*vec2(uAspect,1.); dir = length(dir) > 1e-7 ? normalize(dir) : vec2(1.,0.);
+  const colExpr = kind === 0 ? 'mix(vec3(.18,.55,.62), vec3(.6,.95,.95), head)' : kind === 1 ? 'mix(vec3(1.,.7,.28), vec3(1.,.96,.82), head)' : 'vec3(1.,.93,.8)';
+  const m = new T.ShaderMaterial({ uniforms: { ...U, uR: { value: kind ? RM : 0 }, uNow: { value: 0 }, uWidth: { value: 3 }, uFuture: { value: 0.2 }, uHead: { value: 3 }, uA: { value: 1 } },
+    transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, side: T.DoubleSide,
+    vertexShader: `${LOGV[0]}
+      uniform float uR; uniform float uWidth; uniform float uH; uniform float uAspect; attribute float aTau; attribute float aSide; varying float vTau; varying float vSide;
+      vec3 P(float d){ float e = ${WE.toFixed(10)}*d, m = ${WM.toFixed(10)}*d + ${PHI.toFixed(6)}; return vec3(${R.toFixed(4)}*cos(e), ${R.toFixed(4)}*sin(e), 0.) + uR*vec3(cos(m), sin(m), 0.); }
+      void main(){ vTau = aTau; vSide = aSide; float dt = ${((d1 - d0) / nseg).toFixed(6)};
+        vec4 p0 = projectionMatrix*viewMatrix*vec4(P(aTau),1.), p1 = projectionMatrix*viewMatrix*vec4(P(aTau+dt),1.), pm = projectionMatrix*viewMatrix*vec4(P(aTau-dt),1.);
+        vec2 s1 = p1.xy/max(p1.w,1e-5), sm = pm.xy/max(pm.w,1e-5);
+        vec2 dir = (s1 - sm)*vec2(uAspect,1.); dir = length(dir) > 1e-9 ? normalize(dir) : vec2(1.,0.);
         vec2 n = vec2(-dir.y, dir.x)/vec2(uAspect,1.);
-        gl_Position = p0 + vec4(n*aSide*uWidth/uH*p0.w, 0., 0.); if (p0.w < 0.02) gl_Position = vec4(0.,0.,-2.,1.); }`,
-    fragmentShader: `uniform float uNow; uniform float uFuture; uniform float uHead; uniform float uA; uniform float uBase; varying float vTau; varying float vSide;
-      void main(){ float edge = 1. - vSide*vSide; float d = uNow - vTau; float past = step(0., d);
-        float head = past*exp(-max(d, 0.)/uHead); float b = mix(uFuture, 1., past)*uBase + 1.6*head;
-        vec3 col = ${mode ? 'mix(vec3(.95,.72,.32), vec3(1.,.95,.8), head)' : 'mix(vec3(.2,.62,.66), vec3(.6,.95,.95), head)'};
+        gl_Position = p0 + vec4(n*aSide*uWidth/uH*p0.w, 0., 0.);
+        ${LOGV[1]}
+        if (p0.w < 1e-4 || p1.w < 1e-4 || pm.w < 1e-4) gl_Position = vec4(0.,0.,-2.,1.);
+      }`,
+    fragmentShader: `${LOGF[0]}
+      uniform float uNow; uniform float uFuture; uniform float uHead; uniform float uA; varying float vTau; varying float vSide;
+      void main(){ ${LOGF[1]}
+        float edge = 1. - vSide*vSide; float d = uNow - vTau; float past = step(0., d);
+        float head = past*exp(-max(d, 0.)/uHead);
+        float b = ${kind === 2 ? 'step(0.42, fract(vTau*0.9))' : 'mix(uFuture, 0.75, past) + 1.7*head'};
+        vec3 col = ${colExpr};
         gl_FragColor = vec4(col*b*edge*uA, 1.); }` });
-  m.customProgramCacheKey = () => key; const mesh = new T.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 2 + mode; scene.add(mesh); return m;
+  m.customProgramCacheKey = () => key; const mesh = new T.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 5 + kind; scene.add(mesh); return m;
 }
-const earthPath = pathRibbon(0, 'pathE'), moonPath = pathRibbon(1, 'pathM');
+const earthPath = ribbon(0, -2, D_TOT + 2, 14000, 'pathE'), moonPath = ribbon(1, -2, D_TOT + 2, 26000, 'pathM'), sketch = ribbon(2, 0, Y, 12000, 'sketch');
 
-// ---------- Earth and Moon: lit sphere sprites (enlarged, clamped to a minimum screen size) ----------
-function body(key, base, size, minPx) {
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute([0, 0, 0], 3));
-  const m = new T.ShaderMaterial({ uniforms: { ...U, uSize: { value: size }, uMin: { value: minPx }, uSun: { value: new T.Vector3() }, uA: { value: 1 } }, transparent: true, depthWrite: false, depthTest: false,
-    vertexShader: `uniform float uPX; uniform float uSize; uniform float uMin; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv; gl_PointSize = max(uMin, uSize*uPX/-mv.z); }`,
-    fragmentShader: `uniform vec3 uSun; uniform float uA; void main(){ vec2 c = gl_PointCoord*2.-1.; c.y = -c.y; float r2 = dot(c,c);
-      vec2 cc = c*1.45; float rr = dot(cc,cc); vec3 col = vec3(0.);
-      if (rr < 1.) { vec3 n = vec3(cc, sqrt(1.-rr)); float l = clamp(dot(n, normalize(uSun)), 0., 1.); col = vec3(${base})*(0.06 + 1.15*pow(l,0.8)) + vec3(.9,.95,1.)*pow(1.-n.z,4.)*0.25*l; }
-      float halo = exp(-r2*5.)*0.35; if (r2 > 1.) discard; gl_FragColor = vec4((col + vec3(${base})*halo)*uA, rr < 1. ? 1. : halo*uA); }` });
-  m.customProgramCacheKey = () => key; const p = new T.Points(g, m); p.frustumCulled = false; p.renderOrder = 10; scene.add(p); return p;
-}
-const earth = body('earth', '.35,.62,.95', 0.06, 15), moon = body('moon', '1.,.98,.92', 0.03, 10);
-moon.renderOrder = 11;
-
-// ---------- timeline ----------
-// day: the clock that moves Earth and the Moon. Hook: one myth year in 2.4 s. Ride: one true year, 5.0 -> 15.6.
-const RIDE0 = 5.0, RIDE1 = 15.6;
-// eased ramp: accelerate over the first 12%, glide, decelerate over the last 10% (ends at exactly one year)
-function rideDays(t) { const u = clamp((t - RIDE0) / (RIDE1 - RIDE0)), a = 0.12, b = 0.1, vmax = 1 / (1 - a / 2 - b / 2); let s;
-  if (u < a) s = vmax * u * u / (2 * a); else if (u < 1 - b) s = vmax * (a / 2 + (u - a)); else s = 1 - vmax * (1 - u) * (1 - u) / (2 * b);
-  return Y * clamp(s); }
-const dayAt = t => t < 2.4 ? Y * (t / 2.4) % Y : t < RIDE0 ? 0 : rideDays(t);
-function moonR(t) { // log morph myth -> true (2.7-4.6) and back (19.7-20.95)
-  const l0 = Math.log(RMYTH), l1 = Math.log(RM);
-  if (t < 2.7) return RMYTH; if (t < 4.6) return Math.exp(mixv(l0, l1, smooth(2.7, 4.6, t)));
-  if (t < 19.7) return RM; return Math.exp(mixv(l1, l0, smooth(19.7, 20.95, t)));
-}
-function state(t) { const d = t >= RIDE0 ? rideDays(t) : 0; return { days: d, months: d / SYN }; }
+// ---------- timeline helpers ----------
+function sketchR(t) { const l0 = Math.log(RMYTH), l1 = Math.log(RM); return t < 2.9 ? RMYTH : Math.exp(mixv(l0, l1, smooth(2.9, 4.7, t))); }
+function state(t) { const d = dayAt(t); return { days: d, months: Math.floor(d / SYN + 1e-6) }; }
 window.stateAt = state;
 
 // ---------- cameras ----------
 const sph = (focus, dist, el, az) => { const e = el * Math.PI / 180, z = az * Math.PI / 180, r = dist * Math.cos(e);
   return { pos: focus.clone().add(new T.Vector3(r * Math.sin(z), -r * Math.cos(z), dist * Math.sin(e))), look: focus.clone() }; };
-const TOP = (t) => sph(new T.Vector3(0, -8, 0), 800, 68, -4 + 6 * Math.sin(t * 0.4));
-const FINAL = (t) => sph(new T.Vector3(R * 0.1, 0, 0), 720, 42, 62 - 3 * (t - 16.2));
-function chase(d) { // ahead of Earth and a little outside the orbit, looking back down the track
-  const e = WE * d, E = earthAt(d), Tg = new T.Vector3(-Math.sin(e), Math.cos(e), 0), N = new T.Vector3(Math.cos(e), Math.sin(e), 0);
-  const pos = E.clone().addScaledVector(Tg, 1.5).addScaledVector(N, 0.3).add(new T.Vector3(0, 0, 0.32));
-  const look = E.clone().addScaledVector(Tg, -3.0).addScaledVector(N, -0.25).add(new T.Vector3(0, 0, -0.02));
-  return { pos, look };
-}
-function blendPose(a, b, s, l0 = 0, l1 = 0.4) { // log-distance blend between two poses; the look point moves during [l0, l1]
+const C0 = (d, t) => { const E = earthAt(d), f = frameAt(d), dir = f.N.clone().multiplyScalar(C0_DIR.x).addScaledVector(f.Tg, C0_DIR.y).addScaledVector(f.Z, C0_DIR.z);
+  const drift = 0.012 * Math.sin(t * 0.9); return { pos: E.clone().addScaledVector(dir, 0.6 + drift), look: E.clone().add(local(d, 0.03, -0.05, 0.0)) }; };
+const WIDE = (t) => sph(new T.Vector3(0, -6, 0), 780, 66, -8 + 4 * Math.sin(t * 0.3));
+const HERO = (t) => sph(new T.Vector3(10, 6, 0), 540, 32, 118 + 3 * (t - 15.2));
+// riding: A looks sunward past Earth (trails arc toward the Sun), B swings to the day side
+// riding: look sunward past Earth and the Moon, so the Sun, both bodies and the trails share the frame
+const RA = d => { const E = earthAt(d), M = moonAt(d), mid = E.clone().lerp(M, 0.5), pos = mid.clone().add(local(d, 1.4, 0.36, 0.28));
+  const dir = mid.clone().sub(pos).normalize().multiplyScalar(0.56).add(pos.clone().negate().normalize().multiplyScalar(0.44)); return { pos, look: pos.clone().add(dir) }; };
+// crane: rise from the ride to the hero view, keeping Earth and then the Sun in frame
+function crane(d, t, s) { const a = RA(d), h = HERO(t), E = earthAt(d);
+  const look = E.clone().lerp(h.look, smooth(0.4, 1, s));
+  const dir = a.pos.clone().sub(a.look).normalize().lerp(h.pos.clone().sub(h.look).normalize(), smooth(0, 0.8, s)).normalize();
+  const dist = Math.exp(mixv(Math.log(a.pos.distanceTo(a.look)), Math.log(h.pos.distanceTo(h.look)), Math.pow(s, 0.75)));
+  return { pos: look.clone().addScaledVector(dir, dist), look }; }
+function blendPose(a, b, s, l0 = 0, l1 = 1) {
   const look = a.look.clone().lerp(b.look, smooth(l0, l1, s));
   const da = a.pos.distanceTo(a.look), db = b.pos.distanceTo(b.look);
-  const dir = a.pos.clone().sub(a.look).normalize().lerp(b.pos.clone().sub(b.look).normalize(), smooth(0.05, 0.85, s)).normalize();
+  const dir = a.pos.clone().sub(a.look).normalize().lerp(b.pos.clone().sub(b.look).normalize(), smooth(0.05, 0.9, s)).normalize();
   return { pos: look.clone().addScaledVector(dir, Math.exp(mixv(Math.log(da), Math.log(db), s))), look };
 }
-function pose(t) {
-  if (t < 5.0) return TOP(t);
-  if (t < 7.0) { const s = smooth(5.0, 7.0, t); return blendPose(TOP(t), chase(dayAt(t)), Math.pow(s, 0.9)); }
-  if (t < 16.2) return chase(dayAt(t));
-  if (t < 18.6) return blendPose(chase(Y), FINAL(t), smooth(16.2, 18.6, t), 0.45, 1);
-  if (t < 19.7) return FINAL(t);
-  return blendPose(FINAL(t), TOP(t), smooth(19.7, 20.95, t));
+const lerpPose = (a, b, s) => ({ pos: a.pos.clone().lerp(b.pos, s), look: a.look.clone().lerp(b.look, s) });
+function pose(t, d) {
+  if (t < 1.0) return C0(d, t);
+  if (t < 2.4) return blendPose(C0(d, t), WIDE(t), smooth(1.0, 2.4, t), 0.35, 1);
+  if (t < 5.0) return WIDE(t);
+  if (t < 7.0) return blendPose(WIDE(t), RA(d), smooth(5.0, 7.0, t), 0, 0.45);
+  if (t < 11.8) return RA(d);
+  if (t < 15.2) return crane(d, t, smooth(11.8, 15.2, t));
+  if (t < 18.4) return HERO(t);
+  return blendPose(HERO(t), C0(d, t), Math.pow(smooth(18.4, 21.0, t), 1.25), 0, 0.3);
 }
 
 // ---------- overlay ----------
@@ -159,116 +232,123 @@ const FONT = '"Liberation Mono", Menlo, monospace', C_CREAM = '#f4e6c8', C_TEAL 
 const typed = (s, t0, t1, t) => { if (t < t0) return ''; const n = Math.max(1, Math.ceil(s.length * clamp((t - t0) / (t1 - t0)))); return s.slice(0, n); };
 function text(s, x, y, size, color, { align = 'center', alpha = 1, spacing = 0, stroke = true } = {}) {
   if (!s || alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.font = `bold ${size}px ${FONT}`; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.letterSpacing = spacing + 'px';
-  if (stroke) { ctx.lineWidth = Math.max(4, size * 0.11); ctx.strokeStyle = '#04070d'; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
-  ctx.fillStyle = color; ctx.fillText(s, x, y); ctx.restore();
+  if (stroke) { ctx.lineWidth = Math.max(4, size * 0.12); ctx.strokeStyle = 'rgba(3,6,12,.92)'; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 18; ctx.fillStyle = color; ctx.fillText(s, x, y); ctx.restore();
 }
 function chip(s, x, y, size, alpha = 1) {
   if (!s || alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.font = `bold ${size}px ${FONT}`; const w = ctx.measureText(s).width, px = size * 0.45, h = size * 1.42;
   ctx.fillStyle = C_RED; ctx.beginPath(); ctx.roundRect(x - w / 2 - px, y - h / 2, w + 2 * px, h, size * 0.22); ctx.fill();
   ctx.fillStyle = '#fff3e0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y + size * 0.04); ctx.restore();
 }
-const proj = v => { const q = v.clone().project(cam); return [(q.x + 1) / 2 * 1080, (1 - q.y) / 2 * 1920, q.z < 1]; };
-function arrow(x0, y0, ang, len, col, alpha, label) {
-  const x1 = x0 + Math.cos(ang) * len, y1 = y0 + Math.sin(ang) * len; ctx.save(); ctx.globalAlpha = alpha; ctx.lineCap = 'round';
-  for (const [w, c] of [[11, '#04070d'], [5, col]]) { ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-    const hx = Math.cos(ang), hy = Math.sin(ang), s = w === 11 ? 26 : 20; ctx.beginPath(); ctx.moveTo(x1 + hx * s * 0.6, y1 + hy * s * 0.6);
-    ctx.lineTo(x1 - hx * s * 0.6 - hy * s * 0.55, y1 - hy * s * 0.6 + hx * s * 0.55); ctx.lineTo(x1 - hx * s * 0.6 + hy * s * 0.55, y1 - hy * s * 0.6 - hx * s * 0.55); ctx.fill(); }
-  ctx.restore(); if (label) text(label, x1 + Math.cos(ang) * 44, y1 + Math.sin(ang) * 44 + (Math.abs(Math.sin(ang)) < 0.5 ? -28 : 0), 30, col, { alpha });
+const proj = v => { const q = v.clone().project(cam); const p = v.clone().applyMatrix4(cam.matrixWorldInverse); return [(q.x + 1) / 2 * 1080, (1 - q.y) / 2 * 1920, p.z < 0]; };
+// a glowing pull beam from the Moon toward a body, with particles flowing along it
+function beam(x0, y0, x1, y1, width, rgb, alpha, t, len) {
+  const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, ex = x0 + ux * len, ey = y0 + uy * len;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  const g = ctx.createLinearGradient(x0, y0, ex, ey); g.addColorStop(0, `rgba(${rgb},${0.9 * alpha})`); g.addColorStop(1, `rgba(${rgb},0)`);
+  for (const [w, a] of [[width * 3.2, 0.25], [width, 1]]) { ctx.globalAlpha = a; ctx.strokeStyle = g; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(ex, ey); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.fillStyle = `rgba(255,248,230,${0.85 * alpha})`;
+  const n = Math.max(2, Math.round(len / 46)); for (let k = 0; k < n; k++) { const s = (((k / n) - (t * 0.55)) % 1 + 1) % 1, px = x0 + ux * len * s, py = y0 + uy * len * s, fade = 1 - s;
+    ctx.beginPath(); ctx.arc(px, py, width * 0.42 * fade + 1, 0, 7); ctx.fill(); }
+  ctx.restore();
+}
+function phaseIcon(x, y, r, frac, lit) { // frac 0..1 through a lunation (0 = new); lit side drawn as a crescent/gibbous shape
+  ctx.save(); ctx.translate(x, y); ctx.globalAlpha = lit ? 1 : 0.35;
+  ctx.fillStyle = 'rgba(30,36,48,.9)'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+  const k = Math.cos(frac * 2 * Math.PI), waxing = frac < 0.5; ctx.fillStyle = lit ? '#efe6d2' : '#7f8794';
+  ctx.beginPath(); ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, !waxing);
+  ctx.ellipse(0, 0, r * Math.abs(k), r, 0, Math.PI / 2, -Math.PI / 2, waxing ? k < 0 : k > 0); ctx.fill();
+  ctx.strokeStyle = lit ? 'rgba(232,189,104,.9)' : 'rgba(150,160,175,.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke(); ctx.restore();
 }
 const grain = [...Array(6)].map((_, k) => { const c = document.createElement('canvas'); c.width = 270; c.height = 480; const x = c.getContext('2d'); const im = x.createImageData(270, 480); let s = 99 + k * 7;
   for (let i = 0; i < im.data.length; i += 4) { s = (s * 16807) % 2147483647; const v = s % 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); return c; });
 
-function overlay(t, st, d, r) {
-  // top tag
-  const tagMyth = 1 - smooth(2.5, 2.8, t) + smooth(20.4, 20.9, t);
-  text('THE USUAL DRAWING', 540, 168, 23, C_CREAM, { alpha: 0.62 * clamp(tagMyth), spacing: 3, stroke: false });
-  text('DISTANCES TO SCALE · SUN, EARTH, MOON ENLARGED', 540, 168, 22, C_CREAM, { alpha: 0.62 * smooth(4.4, 4.8, t) * (1 - smooth(19.6, 20.0, t)), spacing: 1, stroke: false });
-  // hook
-  const hk = 1 - smooth(2.3, 2.6, t) + smooth(20.6, 20.95, t) * 0;
+function overlay(t, st, d) {
+  text('SIZES ENLARGED · ORBITS AND PATH TO SCALE', 540, 168, 22, C_CREAM, { alpha: 0.6 * smooth(2.9, 3.3, t) * (1 - smooth(18.4, 18.9, t)), spacing: 1, stroke: false });
+  const hk = 1 - smooth(2.75, 3.0, t);
   if (hk > 0) {
     text(typed("THE MOON'S PATH", 0, 0.5, t), 540, 300, 84, C_CREAM, { alpha: hk });
-    text(typed('AROUND THE SUN?', 0.5, 1.05, t), 540, 392, 64, C_GOLD, { alpha: hk });
-    chip(t >= 1.45 ? 'THIS IS WRONG.' : '', 540, 1500, 52, hk * smooth(1.45, 1.52, t));
+    text(typed('AROUND THE SUN', 0.5, 1.0, t), 540, 392, 64, C_GOLD, { alpha: hk });
+    chip(t >= 2.2 ? 'NOT LIKE THIS.' : '', 540, 1520, 54, hk * smooth(2.2, 2.27, t));
   }
-  // true scale
-  const ts = smooth(2.6, 2.75, t) * (1 - smooth(5.6, 6.0, t));
-  if (ts > 0) {
-    text(typed('AT TRUE SCALE', 2.65, 3.1, t), 540, 300, 68, C_CREAM, { alpha: ts });
-    text(typed("THE MOON'S ORBIT IS 389× SMALLER", 3.1, 3.7, t), 540, 372, 28, C_CREAM, { alpha: ts * 0.9, spacing: 1, stroke: false });
-    text(typed('NO LOOPS.', 4.55, 4.85, t), 540, 1500, 84, C_GOLD, { alpha: ts });
-  }
-  // counters
-  const cA = smooth(5.9, 6.3, t) * (1 - smooth(16.0, 16.4, t)), by = 1452;
-  [['DAYS', Math.floor(st.days).toString(), 300, C_CREAM], ['LUNAR MONTHS', st.months.toFixed(1), 780, C_GOLD]].forEach(([l, v, x, c]) => {
-    text(l, x, by, 27, c, { alpha: 0.8 * cA, spacing: 4, stroke: false }); text(v, x, by + 64, 64, c, { alpha: cA }); });
-  // body labels during the ride
-  const lA = smooth(6.6, 7.0, t) * (1 - smooth(15.8, 16.2, t)), lB = lA * (1 - smooth(8.7, 8.9, t) + smooth(11.2, 11.45, t));
-  if (lA > 0) {
-    const [ex, ey] = proj(earthAt(d)), [mx, my] = proj(moonAt(d, r));
-    text('EARTH', ex, ey + 58, 28, C_TEAL, { alpha: lB * 0.95, spacing: 2 });
-    text('MOON', mx, my - 46, 26, '#dcdcd6', { alpha: lB * 0.95, spacing: 2 });
-    // Sun direction marker on the frame edge
-    const [sx, sy, front] = proj(new T.Vector3(0, 0, 0)); let ang = Math.atan2(sy - ey, sx - ex); if (!front) ang += Math.PI;
-    const ex2 = 540 + Math.cos(ang) * 1000, ey2 = 960 + Math.sin(ang) * 1000, k = Math.min(440 / Math.abs(ex2 - 540 || 1), 600 / Math.abs(ey2 - 960 || 1), 1);
-    const ax = 540 + (ex2 - 540) * k, ay = 960 + (ey2 - 960) * k;
-    ctx.save(); ctx.globalAlpha = lA; ctx.fillStyle = C_GOLD; ctx.translate(ax, ay); ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(-8, -18); ctx.lineTo(-8, 18); ctx.fill(); ctx.restore();
-    text('SUN', ax - Math.cos(ang) * 64, ay - Math.sin(ang) * 40, 28, C_GOLD, { alpha: lA, spacing: 2 });
-  }
-  // why: two pulls on the Moon
-  const pA = smooth(8.0, 8.2, t) * (1 - smooth(11.2, 11.45, t));
+  const ts = smooth(2.95, 3.1, t) * (1 - smooth(5.4, 5.8, t));
+  text(typed('AT REAL SCALE', 2.95, 3.35, t), 540, 300, 64, C_CREAM, { alpha: ts });
+  text(typed('NO LOOPS.', 4.7, 5.0, t), 540, 1520, 92, C_GOLD, { alpha: ts });
+  // the pull beams
+  const pA = smooth(8.4, 8.6, t) * (1 - smooth(11.6, 11.9, t));
   if (pA > 0) {
-    text(typed('THE SUN PULLS THE MOON', 8.0, 8.6, t), 540, 290, 50, C_CREAM, { alpha: pA });
-    text(typed('2.2× HARDER THAN EARTH.', 8.6, 9.2, t), 540, 360, 50, C_GOLD, { alpha: pA });
-    const [ex, ey] = proj(earthAt(d)), [mx, my] = proj(moonAt(d, r)), M = moonAt(d, r);
-    const [sx, sy] = proj(M.clone().add(M.clone().negate().normalize().multiplyScalar(0.5)));
-    const aS = Math.atan2(sy - my, sx - mx), aE = Math.atan2(ey - my, ex - mx), aA = pA * smooth(8.9, 9.3, t);
-    arrow(mx, my, aS, 2.2 * 95, C_GOLD, aA, 'SUN 2.2×'); arrow(mx, my, aE, 95, C_TEAL, aA, 'EARTH 1×');
+    text(typed('THE SUN PULLS THE MOON', 8.4, 9.0, t), 540, 290, 50, C_CREAM, { alpha: pA });
+    text(typed('HARDER THAN EARTH DOES.', 9.0, 9.6, t), 540, 360, 50, C_GOLD, { alpha: pA });
+    const [mx, my] = proj(moonAt(d)), [ex, ey] = proj(earthAt(d)), [sx, sy] = proj(new T.Vector3(0, 0, 0));
+    const bA = pA * smooth(9.0, 9.5, t);
+    beam(mx, my, sx, sy, 16, '255,196,96', bA, t, Math.min(560, Math.hypot(sx - mx, sy - my)));
+    beam(mx, my, ex, ey, 6, '87,208,204', bA, t, Math.hypot(ex - mx, ey - my) * 0.9);
   }
-  const bA = smooth(11.5, 11.7, t) * (1 - smooth(15.4, 15.6, t));
-  text(typed('SO ITS PATH ALWAYS', 11.5, 12.1, t), 540, 290, 50, C_CREAM, { alpha: bA });
-  text(typed('BENDS TOWARD THE SUN.', 12.1, 12.8, t), 540, 360, 50, C_GOLD, { alpha: bA });
+  const cA = smooth(12.2, 12.4, t) * (1 - smooth(14.4, 14.6, t));
+  text(typed('SO ITS PATH ALWAYS', 12.2, 12.8, t), 540, 290, 52, C_CREAM, { alpha: cA });
+  text(typed('CURVES TOWARD THE SUN.', 12.8, 13.5, t), 540, 362, 52, C_GOLD, { alpha: cA });
+  // labels while riding
+  const lA = smooth(7.0, 7.4, t) * (1 - smooth(14.6, 15.0, t)) * (1 - pA);
+  if (lA > 0) { const [ex, ey, ef] = proj(earthAt(d)), [mx, my, mf] = proj(moonAt(d));
+    if (ef) text('EARTH', ex, ey + 70, 28, C_TEAL, { alpha: lA, spacing: 3 }); if (mf) text('MOON', mx, my - 52, 26, '#e6e0d2', { alpha: lA, spacing: 3 }); }
+  // month row: one phase icon per lunar month, lit as each month completes
+  const mA = smooth(6.6, 7.0, t) * (1 - smooth(15.0, 15.4, t));
+  if (mA > 0) { ctx.save(); ctx.globalAlpha = mA; for (let k = 0; k < 12; k++) phaseIcon(540 + (k - 5.5) * 74, 1530, 24, (k + 0.5) / 12, st.months > k); ctx.restore();
+    text(`${st.months} / 12 MONTHS`, 540, 1600, 26, C_CREAM, { alpha: mA * 0.85, spacing: 3, stroke: false }); }
   // twist
-  const nA = smooth(16.2, 16.3, t) * (1 - smooth(19.4, 19.7, t));
-  text(typed('IT NEVER', 16.2, 16.55, t), 540, 300, 96, C_CREAM, { alpha: nA });
-  text(typed('GOES BACKWARDS.', 16.55, 17.2, t), 540, 404, 74, C_GOLD, { alpha: nA });
-  text(typed('12.4 GENTLE WAVES A YEAR · ZERO LOOPS', 17.7, 18.5, t), 540, 1500, 29, C_CREAM, { alpha: nA * 0.95, spacing: 1 });
-  const fl = t >= 16.2 ? 0.12 * Math.exp(-(t - 16.2) * 12) : 0;
+  const nA = smooth(15.2, 15.3, t) * (1 - smooth(18.2, 18.5, t));
+  text(typed('IT NEVER', 15.2, 15.55, t), 540, 300, 100, C_CREAM, { alpha: nA });
+  text(typed('GOES BACKWARDS.', 15.55, 16.2, t), 540, 408, 76, C_GOLD, { alpha: nA });
+  const fl = t >= 15.2 ? 0.1 * Math.exp(-(t - 15.2) * 12) : 0;
   if (fl > 0.005) { ctx.save(); ctx.fillStyle = `rgba(255,240,220,${fl})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
 }
-
+function flare() { // a few soft ghosts along the line through the frame centre when the Sun is on screen
+  const [sx, sy, front] = proj(new T.Vector3(0, 0, 0)); if (!front) return; const on = clamp(1.4 - Math.max(Math.abs(sx - 540) / 700, Math.abs(sy - 960) / 1100)); if (on <= 0) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const [k, r, a, c] of [[0.35, 60, 0.05, '255,190,120'], [0.7, 26, 0.07, '120,200,255'], [1.25, 90, 0.035, '255,160,90'], [1.6, 40, 0.05, '180,255,220']]) {
+    const x = sx + (540 - sx) * 2 * k, y = sy + (960 - sy) * 2 * k, g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${c},${a * on})`); g.addColorStop(0.7, `rgba(${c},${a * on * 0.5})`); g.addColorStop(1, `rgba(${c},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  ctx.restore();
+}
 function drawFilm() { ctx.drawImage(film, 0, 0, 1080, 1920); ctx.save();
-  ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(14px)'; ctx.globalAlpha = 0.5; ctx.drawImage(film, 0, 0, 1080, 1920);
-  ctx.filter = 'blur(40px)'; ctx.globalAlpha = 0.3; ctx.drawImage(film, 0, 0, 1080, 1920); ctx.restore(); }
+  ctx.globalCompositeOperation = 'lighter'; ctx.filter = 'blur(12px) brightness(0.9)'; ctx.globalAlpha = 0.45; ctx.drawImage(film, 0, 0, 1080, 1920);
+  ctx.filter = 'blur(42px)'; ctx.globalAlpha = 0.32; ctx.drawImage(film, 0, 0, 1080, 1920); ctx.restore(); }
 
 window.renderAt = function (t, frame = Math.round(t * 30)) {
   t = ((t % DUR) + DUR) % DUR;
-  const st = state(t), d = dayAt(t), r = moonR(t);
+  const st = state(t), d = st.days;
   U.uTime.value = t;
-  const p = pose(t); cam.position.copy(p.pos); cam.lookAt(p.look);
-  const camDist = p.pos.distanceTo(p.look);
-  cam.near = Math.max(0.01, camDist * 0.004); cam.updateProjectionMatrix();
-  // paths: whole path lit in the overview shots, past bright / future dim while riding
-  const ride = smooth(5.0, 6.2, t) * (1 - smooth(16.2, 17.4, t));
-  for (const m of [earthPath, moonPath]) { const u = m.uniforms; u.uR.value = r; u.uNow.value = t < RIDE0 ? (t < 2.4 ? d : -1) : d;
-    u.uFuture.value = mixv(1, 0.2, ride); u.uHead.value = t < 2.4 ? 22 : 1.2; }
-  if (t >= 16.2) { earthPath.uniforms.uNow.value = moonPath.uniforms.uNow.value = Y + 1; }
-  moonPath.uniforms.uWidth.value = mixv(3.2, 2.6, ride); earthPath.uniforms.uWidth.value = mixv(2.0, 1.8, ride);
-  earthPath.uniforms.uBase.value = mixv(0.55, 0.75, ride); moonPath.uniforms.uBase.value = 0.85;
-  moonPath.uniforms.uHead.value = t < 2.4 ? 22 : 1.2; earthPath.uniforms.uHead.value = t < 2.4 ? 0.001 : 1.2;
-  earth.position.copy(earthAt(d)); moon.position.copy(moonAt(d, r));
-  for (const b of [earth, moon]) b.material.uniforms.uSun.value.copy(b.position.clone().negate().normalize()).transformDirection(cam.matrixWorldInverse);
-  moon.material.uniforms.uMin.value = mixv(9, 13, ride); earth.material.uniforms.uMin.value = mixv(14, 22, ride);
-  dustMat.uniforms.uDust.value = ride;
-  ctx.fillStyle = '#050a12'; ctx.fillRect(0, 0, 1080, 1920);
-  renderer.render(scene, cam); drawFilm();
-  ctx.save(); const v = ctx.createRadialGradient(540, 960, 380, 540, 960, 1150); v.addColorStop(0, 'rgba(4,8,14,0)'); v.addColorStop(1, 'rgba(4,8,14,0.72)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
-  ctx.globalAlpha = 0.045; ctx.globalCompositeOperation = 'overlay'; ctx.drawImage(grain[frame % 6], 0, 0, 1080, 1920); ctx.restore();
-  overlay(t, st, d, r);
+  const E = earthAt(d), M = moonAt(d);
+  earthGroup.position.copy(E); moonGroup.position.copy(M);
+  earthSpin.rotation.y = 2.2 + t * 0.55 + d * 0.004; EU.uCloudShift.value = t * 0.004;
+  EU.uSunDir.value.copy(E).negate().normalize(); moonMesh.material.uniforms.uSunDir.value.copy(M).negate().normalize();
+  // tidal lock: texture longitude 0 faces Earth
+  const toE = E.clone().sub(M); moonSpin.rotation.y = Math.atan2(toE.y, toE.x);
+  const p = pose(t, d); cam.position.copy(p.pos); cam.lookAt(p.look);
+  const camDist = p.pos.distanceTo(p.look); cam.near = Math.max(0.0005, camDist * 0.002); cam.updateProjectionMatrix();
+  sky.position.copy(cam.position);
+  const sunScale = clamp(p.pos.length() / 110, 1, 4.5); sun.scale.setScalar(sunScale); corona.scale.setScalar(sunScale); corona.material.uniforms.uA.value = mixv(1, 0.6, clamp((sunScale - 1) / 2));
+  // far away, Earth and Moon keep a small glowing marker so they stay findable
+  for (const [g, P] of [[earthGlow, E], [moonGlow, M]]) { g.position.copy(P); g.material.uniforms.uA.value = smooth(2.5, 8, P.distanceTo(cam.position)); }
+  // paths
+  const ride = smooth(5.0, 6.5, t) * (1 - smooth(18.4, 19.4, t));
+  moonPath.uniforms.uNow.value = earthPath.uniforms.uNow.value = d;
+  moonPath.uniforms.uFuture.value = 0.12 * smooth(4.2, 5.0, t) * (1 - smooth(18.4, 19.4, t));
+  moonPath.uniforms.uA.value = smooth(4.0, 5.0, t) * (1 - smooth(19.6, 20.6, t)); earthPath.uniforms.uA.value = 0.65 * moonPath.uniforms.uA.value;
+  earthPath.uniforms.uFuture.value = 0.0;
+  moonPath.uniforms.uWidth.value = mixv(3.4, 3.0, ride); earthPath.uniforms.uWidth.value = 2.0;
+  moonPath.uniforms.uHead.value = earthPath.uniforms.uHead.value = mixv(10, 2.0, ride);
+  sketch.uniforms.uR.value = sketchR(t); sketch.uniforms.uA.value = 0.75 * smooth(1.6, 2.1, t) * (1 - smooth(4.4, 5.0, t)); sketch.uniforms.uWidth.value = 2.6;
+  ctx.fillStyle = '#03060c'; ctx.fillRect(0, 0, 1080, 1920);
+  renderer.render(scene, cam); drawFilm(); flare();
+  ctx.save(); const v = ctx.createRadialGradient(540, 960, 420, 540, 960, 1180); v.addColorStop(0, 'rgba(3,6,12,0)'); v.addColorStop(1, 'rgba(3,6,12,0.7)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
+  ctx.globalAlpha = 0.04; ctx.globalCompositeOperation = 'overlay'; ctx.drawImage(grain[frame % 6], 0, 0, 1080, 1920); ctx.restore();
+  overlay(t, st, d);
   return st;
 };
 // fact check: the true heliocentric Moon path must curve toward the Sun everywhere (curvature > 0)
 window.convexCheck = () => { let min = Infinity; const h = 0.01; for (let d = 0; d < Y; d += 0.05) {
-  const a = moonAt(d - h, RM), b = moonAt(d, RM), c = moonAt(d + h, RM); const vx = (c.x - a.x) / 2 / h, vy = (c.y - a.y) / 2 / h, ax = (c.x - 2 * b.x + a.x) / h / h, ay = (c.y - 2 * b.y + a.y) / h / h;
+  const a = moonAt(d - h), b = moonAt(d), c = moonAt(d + h); const vx = (c.x - a.x) / 2 / h, vy = (c.y - a.y) / 2 / h, ax = (c.x - 2 * b.x + a.x) / h / h, ay = (c.y - 2 * b.y + a.y) / h / h;
   min = Math.min(min, (vx * ay - vy * ax) / Math.pow(Math.hypot(vx, vy), 3) * R); } return min; };
 window.captureFrame = (t, frame) => { window.renderAt(t, frame); return out.toDataURL('image/jpeg', 0.95).split(',')[1]; };
 window.renderAt(0.01);
