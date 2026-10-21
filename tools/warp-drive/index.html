@@ -49,7 +49,7 @@ const LANE=[]; for(let j=0;j<NL;j++){ const z=Z0+j*DZ; LANE.push({z,g:Math.exp(-
 let PMK=0;
 function pointsMat(blend){
   const key='pm'+(PMK++);
-  const m=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:blend||THREE.AdditiveBlending,
+  const m=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,blending:blend||THREE.AdditiveBlending,
     uniforms:{uK:{value:(H/2)/TAN},uMin:{value:1.6*SC*1.5},uMax:{value:26*SC},uAmp:{value:1}},
     vertexShader:`attribute vec3 color; attribute float aSize; varying vec3 vc; uniform float uK,uMin,uMax,uAmp;
       void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,0.05); float raw=aSize*uK/d; float px=clamp(raw,uMin,uMax);
@@ -69,7 +69,7 @@ const GPOS=new Float32Array(GL.length*3), GCOL=new Float32Array(GL.length*3);
 const idx=[]; for(let k=0;k<NK;k++) for(let j=0;j<NL-1;j++) idx.push(k*NL+j,k*NL+j+1);
 const LB=NK*NL; for(let l=0;l<Math.ceil(NL/5);l++) for(let i=0;i<NU-1;i++) idx.push(LB+l*NU+i,LB+l*NU+i+1);
 const gG=new THREE.BufferGeometry(); gG.setAttribute('position',new THREE.BufferAttribute(GPOS,3)); gG.setAttribute('color',new THREE.BufferAttribute(GCOL,3)); gG.setIndex(idx);
-const gLines=new THREE.LineSegments(gG,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
+const gLines=new THREE.LineSegments(gG,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthTest:true,depthWrite:false}));
 gLines.frustumCulled=false; gLines.renderOrder=1; scene.add(gLines);
 const NODES=[]; for(let k=0;k<NK;k++) for(let j=0;j<NL;j+=5) NODES.push(k*NL+j);  // glowing nodes where the two families cross
 const grid=makePoints(NODES.length,1);
@@ -101,7 +101,7 @@ function updateStars(t){ const s=sigma(t); for(let i=0;i<NST;i++){ stars.pos[i*3
 const IN=[]; for(let x=-2.4;x<=2.41;x+=0.6) for(let y=-2.4;y<=2.41;y+=0.6) for(let z=-2.4;z<=2.41;z+=0.6){ const r=Math.hypot(x,y,z); if(r<2.55 && !(Math.abs(y)<0.55&&Math.abs(z)<0.55&&x>-1.6&&x<1.7)) IN.push([x,y,z,r]); }
 const inner=makePoints(IN.length,2);
 IN.forEach((p,i)=>{ inner.pos[i*3]=p[0]; inner.pos[i*3+1]=p[1]; inner.pos[i*3+2]=p[2]; inner.sz[i]=0.028; });
-function updateInner(t,lv){ const a=amp(t)*lv; IN.forEach((p,i)=>{ const e=(1-sstep(1.8,2.55,p[3]))*a; inner.col[i*3]=CREAM[0]*0.55*e; inner.col[i*3+1]=CREAM[1]*0.55*e; inner.col[i*3+2]=CREAM[2]*0.55*e; }); inner.g.attributes.color.needsUpdate=true; }
+function updateInner(t,lv){ const a=amp(t)*lv; IN.forEach((p,i)=>{ const e=(1-sstep(1.8,2.55,p[3]))*a; const k=0.55+0.7*lv; inner.col[i*3]=CREAM[0]*k*e; inner.col[i*3+1]=CREAM[1]*k*e; inner.col[i*3+2]=CREAM[2]*k*e; }); inner.g.attributes.color.needsUpdate=true; }
 // ------------------------------------------------------------------ the bubble wall
 const shellMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
   uniforms:{uA:{value:0},uT:{value:0},uF:{value:0},uFl:{value:0},uIn:{value:1}},
@@ -148,8 +148,8 @@ const CK=[
  [3.3,[-9.0,6.0,2.6],[3.0,-2.0,0]],
  [5.6,[-12.5,8.4,1.3],[4.5,-2.6,0]],
  [7.8,[-12.0,8.0,-1.0],[4.5,-2.6,0],0.3],
- [9.0,[-2.05,1.75,0.95],[1.4,-1.1,-0.3],0.0],
- [10.9,[-1.85,1.65,0.75],[1.4,-1.1,-0.2],0.0],
+ [9.0,[-2.3,1.3,1.05],[3.2,-1.7,0],0.0],
+ [10.9,[-2.1,1.25,0.85],[3.2,-1.7,0.1],0.0],
  [12.4,[-15.0,17.0,3.2],[-4.0,-3.0,1.8],0.4],
  [15.0,[-14.0,16.0,2.6],[-5.0,-3.0,1.8]],
  [16.3,[-8.5,6.2,4.0],[1.0,-1.0,0]],
@@ -183,7 +183,10 @@ function frameAt(t){
   { const d=Math.hypot(...camAt(t).P); shellMat.uniforms.uIn.value=0.3+0.7*sstep(BR-0.4,BR+0.6,d); }
   const sc=t>T_COLL?lerp(1,0.25,sstep(T_COLL,T_GONE,t)):1; shell.scale.setScalar(sc);
   ship.rotation.x=0.04*Math.sin(t*2*Math.PI*3/T_END); ship.position.y=0.03*Math.sin(t*2*Math.PI*4/T_END);   // periodic over the reel so the loop is seamless
-  ringM.emissiveIntensity=0.35+0.45*A; shipLight.intensity=3*A*(1-fl);
+  const inB=sstep(8.6,9.0,t)*(1-sstep(11.0,11.4,t));   // camera inside the bubble: tame the hull glare
+  key.intensity=1.25*(1-0.45*inB); hullM.envMapIntensity=0.32*(1-0.5*inB);
+  ringM.emissiveIntensity=(0.35+0.45*A)*(1-0.4*inB); shipLight.intensity=3*A*(1-fl);
+  cam.fov=FOV+30*inB; cam.updateProjectionMatrix(); const kU=(H/2)/Math.tan(cam.fov*Math.PI/360); for(const o of [grid,stars,inner,beam]) o.p.material.uniforms.uK.value=kU;   // wide lens inside the bubble
   const {P,Tg}=camAt(t); cam.position.set(...P); cam.up.set(0,1,0); cam.lookAt(...Tg);
   grade.uniforms.uSeed.value=(t*977)%100; grade.uniforms.uFlash.value=0.10*Math.exp(-Math.pow((t-T_IGN-0.12)/0.07,2))+0.08*Math.exp(-Math.pow((t-T_TWIST-0.05)/0.06,2));
   composer.render();

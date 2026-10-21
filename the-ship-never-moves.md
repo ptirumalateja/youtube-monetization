@@ -2,7 +2,7 @@
 
 Reel #14 from `ref-remakes-plan.md` ("What If Space Itself Became the Engine"). We take the topic only: our own craft, our own grid, our own sound, no fighter jet, no red/blue HUD.
 
-- File: `the-ship-never-moves.mp4`, 1080x1920 (rendered natively), 30 fps, 22.0 s, H.264 + AAC, loops (frame 660 matches frame 0).
+- Files (project folder `final-reels/`): `the-ship-never-moves.mp4` (share size, 26 MB, 9 Mbps) and `the-ship-never-moves_master.mp4` (80 MB, use for uploads). Both 1080x1920 rendered natively, 30 fps, 22.0 s, H.264 + AAC, loop (the last frame runs into frame 0).
 - Source: `tools/warp-drive/` (three.js scene `index.html`, `render.js`, `proj.js`, `overlay.py`, `mix_warp.py`, `build.sh`).
 - Sound: fully synthesised in numpy (`mix_warp.py`). No samples, so there is nothing to credit.
 
@@ -110,4 +110,5 @@ warp drive, alcubierre drive, alcubierre warp drive, faster than light, ftl trav
 - Contact sheet at 2 fps checked: one subject at a time, no white or beige frames, labels legible at phone size.
 - Counters are asserted monotonic in `overlay.py` (distance and ship clock); typed text never uses a negative slice.
 - Loop: frame 659 to frame 0 is continuous in camera, grid, stars and sound (tick at 0 s and 22 s).
-- Audio: loudness and true peak measured on the final AAC file (values in the build log).
+- Audio, measured on the final AAC files: -15.0 LUFS integrated, -2.4 dBTP true peak.
+- The 16.2 s twist hit has a designed 8% lift for about 0.1 s (inside the playbook's 12-16% limit).

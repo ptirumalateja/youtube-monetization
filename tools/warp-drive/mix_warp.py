@@ -117,6 +117,7 @@ bed *= hold; air *= hold
 
 # ------------------------------------------------ bus processing: phones can't play < ~90 Hz, so sub only on the hit bus
 for b in (sfx, bed, air, tick): b[:] = hp_fast(b, 90)
+hit = lp_fast(0.5 * np.tanh(hit / 0.5), 9000)                   # soft-clip the hit transients (they caused AAC overs)
 duck = 1 - 0.5 * np.clip(lp_fast(np.abs(hit), 8), 0, 1)
 mix = hit * 0.9 + (sfx + bed + air) * duck + tick * 1.0
 # small reverb on the hit bus (sum of decaying taps)
@@ -127,8 +128,12 @@ mix += lp_fast(rv, 3000) * 0.5
 st = np.stack([mix, mix], 1)
 # gentle width: delay the air/sfx a touch in the right channel
 k = int(0.011 * SR); st[k:, 1] += (sfx + air)[:-k] * 0.12; st[:, 0] += (sfx + air) * 0.12
-st = np.tanh(st * 1.3) / np.tanh(1.3)
-st /= np.max(np.abs(st)) / 0.93
+st = np.tanh(st * 2.0) / np.tanh(2.0)
+st = np.stack([lp_fast(st[:, c], 15000) for c in (0, 1)], 1)       # tame the clicks' top end (inter-sample overs)
+def true_peak(x):  # 4x oversampled peak
+    n = len(x); X = np.fft.rfft(x); Y = np.zeros(2 * n + 1, complex); Y[:len(X)] = X; return np.max(np.abs(np.fft.irfft(Y, 4 * n))) * 4
+tp = max(true_peak(st[:, 0]), true_peak(st[:, 1]))
+st *= 10 ** (-3.3 / 20) / tp                                       # -3.3 dBTP before AAC: lands near -15 LUFS, about -2.5 dBTP after AAC
 import wave
 w = wave.open(sys.argv[1], 'wb'); w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
 w.writeframes((st * 32767).astype('<i2').tobytes()); w.close(); print('ok', sys.argv[1])
