@@ -35,7 +35,7 @@ def big_hit(size):
     n = int(SR * 3.2); t = tt(n)
     body = np.tanh(2.5 * sweep(260 * size ** 0.2, 62, n, 0.35)) * env(n, 0.004, 0.42 * size)
     sub = np.sin(2 * np.pi * np.cumsum(np.linspace(58, 38, n)) / SR) * env(n, 0.01, 0.6 * size) * 0.8
-    crack = hp(noise(n), 2500) * env(n, 0.0005, 0.035) * 0.9
+    crack = lp(hp(noise(n), 2500), 8000) * env(n, 0.0005, 0.035) * 0.9
     wet = bp(noise(n), 300, 1400) * env(n, 0.002, 0.09) * 0.7  # "wet" mid thud
     gong = sum(np.sin(2 * np.pi * f * t + i) * env(n, 0.003, 1.1 / (1 + i * 0.4)) * a for i, (f, a) in enumerate([(196, .35), (293.7 * 1.007, .22), (466 * 0.996, .14), (622, .08)]))
     return (body * 0.9 + sub + crack + wet + gong * 0.6 * size) * size
@@ -122,7 +122,7 @@ mixm = hit_b * 1.0 + others * sc
 # stereo: plucks and ticks slightly wide via short delays
 L = mixm + 0.15 * np.roll(pluck_b, 240); R = mixm + 0.15 * np.roll(pluck_b, -240)
 st = np.stack([L, R], 1); st /= np.abs(st).max(); st = np.tanh(1.6 * st * GAIN) / np.tanh(1.6)
-st *= 0.89
+st *= 0.68
 with wave.open(OUT, "wb") as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((st * 32767).astype(np.int16).tobytes())
 print("mix ok", OUT)
