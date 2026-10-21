@@ -1,5 +1,7 @@
 # One More Shovel (14.0 s, v1, no voiceover): spec, build and publish copy
 
+> Superseded by v2, `the-deepest-hole-reel.md` (Teja: v1 read as a preachy reel, not Slow Light).
+
 Reel #16 from `ref-remakes-plan.md` ("You never know how close you are to where you want to be", a 12 s two-stickmen-and-a-rock clip). We keep the theme and nothing else: our own stickman rig (from `tools/shadow-stickman/`), our own world (a cross-section of the ground at night), our own text, our own procedural sound. Built in three.js (`tools/one-more-shovel/`).
 
 ## Concept
