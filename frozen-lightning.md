@@ -41,7 +41,10 @@ Simplifications, stated here so the copy stays honest:
 - The counter is "temperature in the strike": the 1,700 °C stop is the sand, the 27,700 °C peak is the air in the bolt channel (that is why the label says INSIDE THE BOLT). Sand at the centre of the channel vaporises, which is why the tube is hollow.
 
 ## Sound
-Fully synthesised in numpy (`tools/frozen-lightning/mix_frozen.py`), so there is nothing to credit and no licence risk. Family "storm and glass" (new, not the Night Sky or Scale Ladder palette): thunder crack + pitch-drop body + rolling rumble on frame 0, restrike crack at 1.92, sand hiss and electric crackle on the grains, glass-partial chord and accelerating crystal ticks, heat roar riser, held breath 10.45-11.0, glass shatter-snap freeze hit at 11.0, biggest hit (boom + gong partials + glass ring + sub) on the reveal at 13.6, warm drone, rise whoosh and glass bells on the end line, crackle and rising leader tone into frame 0. Sub energy only on the hit bus; other buses high-passed at 90 Hz; about -15 LUFS integrated.
+v2 (current): hero effects generated with ElevenLabs Sound Effects (`eleven_text_to_sound_v2`, files in `tools/frozen-lightning/sfx/`): a close lightning strike with thunder (frame 0, and its crack again on the 1.92 s restrike), a long thunder roll, high-voltage electric arcing (grains and bolt phase), a furnace blast (melt at 7.3 s), a glass freeze snap (11.0 s) and a deep cinematic boom (reveal at 13.6 s, the biggest hit). They sit on top of the numpy-synthesised beds from v1 (rain and wind, sand hiss, crystal ticks, heat roar, warm drone, glass bells, loop crackle) in `mix_frozen.py`. About -15 LUFS integrated, true peak -4.4 dBTP after AAC.
+Licence: generated on Teja's ElevenLabs account; no third-party credit needed. Check that the account's plan covers commercial use before a monetised upload.
+
+v2 visual changes: closer opening camera with a thicker, more branched channel, lit clouds, wet-sand sheen, a spray of molten sparks, a dust shockwave and rain; a visible stepped leader in the last half-second so the loop lands on the strike; arcs on the sand grains drawn as real lightning ribbons; a current pulse racing down the fulgurite on the reveal; moving light on the glass; a grainier sand face.
 
 ## Rebuild
 ```

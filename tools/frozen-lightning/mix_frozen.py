@@ -1,4 +1,5 @@
-# Frozen Lightning sound design: fully synthesised in numpy (no sample files, no licences to track).
+# Frozen Lightning sound design: ElevenLabs-generated hero effects (sfx/*.mp3, eleven_text_to_sound_v2)
+# layered over numpy-synthesised beds, ticks and tones.
 # Family: "storm and glass" - thunder cracks, electric crackle, heat roar, glass/crystal partials.
 # Cue times follow the scene timeline in index.html. Output: frozen_mix.wav (48 kHz stereo, about -15 LUFS).
 import numpy as np, sys
@@ -66,7 +67,7 @@ def reverb(x,dec=1.8,mix=0.25):
     return x+mix*fftconvolve(x,ir)[:len(x)]
 
 # ---------------------------------------------------------------- storm opening (0 - 2.7)
-place(HIT,crack(1.0),0.0,0.9); place(HIT,body(240,62,0.55,0.35),0.0,0.8); place(SUB,subhit(42,0.6),0.0,0.8)
+place(HIT,crack(1.0),0.0,0.35); place(HIT,body(240,62,0.55,0.35),0.0,0.35); place(SUB,subhit(42,0.6),0.0,0.8)
 place(SFX,rumble(4.0,240,1.8),0.03,1.0)
 for ts,a in [(0.10,0.45),(0.27,0.6),(0.58,0.35)]: place(HIT,crack(0.5),ts,a)
 rain=filt(pink(N),'bp',(900,9000))*0.22; wind=filt(pink(N),'bp',(120,900))*0.5
@@ -75,7 +76,7 @@ storm_env=np.clip(1-np.clip((tt-2.4)/0.4,0,1),0,1)+np.clip((tt-16.8)/1.2,0,1)*0.
 BED+=(rain+wind*(0.6+0.4*np.sin(tt*0.9)))*storm_env
 place(SFX,rumble(3.0,320,1.0),0.85,0.9); place(SFX,sparks(1.4,40,2000,6000),0.4,0.5)
 place(SFX,revswell(0.45),1.92-0.45,0.35)
-place(HIT,crack(0.8),1.92,0.85); place(HIT,body(320,90,0.35,0.22,3),1.92,0.55); place(SUB,subhit(50,0.35),1.92,0.5)
+place(HIT,crack(0.8),1.92,0.4); place(HIT,body(320,90,0.35,0.22,3),1.92,0.3); place(SUB,subhit(50,0.35),1.92,0.5)
 place(SFX,whoosh(0.9,300,4000,0.75),1.9,0.9)
 # ---------------------------------------------------------------- grains (2.6 - 4.8): sand hiss, crackling arcs, hum
 n=int(2.4*SR); sand=sparks(2.4,900,3000,11000)*0.40; place(SFX,sand*np.linspace(0.3,1,n),2.5)
@@ -106,13 +107,13 @@ for k in range(14):
     place(SFX,sparks(0.12,500,2500,9000),8.6+k*0.13+rng.uniform(0,0.05),0.5+0.4*k/14)
 # ---------------------------------------------------------------- held breath 10.45-11.0, freeze hit at 11.0
 place(SFX,revswell(0.5),11.0-0.5-0.06,0.5)
-place(HIT,shatter(1.6,60),11.0,0.24); place(HIT,body(300,95,0.45,0.28,3),11.0,0.32); place(HIT,crack(0.6),11.0,0.3); place(SUB,subhit(48,0.45),11.0,0.4)
+place(HIT,shatter(1.6,60),11.0,0.12); place(HIT,body(300,95,0.45,0.28,3),11.0,0.32); place(HIT,crack(0.6),11.0,0.3); place(SUB,subhit(48,0.45),11.0,0.4)
 for k in range(9): place(SFX,glass_ping(rng.uniform(2200,5200),0.18,0.12),11.35+k*0.14+rng.uniform(0,0.08))
 pad_t=t_(3.0); pad=sum(np.sin(2*np.pi*f0*pad_t+np.sin(pad_t*0.7+i)*0.6) for i,f0 in enumerate([1174.7,1318.5,1760,2349.3]))*np.exp(-pad_t/0.9)*np.minimum(1,pad_t/0.05)
 place(TONE,pad*0.035,11.0)
 # ---------------------------------------------------------------- pull-out 12.6-13.6, REVEAL hit 13.6 (biggest)
 place(SFX,whoosh(1.0,5000,250,0.8),12.55,1.0); place(SFX,revswell(0.7),13.6-0.7-0.07,0.7)
-place(HIT,crack(1.2),13.6,0.8); place(HIT,body(170,52,0.9,0.6,3.2),13.6,1.25)
+place(HIT,crack(1.2),13.6,0.4); place(HIT,body(170,52,0.9,0.6,3.2),13.6,0.7)
 gt=t_(4.5); gong=sum(a*np.sin(2*np.pi*f0*gt+i)*np.exp(-gt/dd) for i,(f0,a,dd) in enumerate([(98,1,2.4),(153.5,0.7,1.9),(231,0.5,1.4),(318,0.35,1.0),(447,0.25,0.7)]))*np.minimum(1,gt/0.004)
 place(HIT,np.tanh(gong*1.4)*0.8,13.6); place(HIT,shatter(1.8,26)*0.5,13.62); place(SUB,subhit(40,1.1),13.6,1.0)
 place(SFX,rumble(5.0,200,2.2),13.65,0.6)
@@ -131,6 +132,30 @@ lt=t_(0.55); lead=np.sin(2*np.pi*np.cumsum(200*(3.5)**(lt/0.55))/SR)*(lt/0.55)**
 place(TONE,lead*0.08,19.45); place(SFX,sparks(0.55,260,2500,9000)*np.linspace(0.1,1,int(0.55*SR)),19.45,0.6)
 place(SFX,revswell(0.5)*0.5,19.5)
 
+# ---------------------------------------------------------------- ElevenLabs hero effects
+import subprocess, os
+SFXD=os.path.join(os.path.dirname(os.path.abspath(__file__)),'sfx')
+def load(name):
+    raw=subprocess.run(['ffmpeg','-v','error','-i',os.path.join(SFXD,name),'-ac','1','-ar',str(SR),'-f','f32le','-'],capture_output=True).stdout
+    return np.frombuffer(raw,np.float32).astype(np.float64)
+def fade(x,fi=0.005,fo=0.05):
+    x=x.copy(); a=int(fi*SR); b=int(fo*SR)
+    if a: x[:a]*=np.linspace(0,1,a)
+    if b: x[-b:]*=np.linspace(1,0,b)
+    return x
+EL=np.zeros(N)
+strike=load('strike.mp3'); thunder=load('thunder.mp3'); arc=load('arc3.mp3'); furn=load('furnace5.mp3'); frz=load('freeze3.mp3'); boom=load('boom5.mp3')
+place(EL,strike,0.0,1.0)                                   # crack on frame 0, thunder boom lands ~1.5 s
+place(EL,fade(strike[:int(0.95*SR)],0,0.2),1.92,0.75)      # restrike as the camera dives
+place(EL,fade(thunder,0.3,1.0),2.2,0.45)                   # thunder rolls on under the grains
+place(EL,fade(arc,0.15,0.4),2.55,0.9); place(EL,fade(arc,0.1,0.3),8.55,0.75)
+place(EL,fade(furn[:int(3.2*SR)],0.02,0.8),7.3-0.91,0.85)  # melt: furnace blast onset on 7.3
+place(EL,frz,11.0-0.787,1.1)                               # freeze snap onset on 11.0
+place(EL,boom,13.6,1.0)                                    # reveal (biggest)
+place(EL,fade(thunder[int(0.8*SR):],0.4,1.0)*0.5,14.9,0.8) # ghost bolt: distant roll
+place(EL,fade(strike[int(1.4*SR):],0.3,0.8),17.3,0.35)     # far thunder on the rise
+place(EL,fade(strike[:int(0.5*SR)][::-1],0.3,0.0),19.5,0.35) # reversed crack sucks into the loop
+EL=filt(EL,'high',35,2)
 # ---------------------------------------------------------------- held-breath window: duck everything but the swell
 def duck(bus,a,b,floor=0.012,ramp=0.04):
     g=np.ones(N); i0,i1=int(a*SR),int(b*SR); r=int(ramp*SR)
@@ -142,8 +167,8 @@ BED=duck(BED,13.52,13.6,0.05,0.01); TONE=duck(TONE,13.52,13.6,0.05,0.01)
 for nm in ('SFX','BED','TONE'): globals()[nm]=filt(globals()[nm],'high',90,2)
 HITB=reverb(HIT,1.6,0.30)+filt(SUB,'low',120,2)*0.8
 # side-chain: duck beds under the hits
-env=np.abs(HITB); env=filt(env,'low',8,1); env/=env.max()+1e-9; sc=1-0.55*np.clip(env*2,0,1)
-mix=HITB*1.0+SFX*0.9*sc+BED*1.8*sc+TONE*0.9*sc
+env=np.abs(HITB)+np.abs(EL); env=filt(env,'low',8,1); env/=env.max()+1e-9; sc=1-0.55*np.clip(env*2,0,1)
+mix=HITB*0.8+EL*1.5+SFX*0.8*sc+BED*1.6*sc+TONE*0.85*sc
 # stereo: slight decorrelation of beds
 L=mix+0.15*filt(BED,'low',4000)*sc; R=mix-0.15*filt(BED,'low',4000)*sc
 st=np.stack([L,R],1); st=np.tanh(st*1.1)/np.tanh(1.1)
