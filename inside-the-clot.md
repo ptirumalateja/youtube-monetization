@@ -31,7 +31,7 @@ Teja asked for an opening on a crowd, a zoom onto one person pressing his chest,
 - **Voiceover (stand-in):** ElevenLabs refused (rate limited), so the take is Kokoro TTS (open model, voice `am_michael`), generated line by line with `tools/inside-the-clot/vo.py`. Swap for an ElevenLabs or recorded take by replacing the nine line files; starts are in `mix3.py`.
   > Every forty seconds, someone in the US has a heart attack. It starts inside an artery, decades earlier. Fatty plaque builds in the wall. Then its cap cracks. A clot seals the crack... and the artery. Within twenty to forty minutes, the heart muscle starts to die. The plaque didn't block it. The clot did. Time is muscle. Call emergency services.
 - **Sound:** `mix3.py` adds crowd murmur and footsteps, a heartbeat that rises as the camera closes on him, a dive hit; all v2 events are placed through the same warp; effects are ducked under the voice. Still no samples.
-- Built natively at 1080x1920 (no upscale).
+- Built natively at 1080x1920 (no upscale). Final: 24.9 s, 28.9 MB, -15.1 LUFS, true peak -0.4 dBTP after AAC.
 
 ## Shot plan v2 (frozen, video seconds; v3 maps these through the warp)
 | Time | Shot | On screen |
