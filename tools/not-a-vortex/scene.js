@@ -33,7 +33,7 @@ const ECL_N = e2g(V3(0, 0, 1));                                  // ecliptic nor
 
 // ---------- clocks ----------
 // y: years since J2000.0 (orbits). The orrery opens on today's positions (2026.8), then runs at RATE years per video second.
-const RATE = [[0, 0.1], [2.6, 0.1], [5.6, 0.26], [26, 0.26]];
+const RATE = [[0, 0.1], [2.6, 0.1], [5.6, 0.26], [12.6, 0.26], [15, 0.5], [22.6, 0.5], [24.4, 0.26], [26, 0.26]];
 const rateAt = t => { for (let k = 1; k < RATE.length; k++) if (t <= RATE[k][0]) { const [t0, r0] = RATE[k - 1], [t1, r1] = RATE[k]; return mixv(r0, r1, smooth(t0, t1, t)); } return RATE.at(-1)[1]; };
 const STEP = 1 / 600, NT = Math.round(DUR / STEP), YR = new Float64Array(NT + 1);
 for (let i = 0; i < NT; i++) YR[i + 1] = YR[i] + rateAt((i + 0.5) * STEP) * STEP;
@@ -64,6 +64,7 @@ const posEcl = (i, y) => kepler(PL[i], y);                        // Sun-relativ
 
 // ---------- the myth: the viral vortex (tight coils, orbital planes square to the motion, planets trailing in a cone) ----------
 const MYTH = PL.map((p, i) => ({ r: 0.55 * Math.sqrt(p.a) + 0.15, w: 2 * Math.PI * 0.55 / Math.pow(p.P, 0.35), lag: 0.9 * Math.sqrt(p.a) + 0.2 * i, ph: i * 2.1 }));
+const MYTHR = [0.2, 0.28, 0.3, 0.24, 0.55, 0.42, 0.36, 0.36];           // enlarged planet radii in the hook, so each shows its surface
 const MYTH_V = 2.2, MYTH_AX = V3(0.25, 0.35, 1).normalize();     // myth-world units per video second; screen-up-ish axis
 const mythE1 = V3(1, 0, 0).cross(MYTH_AX).normalize(), mythE2 = MYTH_AX.clone().cross(mythE1).normalize();
 const mythPos = (i, s) => { const m = MYTH[i], a = m.w * s + m.ph; return mythE1.clone().multiplyScalar(m.r * Math.cos(a)).addScaledVector(mythE2, m.r * Math.sin(a)).addScaledVector(MYTH_AX, MYTH_V * s - m.lag); };
@@ -427,6 +428,9 @@ bh.material.blending = T.NormalBlending; bh.renderOrder = 10; bh.position.copy(G
 const orbitP = `vec3 P(float y){ float a = 3.14159265 - y; return vec3(${GC_LY.toFixed(1)} + ${GC_LY.toFixed(1)}*cos(a), ${GC_LY.toFixed(1)}*sin(a), 0.); }`;
 const lapTrail = ribbonMesh(sGal, 'lap', 1440, orbitP, [1, 0.8, 0.45], { base: 0.25, pw: 1.5 });
 const lapCircle = ribbonMesh(sGal, 'lapc', 1440, orbitP, [0.98, 0.9, 0.72], { base: 1, pw: 1, dash: 120 });
+// a soft dark patch behind the solar system so its planets stand out against the bright arms
+const sunVeil = sprite(sGal, 1, 'veil', `uniform float uA; varying vec2 vUv; void main(){ float r = length(vUv); gl_FragColor = vec4(vec3(0.004,0.006,0.012), uA*(1.-smoothstep(0.3, 0.75, r))*0.85); }`);
+sunVeil.material.blending = T.NormalBlending; sunVeil.renderOrder = 7;
 const galSun = pointCloud(sGal, [0, 0, 0], {}, glowMat('galsun', [1, 0.85, 0.55])); galSun.renderOrder = 9;
 
 // ================= CAMERA =================
@@ -449,23 +453,27 @@ function curve(K) { // cubic Hermite through (t, value) keys in log space
       return Math.exp((2 * s3 - 3 * s2 + 1) * L[i - 1][1] + (s3 - 2 * s2 + s) * h * m[i - 1] + (-2 * s3 + 3 * s2) * L[i][1] + (s3 - s2) * h * m[i]); }
     return Math.exp(L.at(-1)[1]); };
 }
-const dSAt = curve([[2.6, 13], [6.2, 19], [9.0, 25], [12.6, 60], [14.6, 900], [16.6, 2e4], [18, 1e6], [24.4, 1e6], [25.95, 30]]);
-// orrery: 55 deg above the ecliptic, turned so Jupiter sits up the frame and Saturn swings in; slow orbit about the ecliptic pole
-const UP_IN = (() => { const y = yearAt(4.0), j = e2g(posD(4, y)).normalize(), sa = e2g(posD(5, y)).normalize(), w = sa.addScaledVector(j, -sa.dot(j)).normalize();
-  const v = j.multiplyScalar(Math.cos(30 * RAD)).addScaledVector(w, Math.sin(30 * RAD)); return v.addScaledVector(ECL_N, -v.dot(ECL_N)).normalize(); })();
-function orrery(t) { const up = UP_IN.clone().applyQuaternion(new T.Quaternion().setFromAxisAngle(ECL_N, (t - 4) * 0.045)), h = ECL_N.clone().cross(up).normalize();
+const dSAt = curve([[2.6, 13], [6.2, 19], [9.0, 25], [12.6, 60], [14.6, 100], [16.6, 150], [24.4, 150], [25.95, 30]]);
+// orrery: 55 deg above the ecliptic, turned so the Sun's in-plane motion runs UP the frame (the same way it runs in the
+// moving shots, so there is no sideways swing); slow orbit about the ecliptic pole that settles to zero when the Sun sets off
+const UP_IN = VG.clone().addScaledVector(ECL_N, -VG.dot(ECL_N)).normalize();
+function orrery(t, free = false) { const ang = free ? (t - 6.2) * 0.05 : (Math.min(t, 6.2) - 6.2) * 0.045;
+  const up = UP_IN.clone().applyQuaternion(new T.Quaternion().setFromAxisAngle(ECL_N, ang)), h = ECL_N.clone().cross(up).normalize();
   return { dir: ECL_N.clone().multiplyScalar(Math.cos(35 * RAD)).addScaledVector(h, Math.sin(35 * RAD)).normalize(), up }; }
+// the inset's own view of the solar system once the galaxy takes over: the orrery again, orbiting slowly, easing to the opening view for the loop
+function orreryLate(t) { if (t < 24.4) return orrery(t, true); const a = orrery(24.4, true), b = orrery(3), s = Math.pow(smooth(24.4, 25.95, t), 1.4);
+  return { dir: a.dir.clone().lerp(b.dir, s).normalize(), up: a.up.clone().lerp(b.up, s).normalize() }; }
 // moving: ahead of the Sun and off to the far side from the centre, 50 deg from its line of motion, looking back along the paths
 // (the Sun near the top of the frame, its path running down and away)
 const SIDE = (() => { const d = V3(-Math.cos(18 * RAD), 0, Math.sin(18 * RAD)); return d.addScaledVector(VG, -d.dot(VG)).normalize(); })();
 const RIDE_DIR = SIDE.clone().multiplyScalar(Math.sin(50 * RAD)).addScaledVector(VG, Math.cos(50 * RAD)), RIDE_UP = VG.clone().multiplyScalar(Math.sin(50 * RAD)).addScaledVector(SIDE, -Math.cos(50 * RAD));
-function poseA(t) { const o = orrery(Math.min(t, 10)), s = smooth(6.0, 10.4, t), dS = dSAt(t), dG = 22000;
+function poseA(t) { const o = orrery(t), s = smooth(6.0, 10.4, t), dS = dSAt(t), dG = 22000;
   const dir = slerpDir(o.dir, RIDE_DIR, s), up = slerpDir(o.up, RIDE_UP, smooth(6.0, 8.2, t));
   const lookS = o.up.clone().multiplyScalar(1.3 * (1 - s)).addScaledVector(VG, -0.3 * dS * s);     // solar units
   return P(dir.multiplyScalar(dG), lookS.multiplyScalar(dG / dS), up); }
 // the whole galaxy: from 34 deg above the disc on the far side from the centre, the disc's long axis up the frame; slow orbit
 function poseB(t) { const q = new T.Quaternion().setFromAxisAngle(V3(0, 0, 1), 0.03 * (t - 12.6));
-  return P(GC.clone().addScaledVector(V3(-Math.cos(34 * RAD), 0, Math.sin(34 * RAD)).applyQuaternion(q), 118000), GC.clone(), V3(0, 1, 0).applyQuaternion(q)); }
+  return P(GC.clone().addScaledVector(V3(-Math.cos(34 * RAD), 0, Math.sin(34 * RAD)).applyQuaternion(q), 165000), GC.clone(), V3(0, 1, 0).applyQuaternion(q)); }
 // home: down onto the Sun (back at its start after the lap), ending on the orrery's opening view
 function poseC(t) { const o = orrery(3); return P(o.dir.multiplyScalar(4000), V3(), o.up); }
 function galPoseAt(t) {
@@ -531,7 +539,8 @@ function overlay(t, st) {
     chip(t >= 15.25 ? 'SAGITTARIUS A*' : '', 540, 370, 50, a); text(typed('A BLACK HOLE · 4 MILLION SUNS', 15.55, 16.0, t), 540, 446, 30, C_CREAM, { alpha: a, spacing: 1 }); }
   // the Sun's place, and the lap
   if (t > 14.9 && t < 24.4) { const [x, y, f] = projWith(camG, sunGal(t)); const a = smooth(14.9, 15.3, t) * (1 - smooth(24.1, 24.4, t));
-    if (f) { ringMark(x, y, 26, a); text('THE SUN', x, y + 56, 26, C_CREAM, { alpha: a * (t < 17.6 || t > 22.6 ? 1 : 0.7), spacing: 3 }); } }
+    const rr = 12.8 * 1920 / (2 * Math.tan(FOV * RAD / 2) * dSAt(t)) + 16;      // a ring round the whole solar system
+    if (f) { ringMark(x, y, rr, a * 0.55); text('THE SUN + 8 PLANETS', x, y + rr + 36, 24, C_CREAM, { alpha: a * (y < 1280 ? 1 : 0), spacing: 3 }); } }
   const pA = smooth(17.6, 17.8, t) * (1 - smooth(23.6, 23.8, t));
   text(typed('ONE LAP AROUND THE GALAXY', 17.6, 18.1, t), 540, 280, 44, C_CREAM, { alpha: pA });
   if (pA > 0) { text(`${Math.round(st.myr)}`, 540, 1520, 120, C_GOLD, { alpha: pA }); text('MILLION YEARS', 540, 1610, 36, C_CREAM, { alpha: pA, spacing: 4 }); }
@@ -557,10 +566,10 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   const st = state(t), y = yearAt(t), myth = t < 2.6;
   U.uTime.value = t;
   renderer.setClearColor('#02040a', 1); renderer.clear();
-  let poseS;
+  let poseS, sunNdc = null;
   // ---- galaxy layer ----
   if (!myth) {
-    const g = galPoseAt(t), dG = g.pos.length(), K = dSAt(t) / dG;
+    const g = galPoseAt(t), sun = sunGal(t);
     setCam(camG, g, Math.max(1e-3, g.pos.distanceTo(g.look) * 1e-4));
     galSky.position.copy(camG.position);
     const phi = lapPhase(t), reveal = smooth(12.6, 16, t); galaxy.rotation.z = -phi;
@@ -573,32 +582,41 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
     lapTrail.uniforms.uA.value = (phi > 1e-3 ? 1 : 0) * (1 - smooth(24.4, 25.0, t));
     lapCircle.uniforms.uStart.value = 0; lapCircle.uniforms.uNow.value = 2 * Math.PI; lapCircle.uniforms.uWidth.value = 2.4; lapCircle.uniforms.uHead.value = 1e-6;
     lapCircle.uniforms.uA.value = 0.4 * smooth(16.4, 17.4, t) * (1 - smooth(24.2, 24.8, t));
-    galSun.position.copy(sunGal(t)); galSun.material.uniforms.uA.value = smooth(13.8, 15.2, t) * (1 - smooth(25.2, 25.6, t)); galSun.material.uniforms.uPx.value = 22;
+    galSun.position.copy(sun); galSun.material.uniforms.uA.value = smooth(13.8, 14.6, t) * (1 - smooth(15.0, 16.0, t)); galSun.material.uniforms.uPx.value = 22;
+    // the inset's camera: the galaxy camera's offset from the Sun times K, so the two line up exactly; once the galaxy takes over it
+    // eases into its own orrery view, with the Sun kept on the screen point where the galaxy shows it
+    const rel = g.pos.clone().sub(sun), dSv = dSAt(t), K = dSv / rel.length(), w = smooth(12.6, 17.0, t), o2 = orreryLate(t);
+    const look = g.look.clone().sub(sun).multiplyScalar(K * (1 - w));
+    poseS = P(slerpDir(rel, o2.dir, w).multiplyScalar(dSv), look, slerpDir(g.up, o2.up, w));
+    sunNdc = sun.clone().project(camG);
+    sunVeil.position.copy(sun); sunVeil.scale.setScalar(2 * 13 * 1.9 / K); sunVeil.material.uniforms.uA.value = smooth(15.5, 17.2, t) * (1 - smooth(24.2, 24.9, t));
     renderer.render(sGal, camG); renderer.clearDepth();
-    poseS = P(g.pos.clone().multiplyScalar(K), g.look.clone().multiplyScalar(K), g.up);
   } else poseS = MYTH_CAM(t);
   // ---- solar layer (an enlarged inset at the Sun) ----
   const dS = poseS.pos.length(), showSolar = myth ? 0 : 1 - smooth(600, 5000, dS);
   setCam(camS, poseS, myth ? 0.01 : Math.max(1e-3, dS * 2e-3));
+  if (sunNdc) { const so = V3().project(camS); camS.projectionMatrix.elements[8] += so.x - sunNdc.x; camS.projectionMatrix.elements[9] += so.y - sunNdc.y; }
   sky.visible = myth; sky.position.copy(camS.position);
-  bodies.forEach((b, i) => { const pe = posD(i, y); b.group.position.copy(pe);
-    b.spin.rotation.y = spinHours(t) / Math.abs(PL[i].day_h) * 2 * Math.PI + i * 1.3; b.group.visible = showSolar > 0.01;
-    glows[i].position.copy(pe); glows[i].material.uniforms.uA.value = showSolar * smooth(30, 160, dS) * 0.9; glows[i].material.uniforms.uPx.value = 9 + 1.5 * Math.sqrt(i); });
+  const lapW = smooth(15.5, 17.2, t) * (1 - smooth(24.2, 24.9, t));
+  const mythW = PL.map((p, i) => mythPos(i, t).addScaledVector(MYTH_AX, -MYTH_V * t)), mScale = PL.map((p, i) => myth ? MYTHR[i] / p.R : 1);
+  bodies.forEach((b, i) => { const pe = myth ? g2e(mythW[i]) : posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(mScale[i]);
+    b.spin.rotation.y = (myth ? t * 30 : spinHours(t)) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3; b.group.visible = myth || showSolar > 0.01;
+    glows[i].position.copy(pe); glows[i].material.uniforms.uA.value = showSolar * smooth(30, 160, dS) * 0.9; glows[i].material.uniforms.uPx.value = 9 + 1.5 * Math.sqrt(i) + 8 * lapW; });
   for (const m of [...mats, ringMat, uRingMat, ...moonBodies.map(mb => mb.mat)]) m.uniforms.uSunPos.value.set(0, 0, 0);
-  mats[5].uniforms.uCtr.value.copy(e2g(posD(5, y))); mats[5].uniforms.uRad.value = PL[5].R; mats[5].uniforms.uRingN.value.copy(e2g(bodies[5].pole));
-  ringU.uCtr.value.copy(mats[5].uniforms.uCtr.value); ringU.uRad.value = PL[5].R;
-  uRingMat.uniforms.uCtr.value.copy(e2g(posD(6, y))); uRingMat.uniforms.uRad.value = PL[6].R;
+  mats[5].uniforms.uCtr.value.copy(myth ? mythW[5] : e2g(posD(5, y))); mats[5].uniforms.uRad.value = PL[5].R * mScale[5]; mats[5].uniforms.uRingN.value.copy(e2g(bodies[5].pole));
+  ringU.uCtr.value.copy(mats[5].uniforms.uCtr.value); ringU.uRad.value = PL[5].R * mScale[5];
+  uRingMat.uniforms.uCtr.value.copy(myth ? mythW[6] : e2g(posD(6, y))); uRingMat.uniforms.uRad.value = PL[6].R * mScale[6];
   EU.uCloudShift.value = t * 0.003;
-  moonBodies.forEach((mb, k) => { mb.mesh.position.copy(moonPos(mb, t, y)); mb.mesh.visible = showSolar > 0.01 && dS < 400; moonGlows[k].material.uniforms.uA.value = 0; });
+  moonBodies.forEach((mb, k) => { mb.mesh.position.copy(moonPos(mb, t, y)); mb.mesh.visible = showSolar > 0.01 && dS < 100; moonGlows[k].material.uniforms.uA.value = 0; });
   // the Sun
-  const sunS = R_SUN_D / R_SUN; sunMesh.scale.setScalar(sunS); corona.scale.setScalar(sunS);
-  sunMesh.visible = !myth && showSolar > 0.01; corona.visible = sunMesh.visible && dS < 90; corona.material.uniforms.uA.value = 0.8;
-  sunGlare.visible = !myth; sunGlare.scale.setScalar(Math.max(R_SUN_D * 7, dS * 0.06)); sunGlare.material.uniforms.uA.value = showSolar * 0.55;
+  const sunS = (myth ? 0.5 : R_SUN_D) / R_SUN; sunMesh.scale.setScalar(sunS); corona.scale.setScalar(sunS);
+  sunMesh.visible = myth || showSolar > 0.01; corona.visible = sunMesh.visible && dS < 90; corona.material.uniforms.uA.value = 0.8;
+  sunGlare.visible = true; sunGlare.scale.setScalar(myth ? 3.4 : Math.max(R_SUN_D * 7, dS * 0.06)); sunGlare.material.uniforms.uA.value = myth ? 0.5 * (1 - smooth(1.9, 2.55, t)) : showSolar * 0.55;
   // belts and orbits (Sun at rest), then the true paths (Sun moving)
   astBelt.material.uniforms.uY.value = kuiper.material.uniforms.uY.value = y;
-  const restA = myth ? 0 : smooth(2.6, 3.2, t) * (1 - smooth(T_MOVE, T_MOVE + 0.8, t)) + smooth(25.1, 25.6, t);
-  astBelt.material.uniforms.uA.value = restA * 0.35; kuiper.material.uniforms.uA.value = restA * 0.3;
-  rings.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = y - PL[i].P * 0.995; m.uniforms.uA.value = restA * 0.8; m.uniforms.uWidth.value = 2.2; m.uniforms.uHead.value = 0.02; });
+  const lapA = smooth(15.5, 17.2, t) * (1 - smooth(24.2, 24.9, t)), restA = myth ? 0 : smooth(2.6, 3.2, t) * (1 - smooth(T_MOVE, T_MOVE + 0.8, t)) + smooth(25.1, 25.6, t) + lapA;
+  astBelt.material.uniforms.uA.value = (restA - lapA) * 0.35; kuiper.material.uniforms.uA.value = (restA - lapA) * 0.3;
+  rings.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = y - PL[i].P * 0.995; m.uniforms.uA.value = restA * 0.8; m.uniforms.uWidth.value = 2.2 + 1.8 * lapA; m.uniforms.uHead.value = 0.02; });
   const moveA = myth ? 0 : smooth(T_MOVE, T_MOVE + 0.4, t) * (1 - smooth(14.5, 16.5, t)) * showSolar;
   trails.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = Y_MOVE; m.uniforms.uA.value = moveA * (i === 2 ? 1.25 : 1);
     m.uniforms.uWidth.value = i === 2 ? 4 : 3; m.uniforms.uHead.value = 0.04; });
@@ -607,8 +625,8 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   // the myth
   const mA = myth ? 1 - smooth(1.9, 2.55, t) : 0;
   mythTrails.forEach(m => { m.uniforms.uNow.value = t; m.uniforms.uStart.value = t - 6; m.uniforms.uA.value = mA * (1 - smooth(1.6, 2.3, t)); m.uniforms.uWidth.value = 3.2; m.uniforms.uHead.value = 0.15; });
-  mythBeads.forEach((b, i) => { b.position.copy(mythPos(i, t)).addScaledVector(MYTH_AX, -MYTH_V * t); b.material.uniforms.uA.value = mA; b.visible = myth; });
-  mythSun.position.set(0, 0, 0); mythSun.material.uniforms.uA.value = mA; mythSun.visible = myth; mythTail.uniforms.uA.value = mA;
+  mythBeads.forEach(b => { b.visible = false; });
+  mythSun.position.set(0, 0, 0); mythSun.material.uniforms.uA.value = mA * 0.3; mythSun.visible = myth; mythTail.uniforms.uA.value = mA;
   renderer.render(sSolar, camS);
   drawFilm();
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 420, 540, 960, 1180); v.addColorStop(0, 'rgba(2,4,10,0)'); v.addColorStop(1, 'rgba(2,4,10,0.65)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
