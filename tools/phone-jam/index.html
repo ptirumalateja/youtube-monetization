@@ -1,0 +1,296 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// The Jam Is Made of Phones: night city, phones as gold dots, a jam that is 99 phones in a wagon.
+// window.renderAt(t) -> jpeg dataURL (motion-blurred), window.projAt(t) -> screen positions for the overlay.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/960;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.outputColorSpace=THREE.LinearSRGBColorSpace; renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); const FOGC=new THREE.Color(0x03050b); scene.background=FOGC.clone();
+const FOV=50; const cam=new THREE.PerspectiveCamera(FOV,W/H,0.05,6000);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(611);
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x)); const lerp=(a,b,k)=>a+(b-a)*k;
+const sst=(a,b,x)=>{const k=clamp((x-a)/(b-a),0,1);return k*k*(3-2*k)}; const s5=(a,b,x)=>{const k=clamp((x-a)/(b-a),0,1);return k*k*k*(k*(k*6-15)+10)};
+const DUR=22, BLK=96, ST=16, HALFST=8;
+const TEAL=new THREE.Color(0.10,0.85,0.78), GOLD=new THREE.Color(1.0,0.70,0.26), RED=new THREE.Color(0.84,0.24,0.19), CREAM=new THREE.Color(1.0,0.92,0.78);
+const FOG_GLSL=`uniform vec3 uFog; uniform float uFogD; vec3 fogit(vec3 c,float d){ float f=1.0-exp(-pow(d*uFogD,1.6)); return mix(c,uFog,clamp(f,0.0,1.0)); }`;
+const fogU=()=>({uFog:{value:FOGC},uFogD:{value:1/1100}});
+const allFog=[];
+// ---------------------------------------------------------------- 1. the 99: front and rear of the phone stream along the avenue (travel = -z)
+// s = distance travelled along -z. Front slows first (jam head), rear keeps speed and piles in; both end at walking pace.
+const VF=40, VJ=1.2;
+const fv=t=> t<4.5?VF: lerp(VF,VJ,s5(4.5,7.0,t));
+const rv=t=> t<8.3?VF: lerp(VF,VJ,s5(8.3,10.0,t));
+const TT=[],FS=[],RS=[]; {const dt=0.002; let f=0,r=0; for(let t=0;t<=DUR+0.001;t+=dt){TT.push(t);FS.push(f);RS.push(r); f+=fv(t)*dt; r+=rv(t)*dt;}
+ const i10=Math.round(10/dt); const WAG=1.3; const fo=-FS[i10], ro=-RS[i10]-WAG; for(let i=0;i<FS.length;i++){FS[i]+=fo; RS[i]+=ro;}}
+const tab=(A,t)=>{const x=clamp(t,0,DUR)/0.002; const i=Math.min(A.length-2,Math.floor(x)); return lerp(A[i],A[i+1],x-i)};
+const fS=t=>tab(FS,t), rS=t=>tab(RS,t);
+const N99=99; const U=[],LANE=[],APP=[],GRID=[];
+{const r2=rnd(99); const order=[...Array(N99).keys()].sort(()=>r2()-0.5);
+ for(let i=0;i<N99;i++){U.push(clamp(i/(N99-1)+(r2()-0.5)*0.008,0,1)); LANE.push([-4.6,-1.6,1.6,4.6][Math.floor(r2()*4)]+(r2()-0.5)*0.8);}
+ // reporting order: the counter rises 0->99 between 2.5 s and 9.6 s, faster at the end (accelerating pings)
+ order.forEach((idx,k)=>{APP[idx]=2.5+7.1*Math.pow(k/(N99-1),0.8);});
+ for(let i=0;i<N99;i++){const c=i%9, rw=Math.floor(i/9); GRID.push([(c-4)*0.085+(r2()-0.5)*0.02, 0.58+(rw%2)*0.012+r2()*0.01, (rw-5)*0.11+(r2()-0.5)*0.03, (r2()-0.5)*0.5]);}}
+const knotZ=t=>-(fS(t)-0.65);           // wagon centre z
+const mW=t=>s5(8.9,10.4,t);               // stream -> wagon bed
+function p99(i,t){ const f=fS(t), r=rS(t); const s=r+U[i]*(f-r); const lane=LANE[i]*(1-sst(7.5,10.0,t)*0.9);
+  const sx=lane, sz=-s, sy=0.9; const g=GRID[i]; const zc=knotZ(t); const m=mW(t);
+  return [lerp(sx,g[0],m), lerp(sy,g[1],m), lerp(sz,zc+g[2],m)]; }
+function v99(i,t){ return rv(t)+U[i]*(fv(t)-rv(t)); }
+// ---------------------------------------------------------------- 2. ground: streets, sidewalks, light pools, block floors
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.ShaderMaterial({uniforms:Object.assign(fogU(),{}),
+ vertexShader:`varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+ fragmentShader:`${FOG_GLSL} varying vec3 vW;
+  float h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+  void main(){ float dx=abs(mod(vW.x+48.0,96.0)-48.0), dz=abs(mod(vW.z+48.0,96.0)-48.0);
+   bool sx=dx<8.0, sz=dz<8.0; vec3 c=vec3(0.020,0.024,0.034);
+   if(sx||sz){ c=vec3(0.034,0.040,0.056);
+     float lane=0.0; if(sx&&!sz){ float d=dx; lane=(abs(d-0.0)<0.12?1.0:0.0)*step(mod(vW.z,9.0),4.5); lane+= (abs(d-4.0)<0.08?0.5:0.0)*step(mod(vW.z,6.0),2.2);}
+     if(sz&&!sx){ float d=dz; lane=(abs(d-0.0)<0.12?1.0:0.0)*step(mod(vW.x,9.0),4.5); lane+= (abs(d-4.0)<0.08?0.5:0.0)*step(mod(vW.x,6.0),2.2);}
+     if(sx&&sz){ float zb=step(mod(vW.x+vW.z,2.4),1.0)*0.0; lane=0.0; }
+     // zebra crossings at intersections
+     if(sx && dz>8.0 && dz<11.0){ lane+=step(mod(vW.x,1.6),0.8)*0.6; }
+     if(sz && dx>8.0 && dx<11.0){ lane+=step(mod(vW.z,1.6),0.8)*0.6; }
+     c+=vec3(0.23,0.22,0.19)*lane*0.55; }
+   else if(dx<11.0||dz<11.0){ c=vec3(0.050,0.056,0.072); }
+   else { float n=h21(floor(vW.xz/4.0)); c+=vec3(0.004,0.006,0.010)*n; }
+   // warm light pools from streetlights every 32 m on both kerbs (wet asphalt sheen)
+   float ax=mod(vW.z+16.0,32.0)-16.0, az=mod(vW.x+16.0,32.0)-16.0; float pool=0.0;
+   if(dx<14.0){ float kx=min(abs(dx-9.0),abs(dx+9.0)); pool+=exp(-(ax*ax+ (dx-9.0)*(dx-9.0))/30.0); }
+   if(dz<14.0){ pool+=exp(-(az*az+ (dz-9.0)*(dz-9.0))/30.0); }
+   c+=vec3(0.30,0.19,0.09)*pool*0.22;
+   float d=length(vW-cameraPosition); gl_FragColor=vec4(fogit(c,d),1.0); }`}));
+ground.rotation.x=-Math.PI/2; scene.add(ground); allFog.push(ground.material);
+// ---------------------------------------------------------------- 3. buildings: instanced boxes with procedural windows
+const lots=[]; {for(let bx=-8;bx<8;bx++) for(let bz=-8;bz<8;bz++){ const cx=(bx+0.5)*BLK, cz=(bz+0.5)*BLK; const dist=Math.hypot(cx,cz);
+  const n=R()<0.5?2:3; const cell=78/n; if(R()<0.05) continue;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){ if(R()<0.12) continue; const w=cell*(0.78+R()*0.18), d=cell*(0.78+R()*0.18);
+    const boost=1.2*Math.exp(-dist*dist/(520*520))+0.25; let h=8+Math.pow(R(),2.2)*100*boost+R()*10; if(R()<0.03) h*=1.6;
+    lots.push([cx-39+cell*(i+0.5), cz-39+cell*(j+0.5), w, d, h, R()]); }}}
+const bGeo=new THREE.BoxGeometry(1,1,1); bGeo.translate(0,0.5,0);
+const bMat=new THREE.ShaderMaterial({uniforms:Object.assign(fogU(),{uTime:{value:0}}),
+ vertexShader:`attribute float aSeed; varying vec3 vW; varying vec3 vN; varying float vS; varying float vH;
+  void main(){ vec4 w=modelMatrix*instanceMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(instanceMatrix)*normal); vS=aSeed; vH=instanceMatrix[1][1]; gl_Position=projectionMatrix*viewMatrix*w; }`,
+ fragmentShader:`${FOG_GLSL} varying vec3 vW; varying vec3 vN; varying float vS; varying float vH;
+  float h31(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
+  void main(){ vec3 n=normalize(vN); vec3 c;
+   if(n.y>0.5){ c=vec3(0.020,0.026,0.040); if(vH>70.0){ float e=step(0.48,max(abs(fract(vW.x/6.0)-0.5),abs(fract(vW.z/6.0)-0.5))); c+=vec3(0.02,0.025,0.035)*e; } }
+   else { float a=abs(n.x)>0.5? vW.z: vW.x; float fl=floor(vW.y/3.6), col=floor(a/2.6);
+     vec2 f=vec2(fract(a/2.6),fract(vW.y/3.6)); float win=step(0.18,f.x)*step(f.x,0.82)*step(0.22,f.y)*step(f.y,0.78);
+     float hs=h31(vec3(col,fl,vS*91.0)); float band=step(0.55,h31(vec3(floor(fl/3.0),vS*13.0,1.0)));
+     float lit=step(0.84-0.14*band,hs)*step(1.0,vW.y);
+     vec3 warm=mix(vec3(1.0,0.72,0.40),vec3(1.0,0.90,0.70),h31(vec3(col,fl,3.0)));
+     vec3 cool=vec3(0.55,0.85,0.95); vec3 wc= h31(vec3(col,fl,7.0))<0.12? cool: warm;
+     float side=abs(n.x)>0.5?0.85:1.0;
+     c=vec3(0.010,0.014,0.026)*side*(0.7+0.6*clamp(vW.y/120.0,0.0,1.0));
+     c+=win*(lit*wc*(0.22+0.30*hs*hs) + (1.0-lit)*vec3(0.012,0.016,0.026));
+     c+=vec3(0.18,0.11,0.05)*exp(-vW.y/5.0)*0.25; }
+   float d=length(vW-cameraPosition); gl_FragColor=vec4(fogit(c,d),1.0); }`});
+const bInst=new THREE.InstancedMesh(bGeo,bMat,lots.length); const seeds=new Float32Array(lots.length);
+{const m=new THREE.Matrix4(); lots.forEach((L,i)=>{m.makeScale(L[2],L[4],L[3]); m.setPosition(L[0],0,L[1]); bInst.setMatrixAt(i,m); seeds[i]=L[5];});}
+bGeo.setAttribute('aSeed',new THREE.InstancedBufferAttribute(seeds,1)); bInst.frustumCulled=false; scene.add(bInst); allFog.push(bMat);
+// ---------------------------------------------------------------- 4. additive point layer (streetlights, phones, pings)
+let PK=0;
+function ptsMat(){ const key='p'+(PK++); const m=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  uniforms:Object.assign(fogU(),{uK:{value:HALF()/Math.tan(FOV*Math.PI/360)},uMin:{value:1.6*SC},uMax:{value:40*SC}}),
+  vertexShader:`attribute vec3 color; attribute float aSize; attribute float aA; varying vec3 vc; varying float vD; uniform float uK,uMin,uMax;
+   void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,0.05); float px=aSize*uK/d; float cl=clamp(px,uMin,uMax);
+    gl_PointSize=cl; vc=color*aA*(px<uMin? max(0.25,px/uMin):1.0); vD=d; gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`${FOG_GLSL} varying vec3 vc; varying float vD; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=exp(-r*r*5.0)+0.6*exp(-r*r*40.0); a*=step(r,1.0);
+   float f=1.0-exp(-pow(vD*uFogD,1.6)); gl_FragColor=vec4(vc*a*(1.0-0.85*f),1.0);} `}); m.customProgramCacheKey=()=>key; return m; }
+function HALF(){return H/2}
+function makePts(n){ const g=new THREE.BufferGeometry(); const P=new Float32Array(n*3),C=new Float32Array(n*3),S=new Float32Array(n),A=new Float32Array(n).fill(1);
+ g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('color',new THREE.BufferAttribute(C,3)); g.setAttribute('aSize',new THREE.BufferAttribute(S,1)); g.setAttribute('aA',new THREE.BufferAttribute(A,1));
+ const o=new THREE.Points(g,ptsMat()); o.frustumCulled=false; scene.add(o); return {o,g,P,C,S,A,n}; }
+// streetlights
+const SL=[]; for(let k=-7;k<=7;k++){ for(let s=-600;s<=600;s+=32){ for(const side of [-9.5,9.5]){ SL.push([k*BLK+side,7.5,s]); SL.push([s,7.5,k*BLK+side]); } } }
+const slP=makePts(SL.length); SL.forEach((p,i)=>{slP.P.set(p,i*3); const w=0.7+0.3*((i*7919)%13)/13; slP.C.set([1.0*w,0.66*w,0.34*w],i*3); slP.S[i]=1.1;});
+// ---------------------------------------------------------------- 5. ambient phones on every other street (loop-exact: 880 m per 22 s)
+const AMB=[]; {const r3=rnd(7); const SPAN=880;
+ for(let k=-4;k<=4;k++){ for(const axis of [0,1]){ if(axis===0&&k===0) continue; for(const dir of [1,-1]){ const nd= 14+Math.floor(r3()*12);
+   for(let j=0;j<nd;j++){ const lane=dir*(1.6+ (r3()<0.5?0:3.0))+(r3()-0.5)*0.6; AMB.push({axis,k,dir,lane,s0:r3()*SPAN,spd:SPAN/DUR*(r3()<0.25?2:1)}); }}}}
+ // the avenue's own traffic (visible only at the loop seam)
+ for(const dir of [1,-1]) for(let j=0;j<22;j++){ AMB.push({axis:0,k:0,dir,lane:dir*(1.6+(r3()<0.5?0:3.0)),s0:r3()*SPAN,spd:SPAN/DUR,ave:true}); }}
+function ambPos(a,t){ let s=(a.s0+a.spd*t)%880; s=a.dir>0? s-440 : 440-s; return a.axis===0? [a.k*BLK+a.lane,0.9,s] : [s,0.9,a.k*BLK-a.lane]; }
+const ambEdge=(a,t)=>{const p=ambPos(a,t); const s=a.axis===0?p[2]:p[0]; return 1-sst(330,440,Math.abs(s));};
+const aveAmb=t=> 1-sst(1.7,2.5,t)+sst(19.8,21.8,t);
+// ---------------------------------------------------------------- 6. light trails (ground-hugging ribbons: long = fast, short = slow)
+const NTR=AMB.length+N99; const trGeo=new THREE.BufferGeometry(); const trP=new Float32Array(NTR*4*3), trC=new Float32Array(NTR*4*3); const trI=[];
+for(let i=0;i<NTR;i++){const b=i*4; trI.push(b,b+1,b+2,b,b+2,b+3);}
+trGeo.setAttribute('position',new THREE.BufferAttribute(trP,3)); trGeo.setAttribute('color',new THREE.BufferAttribute(trC,3)); trGeo.setIndex(trI);
+const trMat=new THREE.ShaderMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:fogU(),
+ vertexShader:`attribute vec3 color; varying vec3 vc; varying float vD; void main(){ vc=color; vec4 mv=modelViewMatrix*vec4(position,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`${FOG_GLSL} varying vec3 vc; varying float vD; void main(){ float f=1.0-exp(-pow(vD*uFogD,1.6)); gl_FragColor=vec4(vc*(1.0-0.85*f),1.0);} `});
+const trails=new THREE.Mesh(trGeo,trMat); trails.frustumCulled=false; trails.renderOrder=5; scene.add(trails);
+function setTrail(i,head,tail,w,col,a){ const b=i*12; const dx=head[0]-tail[0], dz=head[2]-tail[2]; let L=Math.hypot(dx,dz); let nx=0,nz=0; if(L>1e-4){nx=-dz/L; nz=dx/L;} const y=0.12;
+ const pts=[[tail[0]+nx*w*0.3,y,tail[2]+nz*w*0.3],[tail[0]-nx*w*0.3,y,tail[2]-nz*w*0.3],[head[0]-nx*w,y,head[2]-nz*w],[head[0]+nx*w,y,head[2]+nz*w]];
+ for(let k=0;k<4;k++){trP.set(pts[k],b+k*3);} const ct=[col.r*a*0.0,col.g*a*0.0,col.b*a*0.0], ch=[col.r*a,col.g*a,col.b*a]; trC.set(ct,b); trC.set(ct,b+3); trC.set(ch,b+6); trC.set(ch,b+9); }
+// phones (points) = ambient + the 99, plus ping rings for the 99
+const ph=makePts(NTR); const pings=makePts(N99);
+// ---------------------------------------------------------------- 7. data layer: thin teal "traffic" lines on every street + the avenue line coloured by speed
+function lineMat(extra){ return new THREE.ShaderMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:Object.assign(fogU(),extra),
+ vertexShader:`attribute float aS; attribute vec2 aXZ; varying float vS; varying vec2 vXZ; varying float vD; varying vec2 vUv; void main(){ vS=aS; vXZ=aXZ; vUv=uv; vec4 mv=modelViewMatrix*vec4(position,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`${FOG_GLSL} varying float vS; varying vec2 vXZ; varying float vD; varying vec2 vUv; uniform vec3 uYou; uniform float uWave,uWaveA,uA,uSeg0,uSeg1,uJam,uFront,uRear,uRed0,uRed1,uRedA,uMode;
+  uniform vec3 cT,cG,cR; uniform float uCF;
+  void main(){ float edge=1.0-smoothstep(0.55,1.0,abs(vUv.y-0.5)*2.0); vec3 c=cT; float a=uA;
+   if(uMode>0.5){ // avenue: colour by phone speed inside the stream, plus the painted red block
+     float z=vXZ.y; float inS= step(-uRear,-z+0.0)*0.0; float s=-z; float u=clamp((s-uRear)/max(uFront-uRear,0.001),0.0,1.0);
+     float inside=smoothstep(uRear-8.0,uRear,s)*(1.0-smoothstep(uFront,uFront+8.0,s));
+     float spd=mix(uSeg0,uSeg1,u); vec3 sc= spd>24.0? cT : (spd>9.0? mix(cR,cG,(spd-9.0)/15.0)*1.0 : cR); if(spd>9.0&&spd<=24.0){ sc=mix(cG,cT,clamp((spd-18.0)/6.0,0.0,1.0)); }
+     c=mix(cT,sc,inside*uJam); a=mix(uA,0.48,inside*uJam);
+     float rb=smoothstep(uRed0-3.0,uRed0,z)*(1.0-smoothstep(uRed1,uRed1+3.0,z))*uRedA; c=mix(c,cR,rb); a=max(a,rb*0.8);
+   }
+   float wv=0.0; if(uWaveA>0.0){ float dd=length(vXZ-uYou.xz); wv=exp(-pow((dd-uWave)/26.0,2.0))*uWaveA; c=mix(c,vec3(0.6,1.0,0.95),wv*0.6); a=max(a,wv); }
+   float f=1.0-exp(-pow(vD*uFogD,1.6)); gl_FragColor=vec4(c*a*edge*(1.0-0.8*f)*uCF,1.0);} `}); }
+const lineU={uCF:{value:1},uYou:{value:new THREE.Vector3(0,0,250)},uWave:{value:0},uWaveA:{value:0},uA:{value:0.30},uSeg0:{value:40},uSeg1:{value:40},uJam:{value:0},uFront:{value:0},uRear:{value:0},uRed0:{value:0},uRed1:{value:0},uRedA:{value:0},uMode:{value:0},cT:{value:TEAL},cG:{value:GOLD},cR:{value:RED}};
+function ribbon(x0,z0,x1,z1,w,y,seg){ const L=Math.hypot(x1-x0,z1-z0); const n=seg||Math.max(2,Math.ceil(L/6)); const P=[],UV=[],XZ=[],S=[],I=[]; const nx=-(z1-z0)/L, nz=(x1-x0)/L;
+ for(let i=0;i<=n;i++){ const k=i/n; const x=lerp(x0,x1,k), z=lerp(z0,z1,k); P.push(x+nx*w/2,y,z+nz*w/2, x-nx*w/2,y,z-nz*w/2); UV.push(k,0,k,1); XZ.push(x,z,x,z); S.push(k*L,k*L); if(i<n){const b=i*2; I.push(b,b+1,b+2,b+1,b+3,b+2);} }
+ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2)); g.setAttribute('aXZ',new THREE.Float32BufferAttribute(XZ,2)); g.setAttribute('aS',new THREE.Float32BufferAttribute(S,1)); g.setIndex(I); return g; }
+const netMat=lineMat(lineU); netMat.uniforms=Object.assign({},netMat.uniforms,lineU); const aveU=Object.assign({},lineU,{uMode:{value:1},uA:{value:0.30},uWaveA:lineU.uWaveA,uWave:lineU.uWave,uYou:lineU.uYou}); const aveMat=lineMat(aveU); aveMat.uniforms=Object.assign({},aveMat.uniforms,aveU);
+for(let k=-6;k<=6;k++){ for(const axis of [0,1]){ if(axis===0&&k===0) continue; const g= axis===0? ribbon(k*BLK,620,k*BLK,-620,2.6,0.08,200) : ribbon(-620,k*BLK,620,k*BLK,2.6,0.08,200); const m=new THREE.Mesh(g,netMat); m.renderOrder=3; m.frustumCulled=false; scene.add(m);} }
+const redBlk=new THREE.Mesh(ribbon(0,90,0,-90,9,0.2,60),new THREE.ShaderMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uA:{value:0}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,fragmentShader:`varying vec2 vUv; uniform float uA; void main(){ float e=1.0-smoothstep(0.4,1.0,abs(vUv.y-0.5)*2.0); float en=smoothstep(0.0,0.04,vUv.x)*smoothstep(1.0,0.96,vUv.x); gl_FragColor=vec4(vec3(0.95,0.25,0.19)*uA*e*en,1.0);} `})); redBlk.renderOrder=19; redBlk.frustumCulled=false; scene.add(redBlk);
+const ave=new THREE.Mesh(ribbon(0,620,0,-620,2.8,0.09,900),aveMat); ave.renderOrder=4; ave.frustumCulled=false; scene.add(ave);
+// ---------------------------------------------------------------- 8. route layer: YOU, destination, old route, new route
+const YOU0=[0,0,250], DEST=[0,0,-250];
+const NEWR=[[0,250],[0,96],[96,96],[96,-96],[0,-96],[0,-250]]; const OLDR=[[0,250],[0,-250]];
+const routeMat=(col)=>new THREE.ShaderMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,uniforms:{uC:{value:col},uA:{value:0},uDraw:{value:0},uDash:{value:0}},
+ vertexShader:`attribute float aS; varying float vS; varying vec2 vUv; void main(){ vS=aS; vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying float vS; varying vec2 vUv; uniform vec3 uC; uniform float uA,uDraw,uDash; void main(){ if(vS>uDraw) discard; float e=1.0-smoothstep(0.5,1.0,abs(vUv.y-0.5)*2.0); float d= uDash>0.5? step(mod(vS,14.0),8.0):1.0; float head=exp(-pow((uDraw-vS)/10.0,2.0)); gl_FragColor=vec4(uC*(uA*e*d*(1.0+1.5*head)),1.0);} `});
+function polyRibbon(pts,w,y){ const P=[],UV=[],S=[],I=[]; let acc=0; let base=0; for(let i=0;i<pts.length-1;i++){ const [x0,z0]=pts[i],[x1,z1]=pts[i+1]; const L=Math.hypot(x1-x0,z1-z0); const n=Math.ceil(L/4); const nx=-(z1-z0)/L, nz=(x1-x0)/L;
+  for(let j=0;j<=n;j++){ const k=j/n; const x=lerp(x0,x1,k), z=lerp(z0,z1,k); P.push(x+nx*w/2,y,z+nz*w/2,x-nx*w/2,y,z-nz*w/2); UV.push(0,0,0,1); S.push(acc+k*L,acc+k*L); if(j<n){const b=base+j*2; I.push(b,b+1,b+2,b+1,b+3,b+2);} }
+  base+= (n+1)*2; acc+=L; }
+ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2)); g.setAttribute('aS',new THREE.Float32BufferAttribute(S,1)); g.setIndex(I); g.userData.L=acc; return g; }
+const oldG=polyRibbon(OLDR,5,0.3), newG=polyRibbon(NEWR,7,0.32);
+const oldR=new THREE.Mesh(oldG,routeMat(CREAM.clone())); oldR.material.uniforms.uDash.value=1; oldR.renderOrder=20; scene.add(oldR);
+const newR=new THREE.Mesh(newG,routeMat(new THREE.Color(0.25,1.0,0.92))); newR.renderOrder=21; scene.add(newR);
+function along(pts,s){ for(let i=0;i<pts.length-1;i++){ const [x0,z0]=pts[i],[x1,z1]=pts[i+1]; const L=Math.hypot(x1-x0,z1-z0); if(s<=L||i===pts.length-2){const k=clamp(s/L,0,1); return [lerp(x0,x1,k),lerp(z0,z1,k)];} s-=L; } }
+const marks=makePts(4); marks.o.material.uniforms.uMax.value=220*SC; marks.o.renderOrder=30; marks.o.material.depthTest=false; // 0 YOU core, 1 YOU halo, 2 dest, 3 dest halo
+// ---------------------------------------------------------------- 9. close-up: wagon, 99 phone screens, walker
+const amb=new THREE.HemisphereLight(0x3a4a70,0x0a0806,0.9); scene.add(amb);
+const screenL=new THREE.PointLight(0x7fe8ff,0,8,1.4); scene.add(screenL);
+const warmL=new THREE.PointLight(0xffb070,0,40,1.2); scene.add(warmL);
+const wagon=new THREE.Group(); scene.add(wagon);
+{const mat=new THREE.MeshStandardMaterial({color:0x2a2f3a,roughness:0.55,metalness:0.6});
+ const bed=new THREE.Mesh(new THREE.BoxGeometry(0.92,0.05,1.32),mat); bed.position.y=0.42; wagon.add(bed);
+ for(const [w,h,d,x,y,z] of [[0.04,0.24,1.32,0.46,0.54,0],[0.04,0.24,1.32,-0.46,0.54,0],[0.92,0.24,0.04,0,0.54,0.66],[0.92,0.24,0.04,0,0.54,-0.66]]){const s=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); s.position.set(x,y,z); wagon.add(s);}
+ const wm=new THREE.MeshStandardMaterial({color:0x111318,roughness:0.8}); const wg=new THREE.CylinderGeometry(0.16,0.16,0.07,20); wg.rotateZ(Math.PI/2);
+ window.wheels=[]; for(const [x,z] of [[0.5,0.45],[-0.5,0.45],[0.5,-0.45],[-0.5,-0.45]]){const w=new THREE.Mesh(wg,wm); w.position.set(x,0.16,z); wagon.add(w); wheels.push(w);}
+ const hd=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.015,1.15,8),mat); hd.rotation.x=Math.PI/2+0.62; hd.position.set(0,0.62,-1.12); wagon.add(hd); }
+const phGeo=new THREE.BoxGeometry(0.072,0.009,0.148); const phMat=new THREE.ShaderMaterial({uniforms:{uA:{value:0},uT:{value:0}},
+ vertexShader:`varying vec3 vN; varying vec2 vUv; varying float vI; void main(){ vN=normalize(mat3(instanceMatrix)*normal); vUv=uv; vI=float(gl_InstanceID); gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*vec4(position,1.0);} `,
+ fragmentShader:`varying vec3 vN; varying vec2 vUv; varying float vI; uniform float uA,uT;
+  float sdSeg(vec2 p,vec2 a,vec2 b){ vec2 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0); return length(pa-ba*h); }
+  void main(){ vec3 c=vec3(0.015,0.017,0.022);
+   if(vN.y>0.5){ vec2 p=vUv; float bez=step(0.06,p.x)*step(p.x,0.94)*step(0.04,p.y)*step(p.y,0.96);
+     vec3 sc=vec3(0.035,0.055,0.09); float gx=step(0.9,fract(p.x*5.0+0.3))+step(0.9,fract(p.y*9.0+0.1)); sc+=vec3(0.03,0.05,0.07)*min(gx,1.0);
+     sc+=vec3(0.02,0.10,0.10); float rd=sdSeg(p,vec2(0.5,0.05),vec2(0.5,0.95)); sc=mix(sc,vec3(0.95,0.26,0.20),1.0-smoothstep(0.02,0.04,rd));
+     float dot_=length((p-vec2(0.5,0.55+0.05*sin(uT*2.0+vI)))*vec2(1.0,2.0)); sc=mix(sc,vec3(1.0,0.8,0.35),1.0-smoothstep(0.05,0.08,dot_));
+     c=mix(c,sc*3.2,bez); }
+   gl_FragColor=vec4(c*uA,1.0);} `});
+const phones=new THREE.InstancedMesh(phGeo,phMat,N99); phones.frustumCulled=false; scene.add(phones);
+const walker=new THREE.Group(); scene.add(walker);
+const WK={}; {const m=new THREE.MeshStandardMaterial({color:0x1c2230,roughness:0.7,metalness:0.1}); const sk=new THREE.MeshStandardMaterial({color:0x3a3430,roughness:0.6});
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(0.17,0.5,4,10),m); torso.position.y=1.22; walker.add(torso);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(0.11,16,12),sk); head.position.y=1.68; walker.add(head);
+ const hood=new THREE.Mesh(new THREE.SphereGeometry(0.125,16,12,0,Math.PI*2,0,Math.PI*0.6),m); hood.position.y=1.7; hood.rotation.x=0.35; walker.add(hood);
+ for(const side of [-1,1]){ const hip=new THREE.Group(); hip.position.set(0.09*side,0.92,0); const leg=new THREE.Mesh(new THREE.CapsuleGeometry(0.07,0.72,4,8),m); leg.position.y=-0.44; hip.add(leg); walker.add(hip); WK['leg'+side]=hip;
+  const sh=new THREE.Group(); sh.position.set(0.22*side,1.45,0); const arm=new THREE.Mesh(new THREE.CapsuleGeometry(0.05,0.55,4,8),m); arm.position.y=-0.32; sh.add(arm); walker.add(sh); WK['arm'+side]=sh; } }
+// ---------------------------------------------------------------- 10. post: bloom + grade (teal shadows, warm highlights, vignette, grain, soft clamp)
+const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.6,0.5,0.38); composer.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uExp:{value:1},uFlash:{value:0}},
+ vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=vec4(position.xy,0.0,1.0);} `,
+ fragmentShader:`uniform sampler2D tDiffuse; uniform float uT,uExp,uFlash; varying vec2 vUv;
+  float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+  void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb*uExp; c=1.0-exp(-1.25*c);
+   float l=dot(c,vec3(0.299,0.587,0.114)); c=mix(c,c*vec3(0.86,1.0,1.08),(1.0-smoothstep(0.0,0.35,l))*0.5); c=mix(c,c*vec3(1.06,1.0,0.9),smoothstep(0.4,1.0,l)*0.4);
+   vec2 d=vUv-0.5; d.x*=0.75; c*=1.0-0.55*smoothstep(0.25,0.75,length(d));
+   c+=uFlash*vec3(0.9,0.85,0.75);
+   c+=(h(vUv*vec2(1123.0,2011.0)+fract(uT*7.13))-0.5)*0.035; gl_FragColor=vec4(c,1.0);} `});
+composer.addPass(grade);
+// ---------------------------------------------------------------- 11. camera: segment functions blended with log-distance interpolation
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const P0=V(-80,330,250), T0=V(0,0,-70);
+const segA=t=>({p:P0.clone().add(V(4*t,-9*t,-16*t)), g:T0.clone().add(V(0,0,-6*t))});
+const segB=t=>{ const zf=-fS(t); const k=s5(6.0,10.0,t); return {p:V(lerp(0,3,k),lerp(48,15,k),zf+lerp(70,24,k)), g:V(0,0,zf+lerp(-22,2,k))}; };
+const segC=t=>{ const zc=knotZ(t); const a=0.62+0.10*(t-11.4); const r=lerp(3.3,2.9,s5(11.4,14.3,t)); return {p:V(Math.sin(a)*r,lerp(2.5,2.3,s5(11.4,14.3,t)),zc+Math.cos(a)*r), g:V(0,0.55,zc-0.75)}; };
+const segD=t=>({p:V(20,640-8*(t-15.2),235-6*(t-15.2)), g:V(30,0,65)});
+const segE=t=>segA(t-DUR);
+function blendSeg(a,b,k){ const ga=a.g, gb=b.g; const oa=a.p.clone().sub(ga), ob=b.p.clone().sub(gb); const la=oa.length(), lb=ob.length();
+ const g=ga.clone().lerp(gb,k); const dir=oa.clone().normalize().lerp(ob.clone().normalize(),k).normalize(); const L=Math.exp(lerp(Math.log(la),Math.log(lb),k)); return {p:g.clone().add(dir.multiplyScalar(L)),g}; }
+function camAt(t){
+ if(t<1.85) return segA(t);
+ if(t<2.6) return blendSeg(segA(t),segB(t),s5(1.85,2.6,t));
+ if(t<10.55) return segB(t);
+ if(t<11.4) return blendSeg(segB(t),segC(t),s5(10.55,11.4,t));
+ if(t<14.3) return segC(t);
+ if(t<15.2) return blendSeg(segC(t),segD(t),s5(14.3,15.2,t));
+ if(t<18.6) return segD(t);
+ if(t<21.0) return blendSeg(segD(t),segE(t),s5(18.6,21.0,t));
+ return segE(t); }
+// ---------------------------------------------------------------- 12. scene state at time t
+const tmpM=new THREE.Matrix4(), tmpQ=new THREE.Quaternion(), tmpE=new THREE.Euler();
+function setScene(t){
+ const c=camAt(t); cam.position.copy(c.p); cam.up.set(0,1,0); cam.lookAt(c.g);
+ const near= cam.position.y<8; cam.near= near?0.05:0.5; cam.far= near?900:6000; cam.updateProjectionMatrix(); const gF=sst(5,22,cam.position.y);
+ // hit pulse on frame 0 (and its echo when the loop returns)
+ const pulse=Math.exp(-t/0.35)+0.5*Math.exp(-Math.max(0,t-2.15)/0.25)*(t>2.15?1:0);
+ // ambient phones
+ for(let i=0;i<AMB.length;i++){ const a=AMB[i]; const p=ambPos(a,t); const hs=Math.max(1,cam.position.y/70); let al=ambEdge(a,t)*(a.ave?aveAmb(t):1)*gF; const L=a.spd*0.42; const dirv= a.axis===0? [0,0,a.dir>0?1:-1] : [a.dir>0?1:-1,0,0];
+  // keep the avenue's red block empty of other traffic once the jam is painted
+  ph.P.set(p,i*3); const col= GOLD; const b=0.75*al*(1+0.8*pulse); ph.C.set([col.r*b,col.g*b,col.b*b],i*3); ph.S[i]=1.4*hs; ph.A[i]=1;
+  const tail=[p[0]-dirv[0]*L,p[1],p[2]-dirv[2]*L]; setTrail(i,p,tail,0.5*hs,GOLD,0.55*al); }
+ // the 99
+ const showR=1-sst(19.6,21.2,t); const mPh=sst(10.75,11.25,t)*(1-sst(14.35,14.7,t));
+ let count=0; for(let i=0;i<N99;i++){ const j=AMB.length+i; const on=sst(APP[i]-0.05,APP[i]+0.05,t)*showR; if(t>=APP[i]) count++;
+  const p=p99(i,t); const v=v99(i,t); ph.P.set(p,j*3); const age=t-APP[i]; const flash= age>0? Math.exp(-age/0.25):0;
+  const bb=on*(1.0+2.0*flash)*(1-mPh*0.92)*(1-0.8*sst(6.5,9.5,t)); ph.C.set([GOLD.r*bb,GOLD.g*bb,GOLD.b*bb*0.9],j*3); ph.S[j]=lerp(1.9,0.22,sst(9.5,11.0,t)); ph.A[j]=1;
+  const hs9=Math.max(1,cam.position.y/70); const L=v*0.42*(1-mW(t)); const tail=[p[0],p[1],p[2]+L]; setTrail(j,p,tail,0.5*hs9,GOLD,0.5*on*(1-mW(t))*(1-0.8*sst(6.0,9.0,t)));
+  // ping ring
+  const pr=age>0&&age<0.5? age/0.5:1; pings.P.set([p[0],p[1]+0.2,p[2]],i*3); const pa=(age>0&&age<0.5)?(1-pr)*on:0; pings.C.set([CREAM.r*pa,CREAM.g*pa,CREAM.b*pa],i*3); pings.S[i]=lerp(1.0,9.0,pr);
+ }
+ ph.g.attributes.position.needsUpdate=ph.g.attributes.color.needsUpdate=ph.g.attributes.aSize.needsUpdate=true;
+ pings.g.attributes.position.needsUpdate=pings.g.attributes.color.needsUpdate=pings.g.attributes.aSize.needsUpdate=true;
+ trGeo.attributes.position.needsUpdate=trGeo.attributes.color.needsUpdate=true;
+ // avenue data line
+ aveU.uFront.value=fS(t)+2; aveU.uRear.value=rS(t)-2; aveU.uSeg0.value=rv(t); aveU.uSeg1.value=fv(t); aveU.uJam.value=sst(2.4,3.2,t)*showR;
+ const redS=s5(9.6,10.9,t); aveU.uRed0.value=lerp(knotZ(t)-4,-90,redS); aveU.uRed1.value=lerp(knotZ(t)+4,90,redS); aveU.uRedA.value=sst(9.4,9.9,t)*showR;
+ lineU.uCF.value=lerp(0.18,1,sst(3,25,cam.position.y)); redBlk.material.uniforms.uA.value=sst(14.6,15.3,t)*(1-sst(19.6,21,t))*0.9; aveU.uA.value=0.30; lineU.uA.value=0.28+0.12*sst(14.6,15.4,t)*(1-sst(19,21,t));
+ // routing
+ const wv=(t-15.35)/1.0; lineU.uWaveA.value= (wv>0&&wv<1.25)? (1-sst(0.9,1.25,wv)) : 0; lineU.uWave.value=wv*620;
+ const youS= s5(16.95,19.2,t)*260; const yp= along(NEWR, youS); lineU.uYou.value.set(YOU0[0],0,YOU0[2]);
+ const rA=sst(14.9,15.3,t)*(1-sst(19.0,20.4,t));
+ oldR.material.uniforms.uA.value=0.85*rA*(1-sst(16.35,16.7,t)); oldR.material.uniforms.uDraw.value=sst(14.95,15.35,t)*oldG.userData.L;
+ newR.material.uniforms.uA.value=1.1*rA; newR.material.uniforms.uDraw.value=s5(16.4,17.15,t)*newG.userData.L;
+ const youA=rA; marks.P.set([yp[0],1.5,yp[1]],0); marks.P.set([yp[0],1.4,yp[1]],3); marks.P.set([DEST[0],1.5,DEST[2]],6); marks.P.set([DEST[0],1.4,DEST[2]],9);
+ const hb=0.6+0.4*Math.sin(t*9); marks.C.set([0.6*youA,1.6*youA,1.5*youA],0); marks.C.set([0.1*youA*hb,0.5*youA*hb,0.45*youA*hb],3); marks.C.set([1.5*rA,1.35*rA,1.15*rA],6); marks.C.set([0.5*rA*hb,0.13*rA*hb,0.1*rA*hb],9);
+ marks.S[0]=34; marks.S[1]=120; marks.S[2]=30; marks.S[3]=100; marks.g.attributes.position.needsUpdate=marks.g.attributes.color.needsUpdate=marks.g.attributes.aSize.needsUpdate=true;
+ // wagon, phones, walker
+ const zc=knotZ(t); const wOn=t>9.0&&t<15.5; wagon.visible=walker.visible=phones.visible=wOn; wagon.position.set(0,0,zc);
+ const spd=v99(N99-1,t); window.wheels.forEach(w=>w.rotation.x= -(fS(t))/0.16);
+ phMat.uniforms.uA.value=mPh; phMat.uniforms.uT.value=t;
+ for(let i=0;i<N99;i++){ const g=GRID[i]; tmpE.set((g[3]*0.15),g[3],(g[3]*0.1)); tmpQ.setFromEuler(tmpE); tmpM.compose(V(g[0],g[1],zc+g[2]),tmpQ,V(1,1,1)); phones.setMatrixAt(i,tmpM);} phones.instanceMatrix.needsUpdate=true;
+ walker.position.set(0.05,0,zc-1.95); walker.rotation.y=Math.PI; const ph_=fS(t)/0.75*Math.PI; WK['leg1'].rotation.x=0.42*Math.sin(ph_); WK['leg-1'].rotation.x=-0.42*Math.sin(ph_);
+ WK['arm-1'].rotation.x=0.3*Math.sin(ph_); WK['arm1'].rotation.x=-0.85; WK['arm1'].rotation.z=0.1;
+ screenL.position.set(0,1.0,zc); screenL.intensity=5*mPh; warmL.position.set(1.2,2.6,zc-4.2); warmL.intensity=26*mPh;
+ // exposure: soft fade-up over the first frames, punch on frame 0
+ grade.uniforms.uT.value=t; grade.uniforms.uExp.value=1.0+0.25*Math.exp(-t/0.3); grade.uniforms.uFlash.value=0.10*Math.exp(-t/0.12)+0.08*Math.exp(-Math.max(0,t-11.0)/0.15)*(t>11.0?1:0);
+ return {count};
+}
+// ---------------------------------------------------------------- 13. render with motion blur (sub-frame accumulation)
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const ax=acc.getContext('2d');
+function nSub(t){ const fast=(t>1.8&&t<2.7)||(t>10.5&&t<11.5)||(t>14.2&&t<15.3)||(t>18.5&&t<21.2); return fast?5:2; }
+window.renderAt=(t)=>{ const n=nSub(t); const sh=(n>2?1/30:1/60); ax.globalCompositeOperation='source-over'; ax.globalAlpha=1; ax.fillStyle='#000'; ax.fillRect(0,0,W,H);
+ for(let k=0;k<n;k++){ const tt=t-sh/2+sh*(k+0.5)/n; setScene(Math.max(0,tt)); composer.render(); ax.globalAlpha=1/(k+1); ax.drawImage(renderer.domElement,0,0); }
+ return acc.toDataURL('image/jpeg',0.93); };
+window.projAt=(t)=>{ const st=setScene(t); const pr=(x,y,z)=>{const v=V(x,y,z).project(cam); return [(v.x*0.5+0.5),(0.5-v.y*0.5),v.z];};
+ const youS=s5(16.95,19.2,t)*260; const yp=along(NEWR,youS);
+ return {count:st.count, kmh: 4+ (v99(Math.floor(N99/2),t)-VJ)/(VF-VJ)*44, knot:pr(0,0.6,knotZ(t)), you:pr(yp[0],0,yp[1]), dest:pr(DEST[0],0,DEST[2]), red:pr(0,0,0)}; };
+window.ready=true;
+</script></body></html>
