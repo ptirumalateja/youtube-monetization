@@ -108,6 +108,12 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows, Unre
 
 **Upload settings:** 9:16, made with AI/synthetic media label on (synthetic scene and AI-generated sound), no music claimed.
 
-## 8. QA (filled in after the final render)
+## 8. QA (final render, 21 Oct 2026)
 
-See the QA notes at the bottom of this file.
+- File: `final-reels/one-step-a-day.mp4`, 1080x1920, 30 fps, H.264 CRF 18 + AAC 256k, 17.5 s, 13.9 MB (under the 30 MB chat limit, no share-size encode needed). Contact sheet: `final-reels/one-step-a-day_contact_2fps.jpg`.
+- Frame 0 is moving and the first thud lands on frame 2; hook fully typed by 1.5 s.
+- Counter DAY 1 to 365 and height 0.2 M to 62 M UP asserted monotonic frame by frame in `compose.py`; typed text never uses a negative slice.
+- No white or beige frames; the sunrise bloom is capped. Text stays above the bottom 18%.
+- Audio after AAC: -15.0 LUFS integrated, true peak -1.3 dBTP (gain + limiter in `compose.py`). Held breath 11.05-12.0 s is near-silent; one hero hit at 12.0 s.
+- Loop: last frame (crowd member setting his first stone, same camera offset and pose phase) matches frame 0 in composition; the sky is a little brighter at the end because the Sun has risen.
+- Known soft spots for a v2: the crowd's "looking up" moment is only visible as a speck in the reveal; the cloud deck reads soft from above.
