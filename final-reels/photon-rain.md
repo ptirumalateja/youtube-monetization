@@ -1,5 +1,29 @@
 # Photon Rain (200 MP vs 24 MP)
 
+## v2: current version (reference-style line art)
+- **Video:** `final-reels/photon-rain-v2.mp4` in the project files (not in git). 32.0 s, 1080x1920, 30 fps, wordless, 8.7 MB. -15.0 LUFS, true peak -4.7 dBFS after AAC.
+- **Why v2:** Teja found v1 (the 3D bucket field) uninteresting and asked for visuals like the reference video (flat navy line art), more refined, including the hook.
+- **Build:** `tools/photon-rain-v2/` (2D canvas, draw-on line art, Space Grotesk and JetBrains Mono, synthesised sound cued to on-screen events).
+- **What is "refined" compared with the reference:** the content fills the 9:16 frame, the type and icons are bigger, and line art draws itself on. Headlines rise in character by character. The photon rain leaves ripples, and the cells keep the light they catch. The bucket counts roll up. The noise tiles are physically modelled (Poisson) on our own night scene. The 12× area is shown with 12 tiles of 9 × 8 mm, each exactly one phone sensor's area. In "phones fight back", 8 frames are shot and merged. Every cue has its own sound.
+
+| Time | Shot | Headline |
+|---|---|---|
+| 0-3.3 | Hook: the phone draws on at the centre while a red counter rolls 12 → 200 MP and locks with a ring pulse. The phone slides left, the camera slides in, and a white counter rolls to 24 MP. | "200 megapixels. / Beaten by **24.**" |
+| 3.3-6.1 | The camera moves to the centre, its sensor glows, and we zoom into the sensor, which becomes the pixel grid. | "So why does the / camera still **win?**" |
+| 6.1-8.9 | The pixel grid draws out from the centre. | "Megapixels count / pixels. Not **light.**" |
+| 8.9-11.9 | Photons fall one at a time and ripple as they land; each cell keeps the light it caught. | "Light arrives / like **rain.**" |
+| 11.9-17.9 | Cells become 4 buckets. Counts 91, 108, 97, 112 sit in a ±10% band, then 9,921, 10,044, 9,983, 10,117 in a ±1% band. | "Every pixel is a tiny **bucket.**" / "**100** photons" / "**10,000** photons" |
+| 17.9-20.9 | The same night scene with few photons (grainy) and with many photons (clean). | "That's shot **noise.**" |
+| 20.9-25.9 | The phone sensor (red, true size) inside the full frame (gold). 12 phone-sized tiles count up ×1…×12. Chips: same framing, same shutter, same f-number. Photons sprinkle evenly: 1× vs ≈12×. | "Now compare the sizes." / "**Twelve** times the area." / "Far more **light** in one shot." |
+| 25.9-29.3 | The phone fires 8 frames (shutter clicks), the frames fan out, then merge into one cleaner frame. | "Phones fight **back.**" |
+| 29.1-32.0 | Phone vs camera, one shot each: grainy vs clean. The biggest hit lands here. The phone draws back in for the loop. | "Megapixels count **buckets.** / Light fills them." |
+
+The facts, sources and caveats below apply to both versions. For v2, use this YouTube title: "200 Megapixels. Beaten by 24. #shorts".
+
+---
+
+## v1 (3D, superseded)
+
 - **Video:** `final-reels/photon-rain.mp4` in the project files (not in git). 22.0 s, 1080x1920 rendered natively, 30 fps, loops, no voiceover.
 - **Status:** delivered 21 Oct 2026, reel #1 of the reference remakes (`ref-remakes-plan.md`). Not posted yet.
 - **QA:** -14.7 LUFS integrated, true peak -2.3 dBFS measured after AAC; 26 MB; counters asserted monotonic in the overlay; last frame flows into frame 0 (the next wave of photons is already falling). Contact sheet: `final-reels/photon-rain_contact_2fps.jpg` in the project files.

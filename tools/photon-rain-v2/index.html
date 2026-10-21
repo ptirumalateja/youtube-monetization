@@ -1,0 +1,217 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:SG;font-weight:500;src:url(node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2)}
+@font-face{font-family:SG;font-weight:600;src:url(node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-600-normal.woff2)}
+@font-face{font-family:SG;font-weight:700;src:url(node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2)}
+@font-face{font-family:JB;font-weight:500;src:url(node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2)}
+@font-face{font-family:JB;font-weight:700;src:url(node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2)}
+html,body{margin:0;background:#0b1630}
+</style></head><body><script>
+// Photon Rain v2: flat navy line-art explainer (reference look), refined. 1080x1920, scene drawn by renderAt(t).
+const W=1080,H=1920,T=32.0;
+const C=document.createElement('canvas'); C.width=W; C.height=H; document.body.appendChild(C); const x=C.getContext('2d');
+const BG='#0c1833', LINE='#6d8cc0', LINE2='#3d5687', GOLD='#f6b23a', GOLDL='#ffd27a', RED='#e5534b', WHITE='#eef2f9', MUTED='#8fa3c9';
+// ------------------------------------------------------------------ utilities
+const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const eo=k=>1-Math.pow(1-k,3), ei=k=>k*k*k, eio=k=>k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2, eback=k=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(k-1,3)+c1*Math.pow(k-1,2)};
+const lerp=(a,b,k)=>a+(b-a)*k;
+const win=(t,a,b,fi=0.3,fo=0.3)=>seg(t,a,a+fi)*(1-seg(t,b-fo,b));
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function gaussF(R){let u=0;while(!u)u=R();return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185*R())}
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+function rr(X,Y,w,h,r){ x.beginPath(); x.moveTo(X+r,Y); x.arcTo(X+w,Y,X+w,Y+h,r); x.arcTo(X+w,Y+h,X,Y+h,r); x.arcTo(X,Y+h,X,Y,r); x.arcTo(X,Y,X+w,Y,r); x.closePath(); }
+// stroke with a draw-on reveal p in [0,1] (len = path length estimate)
+function drawOn(p,len,fn){ if(p<=0) return; x.save(); if(p<1){ x.setLineDash([len,len+10]); x.lineDashOffset=len*(1-p);} fn(); x.stroke(); x.restore(); }
+// ------------------------------------------------------------------ text
+function font(sz,wt=600,fam='SG'){ return `${wt} ${sz}px ${fam}`; }
+// lines: [[ [text,color], ... ], ...]; per-character rise + fade, staggered
+function headline(t,a,b,lines,o={}){
+  if(t<a||t>b) return; const sz=o.size||78, X=o.x||96, Y=o.y||300, lh=sz*1.12, st=o.st||0.016, dur=0.28;
+  const out=seg(t,b-0.28,b); x.save(); x.font=font(sz,600); x.textBaseline='alphabetic'; let k=0;
+  lines.forEach((ln,li)=>{ let cx=X; if(o.center){ let w=0; ln.forEach(([s])=>w+=x.measureText(s).width); cx=W/2-w/2; }
+    ln.forEach(([s,col])=>{ for(const ch of s){ const p=eo(seg(t,a+k*st,a+k*st+dur)); const al=p*(1-out);
+        if(al>0){ x.globalAlpha=al; x.fillStyle=col; x.fillText(ch,cx,Y+li*lh+(1-p)*22-out*14); }
+        cx+=x.measureText(ch).width; k++; } }); });
+  x.restore(); }
+function sub(t,a,b,parts,y=1470){ const al=win(t,a,b,0.25,0.25); if(al<=0) return; x.save(); x.font=font(38,500); let w=0; parts.forEach(([s])=>w+=x.measureText(s).width);
+  let cx=W/2-w/2; x.globalAlpha=al; parts.forEach(([s,c])=>{ x.fillStyle=c; x.fillText(s,cx,y+(1-eo(seg(t,a,a+0.3)))*10); cx+=x.measureText(s).width; }); x.restore(); }
+function mono(s,X,Y,sz,col,al=1,align='left',wt=500){ if(al<=0) return; x.save(); x.globalAlpha=al; x.font=font(sz,wt,'JB'); x.fillStyle=col; x.textAlign=align; x.fillText(s,X,Y); x.restore(); }
+function chip(s,X,Y,al,col=MUTED){ if(al<=0) return; x.save(); x.globalAlpha=al; x.font=font(22,500,'JB'); const w=x.measureText(s).width+36; rr(X-w/2,Y-22,w,44,22); x.strokeStyle=col; x.lineWidth=2; x.stroke(); x.fillStyle=col; x.textAlign='center'; x.fillText(s,X,Y+8); x.restore(); return w; }
+// ------------------------------------------------------------------ background: navy with a faint blueprint grid and soft centre light
+function background(t){ x.fillStyle=BG; x.fillRect(0,0,W,H);
+  const g=x.createRadialGradient(W/2,880,60,W/2,880,1150); g.addColorStop(0,'rgba(40,70,130,0.30)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.save(); x.strokeStyle='rgba(120,150,210,0.045)'; x.lineWidth=1; const s=60, off=(t*6)%s; x.beginPath();
+  for(let X=-s+off;X<W+s;X+=s){ x.moveTo(X,0); x.lineTo(X,H);} for(let Y=0;Y<H;Y+=s){ x.moveTo(0,Y); x.lineTo(W,Y);} x.stroke(); x.restore(); }
+// ------------------------------------------------------------------ icons (line art)
+function phone(cx,cy,s,p,al=1,glow=0){ if(al<=0) return; x.save(); x.globalAlpha=al; x.translate(cx,cy); x.scale(s,s); x.lineWidth=3/s*Math.max(1,s*0.9); x.lineJoin='round'; x.lineCap='round';
+  const w=200,h=400; x.strokeStyle=LINE; x.fillStyle='rgba(20,36,70,0.85)';
+  rr(-w/2,-h/2,w,h,38); if(p>=1) x.fill(); drawOn(p,1150,()=>rr(-w/2,-h/2,w,h,38));
+  drawOn(seg(p,0.3,1),900,()=>{ rr(-w/2+10,-h/2+10,w-20,h-20,30); });
+  // camera island
+  const q=seg(p,0.45,1); drawOn(q,330,()=>rr(-w/2+18,-h/2+18,96,96,26));
+  [[-w/2+44,-h/2+44,RED],[-w/2+88,-h/2+60,LINE],[-w/2+44,-h/2+88,LINE]].forEach(([a,b,c],i)=>{ x.save(); x.strokeStyle=c; drawOn(seg(p,0.55+i*0.1,1),110,()=>{x.beginPath(); x.arc(a,b,16,0,Math.PI*2);}); if(c===RED&&glow>0){ x.globalAlpha=al*glow; x.shadowColor=RED; x.shadowBlur=24; x.beginPath(); x.arc(a,b,16,0,Math.PI*2); x.stroke(); } x.restore(); });
+  drawOn(seg(p,0.6,1),60,()=>{x.beginPath(); x.moveTo(w/2+4,-h/2+90); x.lineTo(w/2+4,-h/2+140);});
+  x.restore(); }
+function camera(cx,cy,s,p,al=1,sensorGlow=0){ if(al<=0) return; x.save(); x.globalAlpha=al; x.translate(cx,cy); x.scale(s,s); x.lineWidth=3/s*Math.max(1,s*0.8); x.lineJoin='round'; x.lineCap='round'; x.strokeStyle=LINE;
+  const w=500,h=300; x.fillStyle='rgba(20,36,70,0.85)'; rr(-w/2,-h/2,w,h,22); if(p>=1) x.fill();
+  drawOn(p,1600,()=>rr(-w/2,-h/2,w,h,22));
+  drawOn(seg(p,0.2,1),640,()=>rr(-w/2+18,-h/2+34,112,h-60,18));                // grip
+  if(p>0.5){ x.save(); x.globalAlpha=al*seg(p,0.5,1)*0.5; x.fillStyle=LINE2; for(let i=0;i<9;i++)for(let j=0;j<18;j++){ x.beginPath(); x.arc(-w/2+34+i*10.5,-h/2+52+j*12.5,2.2,0,6.29); x.fill(); } x.restore(); }
+  drawOn(seg(p,0.25,1),260,()=>rr(-60,-h/2-26,120,26,6)); drawOn(seg(p,0.3,1),120,()=>rr(110,-h/2-18,60,18,5)); drawOn(seg(p,0.3,1),120,()=>rr(-200,-h/2-14,50,14,4));
+  // lens mount
+  const mx=70,my=10; drawOn(seg(p,0.3,1),900,()=>{x.beginPath(); x.arc(mx,my,138,0,Math.PI*2);}); drawOn(seg(p,0.4,1),760,()=>{x.beginPath(); x.arc(mx,my,118,0,Math.PI*2);});
+  x.save(); x.strokeStyle=LINE2; drawOn(seg(p,0.5,1),680,()=>{x.beginPath(); x.arc(mx,my,104,0,Math.PI*2);}); x.restore();
+  // sensor
+  const sw=128,sh=86, sa=seg(p,0.6,1); if(sa>0){ x.save(); x.globalAlpha=al*sa; const g=x.createLinearGradient(mx-sw/2,my-sh/2,mx+sw/2,my+sh/2); g.addColorStop(0,'#b5822b'); g.addColorStop(1,'#e9a93a');
+    x.fillStyle=g; if(sensorGlow>0){ x.shadowColor=GOLD; x.shadowBlur=40*sensorGlow; } x.fillRect(mx-sw/2,my-sh/2,sw,sh); x.shadowBlur=0; x.strokeStyle=GOLDL; x.lineWidth=2/s*Math.max(1,s*0.8); x.strokeRect(mx-sw/2,my-sh/2,sw,sh);
+    x.globalAlpha=al*sa*0.35; x.strokeStyle='#7a5413'; x.lineWidth=1; x.beginPath(); for(let i=1;i<10;i++){ x.moveTo(mx-sw/2+i*sw/10,my-sh/2); x.lineTo(mx-sw/2+i*sw/10,my+sh/2);} for(let i=1;i<7;i++){ x.moveTo(mx-sw/2,my-sh/2+i*sh/7); x.lineTo(mx+sw/2,my-sh/2+i*sh/7);} x.stroke(); x.restore(); }
+  x.save(); x.fillStyle=RED; x.globalAlpha=al*seg(p,0.7,1); x.beginPath(); x.arc(170,-h/2+40,6,0,6.29); x.fill(); x.restore();
+  drawOn(seg(p,0.6,1),120,()=>{x.beginPath(); x.arc(-150,h/2-60,18,0,Math.PI*2);});
+  x.restore(); }
+function counter(val,unit,X,Y,col,al,sz=120){ if(al<=0) return; x.save(); x.globalAlpha=al; x.font=font(sz,700); x.fillStyle=col; const s=String(Math.round(val)); x.fillText(s,X,Y); const w=x.measureText(s).width; x.font=font(sz*0.24,600,'JB'); x.fillStyle=MUTED; x.fillText(unit,X+w+10,Y); x.restore(); }
+// ------------------------------------------------------------------ night scene for the noise tiles (our own: moon, hills, water, lights)
+const TW=240, TH=168; const SCN=new Float32Array(TW*TH);
+(function(){ const R=rnd(9); const stars=[]; for(let i=0;i<40;i++) stars.push([R(),R()*0.45,0.25+0.6*R()]);
+  for(let j=0;j<TH;j++)for(let i=0;i<TW;i++){ const u=(i+0.5)/TW, v=(j+0.5)/TH; let L; const hz=0.62;
+    if(v<hz) L=0.10+0.22*Math.pow(v/hz,2); else L=0.07+0.05*(1-(v-hz)/(1-hz));
+    const hill=0.56+0.04*Math.sin(u*7+1)+0.025*Math.sin(u*17)-0.07*Math.exp(-Math.pow((u-0.25)/0.17,2)); if(v>hill&&v<hz) L=0.035;
+    const dm=Math.hypot((u-0.72)*1.43,v-0.22); L+=0.25*Math.exp(-dm*10)*(v<hill?1:0); if(dm<0.07&&v<hill) L=lerp(L,0.95,cl((0.07-dm)/0.012));
+    for(const s of stars){ const d2=Math.pow((u-s[0])*1.43,2)+Math.pow(v-s[1],2); if(v<hill-0.03) L+=s[2]*Math.exp(-d2/0.000018); }
+    if(v>hz){ const k=(v-hz)/(1-hz); const wd=0.02+0.12*k; const d=Math.abs(u-0.72)/wd; if(d<1) L+=(1-d*d)*0.55*(0.3+0.7*Math.pow(Math.max(0,Math.sin(v*260+Math.sin(u*30)*2)),4)); }
+    if(u<0.45&&v>hill&&v<hill+0.03&&((Math.floor(u*90)*7)%5===0)) L=0.85;
+    SCN[j*TW+i]=Math.min(1,L); } })();
+const ZS=[]; for(let s=0;s<10;s++){ const R=rnd(100+s); const z=new Float32Array(TW*TH); for(let i=0;i<z.length;i++) z[i]=gaussF(R); ZS.push(z); }
+const tileC=document.createElement('canvas'); tileC.width=TW; tileC.height=TH; const tx=tileC.getContext('2d'); const tImg=tx.createImageData(TW,TH);
+// photons-per-pixel K at full brightness; prog in [0,1] develops the exposure; nStack averages frames
+function drawTile(X,Y,w,h,K,prog,seedA,nStack=1,al=1,frameCol=LINE){ if(al<=0) return; const d=tImg.data; const lam0=K*Math.max(prog,0.02);
+  for(let i=0;i<TW*TH;i++){ const lam=SCN[i]*lam0; let z=0; for(let s=0;s<nStack;s++) z+=ZS[(seedA+s)%ZS.length][i]; z/=Math.sqrt(nStack);
+    let v=(lam+Math.sqrt(lam/nStack+0.0001)*z*1.0)/(lam0); v=cl(v*0.98); const g=Math.pow(v,1/2.2)*255;
+    d[i*4]=g*0.86; d[i*4+1]=g*0.92; d[i*4+2]=Math.min(255,g*1.0+14); d[i*4+3]=255; }
+  tx.putImageData(tImg,0,0); x.save(); x.globalAlpha=al; x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high'; x.drawImage(tileC,X,Y,w,h); x.strokeStyle=frameCol; x.lineWidth=3; x.strokeRect(X,Y,w,h); x.restore(); }
+// ------------------------------------------------------------------ sensor grid stage (scene 3/4)
+const GX=120, GY=560, GN=10, GS=84; // 10x10 cells of 84 px -> 840 px square
+const RAIN=[]; { const R=rnd(31); for(let i=0;i<150;i++){ const t0=9.1+Math.pow(R(),0.9)*2.4; RAIN.push({t:t0,c:Math.floor(R()*GN),r:Math.floor(R()*GN),dx:R()*0.6+0.2,dy:R()*0.6+0.2}); } }
+function gridStage(t,al,zoomIn){ if(al<=0) return; x.save(); x.globalAlpha=al;
+  // cells accumulate light from landed photons
+  const acc=new Float32Array(GN*GN); for(const p of RAIN) if(t>p.t) acc[p.r*GN+p.c]+=1;
+  for(let r=0;r<GN;r++)for(let c=0;c<GN;c++){ const v=Math.min(1,acc[r*GN+c]/4); x.fillStyle=`rgba(246,178,58,${0.05+0.32*v})`; x.fillRect(GX+c*GS+2,GY+r*GS+2,GS-4,GS-4); }
+  // lines draw out from the centre
+  const p=eo(seg(t,6.0,7.0)); x.strokeStyle='rgba(246,178,58,0.55)'; x.lineWidth=2; x.beginPath();
+  for(let i=0;i<=GN;i++){ const half=GN*GS/2*p; x.moveTo(GX+i*GS,GY+GN*GS/2-half); x.lineTo(GX+i*GS,GY+GN*GS/2+half); x.moveTo(GX+GN*GS/2-half,GY+i*GS); x.lineTo(GX+GN*GS/2+half,GY+i*GS); } x.stroke();
+  x.strokeStyle=GOLD; x.lineWidth=4; x.strokeRect(GX,GY,GN*GS,GN*GS);
+  // falling photons + landing ripples
+  for(const p of RAIN){ const X=GX+(p.c+p.dx)*GS, Y=GY+(p.r+p.dy)*GS; const fall=0.35;
+    if(t>p.t-fall&&t<p.t){ const k=(p.t-t)/fall; const yy=Y-k*520; const g=x.createLinearGradient(X,yy-90,X,yy); g.addColorStop(0,'rgba(255,210,122,0)'); g.addColorStop(1,'rgba(255,210,122,0.95)'); x.strokeStyle=g; x.lineWidth=4; x.beginPath(); x.moveTo(X,yy-90); x.lineTo(X,yy); x.stroke(); }
+    const e=t-p.t; if(e>=0&&e<0.7){ const k=e/0.7; x.strokeStyle=`rgba(255,210,122,${0.8*(1-k)})`; x.lineWidth=3; x.beginPath(); x.arc(X,Y,8+40*eo(k),0,6.29); x.stroke(); x.fillStyle=`rgba(255,225,160,${1-k*0.7})`; x.beginPath(); x.arc(X,Y,7,0,6.29); x.fill(); }
+    else if(e>=0.7){ x.fillStyle='rgba(255,210,122,0.55)'; x.beginPath(); x.arc(X,Y,5,0,6.29); x.fill(); } }
+  x.restore(); }
+// ------------------------------------------------------------------ buckets (scene 5)
+const BX=[240,440,640,840], BW=150, BH=300, BY=1000; // bottom y of buckets = BY+BH/2
+const C100=[91,108,97,112], C10K=[9921,10044,9983,10117];
+const DROPS=[]; { const R=rnd(55); for(let i=0;i<70;i++) DROPS.push({b:i%4,t:12.6+R()*2.0,o:R()}); for(let i=0;i<260;i++) DROPS.push({b:i%4,t:15.0+R()*2.4,o:R(),fine:1}); }
+function bucket(cx,cyTop,lvl,al,glow){ x.save(); x.globalAlpha=al; const top=cyTop, bot=cyTop+BH, wt=BW, wb=BW*0.84;
+  // liquid
+  if(lvl>0){ const yl=bot-lvl*BH; const k=(bot-yl)/BH; const wl=lerp(wb,wt,1-((yl-top)/BH)); const g=x.createLinearGradient(0,yl,0,bot); g.addColorStop(0,'#ffc24d'); g.addColorStop(1,'#e8972a');
+    x.fillStyle=g; x.beginPath(); x.moveTo(cx-wl/2+4,yl); x.lineTo(cx+wl/2-4,yl); x.lineTo(cx+wb/2-4,bot-4); x.lineTo(cx-wb/2+4,bot-4); x.closePath(); if(glow){ x.shadowColor=GOLD; x.shadowBlur=30*glow;} x.fill(); x.shadowBlur=0;
+    x.strokeStyle='rgba(255,236,190,0.9)'; x.lineWidth=3; x.beginPath(); x.moveTo(cx-wl/2+6,yl); x.lineTo(cx+wl/2-6,yl); x.stroke(); }
+  x.strokeStyle=WHITE; x.lineWidth=3.5; x.lineJoin='round'; x.beginPath(); x.moveTo(cx-wt/2-12,top); x.lineTo(cx-wt/2,top); x.lineTo(cx-wb/2,bot); x.lineTo(cx+wb/2,bot); x.lineTo(cx+wt/2,top); x.lineTo(cx+wt/2+12,top); x.stroke(); x.restore(); }
+// ------------------------------------------------------------------ the scene
+const ready=document.fonts.load(font(78,600)).then(()=>Promise.all([document.fonts.load(font(40,700)),document.fonts.load(font(30,500)),document.fonts.load(font(30,500,'JB')),document.fonts.load(font(30,700,'JB'))]));
+function frame(t){
+  background(t);
+  // ===== S1 hook (0-3.4): rolling 200 MP phone vs 24 MP camera
+  { const al=1-seg(t,2.9,3.3); const ph=eo(seg(t,0,0.45));
+    const mv=eio(seg(t,1.05,1.6)); const pX=lerp(540,300,mv), pY=lerp(1000,1000,mv), pS=lerp(1.25,1.0,mv); const camIn=eo(seg(t,1.1,1.7));
+    const sh=1-0.05*Math.sin(seg(t,0.95,1.2)*Math.PI);
+    phone(pX,pY,pS*sh,Math.max(0.8,ph),al,win(t,0.95,2.8,0.1,0.4));
+    const v=lerp(12,200,eo(seg(t,0,1.0))); counter(v,'MP',pX-pS*130,pY-pS*230-40,RED,al,lerp(150,130,mv));
+    if(t>1.0){ const cx=lerp(1180,790,camIn); camera(cx,pY+10,0.82,eo(seg(t,1.1,1.8)),al*camIn); counter(lerp(0,24,eo(seg(t,1.4,2.0))),'MP',cx-150,pY-pS*230-40,WHITE,al*camIn,130); }
+    const pk=seg(t,0.95,1.5); if(pk>0&&pk<1){ x.save(); x.globalAlpha=(1-pk)*0.6*al; x.strokeStyle=RED; x.lineWidth=3; x.beginPath(); x.arc(pX,pY,160+260*eo(pk),0,6.29); x.stroke(); x.restore(); }
+    headline(t,0.05,3.3,[[['200 megapixels.',WHITE]],[['Beaten by ',WHITE],['24.',GOLD]]]);
+    sub(t,0.9,3.2,[['Same moment. Same light. ',WHITE],['Why?',GOLD]]);
+  }
+  // ===== S2 (3.1-6.2): the camera wins? zoom into the sensor
+  if(t>3.0&&t<6.6){ const k=eio(seg(t,3.0,3.8)); const z=Math.pow(1+eio(seg(t,5.2,6.2))*0,1);
+    const zoom=lerp(0.72,1.45,k)*Math.exp(eio(seg(t,5.3,6.3))*1.9); const cx=lerp(780,540,k), cy=lerp(1000,960,k);
+    const mx=70*zoom, my=10*zoom; const al=1-seg(t,5.7,6.05);
+    x.save(); x.translate(cx-mx*eio(seg(t,5.3,6.3)), cy-my*eio(seg(t,5.3,6.3))); camera(0,0,zoom,1,al,win(t,3.8,6.3,0.5,0.1)*(0.6+0.4*Math.sin(t*5))); x.restore();
+    headline(t,3.3,5.5,[[['So why does the',WHITE]],[['camera still ',WHITE],['win?',GOLD]]]);
+    sub(t,3.6,5.4,[['Look at what catches the light.',MUTED]]);
+  }
+  // ===== S3/S4 grid + rain (6.0-11.6)
+  if(t>5.9&&t<12.4){ const al=seg(t,5.8,6.15)*(1-seg(t,11.9,12.3)); gridStage(t,al);
+    headline(t,6.2,8.9,[[['Megapixels count',WHITE]],[['pixels. Not ',WHITE],['light.',GOLD]]]);
+    sub(t,6.6,8.8,[['200 MP = 200 million tiny squares.',MUTED]]);
+    headline(t,8.95,11.9,[[['Light arrives',WHITE]],[['like ',WHITE],['rain.',GOLD]]]);
+    sub(t,9.3,11.8,[['One photon at a time, at ',WHITE],['random.',GOLD]]);
+  }
+  // ===== S5 buckets (11.9-17.8)
+  if(t>11.8&&t<18.2){ const al=seg(t,11.9,12.3)*(1-seg(t,17.6,18.0)); const top=BY-BH/2;
+    const lv=(i)=>{ const a=eo(seg(t,12.6,14.6)), b=eo(seg(t,15.0,17.2)); const l1=0.42*C100[i]/100*a; const l2=0.72*C10K[i]/10000; return b>0?lerp(l1,l2,b):l1; };
+    for(let i=0;i<4;i++) bucket(BX[i],top,lv(i),al*eo(seg(t,11.9+i*0.08,12.4+i*0.08)),0.4*seg(t,15,17));
+    // drops
+    for(const d of DROPS){ const fall=d.fine?0.3:0.45; if(t>d.t-fall&&t<d.t){ const k=(d.t-t)/fall; const X=BX[d.b]-30+d.o*60, Y=top+BH*0.4-k*560; x.save(); x.globalAlpha=al; x.strokeStyle=d.fine?'rgba(255,210,122,0.7)':GOLDL; x.lineWidth=d.fine?2:4; x.beginPath(); x.moveTo(X,Y-(d.fine?50:36)); x.lineTo(X,Y); x.stroke(); x.restore(); } }
+    // counts above buckets (each count only climbs)
+    const a1=eo(seg(t,12.6,14.6)), b1=eo(seg(t,15.0,17.2));
+    for(let i=0;i<4;i++){ const c=b1>0?lerp(C100[i],C10K[i],b1):C100[i]*a1; mono(fmt(c),BX[i],top-40,b1>0.05?32:36,WHITE,al*seg(t,12.5,12.8),'center'); }
+    // tolerance band
+    const band=(lo,hi,lbl,a)=>{ if(a<=0) return; x.save(); x.globalAlpha=a; const y1=top+BH-hi*BH, y2=top+BH-lo*BH; x.fillStyle='rgba(246,178,58,0.10)'; x.fillRect(150,y1,780,y2-y1); x.setLineDash([10,8]); x.strokeStyle='rgba(246,178,58,0.75)'; x.lineWidth=2; x.beginPath(); x.moveTo(150,y1); x.lineTo(930,y1); x.moveTo(150,y2); x.lineTo(930,y2); x.stroke(); x.restore(); mono(lbl,136,(y1+y2)/2+10,28,GOLD,a,'right',700); };
+    band(0.42*0.9,0.42*1.1,'±10%',al*win(t,13.9,15.0,0.3,0.25)); band(0.72*0.99,0.72*1.01,'±1%',al*win(t,16.6,18.0,0.3,0.3));
+    headline(t,11.95,12.75,[[['Every pixel is',WHITE]],[['a tiny ',WHITE],['bucket.',GOLD]]]);
+    headline(t,12.8,14.95,[[['100',GOLD],[' photons',WHITE]]],{size:96,y:330});
+    sub(t,13.9,14.95,[['The counts wobble by about ',WHITE],['10%.',GOLD]]);
+    headline(t,15.0,17.9,[[['10,000',GOLD],[' photons',WHITE]]],{size:96,y:330});
+    sub(t,16.5,17.9,[['Now they wobble by just ',WHITE],['1%.',GOLD]]);
+  }
+  // ===== S6 shot noise (17.9-20.8)
+  if(t>17.8&&t<21.2){ const al=seg(t,17.9,18.3)*(1-seg(t,20.6,21.0)); const pr=eo(seg(t,18.0,19.6));
+    drawTile(70,760,450,315,6,pr,0,1,al*eo(seg(t,17.95,18.4))); drawTile(560,760,450,315,600,pr,3,1,al*eo(seg(t,18.1,18.55)));
+    mono('FEW PHOTONS',295,1125,26,MUTED,al,'center'); mono('MANY PHOTONS',785,1125,26,MUTED,al,'center');
+    headline(t,18.0,20.9,[[['That’s shot ',WHITE],['noise.',GOLD]]]);
+    sub(t,18.6,20.8,[['Even a perfect sensor has it.',WHITE]]);
+  }
+  // ===== S7 sizes: twelve times the area (20.9-25.6)
+  if(t>20.8&&t<26.0){ const al=seg(t,20.9,21.3)*(1-seg(t,25.5,25.9)); const S=24; const fw=36*S, fh=24*S, fx=W/2-fw/2, fy=700;
+    x.save(); x.globalAlpha=al; x.fillStyle='rgba(40,40,40,0.35)';
+    const fp=eo(seg(t,21.4,22.2)); if(fp>0){ x.fillStyle='rgba(70,60,40,0.30)'; x.fillRect(fx,fy,fw*fp,fh); drawOn(fp,2*(fw+fh),()=>{x.beginPath(); x.rect(fx,fy,fw,fh);}); x.strokeStyle=GOLD; x.lineWidth=4; drawOn(fp,2*(fw+fh),()=>{x.beginPath(); x.rect(fx,fy,fw,fh);}); }
+    // phone sensor (true size: 9.79 x 7.34 mm)
+    const pw=9.79*S, ph=7.34*S; const pp=eo(seg(t,21.0,21.5)); x.fillStyle='rgba(229,83,75,0.22)'; x.globalAlpha=al*pp; x.fillRect(fx,fy,pw,ph); x.strokeStyle=RED; x.lineWidth=4; x.strokeRect(fx,fy,pw,ph); x.globalAlpha=al;
+    // twelve phone-sized tiles (9 x 8 mm each = 72 mm2, the phone sensor's area)
+    for(let i=0;i<12;i++){ const c=i%4, r=Math.floor(i/4); const k=eo(seg(t,22.3+i*0.11,22.6+i*0.11)); if(k<=0) continue; x.globalAlpha=al*k*0.9; x.strokeStyle=RED; x.lineWidth=2.5; x.strokeRect(fx+c*9*S+3,fy+r*8*S+3,9*S-6,8*S-6); }
+    x.globalAlpha=al; const n=Math.min(12,Math.floor(seg(t,22.3,23.7)*12+(t>22.3?1:0))); if(t>22.3&&t<23.9){ mono('×'+n,W/2,fy+fh/2+38,110,WHITE,al*win(t,22.3,23.9,0.15,0.3),'center',700); }
+    // same settings, photons sprinkle evenly; counters inside each sensor
+    const sp=seg(t,23.6,25.2); const R=rnd(8); const nP=Math.floor(sp*900); x.fillStyle=GOLDL; for(let i=0;i<nP;i++){ const X=fx+R()*fw, Y=fy+R()*fh; x.globalAlpha=al*0.85; x.beginPath(); x.arc(X,Y,2.6,0,6.29); x.fill(); }
+    x.globalAlpha=al; if(sp>0){ const a=win(t,23.7,25.8,0.3,0.3); mono('1×',fx+pw/2,fy+ph/2+16,44,WHITE,a,'center',700); mono('≈12×',fx+fw*0.62,fy+fh*0.62,72,GOLD,a,'center',700); }
+    x.restore();
+    mono('PHONE',fx,fy+fh+46,26,RED,al*pp); mono('FULL FRAME',fx+fw,fy+fh+46,26,GOLD,al*fp,'right');
+    headline(t,20.95,22.2,[[['Now compare',WHITE]],[['the sizes.',WHITE]]]);
+    headline(t,22.25,23.65,[[['Twelve',GOLD],[' times',WHITE]],[['the area.',WHITE]]]);
+    headline(t,23.7,25.9,[[['Far more ',WHITE],['light',GOLD]],[['in one shot.',WHITE]]]);
+    const cA=win(t,23.6,25.9,0.25,0.3); chip('SAME FRAMING',W/2-300,fy-70,cA*eo(seg(t,23.6,23.9))); chip('SAME SHUTTER',W/2,fy-70,cA*eo(seg(t,23.75,24.05))); chip('SAME F-NUMBER',W/2+300,fy-70,cA*eo(seg(t,23.9,24.2)));
+    sub(t,21.0,23.6,[['A full-frame sensor ≈ ',WHITE],['12',GOLD],[' phone sensors.',WHITE]]);
+  }
+  // ===== S8 phones fight back (25.8-29.0)
+  if(t>25.7&&t<29.4){ const al=seg(t,25.8,26.2)*(1-seg(t,29.0,29.35)); phone(260,980,0.82,1,al);
+    // a stack of noisy frames slides out of the phone, then merges into one cleaner frame
+    const n=8; const merge=eio(seg(t,27.4,28.3));
+    for(let i=n-1;i>=0;i--){ const k=eo(seg(t,26.2+i*0.09,26.7+i*0.09)); if(k<=0) continue; const ox=lerp(0,(i-3.5)*22,1-merge)*k, oy=lerp(0,(i-3.5)*-20,1-merge)*k;
+      if(i===0&&merge>0) drawTile(470+ox,860+oy,500,350,6,1,0,Math.round(lerp(1,8,merge)),al*k,merge>0.95?GOLD:LINE); else if(merge<0.98) drawTile(470+ox,860+oy,500,350,6,1,i,1,al*k*(i===0?1:0.9*(1-merge))); }
+    headline(t,25.85,29.3,[[['Phones fight ',WHITE],['back.',GOLD]]]);
+    sub(t,26.3,27.6,[['They take many frames in a row…',WHITE]]); sub(t,27.6,29.2,[['…and merge them to cut the ',WHITE],['noise.',GOLD]]);
+  }
+  // ===== S9 the difference + end line (29.1-32)
+  if(t>29.0){ const al=seg(t,29.1,29.5)*(1-seg(t,31.55,31.95));
+    phone(300,700,0.42,1,al); camera(780,710,0.42,1,al);
+    drawTile(110,880,380,266,6,1,0,1,al*eo(seg(t,29.3,29.7)),RED); drawTile(590,880,380,266,72,1,5,1,al*eo(seg(t,29.45,29.85)),GOLD);
+    mono('200 MP · ONE SHOT',300,1196,24,RED,al,'center'); mono('24 MP · ONE SHOT',780,1196,24,GOLD,al,'center');
+    // the camera's light pours in: a gold funnel under the camera
+    headline(t,29.2,31.95,[[['Megapixels count ',WHITE],['buckets.',GOLD]],[['Light fills them.',WHITE]]],{size:70});
+    sub(t,29.8,31.9,[['Bigger pixels, more light, less ',WHITE],['noise.',GOLD]]);
+  }
+  // loop: the phone outline is already drawing back in at the very end, matching frame 0
+  if(t>31.7){ const k=seg(t,31.7,32.0); phone(540,1000,1.25,0.8*k,k); counter(12,'MP',540-1.25*130,1000-1.25*230-40,RED,k,150); }
+}
+window.renderAt=t=>{ frame(t); return C.toDataURL('image/jpeg',0.95); };
+ready.then(()=>{ window.ready=true; });
+</script></body></html>
