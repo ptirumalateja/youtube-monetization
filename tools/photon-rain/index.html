@@ -1,0 +1,232 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// Photon Rain: one burst of light falls on a 200 MP phone sensor and a 24 MP full-frame sensor at true relative area.
+// World units are micrometres. Sensors lie on the XZ plane (top face y=0); screen-up is -Z.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/1920;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x05070d);
+const FOV=50; const cam=new THREE.PerspectiveCamera(FOV,W/H,1,1e7);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(2027); const gauss=()=>{let u=0;while(!u)u=R();const v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185*v)};
+function poisson(l){ if(l<40){ const L=Math.exp(-l); let k=0,p=1; do{k++;p*=R();}while(p>L); return k-1;} return Math.max(0,Math.round(l+Math.sqrt(l)*gauss())); }
+const sm=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
+const smr=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*k*(k*(6*k-15)+10)};
+// ------------------------------------------------------------------ sensors (true sizes)
+// Phone: Samsung ISOCELL HP2, 16320x12240 px at 0.6 um -> 9.792 x 7.344 mm. Full frame: 6000x4000 px at 6.0 um -> 36 x 24 mm.
+const PH={x0:-4896,x1:4896,z0:-7344,z1:0,p:0.6}, FF={x0:-18000,x1:18000,z0:0,z1:24000,p:6.0};
+const TEAL=new THREE.Vector3(0.05,0.88,0.80), VIOL=new THREE.Vector3(0.50,0.22,1.0), GOLD=new THREE.Color(1.0,0.68,0.22);
+// ------------------------------------------------------------------ captured image (same night scene, photon-limited)
+const IW=270, IHt=180; const PW=240; // phone crops the 4:3 centre of the 3:2 frame
+const SR=rnd(77); const STARS=[]; for(let i=0;i<70;i++) STARS.push([SR(),SR()*0.5,0.15+0.6*SR()*SR()]);
+function sceneI(u,v){ // u,v in [0,1], v down. returns linear rgb
+  let r,g,b; const hz=0.60;
+  if(v<hz){ const k=v/hz; r=0.008+0.045*k*k; g=0.012+0.075*k*k; b=0.035+0.11*k*k; }
+  else { const k=(v-hz)/(1-hz); r=0.010+0.02*(1-k); g=0.016+0.03*(1-k); b=0.035+0.05*(1-k); }
+  // hills
+  const hill=0.565+0.035*Math.sin(u*7.3+1.1)+0.02*Math.sin(u*17.0)-0.05*Math.exp(-Math.pow((u-0.18)/0.16,2));
+  if(v>hill&&v<hz){ r=0.006; g=0.009; b=0.016; const wx=(u*61)%1, wy=(v*90)%1; const hsh=Math.sin(Math.floor(u*61)*12.9898+Math.floor(v*90)*78.233)*43758.5; if(u<0.42&&(hsh-Math.floor(hsh))>0.86&&wx<0.45&&wy<0.4){ r=0.9; g=0.55; b=0.16; } }
+  // moon + halo
+  const mx=0.71,my=0.20, dm=Math.hypot((u-mx)*1.5,v-my);
+  if(v<hill){ const h=0.10*Math.exp(-dm*9.0); r+=h*1.0; g+=h*0.92; b+=h*0.78; }
+  if(dm<0.062&&v<hill){ const e=Math.min(1,Math.max(0,(0.062-dm)/0.014)); const lim=0.85+0.15*Math.sqrt(Math.max(0,1-Math.pow(dm/0.062,2))); const mare=0.92-0.10*Math.max(0,Math.sin(u*90)*Math.sin(v*70)); r=r*(1-e)+e*lim*mare; g=g*(1-e)+e*lim*0.93*mare; b=b*(1-e)+e*lim*0.80*mare; }
+  // moon path on water
+  if(v>hz){ const k=(v-hz)/(1-hz); const wdt=0.025+0.13*k; const d=Math.abs(u-mx)/wdt; if(d<1){ const st=Math.pow(Math.max(0,Math.sin(v*300+Math.sin(u*40)*3)),6); const a=(1-d*d)*(0.25+0.75*st)*0.75; r+=a; g+=a*0.82; b+=a*0.55; } }
+  // boat silhouette in the moon path
+  const bx=0.665, by=0.70; if(Math.abs(v-by)<0.012&&Math.abs(u-bx)<0.05-Math.max(0,(v-by))*1.5){ r=0.004; g=0.006; b=0.01; }
+  if(Math.abs(u-bx+0.004)<0.0035&&v>by-0.085&&v<by){ r=0.004; g=0.006; b=0.01; }
+  if(v>by-0.075&&v<by-0.01&&u>bx&&u<bx+0.045*(1-(by-0.01-v)/0.065)){ r=0.03; g=0.03; b=0.035; }
+  // stars
+  if(v<hill-0.02){ for(const st of STARS){ const d2=((u-st[0])*1.5)**2+(v-st[1])**2; if(d2<0.0004){ const a=st[2]*Math.exp(-d2/0.0000045); r+=a; g+=a; b+=a*1.08; } } }
+  return [r,g,b];
+}
+const BASE=new Float32Array(IW*IHt*3); for(let y=0;y<IHt;y++)for(let x=0;x<IW;x++){const c=sceneI((x+0.5)/IW,(y+0.5)/IHt); BASE.set(c,(y*IW+x)*3);}
+function makeExposure(w,h,xoff,K){ // per pixel per channel photon arrival fractions in [0,1], sorted
+  const n=w*h*3, off=new Uint32Array(n+1); const lists=[]; let tot=0;
+  for(let i=0;i<n;i++){ const px=Math.floor(i/3)%w, py=Math.floor(Math.floor(i/3)/w), ch=i%3; const lam=BASE[(py*IW+px+xoff)*3+ch]*K; const k=poisson(lam); const a=new Float32Array(k); for(let j=0;j<k;j++)a[j]=R(); a.sort(); lists.push(a); off[i]=tot; tot+=k; }
+  off[n]=tot; const arr=new Float32Array(tot); lists.forEach((a,i)=>arr.set(a,off[i])); return {w,h,K,off,arr,n};
+}
+const KFF=230, KPH=KFF/10.7;   // photons per output pixel at I=1: phone pixels see ~10.7x less light per output pixel (smaller sensor, same picture size)
+const EXF=makeExposure(IW,IHt,0,KFF), EXP=makeExposure(PW,IHt,(IW-PW)>>1,KPH);
+function mkTex(ex){ const d=new Uint8Array(ex.w*ex.h*4); const t=new THREE.DataTexture(d,ex.w,ex.h,THREE.RGBAFormat); t.colorSpace=THREE.SRGBColorSpace; t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearFilter; t.flipY=false; t.needsUpdate=true; return t; }
+const TEXF=mkTex(EXF), TEXP=mkTex(EXP);
+function countLE(arr,a,b,f){ let lo=a,hi=b; while(lo<hi){const m=(lo+hi)>>1; if(arr[m]<=f)lo=m+1; else hi=m;} return lo-a; }
+let lastF=-1;
+function develop(f){ if(Math.abs(f-lastF)<1e-4) return; lastF=f; const gain=1/(0.45+0.55*f);
+  for(const [ex,tx] of [[EXF,TEXF],[EXP,TEXP]]){ const d=tx.image.data;
+    for(let p=0;p<ex.w*ex.h;p++){ for(let c=0;c<3;c++){ const i=p*3+c; const N=countLE(ex.arr,ex.off[i],ex.off[i+1],f); const v=Math.min(1,N/ex.K*gain); d[p*4+c]=Math.round(255*Math.pow(v,1/2.2)); } d[p*4+3]=255; }
+    // DataTexture rows start at v=0 (bottom); image row 0 is the top of the picture, at the far (-Z) edge of the sensor
+    tx.needsUpdate=true; }
+}
+// ------------------------------------------------------------------ sensor top surface shader
+function sensorMat(S,tex){ return new THREE.ShaderMaterial({uniforms:{uP:{value:S.p},uC0:{value:new THREE.Vector2(S.x0,S.z0)},uSz:{value:new THREE.Vector2(S.x1-S.x0,S.z1-S.z0)},uImg:{value:tex},uImgAmt:{value:0},uTime:{value:0},uCam:{value:new THREE.Vector3()},uGlow:{value:0}},
+ vertexShader:`varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+ fragmentShader:`uniform float uP,uImgAmt,uTime,uGlow; uniform vec2 uC0,uSz; uniform sampler2D uImg; uniform vec3 uCam; varying vec3 vW;
+  void main(){ vec2 q=vW.xz/uP; vec2 fw=fwidth(q); float cellPx=1.0/max(max(fw.x,fw.y),1e-6);
+   vec2 f=fract(q)-0.5; float edge=max(abs(f.x),abs(f.y)); float line=smoothstep(0.43,0.47,edge);
+   float lod=smoothstep(2.5,9.0,cellPx); float r=length(f)*2.0; float lens=pow(max(1.0-r*r,0.0),1.5);
+   vec3 V=normalize(uCam-vW); float ph=V.x*1.7+V.z*2.3+(vW.x*0.7+vW.z)*0.000035+uTime*0.03;
+   vec3 iri=0.5+0.5*cos(6.2831*(ph+vec3(0.0,0.33,0.67)));
+   vec3 col=vec3(0.003,0.005,0.011)+0.012*mix(vec3(0.05,0.88,0.80),vec3(0.50,0.22,1.0),iri.x)*(0.6+0.4*iri.y);
+   // microlens dome + walls, visible once cells are a few pixels wide
+   col+=lod*lens*vec3(0.008,0.014,0.024)*(0.7+0.6*iri.z);
+   col=mix(col,vec3(0.016,0.022,0.034),line*lod*0.85);
+   // edge vignette of the die
+   vec2 uv=(vW.xz-uC0)/uSz; float e=min(min(uv.x,1.0-uv.x),min(uv.y,1.0-uv.y)); col*=0.75+0.25*smoothstep(0.0,0.04,e);
+   vec3 img=texture2D(uImg,vec2(uv.x,uv.y)).rgb; col+=img*uImgAmt*1.15;
+   col+=vec3(1.0,0.68,0.22)*uGlow;
+   gl_FragColor=vec4(col,1.0); }`}); }
+const sensors=[];
+for(const [S,tex,th] of [[PH,TEXP,700],[FF,TEXF,1400]]){
+  const w=S.x1-S.x0, d=S.z1-S.z0; const g=new THREE.Group();
+  const side=new THREE.Mesh(new THREE.BoxGeometry(w,th,d),new THREE.MeshBasicMaterial({color:0x0b0e16})); side.position.set((S.x0+S.x1)/2,-th/2-2,(S.z0+S.z1)/2); g.add(side);
+  const top=new THREE.Mesh(new THREE.PlaneGeometry(w,d),sensorMat(S,tex)); top.rotation.x=-Math.PI/2; top.position.set((S.x0+S.x1)/2,0,(S.z0+S.z1)/2); g.add(top);
+  // thin gold rim (hidden in the macro view)
+  const rim=new THREE.Group(); const rw=110; const rimMat=new THREE.MeshBasicMaterial({color:0xb88a3a,transparent:true,opacity:0.85});
+  [[w+rw,rw,(S.x0+S.x1)/2,S.z0],[w+rw,rw,(S.x0+S.x1)/2,S.z1],[rw,d,S.x0,(S.z0+S.z1)/2],[rw,d,S.x1,(S.z0+S.z1)/2]].forEach(([a,b,x,z])=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(a,b),rimMat); m.rotation.x=-Math.PI/2; m.position.set(x,1,z); rim.add(m);});
+  g.add(rim); scene.add(g); sensors.push({S,top,rim,rimMat});
+}
+// ------------------------------------------------------------------ photon streaks (instanced screen-space quads) + landing sparks
+function rainSystem(list,opt){ // list: [x,z,tArrive,k]
+  const n=list.length; const g=new THREE.InstancedBufferGeometry();
+  g.setAttribute('corner',new THREE.BufferAttribute(new Float32Array([0,-1, 0,1, 1,-1, 1,1]),2)); g.setIndex([0,2,1, 2,3,1]);
+  const aP=new Float32Array(n*2), aT=new Float32Array(n), aK=new Float32Array(n);
+  list.forEach((p,i)=>{aP[i*2]=p[0];aP[i*2+1]=p[1];aT[i]=p[2];aK[i]=p[3];});
+  g.setAttribute('aP',new THREE.InstancedBufferAttribute(aP,2)); g.setAttribute('aT',new THREE.InstancedBufferAttribute(aT,1)); g.setAttribute('aK',new THREE.InstancedBufferAttribute(aK,1)); g.instanceCount=n;
+  const U={uTime:{value:0},uV:{value:opt.v},uL:{value:opt.L},uFall:{value:opt.fall},uWpx:{value:opt.wpx*SC},uRes:{value:new THREE.Vector2(W,H)},uDir:{value:new THREE.Vector3(...opt.dir).normalize()},uAmp:{value:1},uSpark:{value:opt.spark*SC}};
+  const streak=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:U,transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,
+   vertexShader:`attribute vec2 corner; attribute vec2 aP; attribute float aT; attribute float aK; uniform float uTime,uV,uL,uFall,uWpx; uniform vec2 uRes; uniform vec3 uDir; varying float vAl; varying float vSd; varying float vK;
+    void main(){ float dt=aT-uTime; vK=aK; vAl=corner.x; vSd=corner.y;
+      if(dt<0.0||dt>uFall){ gl_Position=vec4(9.0,9.0,9.0,1.0); return; }
+      vec3 base=vec3(aP.x,0.0,aP.y); vec3 hd=base+uDir*(uV*dt); vec3 tl=hd+uDir*uL;
+      vec4 ch=projectionMatrix*viewMatrix*vec4(hd,1.0), ct=projectionMatrix*viewMatrix*vec4(tl,1.0);
+      vec2 sh=ch.xy/ch.w*uRes, st=ct.xy/ct.w*uRes; vec2 d=sh-st; float len=length(d); vec2 dir=len>1e-3?d/len:vec2(0.0,1.0); vec2 nrm=vec2(-dir.y,dir.x);
+      vec4 c=corner.x>0.5?ch:ct; vec2 sp=c.xy/c.w*uRes; if(corner.x>0.5) sp+=dir*uWpx; sp+=nrm*corner.y*uWpx;
+      gl_Position=vec4(sp/uRes*c.w,c.z,c.w); }`,
+   fragmentShader:`uniform float uAmp; varying float vAl; varying float vSd; varying float vK; void main(){ float a=vAl*vAl*(1.0-vSd*vSd); vec3 c=mix(vec3(1.0,0.62,0.18),vec3(1.0,0.93,0.75),vAl*vAl); gl_FragColor=vec4(c*a*uAmp*vK,1.0);} `}));
+  streak.frustumCulled=false; scene.add(streak);
+  // sparks: a small flash where each photon lands
+  const sg=new THREE.BufferGeometry(); const sp=new Float32Array(n*3); list.forEach((p,i)=>{sp[i*3]=p[0];sp[i*3+1]=opt.sparkY||0.5;sp[i*3+2]=p[1];});
+  sg.setAttribute('position',new THREE.BufferAttribute(sp,3)); sg.setAttribute('aT',new THREE.BufferAttribute(aT,1)); sg.setAttribute('aK',new THREE.BufferAttribute(aK,1));
+  const spark=new THREE.Points(sg,new THREE.ShaderMaterial({uniforms:U,transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,
+   vertexShader:`attribute float aT; attribute float aK; uniform float uTime,uSpark; varying float vA; void main(){ float e=uTime-aT; vA=(e>=0.0&&e<0.22)?(1.0-e/0.22):0.0; vA*=vA*aK; gl_PointSize=vA>0.0?uSpark*(0.6+0.8*(1.0-vA)):0.0; gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.0); if(vA<=0.0) gl_Position=vec4(9.0,9.0,9.0,1.0);} `,
+   fragmentShader:`uniform float uAmp; varying float vA; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=pow(max(1.0-r,0.0),2.5); gl_FragColor=vec4(vec3(1.0,0.80,0.45)*a*vA*uAmp,1.0);} `}));
+  spark.frustumCulled=false; scene.add(spark);
+  return {streak,spark,U};
+}
+// Overview rain: uniform per unit area on both sensors (same light, same shutter). A dense first wave lands just after frame 0.
+const RA=[]; const AREA_PH=(PH.x1-PH.x0)*(PH.z1-PH.z0), AREA_FF=(FF.x1-FF.x0)*(FF.z1-FF.z0);
+function rainTimes(nn,t0,t1,burst){ const out=[]; for(let i=0;i<nn;i++){ let t; if(R()<burst) t=0.06+Math.pow(R(),1.6)*0.55; else t=t0+R()*(t1-t0); out.push(t);} return out; }
+{ const NA=52000; const ts=rainTimes(NA,0.3,7.6,0.10); ts.forEach(t=>{ const onPh=R()<AREA_PH/(AREA_PH+AREA_FF); const S=onPh?PH:FF; RA.push([S.x0+R()*(S.x1-S.x0),S.z0+R()*(S.z1-S.z0),t,0.25+0.45*R()]); }); }
+// loop: the first wave is already falling at the end, so the last frame flows into frame 0
+RA.filter(p=>p[2]<0.7).forEach(p=>RA.push([p[0],p[1],p[2]+22.0,p[3]]));
+const rainA=rainSystem(RA,{v:90000,L:4200,fall:0.38,wpx:1.7,dir:[0.06,1.0,-0.30],spark:8,sparkY:5});
+// Macro rain over the bucket field (seam at z=0): phone pixels z<0, camera pixels z>0.
+const MX=24, MZP=45, MZF=42; const T_FILL0=9.0, T_FILL1=14.55;
+const RB=[]; for(let i=0;i<22000;i++){ const t=T_FILL0-0.1+R()*(T_FILL1-T_FILL0+0.1); RB.push([-MX-6+R()*(2*MX+12),-MZP-6+R()*(MZP+MZF+12),t,0.45+0.55*R()]); }
+const rainB=rainSystem(RB,{v:260,L:12,fall:0.42,wpx:1.3,dir:[0.06,1.0,-0.35],spark:4,sparkY:3.9});
+// ------------------------------------------------------------------ buckets (instanced columns whose height = photons caught / expected)
+const HMAX=3.4; const dm=new THREE.Object3D(), ctmp=new THREE.Color();
+function bucketField(S,nx,nz,x0,z0,lam){
+  const n=nx*nz; const geo=new THREE.BoxGeometry(1,1,1); geo.translate(0,0.5,0);
+  const mat=new THREE.ShaderMaterial({uniforms:{uAmp:{value:1}},vertexShader:`varying vec3 vN; varying float vF; varying float vY; void main(){ vN=normal; vF=instanceColor.r; vY=position.y; gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*vec4(position,1.0);} `,
+    fragmentShader:`uniform float uAmp; varying vec3 vN; varying float vF; varying float vY; void main(){ float top=step(0.5,vN.y); vec3 deep=vec3(0.16,0.035,0.002), mid=vec3(0.90,0.30,0.03), hi=vec3(1.0,0.56,0.12);
+      vec3 c; if(top>0.5){ c=mix(mid,hi,vF*vF)*(0.03+0.62*vF*vF); } else { c=mix(deep,mid,vY*vY)*(0.05+0.30*vF)*(abs(vN.x)>0.5?0.7:1.0); }
+      gl_FragColor=vec4(c*uAmp,1.0);} `});
+const mesh=new THREE.InstancedMesh(geo,mat,n); mesh.frustumCulled=false;
+  const arr=[]; for(let i=0;i<n;i++){ const k=poisson(lam); const a=new Float32Array(k); for(let j=0;j<k;j++)a[j]=T_FILL0+R()*(T_FILL1-T_FILL0); a.sort(); arr.push(a); mesh.setColorAt(i,new THREE.Color(0,0,0)); }
+  scene.add(mesh);
+  // glass walls of the buckets
+  const gap=S.p*0.10, wh=S.p*1.0; const nw=(nx+1)+(nz+1); const wg=new THREE.BoxGeometry(1,1,1); wg.translate(0,0.5,0);
+  const wmat=new THREE.ShaderMaterial({uniforms:{uAmp:{value:1}},
+    vertexShader:`varying float vY; varying vec3 vN; void main(){ vY=position.y; vN=normal; gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*vec4(position,1.0);} `,
+    fragmentShader:`uniform float uAmp; varying float vY; varying vec3 vN; void main(){ float rim=smoothstep(0.80,1.0,vY); float topf=step(0.5,vN.y); vec3 c=vec3(0.004,0.007,0.014)*(0.5+0.8*vY)+vec3(0.02,0.40,0.45)*(0.04*rim+0.07*topf); gl_FragColor=vec4(c*mix(1.0,uAmp,0.0),1.0);} `});
+  const walls=new THREE.InstancedMesh(wg,wmat,nw); walls.frustumCulled=false; let k=0;
+  for(let i=0;i<=nx;i++){ dm.position.set(x0+i*S.p,0,z0+nz*S.p/2); dm.scale.set(gap,wh,nz*S.p); dm.updateMatrix(); walls.setMatrixAt(k++,dm.matrix); }
+  for(let i=0;i<=nz;i++){ dm.position.set(x0+nx*S.p/2,0,z0+i*S.p); dm.scale.set(nx*S.p,wh,gap); dm.updateMatrix(); walls.setMatrixAt(k++,dm.matrix); }
+  scene.add(walls);
+  return {S,nx,nz,x0,z0,lam,mesh,walls,arr,n,cnt:new Int32Array(n)};
+}
+const BPH=bucketField(PH,Math.round(2*MX/PH.p),Math.round(MZP/PH.p),-MX,-MZP,100);
+const BFF=bucketField(FF,Math.round(2*MX/FF.p),Math.round(MZF/FF.p),-MX,0,10000);
+// highlighted pixels (one of each, followed by the counters)
+const HL_PH={ix:Math.round(MX/PH.p)+1,iz:Math.round(MZP/PH.p)-22}, HL_FF={ix:4,iz:2};
+function countAt(a,t){ let lo=0,hi=a.length; while(lo<hi){const m=(lo+hi)>>1; if(a[m]<=t)lo=m+1; else hi=m;} return lo; }
+function updBuckets(B,t){ const gap=B.S.p*0.12, w=B.S.p-gap;
+  for(let iz=0;iz<B.nz;iz++)for(let ix=0;ix<B.nx;ix++){ const i=iz*B.nx+ix; const c=countAt(B.arr[i],t); B.cnt[i]=c; const f=c/B.lam; const h=Math.max(0.004*B.S.p,B.S.p*0.92*Math.min(f,1.12));
+    dm.position.set(B.x0+(ix+0.5)*B.S.p,0,B.z0+(iz+0.5)*B.S.p); dm.scale.set(w,h,w); dm.updateMatrix(); B.mesh.setMatrixAt(i,dm.matrix); ctmp.setRGB(Math.min(1,f),0,0); B.mesh.setColorAt(i,ctmp); }
+  B.mesh.instanceMatrix.needsUpdate=true; B.mesh.instanceColor.needsUpdate=true; }
+// ------------------------------------------------------------------ backdrop dust (slow, gives depth to the void)
+const dg=new THREE.BufferGeometry(); const ND=9000; const dp=new Float32Array(ND*3); for(let i=0;i<ND;i++){ const d=Math.pow(10,1.2+R()*4.4); const a=R()*6.283; dp[i*3]=Math.cos(a)*d*(0.6+R()); dp[i*3+1]=-d*(0.3+R()*2.0); dp[i*3+2]=Math.sin(a)*d*(0.6+R())+8000*(d/1e5); }
+dg.setAttribute('position',new THREE.BufferAttribute(dp,3));
+const dust=new THREE.Points(dg,new THREE.ShaderMaterial({uniforms:{uK:{value:H/2/Math.tan(FOV*Math.PI/360)}},transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ vertexShader:`uniform float uK; varying float vA; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=-mv.z; float s=(-position.y)*0.004*uK/max(d,1.0); gl_PointSize=clamp(s,1.0,6.0); vA=clamp(s/2.0,0.15,1.0); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying float vA; void main(){ vec2 c=gl_PointCoord-0.5; float a=smoothstep(0.5,0.0,length(c)); gl_FragColor=vec4(vec3(0.35,0.55,0.70)*a*vA*0.35,1.0);} `})); dust.frustumCulled=false; scene.add(dust);
+// ------------------------------------------------------------------ camera
+// Overview: nearly top-down so the two sensor areas read at their true ratio. Dive: log-distance zoom to the seam. Pull-out: back to the overview.
+const D0=86000, DM=78, DM2=64; const F0=new THREE.Vector3(0,0,5600);
+const lerp=(a,b,k)=>a+(b-a)*k;
+function camAt(t){ let lD, el, az, fk;
+  const lD0=Math.log(D0), lDM=Math.log(DM), lDM2=Math.log(DM2);
+  const ovAz=-0.05+0.10*sm(0,6.6,t), ovEl=1.43;            // hook + overview drift
+  if(t<6.6){ lD=lD0-0.10*sm(0,6.6,t); el=ovEl-0.06*sm(0,6.6,t); az=ovAz; }
+  else if(t<9.2){ const k=smr(6.6,9.2,t); const lA=lD0-0.10; lD=lerp(lA,lDM,k); el=lerp(ovEl-0.06,0.92,smr(7.0,9.2,t)); az=lerp(0.05,0.42,smr(7.0,9.2,t)); }
+  else if(t<15.3){ const k=sm(9.2,15.3,t); lD=lerp(lDM,lDM2,k); el=0.92-0.05*k; az=0.42+0.18*k; }
+  else if(t<17.7){ const k=smr(15.3,17.7,t); lD=lerp(lDM2,lD0-0.05,k); el=lerp(0.87,ovEl,smr(15.3,17.4,t)); az=lerp(0.60,0.0,smr(15.3,17.7,t)); }
+  else if(t<20.6){ const k=sm(17.7,20.6,t); lD=lD0-0.05-0.03*k; el=ovEl; az=0.0+0.02*k; }
+  else { const k=sm(20.6,22.0,t); lD=lerp(lD0-0.08,lD0,k); el=ovEl; az=lerp(0.02,-0.05,k); }
+  const D=Math.exp(lD);
+  // focus tracks distance so the seam point (0,0,0) slides smoothly to the centre during the dive
+  const fz=F0.z*Math.min(1,Math.pow(D/D0,1.0))-6*sm(3000,200,D); const F=new THREE.Vector3(0,0,fz);
+  return {D,el,az,F};
+}
+function placeCam(t){ const {D,el,az,F}=camAt(t); const ce=Math.cos(el);
+  cam.position.set(F.x+D*Math.sin(az)*ce,F.y+D*Math.sin(el),F.z+D*Math.cos(az)*ce);
+  cam.up.set(-Math.sin(az)*Math.sin(el),Math.cos(el),-Math.cos(az)*Math.sin(el)); cam.lookAt(F); cam.near=D*0.02; cam.far=D*20; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); return D; }
+// ------------------------------------------------------------------ composer
+const comp=new EffectComposer(renderer); comp.setSize(W,H); comp.addPass(new RenderPass(scene,cam));
+const clampPass=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); c.rgb=vec3(1.0)-exp(-c.rgb*1.25); gl_FragColor=vec4(c.rgb,1.0);} `}); comp.addPass(clampPass);
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.42,0.45,0.55); comp.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uRes:{value:new THREE.Vector2(W,H)}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+ fragmentShader:`uniform sampler2D tDiffuse; uniform float uT; uniform vec2 uRes; varying vec2 vUv; float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+  void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb; float l=dot(c,vec3(0.3,0.59,0.11)); c+=vec3(-0.004,0.010,0.018)*(1.0-smoothstep(0.0,0.25,l)); c*=mix(vec3(1.0),vec3(1.03,1.0,0.95),smoothstep(0.2,0.8,l));
+   vec2 d=vUv-0.5; d.x*=uRes.x/uRes.y; c*=1.0-0.55*smoothstep(0.25,0.85,length(d)); c+=(h(vUv*uRes+uT*61.0)-0.5)*0.018; gl_FragColor=vec4(c,1.0);} `}); comp.addPass(grade);
+comp.addPass(new OutputPass());
+const c2=document.createElement('canvas'); c2.width=W; c2.height=H; const ctx=c2.getContext('2d');
+// ------------------------------------------------------------------ scene state at time t
+const EXPO0=1.0, EXPO1=14.55;
+function setT(t){ const D=placeCam(t);
+  [rainA,rainB].forEach(r=>r.U.uTime.value=t);
+  rainA.U.uAmp.value=1.0*(1-sm(6.8,8.2,t)); rainA.streak.visible=rainA.spark.visible=t<8.3||t>21.4; if(t>21.4) rainA.U.uAmp.value=1.0;
+  rainB.U.uAmp.value=sm(8.2,9.0,t); rainB.streak.visible=rainB.spark.visible=t>8.0&&t<15.2;
+  const macro=D<6000; BPH.mesh.visible=BFF.mesh.visible=BPH.walls.visible=BFF.walls.visible=D<420;
+  const ba=sm(420,170,D); [BPH,BFF].forEach(B=>{B.mesh.material.uniforms.uAmp.value=ba; B.walls.material.uniforms.uAmp.value=ba;});
+  if(BPH.mesh.visible){ updBuckets(BPH,t); updBuckets(BFF,t); }
+  const ex=Math.min(1,Math.max(0,(t-EXPO0)/(EXPO1-EXPO0))); develop(t>20.6?1:ex);
+  const ia=(t<6.6?sm(1.2,3.4,t):1)*(1-sm(20.4,21.6,t))*sm(500,2600,D);
+  sensors.forEach(s=>{ const u=s.top.material.uniforms; u.uImgAmt.value=ia; u.uTime.value=t; u.uCam.value.copy(cam.position); u.uGlow.value=0.0; s.rim.visible=D>2500; s.rimMat.opacity=0.85*sm(2500,12000,D); });
+  grade.uniforms.uT.value=t; return {D};
+}
+function proj(v){ const p=v.clone().project(cam); return [(p.x*0.5+0.5),(0.5-p.y*0.5)]; }
+function info(t){ const B1=BPH, B2=BFF; const i1=HL_PH.iz*B1.nx+HL_PH.ix, i2=HL_FF.iz*B2.nx+HL_FF.ix;
+  const h1=PH.p*0.92*(B1.cnt[i1]/B1.lam), h2=FF.p*0.92*(B2.cnt[i2]/B2.lam);
+  const p1=new THREE.Vector3(B1.x0+(HL_PH.ix+0.5)*PH.p,h1,B1.z0+(HL_PH.iz+0.5)*PH.p), p2=new THREE.Vector3(B2.x0+(HL_FF.ix+0.5)*FF.p,h2,B2.z0+(HL_FF.iz+0.5)*FF.p);
+  // pixel-size markers: projected corners of the two highlighted pixels
+  const sq=(c,hh,s)=>[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>proj(new THREE.Vector3(c.x+a*s/2,hh,c.z+b*s/2)));
+  // spread of the phone field: relative standard deviation of the counts
+  let m=0,v=0; for(let i=0;i<B1.n;i++){m+=B1.cnt[i];} m/=B1.n; for(let i=0;i<B1.n;i++){v+=(B1.cnt[i]-m)**2;} v/=B1.n;
+  let m2=0,v2=0; for(let i=0;i<B2.n;i++){m2+=B2.cnt[i];} m2/=B2.n; for(let i=0;i<B2.n;i++){v2+=(B2.cnt[i]-m2)**2;} v2/=B2.n;
+  return {cPh:B1.cnt[i1],cFF:B2.cnt[i2],pPh:proj(p1),pFF:proj(p2),qPh:sq(p1,h1,PH.p),qFF:sq(p2,h2,FF.p),
+    sPh:m>0?Math.sqrt(v)/m:0,sFF:m2>0?Math.sqrt(v2)/m2:0,
+    ph:proj(new THREE.Vector3(0,0,(PH.z0+PH.z1)/2)),ff:proj(new THREE.Vector3(0,0,(FF.z0+FF.z1)/2)),phTop:proj(new THREE.Vector3(0,0,PH.z0)),ffBot:proj(new THREE.Vector3(0,0,FF.z1)),phR:proj(new THREE.Vector3(PH.x1,0,(PH.z0+PH.z1)/2)),ffR:proj(new THREE.Vector3(FF.x1,0,(FF.z0+FF.z1)/2)),seam:proj(new THREE.Vector3(0,0,0))}; }
+window.renderAt=(t,sub)=>{ sub=sub||3; const sh=1/60; // shutter 1/60 s, averaged sub-frames
+  for(let k=0;k<sub;k++){ const tt=t+sh*((k+0.5)/sub-0.5); setT(tt); comp.render(); ctx.globalAlpha=1/(k+1); ctx.drawImage(renderer.domElement,0,0); }
+  ctx.globalAlpha=1; setT(t); return {img:c2.toDataURL('image/jpeg',0.95),info:info(t)}; };
+window.info=info; window.setT=setT; window.cam=cam; window.ready=true;
+</script></body></html>
