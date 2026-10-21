@@ -2,7 +2,8 @@
 import sys, json, subprocess, math
 from PIL import Image, ImageDraw, ImageFont
 FR, PJ, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
-W, H, FPS, N = 1080, 1920, 30, 660
+W, H, FPS = 1080, 1920, 30
+TMAP = json.load(open(__file__.rsplit('/', 1)[0] + '/timemap.json'))['frames']; N = len(TMAP)
 MONO = '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
 SMALL = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
 CREAM = (255, 240, 214); RED = (214, 62, 48); TEAL = (40, 224, 204); GOLD = (255, 180, 66)
@@ -41,7 +42,7 @@ def chip(d, s, cx, y, size, a, col=RED):
 enc = subprocess.Popen(['ffmpeg', '-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
                         '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', OUT], stdin=subprocess.PIPE)
 for f in range(N):
-    t = f / FPS; P = proj[f]
+    t = TMAP[f]; P = proj[f]   # text timings are on the scene clock
     base = Image.open(f'{FR}/f{f:04d}.jpg').convert('RGB')
     if base.size != (W, H): base = base.resize((W, H), Image.LANCZOS)
     ov = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(ov)
@@ -69,15 +70,15 @@ for f in range(N):
     if ka > 0: chip(d, 'TRAFFIC JAM', P['knot'][0] * W, P['knot'][1] * H - 120, 42, ka)
     # the reveal
     ra = win(t, 11.35, 14.4, 0.15, 0.25)
-    chip(d, 'BERLIN, 2020', W / 2, 520, 42, ra)
+    chip(d, 'REAL STORY · BERLIN 2020', W / 2, 520, 42, ra)
     text(d, typed('NO CARS.', t, 11.45, 26), W / 2, 1290, 60, ra)
     text(d, typed('ONE WAGON.', t, 12.05, 26), W / 2, 1375, 60, ra)
     text(d, typed('99 PHONES.', t, 12.65, 26), W / 2, 1460, 60, ra)
     text(d, 'artist Simon Weckert, "Google Maps Hacks"', W / 2, 1535, 24, 0.8 * win(t, 12.9, 14.4), fp=SMALL, stroke=2)
     # rerouting
     qa = win(t, 15.25, 18.75, 0.2, 0.25)
-    text(d, typed('MAPS BELIEVES IT', t, 15.3, 30), W / 2, 250, 56, qa)
-    text(d, typed('AND STEERS YOU AROUND.', t, 16.3, 30), W / 2, 330, 56, qa)
+    text(d, typed('MAPS SAW A JAM', t, 15.3, 30), W / 2, 250, 56, qa)
+    text(d, typed('AND SENT DRIVERS AROUND.', t, 16.3, 30), W / 2, 330, 56, qa)
     ya = win(t, 15.4, 18.75, 0.2, 0.25)
     if ya > 0:
         x, y = P['you'][0] * W, P['you'][1] * H

@@ -1,12 +1,17 @@
 # mix.py OUT_WAV : fully synthesized sound for "The Jam Is Made of Phones" (no samples, no licences needed).
 # Family: "night signal" - city hum, data pings (one per phone), tape-stop slowdown, sonar route search, pluck arpeggio.
 import sys, numpy as np
-SR = 48000; DUR = 22.0; N = int(SR * DUR)
+import json, os
+SR = 48000
+_tm = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'timemap.json')))
+DUR = _tm['vdur']; N = int(SR * DUR)
+_S, _V = np.array(_tm['s']), np.array(_tm['v'])
+def S2V(s): return float(np.interp(s, _S, _V))  # cue times are written on the scene clock
 rng = np.random.default_rng(611)
 bus = {k: np.zeros((2, N)) for k in ['hit', 'sfx', 'bed', 'ping', 'tick']}
 def T(n): return np.arange(n) / SR
 def put(b, x, t, pan=0.0, g=1.0):
-    i = int(t * SR); x = np.asarray(x) * g
+    i = int(S2V(t) * SR); x = np.asarray(x) * g
     if i >= N: return
     n = min(len(x), N - i); l = np.cos((pan + 1) * np.pi / 4); r = np.sin((pan + 1) * np.pi / 4)
     bus[b][0, i:i + n] += x[:n] * l * 1.414; bus[b][1, i:i + n] += x[:n] * r * 1.414
@@ -22,11 +27,11 @@ def sweep(f0, f1, dur, shape=1.0):
 noise = lambda n: rng.standard_normal(n)
 def sst(a, b, x):
     k = np.clip((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k)
-t = T(N)
+tv = T(N); t = np.interp(tv, _V, _S)   # t = scene clock per sample (for envelopes), tv = real time (for oscillators)
 
 # ---------------- bed: night city (rumble + distant traffic wash + hum chord), ducks to near-silence in the held breath
 wash = bp(noise(N), 120, 900) * 0.18 + bp(noise(N), 900, 3500) * 0.025
-hum = sum(np.sin(2 * np.pi * f * t + rng.uniform(0, 6)) * a for f, a in [(110, 0.05), (110.6, 0.04), (164.8, 0.03), (220.4, 0.02), (329.6, 0.012)])
+hum = sum(np.sin(2 * np.pi * f * tv + rng.uniform(0, 6)) * a for f, a in [(110, 0.05), (110.6, 0.04), (164.8, 0.03), (220.4, 0.02), (329.6, 0.012)])
 lvl = 0.8 + 0.4 * sst(2.3, 3.0, t)            # city opens up at the snap
 lvl *= 1 - 0.75 * sst(6.0, 10.0, t)            # traffic thins as the jam forms
 lvl *= 1 - sst(9.95, 10.1, t) * (1 - sst(10.72, 10.8, t))  # held breath
@@ -53,7 +58,7 @@ def ticks(t0, n, cps, g=0.18):
     for k in range(n):
         m = int(0.025 * SR); x = hp(noise(m), 3000) * env(m, 0.0003, 0.006); put('tick', x * g, t0 + k / cps, rng.uniform(-0.3, 0.3))
 ticks(0.0, 11, 26); ticks(0.5, 9, 26); ticks(2.55, 15, 30, 0.12); ticks(6.3, 17, 30, 0.1); ticks(7.6, 19, 30, 0.1)
-ticks(11.45, 8, 26, 0.14); ticks(12.05, 10, 26, 0.14); ticks(12.65, 10, 26, 0.14); ticks(15.3, 16, 30, 0.1); ticks(16.3, 22, 30, 0.1)
+ticks(11.45, 8, 26, 0.14); ticks(12.05, 10, 26, 0.14); ticks(12.65, 10, 26, 0.14); ticks(15.3, 14, 30, 0.1); ticks(16.3, 24, 30, 0.1)
 ticks(19.0, 10, 22, 0.16); ticks(19.5, 15, 22, 0.16)
 
 # ---------------- the snap down into the avenue (1.9-2.5): reverse swell into a down-whoosh
@@ -127,6 +132,15 @@ ir_n = int(1.2 * SR); ir = noise(ir_n) * np.exp(-T(ir_n) / 0.35) * 0.02
 from scipy.signal import fftconvolve
 for c in range(2): mix[c] += fftconvolve(bus['hit'][c] + bus['ping'][c] * 0.6, ir)[:N]
 mix = np.tanh(mix * 1.3) / np.tanh(1.3)
+# optional voiceover (already timed to video time by vo_edit.py): sound design ducks about 8 dB under the voice
+if len(sys.argv) > 2:
+    import subprocess
+    raw = subprocess.run(['ffmpeg', '-loglevel', 'error', '-i', sys.argv[2], '-ac', '1', '-ar', str(SR), '-f', 's16le', '-'], capture_output=True).stdout
+    vo = np.frombuffer(raw, np.int16).astype(np.float64)[:N] / 32768; vo = np.pad(vo, (0, N - len(vo)))
+    vo = hp(vo, 80); vo /= np.abs(vo).max()
+    ve = lpf(np.abs(vo), 6); ve = np.clip(ve / (np.percentile(ve, 95) + 1e-9), 0, 1)
+    mix = mix / np.abs(mix).max() * 0.55 * (1 - 0.6 * ve)
+    mix += vo * 0.85
 mix /= np.abs(mix).max() / 0.89
 import wave
 out = (np.clip(mix.T, -1, 1) * 32767).astype(np.int16)
