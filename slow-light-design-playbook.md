@@ -26,6 +26,7 @@ Scope: the wordless "light and scale" reels (Red Sprites, The Sun Vanishes, Nigh
 | The Sun Vanishes | Light and gravity both take 8 min 20 s | `sun_vanishes_v3_yt.mp4` (14 s, YouTube recut with stronger sound) | posted IG/FB; YouTube copy in `sun-vanishes-reel.md` |
 | Night Sky "the past" | Every light you see is old; Andromeda sees our past | v4 approved (19 s, sound reference); **v8.1 final** `night_sky_past_v81_A.mp4` (19.2 s) | copy ready: `night-sky-v81-publish-copy.md` |
 | Scale Ladder | Earth to the observable universe, ends "YOU ARE HERE." | **`scale_ladder_3d_v4_A/B.mp4`** (26 s, hooks A and B) | copy ready: `scale-ladder-publish-copy.md` |
+| The Dipper Is Melting | 100,000-year time-lapse of the Big Dipper from real Hipparcos motions; 5 of 7 stars are one family | `the-dipper-is-melting.mp4` (20 s) | copy ready: `the-dipper-is-melting.md` |
 
 Specs and notes per reel: `night-sky-past-reel.md` (v1-v4), `night-sky-v5-notes.md` (v5-v7), `night-sky-v8-spec.md` (v8 frozen plan + v8.1 pass), `scale-ladder-reel.md`.
 
@@ -105,6 +106,8 @@ Two camera languages, chosen by what the reel says.
 - **Night Sky: the v4 sound is the reference and is used as-is.** Frame-0 hit (explosion + dark accent), sparks charge-up, reverse whoosh into the snap, portal-gate shimmer, per-stop identity (Moon airy glass bell, Sun fire crackle + plasma trail + sub whoosh, Proxima gateway + dark low hit), hyperdrive riser + jet pitch-up + accelerating pulses, held breath, big blast + sub wall, wind and bell on the end plate, loop-link tone. The v8.1 mix is the v4 cue sheet retimed (hyperdrive re-fitted to 1.65 s, hero hit at 10.5 s, dive home with v4's reverse whoosh / riser / warp-in then 0.3 s silence).
 - **Scale Ladder:** brass-and-sub family: chakong brass braaam (92 Hz body) + bass drop + screaming-echo tail on the 18.0 s burst and the 2.0 s Sun slam, harmonic pings on a 106 Hz root for the Solar System, formant choir pad, shepard risers, fire roar, plunge whooshes.
 - Discarded: the Night Sky v8 "time and glass" tick/shepard mix (it was a replica of the Ladder's character and was rejected). Lesson: ask for the reference sound before designing a new one.
+
+- **The Dipper Is Melting:** the seven-star chord (one pure voice per star; the family bends together, the two loners go sour, the rewind re-tunes it), a time whirr pitched by the speed of time, star-dust grains, three hits only. Synthesized plus two CC0 files.
 
 ### 4.3 Loudness and delivery
 - Target about -15 LUFS integrated; **check true peak after AAC encoding, not before** (a +2 dB overshoot appeared on a single transient). Fixes that worked: lower the limiter and use a soft-clip (`asoftclip tanh`) on the single loudest transient; measure with `ebur128=peak=true`.

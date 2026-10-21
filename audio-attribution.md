@@ -36,12 +36,12 @@ Paste the exact line into the description of any reel that uses the file.
 
 | File | Author | Used in |
 |---|---|---|
-| 814046 Explosion From Another Dimension | qubodup | Night Sky, Scale Ladder |
+| 814046 Explosion From Another Dimension | qubodup | Night Sky, Scale Ladder, Dipper Is Melting |
 | 814047 Fantasy Implosion | qubodup | Night Sky, Scale Ladder |
 | 869757 Dark Suspense Accent | mikiko850 | Night Sky, Scale Ladder |
 | 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | Night Sky, Scale Ladder |
 | 822420 Riser Hit sfx 120 | AudioPapkin | Night Sky, Scale Ladder |
-| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder |
+| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Dipper Is Melting |
 | 276871 Sword In Air | lucabia | Night Sky only |
 | 768664 portal gate opening | berkup | Night Sky only |
 | 735062 Fast Warp In | GammaGool | Night Sky only |

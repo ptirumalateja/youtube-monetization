@@ -1,0 +1,159 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// The Dipper Is Melting: real 3D-propagated star motions (HYG v4.1 / Hipparcos), 100,000-year time-lapse.
+// World units = degrees on the sky (gnomonic plane), rotated so the Dipper hangs bowl-up, handle-down.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/1920;
+const [TL,DATA]=await Promise.all([fetch('timeline.json').then(r=>r.json()),fetch('stars.json').then(r=>r.json())]);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x000000);
+const FOV=36, TAN=Math.tan(FOV*Math.PI/360); const cam=new THREE.PerspectiveCamera(FOV,W/H,1,1000);
+// ------------------------------------------------------------------ timeline helpers (monotone cubic, same as overlay.py)
+function mono(keys,t){ const n=keys.length; if(t<=keys[0][0]) return keys[0][1]; if(t>=keys[n-1][0]) return keys[n-1][1];
+  const x=keys.map(k=>k[0]), y=keys.map(k=>k[1]); const d=[],m=[];
+  for(let i=0;i<n-1;i++) d.push((y[i+1]-y[i])/(x[i+1]-x[i]));
+  m.push(d[0]); for(let i=1;i<n-1;i++) m.push(d[i-1]*d[i]<=0?0:(d[i-1]+d[i])/2); m.push(d[n-2]);
+  for(let i=0;i<n-1;i++){ if(d[i]===0){m[i]=0;m[i+1]=0;continue} const a=m[i]/d[i],b=m[i+1]/d[i],s=a*a+b*b; if(s>9){const k=3/Math.sqrt(s); m[i]=k*a*d[i]; m[i+1]=k*b*d[i];} }
+  let i=0; while(t>x[i+1]) i++; const h=x[i+1]-x[i], u=(t-x[i])/h, u2=u*u, u3=u2*u;
+  return (2*u3-3*u2+1)*y[i]+(u3-2*u2+u)*h*m[i]+(-2*u3+3*u2)*y[i+1]+(u3-u2)*h*m[i+1]; }
+const sstep=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a))); return k*k*(3-2*k)};
+const yearAt=t=>Math.max(0,Math.min(100000,mono(TL.year,t)));
+// ------------------------------------------------------------------ star data, rotated so Alkaid -> Dubhe points straight up
+const YRS=DATA.years, NY=YRS.length, STARS=DATA.stars;
+const dip=[]; STARS.forEach(s=>{ if(s.dipper>=0) dip[s.dipper]=s; });   // 0 Dubhe 1 Merak 2 Phecda 3 Megrez 4 Alioth 5 Mizar 6 Alkaid
+const raw=p=>[-p[0],p[1]];
+const a0=raw(dip[6].path[0]), b0=raw(dip[0].path[0]); const ang=Math.PI/2-Math.atan2(b0[1]-a0[1],b0[0]-a0[0]);
+const ca=Math.cos(ang), sa=Math.sin(ang);
+for(const s of STARS){ const P=new Float32Array(NY*2); s.path.forEach((p,i)=>{const r=raw(p); P[i*2]=r[0]*ca-r[1]*sa; P[i*2+1]=r[0]*sa+r[1]*ca;}); s.P=P; }
+function posAt(s,Y,out){ const f=Y/100000*(NY-1); const i=Math.min(NY-2,Math.floor(f)), u=f-i; out[0]=s.P[i*2]+(s.P[i*2+2]-s.P[i*2])*u; out[1]=s.P[i*2+1]+(s.P[i*2+3]-s.P[i*2+1])*u; return out; }
+const tmp=[0,0];
+function centroid(Y){ let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9; for(const s of dip){posAt(s,Y,tmp); x0=Math.min(x0,tmp[0]); x1=Math.max(x1,tmp[0]); y0=Math.min(y0,tmp[1]); y1=Math.max(y1,tmp[1]);} return [(x0+x1)/2,(y0+y1)/2]; }   // bbox centre of the 7
+// B-V colour index -> linear RGB (Ballesteros temperature, then a soft blackbody tint)
+function bvRGB(bv){ bv=Math.max(-0.4,Math.min(2.0,bv)); const T=4600*(1/(0.92*bv+1.7)+1/(0.92*bv+0.62));
+  let r,g,b; const t=T/100; r=t<=66?1:Math.min(1,1.29*Math.pow(t-60,-0.133)); g=t<=66?Math.min(1,0.39*Math.log(t)-0.63):Math.min(1,1.13*Math.pow(t-60,-0.0755)); b=t>=66?1:(t<=19?0:Math.min(1,0.543*Math.log(t-10)-1.19));
+  const m=Math.max(r,g,b); return [0.55+0.45*r/m,0.55+0.45*g/m,0.6+0.4*b/m]; }
+// ------------------------------------------------------------------ backdrop: faint integrated-flux cirrus + gradient (parallax layer behind the stars)
+const bg=new THREE.Mesh(new THREE.PlaneGeometry(420,420),new THREE.ShaderMaterial({depthWrite:false,depthTest:false,
+  uniforms:{uT:{value:0}},
+  vertexShader:`varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+  fragmentShader:`varying vec2 vP; uniform float uT;
+  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float n(vec2 p){vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+  float fbm(vec2 p){float a=0.5,s=0.0; for(int i=0;i<6;i++){s+=a*n(p); p=p*2.03+vec2(1.7,9.2); a*=0.5;} return s;}
+  void main(){ vec2 p=vP*0.045; float c=fbm(p+fbm(p*1.7)*1.3); float w=smoothstep(0.52,0.85,c);
+    float c2=fbm(p*2.6+4.0); vec3 col=vec3(0.0016,0.0024,0.0065)+vec3(0.0008,0.0012,0.0028)*(vP.y/120.0+0.5);
+    col+=w*(vec3(0.0035,0.0060,0.0110)+vec3(0.0050,0.0025,0.0075)*c2);
+    col+=vec3(0.0015,0.0040,0.0045)*smoothstep(0.62,0.95,c2);
+    gl_FragColor=vec4(col,1.0);} `}));
+bg.position.z=-40; bg.renderOrder=0; scene.add(bg);
+// ------------------------------------------------------------------ stars (point sprites, sizes in pixels so they stay point sources at every zoom)
+const NS=STARS.length;
+const sg=new THREE.BufferGeometry(); const sPos=new Float32Array(NS*3), sCol=new Float32Array(NS*3), sSz=new Float32Array(NS), sPh=new Float32Array(NS), sSp=new Float32Array(NS), sId=new Float32Array(NS);
+STARS.forEach((s,i)=>{ const c=bvRGB(s.ci); const fl=Math.pow(10,-0.4*s.mag);
+  const br=s.dipper>=0?1.15:Math.min(1.1,0.10+1.1*Math.pow(fl/0.2,0.42)); sCol.set([c[0]*br,c[1]*br,c[2]*br],i*3);
+  sSz[i]=(s.dipper>=0?40:Math.max(3.2,34*Math.pow(fl,0.40)))*SC*2; sPh[i]=(i*0.61803)%1; sSp[i]=s.dipper>=0?1:(s.mag<2.6?0.5:0); sId[i]=s.dipper; });
+sg.setAttribute('position',new THREE.BufferAttribute(sPos,3)); sg.setAttribute('color',new THREE.BufferAttribute(sCol,3)); sg.setAttribute('aSz',new THREE.BufferAttribute(sSz,1));
+sg.setAttribute('aPh',new THREE.BufferAttribute(sPh,1)); sg.setAttribute('aSp',new THREE.BufferAttribute(sSp,1)); sg.setAttribute('aId',new THREE.BufferAttribute(sId,1));
+const starMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,
+  uniforms:{uT:{value:0},uFlare:{value:new Array(7).fill(1)},uRoll:{value:0}},
+  vertexShader:`attribute vec3 color; attribute float aSz,aPh,aSp,aId; uniform float uT; uniform float uFlare[7]; varying vec3 vC; varying float vSp,vS;
+   void main(){ float fl=1.0; int id=int(aId+0.5); if(aId>-0.5){ fl=uFlare[id]; }
+     float tw=1.0+0.10*sin(6.2831853*(floor(aPh*5.0)+1.0)/20.0*uT*3.0+aPh*40.0)+0.05*sin(6.2831853*(floor(aPh*7.0)+2.0)/20.0*uT*5.0);
+     vC=color*tw*fl; vSp=aSp; vS=aSz*mix(1.0,fl,0.45); gl_PointSize=vS; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+  fragmentShader:`varying vec3 vC; varying float vSp,vS; uniform float uRoll;
+   void main(){ vec2 c=(gl_PointCoord-0.5)*2.0; float r=length(c);
+     float px=vS*0.5; float core=exp(-r*r*px*px/9.0); float halo=exp(-r*r*7.0)*0.32+exp(-r*3.2)*0.10;
+     float ca=cos(uRoll+0.6),sa=sin(uRoll+0.6); vec2 d=vec2(ca*c.x-sa*c.y,sa*c.x+ca*c.y);
+     float sp=(exp(-abs(d.x)*px*0.55)*exp(-abs(d.y)*2.4)+exp(-abs(d.y)*px*0.55)*exp(-abs(d.x)*2.4))*0.42*vSp;
+     float a=(core*1.5+halo+sp)*smoothstep(1.0,0.82,r);
+     gl_FragColor=vec4(vC*a,1.0);} `});
+const stars=new THREE.Points(sg,starMat); stars.frustumCulled=false; stars.renderOrder=20; scene.add(stars);
+// ------------------------------------------------------------------ ribbons (trails, constellation lines, ghost lines), widths in pixels
+function ribbonMat(dashed){ return new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+  uniforms:{uDash:{value:dashed?1:0},uPx:{value:1}},
+  vertexShader:`attribute vec4 aC; attribute float aL; varying vec4 vC; varying float vL,vV; attribute float aV;
+    void main(){ vC=aC; vL=aL; vV=aV; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+  fragmentShader:`varying vec4 vC; varying float vL,vV; uniform float uDash,uPx;
+    void main(){ float e=1.0-smoothstep(0.35,1.0,abs(vV)); float a=vC.a*e; if(uDash>0.5){ float k=fract(vL/uPx/22.0); a*=smoothstep(0.0,0.08,k)*(1.0-smoothstep(0.52,0.6,k)); }
+      gl_FragColor=vec4(vC.rgb*a,1.0);} `}); }
+class Ribbons{ constructor(maxPts,dashed,order){ this.max=maxPts; const g=new THREE.BufferGeometry();
+    this.pos=new Float32Array(maxPts*2*3); this.col=new Float32Array(maxPts*2*4); this.len=new Float32Array(maxPts*2); this.v=new Float32Array(maxPts*2);
+    const idx=new Uint32Array((maxPts)*6); g.setIndex(new THREE.BufferAttribute(idx,1)); this.idx=idx;
+    g.setAttribute('position',new THREE.BufferAttribute(this.pos,3)); g.setAttribute('aC',new THREE.BufferAttribute(this.col,4)); g.setAttribute('aL',new THREE.BufferAttribute(this.len,1)); g.setAttribute('aV',new THREE.BufferAttribute(this.v,1));
+    this.g=g; this.mesh=new THREE.Mesh(g,ribbonMat(dashed)); this.mesh.frustumCulled=false; this.mesh.renderOrder=order; scene.add(this.mesh); }
+  begin(wpp){ this.n=0; this.ni=0; this.wpp=wpp; this.mesh.material.uniforms.uPx.value=wpp; }
+  // pts: flat [x,y,...]; w(i) px width; c(i) -> [r,g,b,a]
+  strip(pts,w,c){ const m=pts.length/2; if(m<2) return; if(this.n+m>this.max) return; let L=0; const base=this.n;
+    for(let i=0;i<m;i++){ const i0=Math.max(0,i-1), i1=Math.min(m-1,i+1); let dx=pts[i1*2]-pts[i0*2], dy=pts[i1*2+1]-pts[i0*2+1]; const dl=Math.hypot(dx,dy)||1; dx/=dl; dy/=dl;
+      if(i>0) L+=Math.hypot(pts[i*2]-pts[i*2-2],pts[i*2+1]-pts[i*2-1]);
+      const hw=w(i)*this.wpp*0.5*1.15; const col=c(i); const k=(base+i)*2;
+      for(let s=0;s<2;s++){ const sg_=s?1:-1; this.pos[(k+s)*3]=pts[i*2]-dy*hw*sg_; this.pos[(k+s)*3+1]=pts[i*2+1]+dx*hw*sg_; this.pos[(k+s)*3+2]=0.01;
+        this.col.set(col,(k+s)*4); this.len[k+s]=L; this.v[k+s]=sg_; }
+      if(i<m-1){ const a=k,b=k+1,cc=k+2,d=k+3; this.idx.set([a,b,cc,b,d,cc],this.ni); this.ni+=6; } }
+    this.n+=m; }
+  end(){ const g=this.g; g.setDrawRange(0,this.ni); for(const k of ['position','aC','aL','aV']) g.attributes[k].needsUpdate=true; g.index.needsUpdate=true; } }
+const trailsField=new Ribbons(1756*26,false,10), trailsDip=new Ribbons(7*90,false,12), lines=new Ribbons(8*4,false,14), ghost=new Ribbons(8*4,true,13);
+const EDGES=[[6,5],[5,4],[4,3],[3,2],[2,1],[1,0],[0,3]];
+const TEAL=[0.12,0.86,0.78], GOLD=[1.0,0.68,0.24], CREAM=[1.0,0.90,0.74];
+// ------------------------------------------------------------------ post: soft clamp, bloom, grade (teal shadows, warm highlights, vignette, grain)
+const comp=new EffectComposer(renderer); comp.addPass(new RenderPass(scene,cam));
+const clampPass=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); c.rgb=vec3(1.0)-exp(-c.rgb*1.25); gl_FragColor=vec4(c.rgb,1.0);} `}); comp.addPass(clampPass);
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.55,0.6,0.35); comp.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float uT; varying vec2 vUv; float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+  void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb; float l=dot(c,vec3(0.3,0.59,0.11));
+    c+=vec3(-0.004,0.006,0.010)*(1.0-smoothstep(0.0,0.25,l)); c*=mix(vec3(1.0),vec3(1.04,1.0,0.94),smoothstep(0.4,1.0,l));
+    vec2 v=vUv-0.5; v.y*=1.25; c*=1.0-0.42*smoothstep(0.25,0.85,length(v));
+    c+=(h(vUv*vec2(1080.0,1920.0)+floor(uT*30.0)*0.37)-0.5)*0.022; gl_FragColor=vec4(c,1.0);} `}); comp.addPass(grade); comp.addPass(new OutputPass());
+// ------------------------------------------------------------------ scene state at time t
+const P7=[]; for(let i=0;i<7;i++) P7.push([0,0]);
+const G7=[]; for(let i=0;i<7;i++) G7.push(posAt(dip[i],0,[0,0]));
+const C0=centroid(0);
+function camAt(t){ const Y=yearAt(t); const c=centroid(Y); let d=mono(TL.dist,t);
+  const kick=(h,amp,tau)=>t>=h?amp*Math.exp(-(t-h)/tau)*(1-Math.exp(-(t-h)/0.02)):0;
+  d*=1-kick(2.0,0.05,0.22)-kick(13.2,0.06,0.35);
+  const roll=mono(TL.roll,t)*Math.PI/180; return {Y,c,d,roll}; }
+function setT(t){
+  const {Y,c,d,roll}=camAt(t); const ox=c[0]*0.85+C0[0]*0.15, oy=c[1]*0.85+C0[1]*0.15 + 2*d*TAN*(70/1920);   // shape sits 70 px below centre: counter and captions live above it
+  cam.position.set(ox,oy,d); cam.up.set(Math.sin(roll),Math.cos(roll),0); cam.lookAt(ox,oy,0); cam.updateMatrixWorld();
+  starMat.uniforms.uT.value=t; starMat.uniforms.uRoll.value=roll; grade.uniforms.uT.value=t;
+  const fl=1+0.8*Math.exp(-t/0.30)+(t>=13.2?0.9*Math.exp(-(t-13.2)/0.45):0)+(t>=2.0?0.45*Math.exp(-(t-2.0)/0.25):0);
+  for(let i=0;i<7;i++) starMat.uniforms.uFlare.value[i]=fl;
+  for(let i=0;i<NS;i++){ posAt(STARS[i],Y,tmp); sPos[i*3]=tmp[0]; sPos[i*3+1]=tmp[1]; sPos[i*3+2]=0.02; } sg.attributes.position.needsUpdate=true;
+  for(let i=0;i<7;i++) posAt(dip[i],Y,P7[i]);
+  const wpp=2*d*TAN/H; const fam=sstep(TL.family[0],TL.family[1],t);
+  // trails: sampled from year 0 to now, bright at the head (long-exposure look)
+  trailsField.begin(wpp); trailsDip.begin(wpp);
+  const trailA=sstep(2.0,2.6,t);
+  if(Y>1){ for(let i=0;i<NS;i++){ const s=STARS[i]; const isD=s.dipper>=0; const M=isD?90:26; const pts=new Array(M*2);
+      for(let k=0;k<M;k++){ posAt(s,Y*k/(M-1),tmp); pts[k*2]=tmp[0]; pts[k*2+1]=tmp[1]; }
+      if(isD){ const col=s.umag?[TEAL[0]*fam+GOLD[0]*(1-fam),TEAL[1]*fam+GOLD[1]*(1-fam),TEAL[2]*fam+GOLD[2]*(1-fam)]:GOLD;
+        trailsDip.strip(pts,k=>1.0+5.0*Math.pow(k/(M-1),1.4)*SC*2,k=>{const u=k/(M-1); const a=trailA*(0.12+0.88*Math.pow(u,1.8))*0.9; return [col[0],col[1],col[2],a];}); }
+      else { const fl_=Math.pow(10,-0.4*s.mag); const br=Math.min(1,0.25+1.2*Math.pow(fl_/0.2,0.35)); const c_=[sCol[i*3],sCol[i*3+1],sCol[i*3+2]];
+        trailsField.strip(pts,k=>(0.7+1.6*br)*SC*2*(0.4+0.6*k/(M-1)),k=>{const u=k/(M-1); const a=trailA*br*0.55*Math.pow(u,1.8)*Math.min(1,1.6/Math.sqrt(1e-3+Math.hypot(pts[pts.length-2]-pts[0],pts[pts.length-1]-pts[1]))); return [c_[0]*0.8,c_[1]*0.85,c_[2],a];}); } } }
+  trailsField.end(); trailsDip.end();
+  // constellation lines with gaps at the stars; ghost of today's shape (dashed)
+  lines.begin(wpp); ghost.begin(wpp); const gap=26*SC*2*wpp;
+  const ga=sstep(TL.ghost[0],TL.ghost[1],t)*(1-sstep(TL.ghost[2],TL.ghost[3],t));
+  for(const [a,b] of EDGES){ const A=P7[a],B=P7[b]; let dx=B[0]-A[0],dy=B[1]-A[1]; const L=Math.hypot(dx,dy); dx/=L; dy/=L;
+    if(L>gap*2.2) lines.strip([A[0]+dx*gap,A[1]+dy*gap,B[0]-dx*gap,B[1]-dy*gap],()=>2.2*SC*2,()=>[CREAM[0],CREAM[1]*0.92,CREAM[2]*0.8,0.62]);
+    if(ga>0.001){ const A2=G7[a],B2=G7[b]; let ex=B2[0]-A2[0],ey=B2[1]-A2[1]; const L2=Math.hypot(ex,ey); ex/=L2; ey/=L2;
+      ghost.strip([A2[0]+ex*gap*0.7,A2[1]+ey*gap*0.7,B2[0]-ex*gap*0.7,B2[1]-ey*gap*0.7],()=>2.0*SC*2,()=>[CREAM[0],CREAM[1],CREAM[2],0.55*ga]); } }
+  lines.end(); ghost.end();
+}
+// ------------------------------------------------------------------ render with a 1/60 s shutter (3 sub-frames averaged)
+const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+window.renderAt=(t)=>{ const sub=[-1/120,0,1/120]; sub.forEach((d,i)=>{ setT(Math.max(0,t+d)); comp.render(); ctx.globalAlpha=1/(i+1); ctx.drawImage(renderer.domElement,0,0); }); ctx.globalAlpha=1; return cv.toDataURL('image/jpeg',0.94); };
+// screen positions (0..1) of the 7 stars now and of their year-0 ghosts, for the overlay
+window.proj=(t)=>{ setT(t); const v=new THREE.Vector3(); const f=p=>{v.set(p[0],p[1],0.02).project(cam); return [(v.x+1)/2,(1-v.y)/2];};
+  return {now:P7.map(f),ghost:G7.map(f),year:yearAt(t)}; };
+window.dbg=()=>({l:lines.ni,tf:trailsField.ni,td:trailsDip.ni,p:Array.from(lines.pos.slice(0,12))});
+window.ready=true;
+</script></body></html>
