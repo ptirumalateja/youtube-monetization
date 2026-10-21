@@ -1,0 +1,33 @@
+{
+  "T": 24.0,
+  "GY_MY": 230,
+  "EARTH_MY": 4540,
+  "lapKeys": [
+    [0.0, -0.24],
+    [3.4, 0.0],
+    [5.2, 0.61],
+    [7.4, 4.61],
+    [9.6, 9.30],
+    [12.2, 17.40],
+    [13.9, 18.73],
+    [15.4, 19.45],
+    [16.6, 19.74],
+    [21.4, 19.74],
+    [24.0, 19.76]
+  ],
+  "milestones": [
+    {"t": 3.4,  "lap": 0.00,  "name": "EARTH FORMS",       "ago": "4.54 BILLION YEARS AGO"},
+    {"t": 5.2,  "lap": 0.61,  "name": "FIRST OCEANS",      "ago": "~4.4 BILLION YEARS AGO"},
+    {"t": 7.4,  "lap": 4.61,  "name": "OLDEST FOSSIL LIFE","ago": "~3.5 BILLION YEARS AGO"},
+    {"t": 9.6,  "lap": 9.30,  "name": "OXYGEN FILLS THE AIR","ago": "~2.4 BILLION YEARS AGO"},
+    {"t": 12.2, "lap": 17.40, "name": "ANIMALS EXPLODE",   "ago": "~539 MILLION YEARS AGO"},
+    {"t": 13.9, "lap": 18.73, "name": "FIRST DINOSAURS",   "ago": "~231 MILLION YEARS AGO"},
+    {"t": 15.4, "lap": 19.45, "name": "DINOSAURS DIE OUT", "ago": "66 MILLION YEARS AGO"},
+    {"t": 16.6, "lap": 19.74, "name": "TODAY",             "ago": ""}
+  ],
+  "beats": {
+    "snap": 1.9, "overview": 3.4, "now": 16.6, "breath0": 16.6, "twistHit": 17.1,
+    "humans": 19.6, "dive": 21.4, "end": 24.0
+  },
+  "HUMAN_LAPS": 0.0013
+}

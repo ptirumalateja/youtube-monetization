@@ -1,0 +1,171 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// Earth Is 20 Years Old: the Sun laps a barred spiral 20 times while Earth's history ticks by.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/960;
+const TL=await (await fetch('timeline.json')).json();
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x03040a);
+const FOV=50; const cam=new THREE.PerspectiveCamera(FOV,W/H,0.05,1e6);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(4540); const gauss=()=>{let u=0,v=0;while(!u)u=R();v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(6.283185*v)};
+const TAN=Math.tan(FOV*Math.PI/360), HALF=H/2;
+const sm=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k)};
+const lerp=(a,b,k)=>a+(b-a)*k;
+// ------------------------------------------------------------------ world: galaxy radius 100 in the xz plane, Sun orbit r=55 (8.2 of ~15 kpc)
+const GR=100, SUN_R=55;
+const TH_NOW=35*Math.PI/180;                 // Sun's angle today (front-right in the overview)
+const thAt=lap=>TH_NOW+2*Math.PI*(lap-19.74);
+const sunPos=lap=>{const th=thAt(lap); return new THREE.Vector3(SUN_R*Math.cos(th),0,SUN_R*Math.sin(th));};
+const sunTan=lap=>{const th=thAt(lap); return new THREE.Vector3(-Math.sin(th),0,Math.cos(th));};
+// lap(t): eased between milestone keys so each milestone is read while the Sun crawls, fast in between
+const LK=TL.lapKeys;
+function lapAt(t){
+  if(t<=LK[0][0]) return LK[0][1]; if(t>=LK[LK.length-1][0]) return LK[LK.length-1][1];
+  for(let i=0;i<LK.length-1;i++){ const [t0,a]=LK[i],[t1,b]=LK[i+1]; if(t<=t1){ const u=(t-t0)/(t1-t0);
+    let e; if(i===0) e=u; else if(i===LK.length-2) e=0.5*u+0.5*u*u; else { const s=u*u*(3-2*u); e=0.22*u+0.78*s; }
+    return a+(b-a)*e; } }
+}
+window.lapAt=lapAt;
+// ------------------------------------------------------------------ point material (size-attenuated, dim when sub-pixel)
+let PMK=0;
+function pointsMat(o){ o=o||{};
+  const key='gm'+(PMK++); const mat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:o.dark?THREE.NormalBlending:THREE.AdditiveBlending,
+   uniforms:{uTime:{value:0},uMin:{value:(o.min||1.3)*SC},uMax:{value:(o.max||16)*SC},uAmp:{value:o.amp||1},uK:{value:HALF/TAN},uProg:{value:1}},
+   vertexShader:`attribute vec3 color; attribute float aSize; attribute float aPh; varying vec3 vc; varying float vA; uniform float uTime,uMin,uMax,uAmp,uK,uProg;
+    void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,0.05);
+      float raw=aSize*uK/d; float px=clamp(raw,uMin,uMax); gl_PointSize=px;
+      float tw=0.82+0.18*sin(uTime*2.1+aPh*50.0);
+      float dim=raw<uMin? max(0.25,raw/uMin):1.0; float near=smoothstep(0.15,1.2,d);
+      vc=color*tw*uAmp*dim*near; vA=(aPh<=uProg?1.0:0.0)*near; gl_Position=projectionMatrix*mv; }`,
+   fragmentShader:o.dark?`varying vec3 vc; varying float vA; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(0.0,0.0,0.0,a*vA*${(o.darkA||0.35).toFixed(2)}*min(1.0,vc.r));} `
+                    :`varying vec3 vc; varying float vA; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); a*=a; gl_FragColor=vec4(vc*a*vA,1.0);} `});
+  mat.customProgramCacheKey=()=>key; return mat; }
+function makePoints(n,mat,order){
+  const g=new THREE.BufferGeometry(); const pos=new Float32Array(n*3), col=new Float32Array(n*3), sz=new Float32Array(n), ph=new Float32Array(n);
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1)); g.setAttribute('aPh',new THREE.BufferAttribute(ph,1));
+  const pts=new THREE.Points(g,mat); pts.frustumCulled=false; pts.renderOrder=order||0; scene.add(pts); return {pts,pos,col,sz,ph,n,g};
+}
+const CREAM=[1.0,0.88,0.70], GOLD=[1.0,0.66,0.24], AMBER=[1.0,0.50,0.16], TEAL=[0.20,0.85,0.85], ICE=[0.62,0.85,1.0], RED=[0.92,0.13,0.08];
+function put(P,i,x,y,z,c,br,s){P.pos[i*3]=x;P.pos[i*3+1]=y;P.pos[i*3+2]=z;P.col[i*3]=c[0]*br;P.col[i*3+1]=c[1]*br;P.col[i*3+2]=c[2]*br;P.sz[i]=s;P.ph[i]=R();}
+const mixc=(a,b,k)=>[lerp(a[0],b[0],k),lerp(a[1],b[1],k),lerp(a[2],b[2],k)];
+// ------------------------------------------------------------------ far background stars
+const bg=makePoints(7000,pointsMat({min:1.1,max:3,amp:0.55}),0);
+for(let i=0;i<bg.n;i++){const a=R()*6.283,b=Math.acos(2*R()-1),d=3000; put(bg,i,d*Math.sin(b)*Math.cos(a),d*Math.cos(b),d*Math.sin(b)*Math.sin(a),R()<0.7?CREAM:ICE,0.25+0.6*R()*R(),2.5+R()*6);}
+// ------------------------------------------------------------------ galaxy: bar + bulge + 2 major / 2 minor trailing log-spiral arms + disc + young knots + dust lanes
+const BAR_ANG=0.45, BAR_L=26, PITCH=17*Math.PI/180, KARM=1/Math.tan(PITCH);
+const armTh=(r,a0)=>a0-KARM*Math.log(r/BAR_L);       // trailing for prograde (+theta) rotation
+const NG=230000; const gal=makePoints(NG,pointsMat({min:1.15,max:6,amp:1}),2); let gi=0;
+const add=(x,y,z,c,br,s)=>{ if(gi<NG) put(gal,gi++,x,y,z,c,br,s); };
+// bulge
+for(let i=0;i<20000;i++){ const r=Math.abs(gauss())*9; const a=R()*6.283,b=Math.acos(2*R()-1); add(r*Math.sin(b)*Math.cos(a),r*Math.cos(b)*0.6,r*Math.sin(b)*Math.sin(a),mixc(GOLD,CREAM,R()*0.5),0.3+0.4*R(),0.35+R()*0.5); }
+// bar
+for(let i=0;i<22000;i++){ const u=gauss()*0.42*BAR_L, v=gauss()*3.4, w=gauss()*1.6; const ca=Math.cos(BAR_ANG),sa=Math.sin(BAR_ANG); add(u*ca-v*sa,w,u*sa+v*ca,mixc(AMBER,CREAM,R()*0.6),0.3+0.4*R(),0.3+R()*0.45); }
+// arms (index 0,1 major; 2,3 minor)
+const ARMS=[[BAR_ANG,1.0],[BAR_ANG+Math.PI,1.0],[BAR_ANG+Math.PI/2,0.45],[BAR_ANG+1.5*Math.PI,0.45]];
+const armPts=[];
+for(let i=0;i<120000;i++){ const ai=R()<0.72?(R()<0.5?0:1):(R()<0.5?2:3); const [a0,wgt]=ARMS[ai]; if(R()>wgt+0.25) {i--; continue;}
+  const r=BAR_L*0.95+Math.pow(R(),1.25)*(GR-BAR_L); const th=armTh(r,a0)+gauss()*(0.07+0.0018*r)*(ai<2?1:1.5);
+  const z=gauss()*1.0; const x=r*Math.cos(th), y=z, zz=r*Math.sin(th); const young=R();
+  const c=young<0.35?mixc(ICE,TEAL,R()*0.6):(young<0.8?CREAM:GOLD); add(x,y,zz,c,(0.35+0.55*R())*(1-0.45*r/GR),0.22+R()*0.4); if(i%40===0) armPts.push([r,th]); }
+// disc
+for(let i=0;i<40000;i++){ const r=-Math.log(1-R()*0.985)*24+4; if(r>GR*1.1){i--;continue;} const th=R()*6.283; add(r*Math.cos(th),gauss()*1.3,r*Math.sin(th),R()<0.6?CREAM:GOLD,0.18+0.3*R(),0.25+R()*0.35); }
+// young knots (bright teal-white clusters on the arms)
+for(let k=0;k<520;k++){ const [r,th]=armPts[Math.floor(R()*armPts.length)]; const n=8+Math.floor(R()*14); for(let j=0;j<n;j++) add(r*Math.cos(th)+gauss()*0.7,gauss()*0.3,r*Math.sin(th)+gauss()*0.7,mixc(ICE,TEAL,R()),0.9+0.6*R(),0.35+R()*0.4); }
+// local stars along the Sun's orbit (give parallax in the chase shot, sub-pixel and dim from afar)
+for(let i=0;gi<NG;i++){ const r=SUN_R+gauss()*3.2; const th=R()*6.283; add(r*Math.cos(th),gauss()*1.1,r*Math.sin(th),R()<0.75?CREAM:ICE,0.35+0.6*R(),0.012+0.03*R()*R()); }
+gal.g.attributes.position.needsUpdate=true;
+// dust lanes: dark soft blobs on the inner (leading) edge of the major arms
+const dust=makePoints(26000,pointsMat({dark:true,min:2,max:60,amp:1,darkA:0.22}),3);
+for(let i=0;i<dust.n;i++){ const ai=R()<0.8?(R()<0.5?0:1):(R()<0.5?2:3); const a0=ARMS[ai][0]; const r=BAR_L*0.8+Math.pow(R(),1.1)*(GR*0.92-BAR_L); const th=armTh(r,a0)+0.075+gauss()*0.03;
+  put(dust,i,r*Math.cos(th),gauss()*0.4,r*Math.sin(th),[1,1,1],0.6+0.4*R(),1.0+R()*1.6); }
+// soft disc glow + core glow (flat in the plane, additive)
+function radialTex(stops){const cv=document.createElement('canvas'); cv.width=cv.height=512; const x=cv.getContext('2d'); const gr=x.createRadialGradient(256,256,0,256,256,256); stops.forEach(s=>gr.addColorStop(s[0],s[1])); x.fillStyle=gr; x.fillRect(0,0,512,512); return new THREE.CanvasTexture(cv);}
+const discGlow=new THREE.Mesh(new THREE.PlaneGeometry(2.3*GR,2.3*GR),new THREE.MeshBasicMaterial({map:radialTex([[0,'rgba(255,190,110,0.55)'],[0.12,'rgba(255,170,90,0.28)'],[0.4,'rgba(120,150,190,0.08)'],[1,'rgba(0,0,0,0)']]),transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false,opacity:0.55}));
+discGlow.rotation.x=-Math.PI/2; discGlow.renderOrder=1; scene.add(discGlow);
+const coreGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:radialTex([[0,'rgba(255,220,160,1)'],[0.2,'rgba(255,170,80,0.45)'],[1,'rgba(0,0,0,0)']]),transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false,opacity:0.55}));
+coreGlow.scale.set(38,38,1); coreGlow.renderOrder=4; scene.add(coreGlow);
+// ------------------------------------------------------------------ the Sun's orbit: faint dashed path, lap pulse, trail, Sun bead
+const ORB_N=2400; const orb=makePoints(ORB_N,pointsMat({min:1.5,max:4,amp:0.5}),5);
+for(let i=0;i<ORB_N;i++){ const th=i/ORB_N*6.283; const on=(i%10)<6?1:0; put(orb,i,SUN_R*Math.cos(th),0,SUN_R*Math.sin(th),CREAM,0.9*on,0.5); }
+const TR_N=3200; const trail=makePoints(TR_N,pointsMat({min:2.2,max:7,amp:1}),6);
+const tPos=trail.pos, tCol=trail.col; for(let i=0;i<TR_N;i++){ trail.sz[i]=0.9; trail.ph[i]=R(); }
+const sunCore=new THREE.Sprite(new THREE.SpriteMaterial({map:radialTex([[0,'rgba(255,250,235,1)'],[0.25,'rgba(255,220,140,1)'],[0.5,'rgba(255,170,60,0.5)'],[1,'rgba(0,0,0,0)']]),transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false}));
+sunCore.renderOrder=9; scene.add(sunCore);
+const sunHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:radialTex([[0,'rgba(255,200,110,0.6)'],[0.35,'rgba(255,150,60,0.18)'],[1,'rgba(0,0,0,0)']]),transparent:true,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false,opacity:0.8}));
+sunHalo.renderOrder=8; scene.add(sunHalo);
+// red marker arcs (drawn on with uProg): the dinosaur-to-today arc and the 0.5 degree of modern humans
+function arcPoints(lap0,lap1,n,size,br,order){ const P=makePoints(n,pointsMat({min:1.6,max:22,amp:1}),order); for(let i=0;i<n;i++){ const u=i/(n-1); const th=thAt(lerp(lap0,lap1,u)); put(P,i,SUN_R*Math.cos(th),0.05,SUN_R*Math.sin(th),RED,br,size); P.ph[i]=u; } P.g.attributes.position.needsUpdate=true; P.pts.material.uniforms.uProg.value=0; return P; }
+const dinoArc=arcPoints(19.45,19.74,7000,1.1,0.10,7);
+const humanArc=arcPoints(19.74-TL.HUMAN_LAPS,19.74,220,0.10,0.16,7);
+// ------------------------------------------------------------------ composer: soft clamp, bloom, grade (teal shadows, warm highs, vignette, grain)
+const comp=new EffectComposer(renderer); comp.setSize(W,H); comp.addPass(new RenderPass(scene,cam));
+const clampPass=new ShaderPass({uniforms:{tDiffuse:{value:null}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,fragmentShader:`uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); c.rgb=vec3(1.0)-exp(-c.rgb*1.25); gl_FragColor=vec4(c.rgb,1.0);} `}); comp.addPass(clampPass);
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.55,0.6,0.45); comp.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0}},vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+ fragmentShader:`uniform sampler2D tDiffuse; uniform float uT; varying vec2 vUv; float h(vec2 p){ vec3 p3=fract(vec3(p.xyx)*0.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z);}
+  void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb; float l=dot(c,vec3(0.299,0.587,0.114)); c+=vec3(-0.006,0.004,0.012)*(1.0-smoothstep(0.0,0.25,l)); c=mix(c,c*vec3(1.04,1.0,0.94),smoothstep(0.4,1.0,l));
+   vec2 d=vUv-vec2(0.5,0.52); d.x*=0.75; c*=1.0-0.55*smoothstep(0.25,0.78,length(d)); c+=(h(floor(gl_FragCoord.xy)+vec2(floor(uT*30.0)*17.0,0.0))-0.5)*0.03; gl_FragColor=vec4(c,1.0);} `});
+comp.addPass(new OutputPass()); comp.addPass(grade);
+const c2=document.createElement('canvas'); c2.width=W; c2.height=H; const ctx=c2.getContext('2d');
+// ------------------------------------------------------------------ camera: blend of poses (target, log distance, direction)
+const B=TL.beats;
+function dirFrom(az,el){ return new THREE.Vector3(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el)); }
+function chasePose(lap){ const s=sunPos(lap), tg=sunTan(lap); const out=s.clone().normalize();
+  // behind, above and slightly outside the Sun, looking ahead along the orbit
+  const eye=s.clone().addScaledVector(tg,-3.4).add(new THREE.Vector3(0,1.0,0));
+  const tgt=s.clone().addScaledVector(tg,2.2).add(new THREE.Vector3(0,0.25,0)); const d=eye.clone().sub(tgt); return {tgt,dist:d.length(),dir:d.normalize(),off:0.0}; }
+function overviewPose(t){ const az=-0.10+0.16*Math.sin(2*Math.PI*(t-3)/24)+0.0; const el=0.93+0.04*Math.sin(t*0.4); return {tgt:new THREE.Vector3(3,0,6),dist:350,dir:dirFrom(az,el),off:0.11}; }
+function arcPose(t){ const mid=thAt(19.6); const tgt=new THREE.Vector3(SUN_R*Math.cos(mid),0,SUN_R*Math.sin(mid)).multiplyScalar(0.99); const az=0.25+0.03*(t-17); return {tgt,dist:135,dir:dirFrom(az,1.0),off:0.04}; }
+function sunTopPose(t){ const s=sunPos(19.74); const tg=sunTan(19.74); const tgt=s.clone().addScaledVector(tg,-0.18); const az=Math.atan2(s.x,s.z)+0.35; return {tgt,dist:5.2-0.25*(t-19.6),dir:dirFrom(az,1.05),off:0.02}; }
+function blend(a,b,k){ const dir=a.dir.clone().lerp(b.dir,k).normalize(); return {tgt:a.tgt.clone().lerp(b.tgt,k),dist:Math.exp(lerp(Math.log(a.dist),Math.log(b.dist),k)),dir,off:lerp(a.off,b.off,k)}; }
+const ease=(a,b,t)=>{const k=Math.min(1,Math.max(0,(t-a)/(b-a))); return k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;};
+function poseAt(t,lap){
+  if(t<B.snap) return chasePose(lap);
+  if(t<B.overview) return blend(chasePose(lap),overviewPose(t),ease(B.snap,B.overview,t));
+  if(t<B.now) return overviewPose(t);
+  if(t<B.twistHit+0.6) return blend(overviewPose(t),arcPose(t),ease(B.now,B.twistHit+0.6,t));
+  if(t<B.humans) return arcPose(t);
+  if(t<B.humans+1.0) return blend(arcPose(t),sunTopPose(t),ease(B.humans,B.humans+1.0,t));
+  if(t<B.dive) return sunTopPose(t);
+  return blend(sunTopPose(t),chasePose(lap),ease(B.dive,B.end,t));
+}
+let lastLap=0;
+function setT(t){
+  const lap=lapAt(t); lastLap=lap; const P=poseAt(t,lap);
+  const wob=0.002*P.dist; const eye=P.tgt.clone().addScaledVector(P.dir,P.dist).add(new THREE.Vector3(wob*Math.sin(t*0.9),wob*0.6*Math.cos(t*0.7),0));
+  cam.position.copy(eye); cam.up.set(0.05*Math.sin(t*0.3),1,0); cam.lookAt(P.tgt); cam.setViewOffset(W,H,0,-P.off*H,W,H); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+  [bg,gal,dust,orb,trail,dinoArc,humanArc].forEach(o=>o.pts.material.uniforms.uTime.value=t); grade.uniforms.uT.value=t;
+  // Sun bead: screen size about constant from afar, small and crisp up close
+  const s=sunPos(lap); const dcam=cam.position.distanceTo(s); const px=H*0.011; const wsz=px/HALF*dcam*TAN;
+  sunCore.position.copy(s); sunCore.scale.setScalar(Math.max(wsz,0.10)*1.0); sunHalo.position.copy(s); sunHalo.scale.setScalar(Math.max(wsz*3.2,0.35));
+  // lap pulse: the orbit flashes as each lap completes
+  const frac=lap-Math.floor(lap); const pulse=lap>0.2&&t<B.now+0.2?Math.exp(-frac*9):0;
+  orb.pts.material.uniforms.uAmp.value=(0.32+0.9*pulse)*(1-0.6*sm(B.now,B.now+1,t))*sm(25,120,cam.position.distanceTo(sunPos(lap)));
+  // trail: the last 0.42 lap behind the Sun, longer and brighter while it is fast
+  const speed=Math.abs(lapAt(t+0.02)-lapAt(t-0.02))/0.04; const tl=Math.min(0.95,0.10+0.32*speed);
+  for(let i=0;i<TR_N;i++){ const u=i/(TR_N-1); const th=thAt(lap-u*tl); tPos[i*3]=SUN_R*Math.cos(th); tPos[i*3+1]=0.02; tPos[i*3+2]=SUN_R*Math.sin(th);
+    const br=Math.pow(1-u,1.6)*0.9; tCol[i*3]=GOLD[0]*br; tCol[i*3+1]=GOLD[1]*br; tCol[i*3+2]=GOLD[2]*br; }
+  trail.g.attributes.position.needsUpdate=true; trail.g.attributes.color.needsUpdate=true; trail.pts.material.uniforms.uAmp.value=t>B.humans+0.5&&t<B.dive?0.35:1;
+  // twist arcs
+  dinoArc.pts.material.uniforms.uProg.value=sm(B.twistHit,B.twistHit+0.9,t)*(1-sm(B.dive+0.3,B.dive+1.4,t))>0?sm(B.twistHit,B.twistHit+0.9,t):0;
+  dinoArc.pts.material.uniforms.uAmp.value=(1-0.8*sm(B.humans,B.humans+1.0,t))*(1-sm(B.dive+0.3,B.dive+1.4,t));
+  humanArc.pts.material.uniforms.uProg.value=sm(B.humans+0.6,B.humans+1.3,t); humanArc.pts.material.uniforms.uAmp.value=1-sm(B.dive+0.6,B.dive+1.6,t);
+  coreGlow.opacity=0.32*sm(20,120,cam.position.length());
+  discGlow.material.opacity=0.55*sm(30,200,cam.position.length())+0.12;
+  return lap;
+}
+function proj(v){ const p=v.clone().project(cam); return [ (p.x*0.5+0.5), (0.5-p.y*0.5), p.z ]; }
+window.renderAt=(t,exp,sub)=>{ sub=sub||3; const span=1/60; ctx.globalAlpha=1;
+  for(let i=0;i<sub;i++){ const tt=t+(sub>1?(i/(sub-1)-0.5)*span:0); setT(tt); comp.render(); ctx.globalAlpha=1/(i+1); ctx.drawImage(renderer.domElement,0,0); }
+  setT(t); const lap=lastLap;
+  window.lastProj={lap, sun:proj(sunPos(lap)), dinoMid:proj(sunPos(19.6)), dino0:proj(sunPos(19.45)), center:proj(new THREE.Vector3(0,0,0)), human:proj(sunPos(19.74-TL.HUMAN_LAPS/2))};
+  if(exp!==undefined&&exp<1){ ctx.globalAlpha=1-exp; ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); } ctx.globalAlpha=1; return c2.toDataURL('image/jpeg',0.94); };
+window.setT=setT; window.ready=true;
+</script></body></html>
