@@ -3,7 +3,18 @@ import subprocess, math, sys, json
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 PJ=json.load(open(sys.argv[1])); OUT=sys.argv[2]
-W,H,FPS,T=1080,1920,30,24.0; N=int(T*FPS)
+W,H,FPS,T=1080,1920,30,24.9; N=int(round(T*FPS))
+# video -> scene time (same monotone cubic as index.html)
+WK=[(3.2,0.4),(4.4,2.25),(9.75,8.6),(10.75,9.3),(14.4,13.55),(19.0,18.7),(21.6,21.0),(24.9,24.0)]
+_d=[(WK[i+1][1]-WK[i][1])/(WK[i+1][0]-WK[i][0]) for i in range(len(WK)-1)]
+_m=[_d[0]]+[0 if _d[i-1]*_d[i]<=0 else 2/(1/_d[i-1]+1/_d[i]) for i in range(1,len(_d))]+[_d[-1]]
+def warp(t):
+    if t<=WK[0][0]: return WK[0][1]
+    if t>=WK[-1][0]: return WK[-1][1]
+    i=0
+    while t>WK[i+1][0]: i+=1
+    h=WK[i+1][0]-WK[i][0]; u=(t-WK[i][0])/h
+    return (2*u**3-3*u**2+1)*WK[i][1]+(u**3-2*u**2+u)*h*_m[i]+(-2*u**3+3*u**2)*WK[i+1][1]+(u**3-u**2)*h*_m[i+1]
 MB="/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"; MR="/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 def F(p,s): return ImageFont.truetype(p,s)
 CREAM=(246,240,228); RED=(214,62,48)
@@ -35,7 +46,9 @@ def streaks(seed,alpha,n=40):
         a=rr.random()*6.283; r0=rr.uniform(260,620); w=rr.uniform(0.003,0.009); r1=1750
         d.polygon([(cx+r0*math.cos(a),cy+r0*math.sin(a)),(cx+r1*math.cos(a-w),cy+r1*math.sin(a-w)),(cx+r1*math.cos(a+w),cy+r1*math.sin(a+w))],fill=(255,240,220,int(255*alpha)))
     return im
-def flash(t):
+def flash(t,tv):
+    k=tv-3.2
+    if -0.12<=k<0.25: return solid((255,236,220),0.30*(1-clamp(abs(k)/0.25 if k>0 else abs(k)/0.12)))
     for ts,amp in ((2.25,0.14),(13.55,0.12)):
         k=t-ts
         if -0.2<=k<0.2:
@@ -52,12 +65,16 @@ fh=F(MB,70); fl=F(MR,27); fc=F(MB,92); fchip=F(MB,46); fsub=F(MR,27); ftag=F(MR,
 prev_age=prev_min=-1
 p=subprocess.Popen(["ffmpeg","-v","error","-y","-f","rawvideo","-pix_fmt","rgba","-s",f"{W}x{H}","-r",str(FPS),"-i","-","-c:v","png",OUT],stdin=subprocess.PIPE)
 for f in range(N):
-    t=f/FPS; im=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(im)
-    # hook
-    if 0.25<=t<2.2:
-        a=int(255*(1-sstep(2.0,2.2,t))); n=int((t-0.25)*24)+1
-        l1="A HEART ATTACK"; ctext(d,300,l1[:min(len(l1),n)],fh,CREAM,a,stroke=6)
-        if n>len(l1): typed_chip_line(d,396,"STARTS WITH A CRACK.","STARTS WITH A ",n-len(l1),fh,a)
+    tv=f/FPS; t=warp(tv) if tv>=3.2 else -1.0; im=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(im)
+    # crowd hook, on screen from frame 0
+    if tv<3.25:
+        a=int(255*(1-sstep(3.0,3.25,tv)))
+        ctext(d,280,"EVERY 40 SECONDS",fh,CREAM,a,stroke=6)
+        B=int(a*sstep(0.6,0.8,tv)); ctext(d,378,"SOMEONE IN THE US",fchip,CREAM,B,stroke=5)
+        if tv>=1.5: typed_chip_line(d,452,"HAS A HEART ATTACK.","",int((tv-1.5)*30)+1,fchip,a)
+        if 1.3<=tv<2.75 and P(f):
+            A=int(a*sstep(1.3,1.5,tv)*(1-sstep(2.55,2.75,tv))); cx,cy=P(f); rr=46+6*math.sin(tv*7)
+            d.ellipse((cx-rr,cy-rr,cx+rr,cy+rr),outline=RED+(A,),width=5)
     # culprit marker on the heart
     for (a0,a1,col) in ((0.6,2.2,RED),(14.0,21.0,RED)):
         if a0<=t<a1 and P(f):
@@ -95,9 +112,9 @@ for f in range(N):
         A=int(255*(1-sstep(23.7,23.95,t))); n=int((t-21.1)*26)+1
         typed_chip_line(d,300,"TIME IS MUSCLE.","TIME IS ",n,fend,A)
         B=int(A*sstep(21.9,22.2,t)); ctext(d,410,"CHEST PAIN? CALL EMERGENCY SERVICES.",fcall,CREAM,B,stroke=4)
-    if t>=0.25:
+    if True:
         ta=int(140*(1-sstep(23.7,23.95,t))); d.text((48,1500),"ILLUSTRATION · NOT TO SCALE · TIME COMPRESSED",font=ftag,fill=(235,235,235,ta))
-    fl_=flash(t)
+    fl_=flash(t,tv)
     if fl_ is not None: im=Image.alpha_composite(im,fl_)
     if t>=23.72: im=Image.alpha_composite(im,solid((0,0,0),0.9*sstep(23.72,24.0,t)))
     p.stdin.write(im.tobytes())

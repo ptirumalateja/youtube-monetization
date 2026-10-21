@@ -23,7 +23,17 @@ The twist is the real mechanism most people miss: the plaque only narrowed the a
 - Outside again: the LAD below the clot turns grey, a red marker sits on the blocked spot, and the front wall below it goes dark as a wavefront spreading from the blockage toward the apex; that region stops contracting while the rest of the heart keeps beating.
 - Palette per the playbook: navy-black, cream text, gold/teal, red only for the crack, wavefront, markers and chips. Grade: teal shadows, warm highlights, vignette, fine grain. Bloom after a soft clamp (no white-outs).
 
-## Shot plan (frozen, video seconds)
+## v3 (21 Oct): crowd opening + voiceover, 24.9 s
+Teja asked for an opening on a crowd, a zoom onto one person pressing his chest, then the heartbeat and clot story, with a voiceover from the first frame, under 25 s.
+- **0-3.2 s:** x-ray crowd (rim-lit silhouettes) walking across a wet night plaza with city bokeh. One man (warm rim) stops, presses his left chest; his heart glows red-gold through it, beating; red ring marker. Camera flies from high-wide down to his chest and dives in (flash) onto the beating heart.
+- **Hook text from frame 0:** "EVERY 40 SECONDS" / "SOMEONE IN THE US" / red chip "HAS A HEART ATTACK."
+- **3.2-24.9 s:** the v2 heart / artery / crack / clot / dying-muscle film, time-warped (monotone cubic) so each beat lands on its voice line: snap 4.4, crack 10.75 (on "cracks"), clot shut ~14.2, muscle 14.4-19.0, twist 19.0-21.6, end line 21.6-24.9.
+- **Voiceover (stand-in):** ElevenLabs refused (rate limited), so the take is Kokoro TTS (open model, voice `am_michael`), generated line by line with `tools/inside-the-clot/vo.py`. Swap for an ElevenLabs or recorded take by replacing the nine line files; starts are in `mix3.py`.
+  > Every forty seconds, someone in the US has a heart attack. It starts inside an artery, decades earlier. Fatty plaque builds in the wall. Then its cap cracks. A clot seals the crack... and the artery. Within twenty to forty minutes, the heart muscle starts to die. The plaque didn't block it. The clot did. Time is muscle. Call emergency services.
+- **Sound:** `mix3.py` adds crowd murmur and footsteps, a heartbeat that rises as the camera closes on him, a dive hit; all v2 events are placed through the same warp; effects are ducked under the voice. Still no samples.
+- Built natively at 1080x1920 (no upscale).
+
+## Shot plan v2 (frozen, video seconds; v3 maps these through the warp)
 | Time | Shot | On screen |
 |---|---|---|
 | 0.0-2.25 | Exterior heart, beating (66 bpm), slow push toward the culprit spot on the LAD; glow + red ring on it | hook typed 0.25-1.9 |
