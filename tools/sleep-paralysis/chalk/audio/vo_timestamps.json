@@ -1,0 +1,616 @@
+{
+ "audio": "vo_sleep_paralysis.mp3",
+ "duration": 19.069,
+ "voice": "Max - Deep and Crisp Voice (ElevenLabs eleven_v4)",
+ "method": "Word times from ElevenLabs Scribe transcription of this file. Segment start/end measured from the audio's pauses (ffmpeg silencedetect).",
+ "segments": [
+  {
+   "text": "You wake up…",
+   "start": 0.105,
+   "end": 1.026,
+   "words": [
+    {
+     "word": "You",
+     "start": 0.16,
+     "end": 0.32
+    },
+    {
+     "word": "wake",
+     "start": 0.44,
+     "end": 0.56
+    },
+    {
+     "word": "up…",
+     "start": 0.64,
+     "end": 1.2
+    }
+   ]
+  },
+  {
+   "text": "but you can't move.",
+   "start": 1.532,
+   "end": 2.704,
+   "words": [
+    {
+     "word": "but",
+     "start": 1.52,
+     "end": 1.6
+    },
+    {
+     "word": "you",
+     "start": 1.68,
+     "end": 1.84
+    },
+    {
+     "word": "can't",
+     "start": 1.92,
+     "end": 2.16
+    },
+    {
+     "word": "move.",
+     "start": 2.24,
+     "end": 2.88
+    }
+   ]
+  },
+  {
+   "text": "And something is standing in your room.",
+   "start": 3.217,
+   "end": 5.428,
+   "words": [
+    {
+     "word": "And",
+     "start": 3.2,
+     "end": 3.44
+    },
+    {
+     "word": "something",
+     "start": 3.68,
+     "end": 3.92
+    },
+    {
+     "word": "is",
+     "start": 4.0,
+     "end": 4.16
+    },
+    {
+     "word": "standing",
+     "start": 4.24,
+     "end": 4.64
+    },
+    {
+     "word": "in",
+     "start": 4.72,
+     "end": 4.8
+    },
+    {
+     "word": "your",
+     "start": 4.88,
+     "end": 4.96
+    },
+    {
+     "word": "room.",
+     "start": 5.04,
+     "end": 5.4
+    }
+   ]
+  },
+  {
+   "text": "This is sleep paralysis.",
+   "start": 5.982,
+   "end": 7.641,
+   "words": [
+    {
+     "word": "This",
+     "start": 6.08,
+     "end": 6.4
+    },
+    {
+     "word": "is",
+     "start": 6.48,
+     "end": 6.64
+    },
+    {
+     "word": "sleep",
+     "start": 6.76,
+     "end": 6.88
+    },
+    {
+     "word": "paralysis.",
+     "start": 6.96,
+     "end": 7.76
+    }
+   ]
+  },
+  {
+   "text": "Your brain wakes up, but your body is still locked in dream sleep.",
+   "start": 7.898,
+   "end": 11.297,
+   "words": [
+    {
+     "word": "Your",
+     "start": 7.92,
+     "end": 8.08
+    },
+    {
+     "word": "brain",
+     "start": 8.2,
+     "end": 8.32
+    },
+    {
+     "word": "wakes",
+     "start": 8.4,
+     "end": 8.64
+    },
+    {
+     "word": "up,",
+     "start": 8.72,
+     "end": 9.067
+    },
+    {
+     "word": "but",
+     "start": 9.093,
+     "end": 9.12
+    },
+    {
+     "word": "your",
+     "start": 9.2,
+     "end": 9.36
+    },
+    {
+     "word": "body",
+     "start": 9.52,
+     "end": 9.68
+    },
+    {
+     "word": "is",
+     "start": 9.76,
+     "end": 9.84
+    },
+    {
+     "word": "still",
+     "start": 9.92,
+     "end": 10.16
+    },
+    {
+     "word": "locked",
+     "start": 10.32,
+     "end": 10.48
+    },
+    {
+     "word": "in",
+     "start": 10.56,
+     "end": 10.64
+    },
+    {
+     "word": "dream",
+     "start": 10.8,
+     "end": 10.96
+    },
+    {
+     "word": "sleep.",
+     "start": 11.04,
+     "end": 11.627
+    }
+   ]
+  },
+  {
+   "text": "So the dream spills into your bedroom.",
+   "start": 11.59,
+   "end": 13.572,
+   "words": [
+    {
+     "word": "So",
+     "start": 11.653,
+     "end": 11.68
+    },
+    {
+     "word": "the",
+     "start": 11.76,
+     "end": 11.84
+    },
+    {
+     "word": "dream",
+     "start": 11.92,
+     "end": 12.4
+    },
+    {
+     "word": "spills",
+     "start": 12.48,
+     "end": 12.72
+    },
+    {
+     "word": "into",
+     "start": 12.8,
+     "end": 12.96
+    },
+    {
+     "word": "your",
+     "start": 13.04,
+     "end": 13.12
+    },
+    {
+     "word": "bedroom.",
+     "start": 13.24,
+     "end": 13.96
+    }
+   ]
+  },
+  {
+   "text": "Some people even see a figure.",
+   "start": 13.956,
+   "end": 15.561,
+   "words": [
+    {
+     "word": "Some",
+     "start": 14.133,
+     "end": 14.16
+    },
+    {
+     "word": "people",
+     "start": 14.24,
+     "end": 14.56
+    },
+    {
+     "word": "even",
+     "start": 14.68,
+     "end": 14.8
+    },
+    {
+     "word": "see",
+     "start": 14.88,
+     "end": 14.96
+    },
+    {
+     "word": "a",
+     "start": 15.12,
+     "end": 15.16
+    },
+    {
+     "word": "figure.",
+     "start": 15.2,
+     "end": 15.96
+    }
+   ]
+  },
+  {
+   "text": "Nearly one in ten people will feel this at least once.",
+   "start": 15.95,
+   "end": 18.914,
+   "words": [
+    {
+     "word": "Nearly",
+     "start": 16.0,
+     "end": 16.32
+    },
+    {
+     "word": "one",
+     "start": 16.4,
+     "end": 16.48
+    },
+    {
+     "word": "in",
+     "start": 16.56,
+     "end": 16.72
+    },
+    {
+     "word": "ten",
+     "start": 16.84,
+     "end": 16.96
+    },
+    {
+     "word": "people",
+     "start": 17.12,
+     "end": 17.28
+    },
+    {
+     "word": "will",
+     "start": 17.36,
+     "end": 17.52
+    },
+    {
+     "word": "feel",
+     "start": 17.6,
+     "end": 17.68
+    },
+    {
+     "word": "this",
+     "start": 17.76,
+     "end": 17.92
+    },
+    {
+     "word": "at",
+     "start": 18.0,
+     "end": 18.16
+    },
+    {
+     "word": "least",
+     "start": 18.24,
+     "end": 18.48
+    },
+    {
+     "word": "once.",
+     "start": 18.56,
+     "end": 19.06
+    }
+   ]
+  }
+ ],
+ "words": [
+  {
+   "word": "You",
+   "start": 0.16,
+   "end": 0.32
+  },
+  {
+   "word": "wake",
+   "start": 0.44,
+   "end": 0.56
+  },
+  {
+   "word": "up…",
+   "start": 0.64,
+   "end": 1.2
+  },
+  {
+   "word": "but",
+   "start": 1.52,
+   "end": 1.6
+  },
+  {
+   "word": "you",
+   "start": 1.68,
+   "end": 1.84
+  },
+  {
+   "word": "can't",
+   "start": 1.92,
+   "end": 2.16
+  },
+  {
+   "word": "move.",
+   "start": 2.24,
+   "end": 2.88
+  },
+  {
+   "word": "And",
+   "start": 3.2,
+   "end": 3.44
+  },
+  {
+   "word": "something",
+   "start": 3.68,
+   "end": 3.92
+  },
+  {
+   "word": "is",
+   "start": 4.0,
+   "end": 4.16
+  },
+  {
+   "word": "standing",
+   "start": 4.24,
+   "end": 4.64
+  },
+  {
+   "word": "in",
+   "start": 4.72,
+   "end": 4.8
+  },
+  {
+   "word": "your",
+   "start": 4.88,
+   "end": 4.96
+  },
+  {
+   "word": "room.",
+   "start": 5.04,
+   "end": 5.4
+  },
+  {
+   "word": "This",
+   "start": 6.08,
+   "end": 6.4
+  },
+  {
+   "word": "is",
+   "start": 6.48,
+   "end": 6.64
+  },
+  {
+   "word": "sleep",
+   "start": 6.76,
+   "end": 6.88
+  },
+  {
+   "word": "paralysis.",
+   "start": 6.96,
+   "end": 7.76
+  },
+  {
+   "word": "Your",
+   "start": 7.92,
+   "end": 8.08
+  },
+  {
+   "word": "brain",
+   "start": 8.2,
+   "end": 8.32
+  },
+  {
+   "word": "wakes",
+   "start": 8.4,
+   "end": 8.64
+  },
+  {
+   "word": "up,",
+   "start": 8.72,
+   "end": 9.067
+  },
+  {
+   "word": "but",
+   "start": 9.093,
+   "end": 9.12
+  },
+  {
+   "word": "your",
+   "start": 9.2,
+   "end": 9.36
+  },
+  {
+   "word": "body",
+   "start": 9.52,
+   "end": 9.68
+  },
+  {
+   "word": "is",
+   "start": 9.76,
+   "end": 9.84
+  },
+  {
+   "word": "still",
+   "start": 9.92,
+   "end": 10.16
+  },
+  {
+   "word": "locked",
+   "start": 10.32,
+   "end": 10.48
+  },
+  {
+   "word": "in",
+   "start": 10.56,
+   "end": 10.64
+  },
+  {
+   "word": "dream",
+   "start": 10.8,
+   "end": 10.96
+  },
+  {
+   "word": "sleep.",
+   "start": 11.04,
+   "end": 11.627
+  },
+  {
+   "word": "So",
+   "start": 11.653,
+   "end": 11.68
+  },
+  {
+   "word": "the",
+   "start": 11.76,
+   "end": 11.84
+  },
+  {
+   "word": "dream",
+   "start": 11.92,
+   "end": 12.4
+  },
+  {
+   "word": "spills",
+   "start": 12.48,
+   "end": 12.72
+  },
+  {
+   "word": "into",
+   "start": 12.8,
+   "end": 12.96
+  },
+  {
+   "word": "your",
+   "start": 13.04,
+   "end": 13.12
+  },
+  {
+   "word": "bedroom.",
+   "start": 13.24,
+   "end": 13.96
+  },
+  {
+   "word": "Some",
+   "start": 14.133,
+   "end": 14.16
+  },
+  {
+   "word": "people",
+   "start": 14.24,
+   "end": 14.56
+  },
+  {
+   "word": "even",
+   "start": 14.68,
+   "end": 14.8
+  },
+  {
+   "word": "see",
+   "start": 14.88,
+   "end": 14.96
+  },
+  {
+   "word": "a",
+   "start": 15.12,
+   "end": 15.16
+  },
+  {
+   "word": "figure.",
+   "start": 15.2,
+   "end": 15.96
+  },
+  {
+   "word": "Nearly",
+   "start": 16.0,
+   "end": 16.32
+  },
+  {
+   "word": "one",
+   "start": 16.4,
+   "end": 16.48
+  },
+  {
+   "word": "in",
+   "start": 16.56,
+   "end": 16.72
+  },
+  {
+   "word": "ten",
+   "start": 16.84,
+   "end": 16.96
+  },
+  {
+   "word": "people",
+   "start": 17.12,
+   "end": 17.28
+  },
+  {
+   "word": "will",
+   "start": 17.36,
+   "end": 17.52
+  },
+  {
+   "word": "feel",
+   "start": 17.6,
+   "end": 17.68
+  },
+  {
+   "word": "this",
+   "start": 17.76,
+   "end": 17.92
+  },
+  {
+   "word": "at",
+   "start": 18.0,
+   "end": 18.16
+  },
+  {
+   "word": "least",
+   "start": 18.24,
+   "end": 18.48
+  },
+  {
+   "word": "once.",
+   "start": 18.56,
+   "end": 19.06
+  }
+ ]
+}
