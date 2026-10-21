@@ -1,8 +1,8 @@
 // Original sound design, synthesised here (no samples, no licences). Reads timeline.json.
 // Family "orbital machinery": the myth is a swirling, tremolo vortex drone that tape-stops when it is called wrong;
-// each planet in the flyby gets a pass-by whoosh and a bell tuned lower the farther out it is; the true motion is a
-// rising rush of wind with a steady low engine; the core is a slow heartbeat drone with the S2 whip; the black hole
-// reveal takes the biggest hit after a held breath. Every write wraps modulo the loop length, so the file loops.
+// the real solar system arrives on a warm pad with a bell per planet, tuned lower the farther out it is; the true motion
+// is a rising rush of wind with a steady low engine; the galaxy gets a choir-like pad and a low gong on Sagittarius A*;
+// the lap ticks once per 10 million years and closes on a chime. Every write wraps modulo the loop length, so the file loops.
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 const spec = JSON.parse(fs.readFileSync(new URL('./timeline.json', import.meta.url)));
@@ -43,7 +43,7 @@ const type = (txt, t0, t1, g = 0.06) => { for (let k = 0; k < txt.length; k++) i
 // ---- 0.0-2.6 the myth vortex: swirling drone (pan circles at the coil rate), tape-stop on IT'S WRONG ----
 hit(0, 0.7, 110);
 { let ph = [0, 0, 0], pos = 0;
-  for (let j = 0; j < L; j++) { const t = j / SR; const tm = t > 28.4 ? t - DUR : t; if (tm < -0.6 || tm > 2.6) continue;
+  for (let j = 0; j < L; j++) { const t = j / SR; const tm = t > DUR - 0.6 ? t - DUR : t; if (tm < -0.6 || tm > 2.6) continue;
     const stop = smooth(1.5, 2.3, tm), rate = 1 - 0.92 * stop, g = 0.06 * smooth(-0.6, 0.1, tm) * (1 - smooth(2.2, 2.6, tm));
     pos += 2 * Math.PI * 1.3 * rate / SR; const pan = 0.7 * Math.sin(pos);
     let v = 0; [[146.8, 1], [220, 0.6], [293.7, 0.35]].forEach(([f, a], k) => { ph[k] += 2 * Math.PI * f * rate * (1 + 0.004 * Math.sin(pos * 3)) / SR; v += a * Math.sin(ph[k] + 0.3 * Math.sin(ph[k] * 2)); });
@@ -52,73 +52,55 @@ noise(SFX, -0.6, 3.0, 0.07, { lp: 1800, hp: 200, a: 0.4, d: 9, send: 0.2, pan: -
 type("YOU'VE SEEN THIS.", 0.03, 0.5);
 tone(HIT, 1.25, 0.5, 150, 118, 0.42, { a: 0.002, d: 0.17, drive: 3 }); noise(SFX, 1.25, 0.06, 0.28, { lp: 3000, hp: 300, d: 0.02 });   // stamp
 tone(SFX, 1.5, 0.9, 420, 40, 0.06, { a: 0.01, d: 2, curve: 1.8, drive: 1 });                                                          // tape stop
-// ---- 2.6 the Sun: a deep fire roar and crackle, then the flyby ----
-noise(SFX, 2.45, 0.35, 0.16, { lp: 300, lpEnd: 6000, hp: 120, rev: true, send: 0.2 });
-hit(2.6, 0.45, 82);
-noise(SFX, 2.6, 0.9, 0.16, { lp: 900, hp: 100, a: 0.05, d: 0.6, send: 0.2 });
-for (let k = 0; k < 40; k++) noise(SFX, 2.6 + Math.random() * 0.75, 0.012, 0.05, { hp: 1800, lp: 7000, d: 0.004, pan: rnd() * 0.6 });
-type('THE SUN', 2.65, 2.9);
-const T0 = 3.3, TS = 0.9625;
+// ---- 2.6 the real solar system: reveal hit, warm pad, a small chime as each planet is named ----
+noise(SFX, 2.3, 0.3, 0.16, { lp: 300, lpEnd: 6000, hp: 120, rev: true, send: 0.2 });
+hit(2.6, 0.5, 82);
+type("HERE'S THE REAL ONE.", 2.8, 3.3, 0.05);
 const BELL = [1046.5, 880, 784, 659.3, 523.3, 440, 392, 329.6];        // farther out = lower
-for (let i = 0; i < 8; i++) { const at = T0 + TS * i, pan = i % 2 ? 0.45 : -0.45;
-  noise(SFX, at - 0.42, 0.5, 0.16, { lp: 500, lpEnd: 7000, hp: 150, rev: true, send: 0.2, pan: -pan, panEnd: pan });     // pass-by whoosh into the planet
-  tone(SFX, at - 0.05, 2.0, BELL[i], BELL[i], 0.055, { a: 0.003, d: 0.55, send: 0.6, pan });
-  tone(SFX, at - 0.05, 1.2, BELL[i] * 2.76, BELL[i] * 2.76, 0.012, { d: 0.18, send: 0.5, pan });
-  tone(SFX, at - 0.05, 0.9, BELL[i] / 4, BELL[i] / 4.2, 0.05, { a: 0.01, d: 0.3, send: 0.2 });
-  type(spec.planets[i].name, at - 0.12, at + 0.1, 0.05); }
-// warm pad under the tour (D major-ish), swelling into the wide shot
+for (let i = 0; i < 8; i++) { const at = 3.15 + 0.11 * i, pan = (i / 7 - 0.5) * 0.9;
+  tone(SFX, at, 1.6, BELL[i], BELL[i], 0.03, { a: 0.003, d: 0.45, send: 0.6, pan }); tone(SFX, at, 0.8, BELL[i] * 2.76, BELL[i] * 2.76, 0.007, { d: 0.15, send: 0.5, pan }); }
 for (const [f, g, p] of [[146.83, 0.04, -0.3], [220, 0.03, 0.3], [293.66, 0.022, -0.1], [369.99, 0.014, 0.2]]) {
-  const s0 = Math.round(2.6 * SR), s1 = Math.round(13.1 * SR); let ph = 0, ph2 = 0;
-  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(2.6, 3.6, t) * (1 - smooth(12.8, 13.05, t)) * (1 + 0.8 * smooth(10.8, 12.6, t)); ph += 2 * Math.PI * f / SR; ph2 += 2 * Math.PI * f * 1.005 / SR;
+  const s0 = Math.round(2.6 * SR), s1 = Math.round(6.3 * SR); let ph = 0, ph2 = 0;
+  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(2.6, 3.4, t) * (1 - smooth(5.9, 6.15, t)) * (1 + 0.6 * smooth(4.8, 5.9, t)); ph += 2 * Math.PI * f / SR; ph2 += 2 * Math.PI * f * 1.005 / SR;
     const v = (Math.sin(ph) + Math.sin(ph2)) * 0.5 * g * e; put(BED, j, v, p); put(SEND, j, v * 0.3, p); } }
-// ---- 11-13.6 the wide shot: a long rising swell, then the held breath ----
-noise(SFX, 10.75, 1.7, 0.12, { lp: 7000, lpEnd: 600, hp: 120, a: 0.3, d: 3, send: 0.3 });
-type('THE WHOLE SYSTEM IS TILTED', 11.3, 11.8, 0.04); type('60° TO THE GALAXY', 11.8, 12.2, 0.04); type('NOW LET THE SUN MOVE.', 12.85, 13.35, 0.05);
-tone(SFX, 12.0, 1.5, 220, 440, 0.03, { a: 1.0, d: 3, send: 0.5, curve: 1.4 });
-noise(SFX, 13.1, 0.48, 0.14, { lp: 300, lpEnd: 8000, hp: 200, rev: true, send: 0.3 });
-// ---- 13.6 the Sun moves: big hit, steady engine, rising rush of wind (true motion) ----
-hit(13.6, 0.95, 92);
-{ const s0 = Math.round(13.6 * SR), s1 = Math.round(20.2 * SR); let ph = 0, ph2 = 0, y = 0;
-  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(13.6, 14.4, t) * (1 - smooth(19.6, 20.2, t));
+tone(SFX, 4.6, 1.5, 220, 440, 0.025, { a: 1.0, d: 3, send: 0.5, curve: 1.4 });
+noise(SFX, 5.72, 0.48, 0.14, { lp: 300, lpEnd: 8000, hp: 200, rev: true, send: 0.3 });
+// ---- 6.2 the Sun moves: big hit, steady engine, rising rush of wind (true motion) ----
+hit(6.2, 0.95, 92);
+{ const s0 = Math.round(6.2 * SR), s1 = Math.round(15.4 * SR); let ph = 0, ph2 = 0, y = 0;
+  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(6.2, 7.0, t) * (1 - smooth(14.2, 15.4, t));
     ph += 2 * Math.PI * 98 / SR; ph2 += 2 * Math.PI * 147 * (1 + 0.002 * Math.sin(t * 3)) / SR;
     const eng = (Math.tanh(1.8 * Math.sin(ph)) * 0.035 + Math.sin(ph2) * 0.018) * e * (0.85 + 0.15 * Math.sin(2 * Math.PI * 0.6 * t));
-    const cut = 400 + 3000 * smooth(13.6, 19.4, t); const al = 1 - Math.exp(-2 * Math.PI * cut / SR); y += al * (rnd() - y);
+    const cut = 400 + 3000 * smooth(6.2, 12.6, t); const al = 1 - Math.exp(-2 * Math.PI * cut / SR); y += al * (rnd() - y);
     put(SFX, j, eng, 0); put(SFX, j, y * 0.09 * e, 0.3 * Math.sin(t * 0.7)); put(SEND, j, y * 0.03 * e, 0); } }
-for (const [txt, a, b] of [['230 KM/S', 13.75, 14.0], ["EARTH'S REAL PATH:", 15.0, 15.4], ['A STRETCHED WAVE.', 15.4, 15.8], ["PLANETS DON'T TRAIL BEHIND.", 16.45, 16.95],
-  ['HALF THE TIME, THEY LEAD.', 16.95, 17.4], ["NEPTUNE'S PATH:", 17.85, 18.15], ['ALMOST STRAIGHT.', 18.15, 18.5], ['NOT A VORTEX.', 18.95, 19.25]]) type(txt, a, b, 0.045);
-// a soft glass ping on each line (Earth teal, lead gold, Neptune blue)
-for (const [at, f] of [[15.4, 659.3], [16.95, 784], [18.15, 523.3]]) tone(SFX, at, 1.6, f, f, 0.04, { a: 0.003, d: 0.5, send: 0.6 });
-hit(18.95, 0.55, 110);
-// ---- 19.8-23.4 pull out to the galaxy: long airy rise, a choir-like pad, low gong on the centre ----
-noise(SFX, 19.6, 2.6, 0.14, { lp: 300, lpEnd: 5000, hp: 150, a: 1.0, d: 4, send: 0.4 });
+for (const [txt, a, b] of [['THE SUN IS MOVING', 6.0, 6.4], ['230 KM/S', 6.4, 6.7], ['THE PLANETS FOLLOW', 8.5, 8.9], ['IN STRETCHED WAVES', 8.9, 9.3],
+  ['HALF THE TIME', 10.6, 10.9], ["THEY'RE AHEAD OF THE SUN", 10.9, 11.4], ['NOT A VORTEX.', 12.7, 13.0]]) type(txt, a, b, 0.045);
+// a soft glass ping on each line (waves teal, ahead gold)
+for (const [at, f] of [[8.9, 659.3], [10.9, 784]]) tone(SFX, at, 1.6, f, f, 0.04, { a: 0.003, d: 0.5, send: 0.6 });
+hit(12.7, 0.55, 110);
+// ---- 13-17.6 pull back to the whole galaxy: long airy rise, a choir-like pad, low gong on Sagittarius A* ----
+noise(SFX, 13.0, 2.4, 0.14, { lp: 300, lpEnd: 5000, hp: 150, a: 1.0, d: 4, send: 0.4 });
 for (const [f, g, p] of [[110, 0.03, -0.4], [164.8, 0.028, 0.4], [220, 0.024, -0.2], [277.2, 0.018, 0.2], [329.6, 0.014, 0]]) {
-  const s0 = Math.round(20.0 * SR), s1 = Math.round(24.0 * SR); let ph = 0, ph2 = 0, ph3 = 0;
-  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(20.0, 21.4, t) * (1 - smooth(23.3, 23.9, t));
+  const s0 = Math.round(13.6 * SR), s1 = Math.round(25.2 * SR); let ph = 0, ph2 = 0, ph3 = 0;
+  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(13.6, 15.2, t) * (1 - smooth(24.4, 25.2, t)) * (1 + 0.5 * smooth(17.6, 22.6, t));
     ph += 2 * Math.PI * f / SR; ph2 += 2 * Math.PI * f * 1.006 / SR; ph3 += 2 * Math.PI * f * 0.994 / SR;
     const v = (Math.sin(ph) + 0.6 * Math.sin(ph2) + 0.6 * Math.sin(ph3) + 0.2 * Math.sin(3 * ph)) * g * e * 0.5; put(BED, j, v, p); put(SEND, j, v * 0.5, p); } }
-tone(HIT, 21.4, 3.5, 98, 97, 0.12, { a: 0.01, d: 1.4, send: 0.6 }); tone(HIT, 21.4, 3.0, 147, 146.5, 0.07, { a: 0.01, d: 1.2, send: 0.6 });
-type('ALL OF IT ORBITS', 21.4, 21.8, 0.04); type("THE GALAXY'S CENTRE", 21.8, 22.25, 0.04);
-// ---- 23.4-24.6 dive into the core ----
-noise(SFX, 23.3, 1.4, 0.2, { lp: 7000, lpEnd: 300, hp: 100, a: 0.4, d: 3, send: 0.3 });
-tone(SFX, 23.3, 1.4, 900, 120, 0.045, { a: 0.3, d: 3, curve: 0.6 });
-// ---- 24.4-27.6 the core: slow heartbeat drone, S2 whip at pericentre, held breath, the biggest hit on Sagittarius A* ----
-{ const s0 = Math.round(24.4 * SR), s1 = Math.round(27.9 * SR); let ph = 0;
-  for (let j = s0; j < s1; j++) { const t = j / SR, e = smooth(24.4, 25.0, t) * (1 - smooth(27.4, 27.9, t)) * (1 - 0.85 * smooth(25.75, 25.95, t) * (1 - smooth(26.1, 26.3, t)));
-    ph += 2 * Math.PI * 110 / SR; const beat = Math.exp(-((t * 1.1) % 1) * 7) + 0.6 * Math.exp(-(((t * 1.1) + 0.72) % 1) * 9);
-    const v = (Math.tanh(2.2 * Math.sin(ph)) * 0.05 + Math.sin(ph * 0.5) * 0.04) * e * (0.35 + 0.65 * beat); put(SFX, j, v, 0); put(SEND, j, v * 0.2, 0); } }
-// S2 pericentre passage (2018.4 in the scene clock lands at 25.59 s): a fast doppler zing
-{ const at = 25.59; tone(SFX, at - 0.35, 0.7, 700, 1900, 0.05, { a: 0.3, d: 0.4, curve: 2, pan: -0.6, send: 0.4 }); tone(SFX, at, 0.6, 1900, 500, 0.05, { a: 0.003, d: 0.25, curve: 0.5, pan: 0.6, send: 0.4 });
-  noise(SFX, at - 0.3, 0.6, 0.1, { lp: 2000, lpEnd: 9000, hp: 600, a: 0.25, d: 0.2, pan: -0.6, panEnd: 0.6 }); }
-type('THESE STARS ORBIT', 24.9, 25.3, 0.04); type('SOMETHING INVISIBLE.', 25.3, 25.8, 0.04);
-noise(SFX, 25.62, 0.46, 0.13, { lp: 300, lpEnd: 7000, hp: 200, rev: true, send: 0.3 });
-hit(26.1, 1.25, 73.4);
-for (const [f, g, p] of [[73.4, 0.04, 0], [110, 0.04, -0.4], [146.8, 0.035, 0.4], [220, 0.022, -0.2]]) tone(SFX, 26.2, 1.6, f, f * 1.001, g, { a: 0.4, d: 4, send: 0.5, pan: p });
-type('A BLACK HOLE · 4 MILLION SUNS', 26.35, 26.8, 0.035);
-// ---- 27.6 NOW YOU KNOW, plunge home, rising tone and the vortex swirl returning into frame 0 ----
-type('NOW YOU KNOW.', 27.6, 27.9, 0.06);
-noise(SFX, 27.6, 1.0, 0.18, { lp: 6000, lpEnd: 500, hp: 120, a: 0.2, d: 3, send: 0.25 });
-noise(SFX, 28.1, 0.88, 0.16, { lp: 300, lpEnd: 7000, hp: 150, rev: true, send: 0.2 });
-tone(SFX, 28.0, 1.0, 220, 440, 0.03, { a: 0.6, d: 3, curve: 1.5 });
+noise(SFX, 14.8, 0.45, 0.12, { lp: 300, lpEnd: 7000, hp: 200, rev: true, send: 0.3 });
+hit(15.25, 0.9, 73.4);
+tone(HIT, 15.25, 3.5, 73.4, 73, 0.12, { a: 0.01, d: 1.6, send: 0.6 }); tone(HIT, 15.25, 3.0, 110, 109.6, 0.07, { a: 0.01, d: 1.3, send: 0.6 });
+type('ALL OF IT ORBITS', 14.8, 15.2, 0.04); type('A BLACK HOLE · 4 MILLION SUNS', 15.55, 16.0, 0.035);
+// ---- 17.6-22.6 one lap: a tick every 10 million years on the counter, a rising orbit tone, a chime when the lap closes ----
+type('ONE LAP AROUND THE GALAXY', 17.6, 18.1, 0.04);
+{ const lap = t => { const s = clamp((t - 17.6) / 5); return 230 * (s - Math.sin(2 * Math.PI * s) / (2 * Math.PI)); }; let last = 0;
+  for (let t = 17.6; t <= 22.6; t += 1 / 1000) { const m = Math.floor(lap(t) / 10); if (m > last) { last = m; noise(SFX, t, 0.018, 0.07, { hp: 2500, lp: 9000, d: 0.006, pan: 0.4 * Math.sin(m) });
+      tone(SFX, t, 0.12, 1760, 1760, 0.012, { d: 0.04, send: 0.3 }); } } }
+tone(SFX, 17.6, 5.0, 196, 392, 0.03, { a: 2.0, d: 9, send: 0.5, curve: 1.6 });
+hit(22.6, 0.6, 98);
+for (const [f, g] of [[784, 0.04], [1174.7, 0.025], [1568, 0.015]]) tone(SFX, 22.6, 2.4, f, f, g, { a: 0.003, d: 0.8, send: 0.7 });
+// ---- 23.8 NOW YOU KNOW, plunge home into the white seam and the vortex of frame 0 ----
+type('NOW YOU KNOW.', 23.8, 24.1, 0.06);
+noise(SFX, 24.4, 1.6, 0.18, { lp: 300, lpEnd: 8000, hp: 150, rev: true, send: 0.25 });
+tone(SFX, 24.6, 1.4, 220, 660, 0.03, { a: 0.8, d: 3, curve: 1.5 });
 
 // ---- reverb on the send (Schroeder, run over two loops so the tail wraps) ----
 function reverb([l, r]) {
@@ -134,9 +116,9 @@ function reverb([l, r]) {
 const VERB = reverb(SEND);
 const hp90 = ([l, r]) => [l, r].forEach(x => { const a = Math.exp(-2 * Math.PI * 90 / SR); let y = 0, p = 0; for (let k = 0; k < 2 * L; k++) { const v = x[k % L]; y = a * (y + v - p); p = v; if (k >= L) x[k - L] = y; } });
 hp90(SFX); hp90(BED); hp90(VERB);
-const HITS = [0, 2.6, 13.6, 18.95, 26.1];
+const HITS = [0, 2.6, 6.2, 12.7, 15.25, 22.6];
 const duck = t => { let g = 1; for (const h of HITS) { const dt = t - h; if (dt >= 0 && dt < 1.2) g = Math.min(g, 0.45 + 0.55 * dt / 1.2); if (dt > -0.05 && dt < 0) g = Math.min(g, 0.05); }
-  if (t > 13.1 && t < 13.55) g = Math.min(g, 0.2); if (t > 25.75 && t < 26.05) g = Math.min(g, 0.12); return g; };
+  if (t > 5.75 && t < 6.15) g = Math.min(g, 0.25); return g; };
 const mix = [new Float32Array(L), new Float32Array(L)];
 for (let c = 0; c < 2; c++) for (let k = 0; k < L; k++) { const d = duck(k / SR); mix[c][k] = HIT[c][k] + (SFX[c][k] * 1.7 + BED[c][k] * 1.7) * d + VERB[c][k] * 0.5; }
 let peak = 0; for (const x of mix) for (const v of x) peak = Math.max(peak, Math.abs(v));

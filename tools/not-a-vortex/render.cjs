@@ -22,9 +22,9 @@ const server = http.createServer((req, res) => {
     page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text().slice(0, 400)); });
     await page.goto(`http://127.0.0.1:${server.address().port}/?w=${w}`);
     await page.waitForFunction(() => window.ready === true, null, { timeout: 300000 });
-    const mono = await page.evaluate(({ total, fps }) => { let prev = 0; for (let f = 0; f < total; f++) { const s = window.stateAt(f / fps);
+    const mono = await page.evaluate(({ total, fps }) => { let prev = 0; for (let f = 0; f < total; f++) { const s = window.stateAt(f / fps); s.km = s.myr;
       if (s.km < prev) return `backwards at frame ${f}`; prev = s.km; } return 'ok'; }, { total, fps: spec.fps });
-    console.log('monotonic distance counter:', mono); if (mono !== 'ok') throw Error(mono);
+    console.log('monotonic lap counter:', mono); if (mono !== 'ok') throw Error(mono);
     const fc = await page.evaluate(() => window.factCheck()); console.log('fact check:', JSON.stringify(fc));
     if (Math.abs(fc.eclipticToGalacticPlaneDeg - 60.2) > 0.3 || fc.earthAheadFraction < 0.45 || fc.earthAheadFraction > 0.55) throw Error('fact check failed');
     if (process.argv.includes('--stills')) {
