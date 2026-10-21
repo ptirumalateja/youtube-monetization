@@ -1,0 +1,38 @@
+{
+ "duration": 29.0,
+ "fps": 30,
+ "facts": {
+  "sun_speed_kms": 230,
+  "sun_velocity_galactic_kms": [11.1, 245.0, 7.3],
+  "au_km": 149597870.7,
+  "year_s": 31557600,
+  "ecliptic_tilt_to_galactic_plane_deg": 60.2,
+  "sun_to_galactic_centre_ly": 26700,
+  "galactic_year_myr": 230,
+  "sgr_a_mass_msun": 4.3e6,
+  "s2_period_yr": 16.05,
+  "s2_pericentre_au": 120,
+  "s2_pericentre_speed_kms": 7650
+ },
+ "planets": [
+  {"name": "MERCURY", "a": 0.3871, "e": 0.2056, "i": 7.00, "node": 48.33, "peri": 77.46, "P": 0.2408, "R_km": 2440,  "tilt": 0.03,  "day_h": 1407.6,  "fact": "ONE DAY LASTS TWO OF ITS YEARS"},
+  {"name": "VENUS",   "a": 0.7233, "e": 0.0068, "i": 3.39, "node": 76.68, "peri": 131.6, "P": 0.6152, "R_km": 6052,  "tilt": 177.4, "day_h": -5832.5, "fact": "SPINS BACKWARDS"},
+  {"name": "EARTH",   "a": 1.0000, "e": 0.0167, "i": 0.00, "node": 0.0,   "peri": 102.9, "P": 1.0000, "R_km": 6371,  "tilt": 23.44, "day_h": 23.93,   "fact": "YOU ARE HERE"},
+  {"name": "MARS",    "a": 1.5237, "e": 0.0934, "i": 1.85, "node": 49.56, "peri": 336.0, "P": 1.8809, "R_km": 3390,  "tilt": 25.19, "day_h": 24.62,   "fact": "HOME OF THE TALLEST VOLCANO"},
+  {"name": "JUPITER", "a": 5.2026, "e": 0.0484, "i": 1.30, "node": 100.5, "peri": 14.75, "P": 11.862, "R_km": 69911, "tilt": 3.13,  "day_h": 9.93,    "fact": "A DAY LASTS 10 HOURS"},
+  {"name": "SATURN",  "a": 9.5549, "e": 0.0555, "i": 2.49, "node": 113.7, "peri": 92.43, "P": 29.457, "R_km": 58232, "tilt": 26.73, "day_h": 10.66,   "fact": "RINGS 270,000 KM ACROSS"},
+  {"name": "URANUS",  "a": 19.218, "e": 0.0463, "i": 0.77, "node": 74.0,  "peri": 170.9, "P": 84.011, "R_km": 25362, "tilt": 97.77, "day_h": -17.24,  "fact": "ROLLS ON ITS SIDE"},
+  {"name": "NEPTUNE", "a": 30.110, "e": 0.0090, "i": 1.77, "node": 131.8, "peri": 44.97, "P": 164.79, "R_km": 24622, "tilt": 28.32, "day_h": 16.11,   "fact": "WINDS OF 2,000 KM/H"}
+ ],
+ "tour": {"start": 2.6, "end": 11.0},
+ "shots": [
+  [0.0, 2.6, "myth: the viral vortex, planets in tight coils trailing the Sun; YOU'VE SEEN THIS. / IT'S WRONG."],
+  [2.6, 11.0, "tour: Sun close-up, then fly past all eight planets (true sizes, true tilts and spins), one label each"],
+  [11.0, 13.6, "whole system from above, galactic plane at 60 degrees; NOW LET THE SUN MOVE."],
+  [13.6, 19.8, "true motion in the galaxy's frame: 230 km/s, stretched waves, planets lead and trail; NOT A VORTEX."],
+  [19.8, 24.3, "pull back out of the disc to the whole Milky Way; ALL OF IT ORBITS THE CENTRE"],
+  [24.3, 27.2, "dive into the core: S-stars on their measured orbits around an invisible point; Sgr A*"],
+  [27.2, 29.0, "NOW YOU KNOW. plunge home to the Sun; the trails curl into the frame-0 vortex (loop)"]
+ ],
+ "reviewTimes": [0.05, 0.8, 1.6, 2.4, 3.0, 3.8, 4.6, 5.6, 6.6, 7.6, 8.6, 9.6, 10.6, 11.6, 12.6, 13.4, 14.2, 15.4, 16.6, 17.8, 18.8, 19.6, 20.6, 21.6, 22.6, 23.6, 24.6, 25.4, 26.2, 27.0, 27.8, 28.5, 28.97]
+}
