@@ -40,15 +40,15 @@ const pos=new Float32Array(N*3), aU=new Float32Array(N), aV=new Float32Array(N),
 for(let i=0;i<NL;i++){ const u=R(), v=R()*6.2831853, s=R(); for(let k=0;k<NT;k++){ const j=i*NT+k; aU[j]=u;aV[j]=v;aS[j]=s;aK[j]=k/(NT-1);} }
 const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pos,3)); pg.setAttribute('aU',new THREE.BufferAttribute(aU,1)); pg.setAttribute('aV',new THREE.BufferAttribute(aV,1)); pg.setAttribute('aS',new THREE.BufferAttribute(aS,1)); pg.setAttribute('aK',new THREE.BufferAttribute(aK,1));
 const pm=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,customProgramCacheKey:()=>'fieldpts',
- uniforms:Object.assign({uT:{value:0},uWphi:{value:0},uAmp:{value:1},uK:{value:HALF/TAN},uSz:{value:SC},uColIn:{value:new THREE.Color(1,.78,.3)},uColOut:{value:new THREE.Color(.2,.85,.9)}},common),
- vertexShader:FP+`attribute float aU,aV,aS,aK; uniform float uT,uWphi,uAmp,uK,uSz; uniform vec3 uColIn,uColOut; varying vec3 vc;
+ uniforms:Object.assign({uGrow:{value:99},uT:{value:0},uWphi:{value:0},uAmp:{value:1},uK:{value:HALF/TAN},uSz:{value:SC},uColIn:{value:new THREE.Color(1,.78,.3)},uColOut:{value:new THREE.Color(.2,.85,.9)}},common),
+ vertexShader:FP+`attribute float aU,aV,aS,aK; uniform float uT,uWphi,uAmp,uK,uSz,uGrow; uniform vec3 uColIn,uColOut; varying vec3 vc;
   void main(){ float L=mix(0.42,uLmax,pow(aU,0.85)); float a=0.08+aU*uAmax;
    float sp=mix(0.10/sqrt(L),0.12/sqrt(a),uM);
    float s=fract(aS+uT*sp-aK*0.16); float v=aV+uT*uWphi*uM;
    vec3 p=fpos(aU,v,s); vec4 mv=modelViewMatrix*vec4(p,1.0); float d=max(-mv.z,0.2);
    gl_PointSize=clamp((1.0-aK*0.55)*0.055*uK/d*uSz,1.2*uSz,6.5*uSz);
    float head=pow(1.0-aK,2.2);
-   float dens=mix(1.0/(0.35+L*L*0.9),1.0/(0.6+a*a*1.2),uM); vc=mix(uColIn,uColOut,pow(aU,0.7))*uAmp*dens*(0.03+0.6*head);
+   float dens=mix(1.0/(0.35+L*L*0.9),1.0/(0.6+a*a*1.2),uM); float gv=1.0-smoothstep(uGrow-0.25,uGrow,L); float fr=exp(-pow((L-uGrow+0.12)/0.14,2.0)); vc=mix(uColIn,uColOut,pow(aU,0.7))*uAmp*dens*(0.03+0.6*head)*gv*(1.0+2.2*fr*step(uGrow,9.0));
    gl_Position=projectionMatrix*mv; }`,
  fragmentShader:`varying vec3 vc; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(vc*a,a); }`});
 const pts=new THREE.Points(pg,pm); pts.frustumCulled=false; scene.add(pts);
@@ -58,16 +58,17 @@ const shells=[]; const SHU=[0.12,0.34,0.58,0.82,1.0];
 for(const u of SHU){
   const g=new THREE.PlaneGeometry(1,1,120,80);
   const m=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,customProgramCacheKey:()=>'shell'+u,
-   uniforms:Object.assign({uU:{value:u},uOp:{value:0},uGrid:{value:1},uColIn:{value:new THREE.Color(1,.78,.3)},uColOut:{value:new THREE.Color(.2,.85,.9)}},common),
+   uniforms:Object.assign({uGrow:{value:99},uU:{value:u},uOp:{value:0},uGrid:{value:1},uColIn:{value:new THREE.Color(1,.78,.3)},uColOut:{value:new THREE.Color(.2,.85,.9)}},common),
    vertexShader:FP+`uniform float uU; varying vec3 vP; varying vec2 vUv; void main(){ vUv=uv; float s=clamp(uv.x,0.0,0.999); float v=uv.y*2.0*PI; vec3 p=fpos(uU,v,s); vec4 mv=modelViewMatrix*vec4(p,1.0); vP=mv.xyz; gl_Position=projectionMatrix*mv; }`,
-   fragmentShader:`uniform float uOp,uU,uGrid; uniform vec3 uColIn,uColOut; varying vec3 vP; varying vec2 vUv;
+   fragmentShader:`uniform float uOp,uU,uGrid,uGrow; uniform vec3 uColIn,uColOut; varying vec3 vP; varying vec2 vUv;
     void main(){ vec3 n=normalize(cross(dFdx(vP),dFdy(vP))); float f=1.0-abs(dot(n,normalize(-vP)));
      float rim=pow(f,2.2); float gx=abs(fract(vUv.x*14.0)-0.5), gy=abs(fract(vUv.y*28.0)-0.5);
      float gl=uGrid*(smoothstep(0.46,0.5,gx)+smoothstep(0.46,0.5,gy))*0.35;
-     vec3 c=mix(uColIn,uColOut,pow(uU,0.7)); float a=uOp*(0.03+0.4*rim+gl*0.6); gl_FragColor=vec4(c*a,a); }`});
+     vec3 c=mix(uColIn,uColOut,pow(uU,0.7)); float Ls=mix(0.42,2.5,pow(uU,0.85)); float a=uOp*(0.03+0.4*rim+gl*0.6)*(1.0-smoothstep(uGrow-0.2,uGrow+0.1,Ls)); gl_FragColor=vec4(c*a,a); }`});
   const mesh=new THREE.Mesh(g,m); mesh.frustumCulled=false; mesh.renderOrder=2; scene.add(mesh); shells.push(m);
 }
 
+const ring=new THREE.Mesh(new THREE.RingGeometry(0.97,1.0,160),new THREE.ShaderMaterial({transparent:true,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false,uniforms:{uOp:{value:0}},vertexShader:'void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'uniform float uOp; void main(){gl_FragColor=vec4(vec3(1.0,.78,.35)*uOp*.9,uOp);}'})); ring.rotation.x=-Math.PI/2; scene.add(ring);
 // ---------------- lights ----------------
 scene.add(new THREE.AmbientLight(0x5a6a88,0.9)); const key=new THREE.DirectionalLight(0xfff0d0,2.4); key.position.set(4,6,5); scene.add(key); const rim=new THREE.DirectionalLight(0x40c8ff,1.6); rim.position.set(-5,-2,-4); scene.add(rim);
 
@@ -135,11 +136,14 @@ window.renderAt=function(t,exp){
   const qk=sm((t-17.2)/0.9)*(1-sm((t-21.6)/0.7));           // helical twist (tokamak)
   const tt=t; common.uM.value=m; common.uQ.value=Math.round(3*qk*100)/100; common.uEl.value=1+0.3*qk;
   pm.uniforms.uT.value=tt; pm.uniforms.uWphi.value=0.05+0.12*qk;
+  const g1=sm(t/2.7), g2=sm((t-24.3)/0.7); const grow=t>24.2? 0.5+(1-g2)*30 : (t<2.7? 0.5+2.3*(1-Math.pow(1-clamp(t/2.7),3)) : 99); const gg=(t<2.7||t>24.2)?grow:99; pm.uniforms.uGrow.value=gg; shells.forEach(sh=>sh.uniforms.uGrow.value=gg);
+  { const rr=(t<2.9)? 0.5+2.3*(1-Math.pow(1-clamp(t/2.7),3)) : 0.01; ring.scale.set(rr,rr,rr); ring.material.uniforms.uOp.value=(t<2.9)?(1-sm(t/2.9))*0.9:0; ring.visible=t<2.95; }
+  magnet.scale.setScalar(1+0.08*Math.exp(-t*5)*Math.cos(t*30));
   // colours
   const smoke=win(t,14.2,15.0,17.2,17.9), hot=qk, wireCol=win(t,11.0,12.0,14.4,15.2);
   const cin=C(1,.78,.3).lerp(C(.95,.92,.85),smoke).lerp(C(1,.5,.18),hot), cout=C(.2,.85,.9).lerp(C(.7,.8,.9),smoke).lerp(C(.35,.6,1),hot*0.6);
   pm.uniforms.uColIn.value.copy(cin); pm.uniforms.uColOut.value.copy(cout);
-  const shellBase=0.35+0.65*win(t,1.3,2.6,5.0,7.0)*1.0; shells.forEach((s,i)=>{ s.uniforms.uOp.value=(0.4+0.6*win(t,1.3,2.8,6.0,7.5))*(i%2?0.8:1)*(0.55+0.45*Math.min(1,win(t,1.0,2.4,24,25))); s.uniforms.uColIn.value.copy(cin); s.uniforms.uColOut.value.copy(cout); s.uniforms.uGrid.value=1; });
+  const shellBase=0.35+0.65*win(t,1.3,2.6,5.0,7.0)*1.0; shells.forEach((s,i)=>{ s.uniforms.uOp.value=(0.4+0.6*win(t,2.0,3.2,6.0,7.5))*(i%2?0.8:1)*(0.55+0.45*Math.min(1,win(t,1.8,3.0,24,25))); s.uniforms.uColIn.value.copy(cin); s.uniforms.uColOut.value.copy(cout); s.uniforms.uGrid.value=1; });
   pm.uniforms.uAmp.value=(1.0+0.35*win(t,0,0.2,0.5,1.4))*(1-0.45*smoke)*(1-0.25*wireCol);
   // objects
   const mag=win(t,-1,0,5.6,7.2)+win(t,21.8,23.2,26,27); setOp(magnet,clamp(mag));

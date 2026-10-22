@@ -40,10 +40,10 @@ sh=fft_filter(noise(),2500,8000)*(0.6+0.4*np.sin(2*np.pi*3.1*t)); mix+=sh*env(6.
 for k in np.arange(11.2,14.2,0.25):
     i=int(k*SR); d=int(0.05*SR); tt=np.arange(d)/SR; mix[i:i+d]+=np.sin(2*np.pi*1400*tt)*np.exp(-tt*80)*0.05
 # shells bloom up: glass shimmer 1.3-2.8
-for f in (1320,1760,2093,2637): mix+=np.sin(2*np.pi*f*t)*env(1.3,2.0,2.4,3.4)*0.012
+for f in (1320,1760,2093,2637): mix+=np.sin(2*np.pi*f*t)*env(2.4,3.0,3.4,4.4)*0.012
 # hits and whooshes
 mix+=hit(0.0,0.95,300,60,1.8)
-mix+=whoosh(1.3,2.7,300,3000,0.35)
+mix+=whoosh(0.15,2.7,160,3200,0.5)
 mix+=hit(5.9,0.35,160,50,1.3,0.3)+whoosh(4.4,6.0,200,2500,0.3)
 mix+=hit(7.1,0.4,200,50,1.2,0.4)
 mix+=whoosh(10.5,12.8,250,2800,0.4)
