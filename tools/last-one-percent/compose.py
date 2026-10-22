@@ -19,7 +19,7 @@ MONO = '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
 SMALL = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
 CREAM, GOLD, TEAL, RED, INK = (244, 236, 220), (255, 200, 120), (150, 214, 208), (214, 62, 48), (6, 9, 16)
 F = lambda s, p=MONO: ImageFont.truetype(p, s)
-f_hook, f_end, f_num, f_chip, f_small = F(84), F(66), F(96), F(40), F(28, SMALL)
+f_hook, f_end, f_num, f_chip, f_small = F(84), F(66), F(96), F(40), F(34, SMALL)
 
 
 def sstep(a, b, x):
@@ -62,7 +62,7 @@ if wav != '-':
     cmd += ['-i', wav]
 cmd += ['-c:v', 'libx264', '-preset', 'slow', '-crf', crf, '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-tune', 'film']
 if wav != '-':
-    cmd += ['-af', 'alimiter=limit=0.84:attack=2:release=80:level=disabled', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest']
+    cmd += ['-af', 'volume=2.5dB,asoftclip=type=tanh,alimiter=limit=0.5:attack=0.5:release=80:level=disabled', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest']
 cmd += ['-movflags', '+faststart', out]
 ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 for f in range(NF):
@@ -87,7 +87,7 @@ for f in range(NF):
     if pr is not None:
         # battery icon above his head (his battery, readable at any angle)
         blink = 1.0 if t >= T_PLUG else (0.35 if (t * 2.6) % 1 > 0.7 and pr['pct'] < 0.5 else 1.0)
-        sc = min(1.35, max(0.55, 3.4 / pr['d']))
+        sc = min(1.35, max(0.8, 3.4 / pr['d']))
         aw = 96 * sc
         hx, hy = pr['x'], pr['y'] - 34 * sc
         on = 0 <= hx <= W and 120 <= hy <= H * 0.8

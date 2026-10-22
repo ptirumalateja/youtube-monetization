@@ -94,4 +94,13 @@ Render: three.js r0.170, headless Chromium + SwiftShader, Unreal bloom (0.5, cap
 
 ## 8. QA
 
-(filled in after the final render)
+Final render, 22 Oct 2026:
+
+- `final-reels/last-one-percent.mp4`: 1080x1920, 30 fps, H.264 CRF 18 + AAC 256k, 24.5 s, 23.1 MB (under the 30 MB chat limit). `final-reels/last-one-percent_music-ready.mp4`: same picture, no audio, 22.3 MB. Contact sheet: `final-reels/last-one-percent_contact_2fps.jpg`.
+- Frame 0 is moving (slump, then startle) with the chirp on frame 0; hook fully typed by 0.6 s.
+- Battery counter 1.00% to 0.01% asserted to only go down in `compose.py`; typed text never uses a negative slice.
+- No white or beige frames: the plug flare is capped (bloom spike 0.2) and the bedroom is lit by a low warm lamp. Darkest street beat still shows windows, lamps and sky.
+- Text stays above the bottom 18% (counter at y 1400-1550).
+- Audio after AAC: -15.0 LUFS integrated, true peak -3.2 dBTP (soft-clip + limiter in `compose.py`; the plug transient was the overshoot). Held breath 15.9-16.4 s; one big hit on the drop at 16.4 s.
+- Loop: the last frame is the phone screen filling the frame with the street at time 0; mean pixel difference to frame 0 is about 6/255 (the camera push is still moving, as intended).
+- Soft spots for a v2: the battery icon over his head is small in the wide sprint shots; the street inside the phone during the reveal is a wide shot where the wireman is too small to see.

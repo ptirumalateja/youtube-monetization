@@ -194,8 +194,8 @@ place(sfx, riser, 12.4, 0.18)
 buzz = tone(100, 100, 0.5, 0.05, 9.0, 'sq') * np.linspace(0.2, 1, int(0.5 * SR))
 place(sfx, band(buzz, 200, 4000), 15.9, 0.12)
 # THE DROP: plug clack + surge. Lights tink back on down the street.
-place(hit, clack(), TP - 0.01, 0.7)
-place(hit, surge(), TP, 0.9)
+place(hit, clack(), TP - 0.01, 0.45)
+place(hit, surge(), TP, 0.7)
 PX = 72.3
 notes = [523, 587, 659, 784, 880, 988, 1047, 1175, 1319]
 lamps = [x for x in (-1 + 9 * k for k in range(10)) if x != 71]
