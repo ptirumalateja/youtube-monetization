@@ -18,10 +18,10 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 const Q = new URLSearchParams(location.search);
 const W = +(Q.get('w')||1080), H = +(Q.get('h')||1920);
 const DUR = 24.5, FPS = 30;
-const T_PLUG = 16.4;     // plug goes in: the beat drop
-const T_SW = 17.8;       // the street becomes a phone screen
+const T_PLUG = 14.4;     // plug goes in: the beat drop
+const T_SW = 16.4;       // the street becomes a phone screen
 const T_RESET = 22.6;    // (screen dimmed) the street inside the phone restarts at the bench
-const BEATS = [4.6, 7.2, 9.8, 12.4, 14.4];   // each one the world dims a notch
+const BEATS = [3.5, 5.5, 7.5, 9.4, 10.8, 12.0];   // each one the windows dim a notch
 
 // ---------- helpers ----------
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -40,21 +40,22 @@ function pchip(keys){
 }
 
 // ---------- story clocks (street time s) ----------
-const heroX=pchip([[0,0],[2.3,0],[2.9,0.9],[3.6,4.2],[5,13],[12.4,61.5],[13.6,67.3],[14.6,70.3],[15.3,71.75],[40,71.75]]);
+// sprint, a stumble to one knee at about 10.8 s, then a drag to the charger
+const heroX=pchip([[0,0],[1.45,0],[1.95,0.9],[2.65,4.2],[3.85,12],[9.4,48.2],[10.35,53.3],[10.8,54.4],[11.75,54.7],[12.6,56.8],[13.0,57.4],[40,57.4]]);
 // battery inside the last 1%: 1.00 -> 0.01 (only goes down), then charging
-const pctK=pchip([[0,1.0],[2.4,0.95],[4.6,0.82],[7.2,0.64],[9.8,0.46],[12.4,0.28],[14.4,0.12],[15.8,0.03],[16.35,0.01]]);
+const pctK=pchip([[0,1.0],[1.5,0.96],[3.5,0.84],[5.5,0.70],[7.5,0.54],[9.4,0.38],[10.8,0.22],[12.0,0.10],[13.2,0.04],[14.35,0.01]]);
 const pct=s=>s<0?1:pctK(s);
 const charge=s=>s<T_PLUG?0:1-Math.exp(-(s-T_PLUG)/1.6);   // 0..1 surge after the plug
-// world light level: steps down at each beat, never below 0.2
-function lightLevel(s){const lv=[1,0.78,0.6,0.45,0.32,0.21];let k=0;for(const b of BEATS)if(s>=b)k++;return lv[k];}
-const HURDLE_X=24, PUDDLE_X=40;
-window.timing=()=>({BEATS,T_PLUG,T_SW,T_RESET,DUR});
+// window light level: steps down at each beat; near dark from 12 s (sky and the charger stay)
+function lightLevel(s){const lv=[1,0.8,0.62,0.46,0.3,0.16,0.06];let k=0;for(const b of BEATS)if(s>=b)k++;return lv[k];}
+const HURDLE_X=19, PUDDLE_X=36;
+window.timing=()=>({BEATS,T_PLUG,T_SW,T_RESET,DUR,lampOff:window.lampOff(),stumble:10.85,kneelUp:11.6,lampX:LAMPS.map(L=>L.x),PX:PX()});
 
 // ---------- renderer & composers ----------
 const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 renderer.setPixelRatio(1);renderer.setSize(W,H);
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;
-renderer.shadowMap.enabled=false;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap; // only the bedroom key light casts
 document.body.appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
@@ -63,9 +64,9 @@ scene.fog=new THREE.FogExp2(FOG,0.011);
 const camera=new THREE.PerspectiveCamera(56,W/H,0.05,3000);
 // A: street straight to the screen.  B: street into a render target (linear), shown on the phone.
 const compA=new EffectComposer(renderer);compA.addPass(new RenderPass(scene,camera));
-const bloomA=new UnrealBloomPass(new THREE.Vector2(W/2,H/2),0.5,0.55,0.72);compA.addPass(bloomA);compA.addPass(new OutputPass());
+const bloomA=new UnrealBloomPass(new THREE.Vector2(W/2,H/2),0.42,0.5,0.8);compA.addPass(bloomA);compA.addPass(new OutputPass());
 const compB=new EffectComposer(renderer);compB.renderToScreen=false;compB.addPass(new RenderPass(scene,camera));
-const bloomB=new UnrealBloomPass(new THREE.Vector2(W/2,H/2),0.5,0.55,0.72);compB.addPass(bloomB);
+const bloomB=new UnrealBloomPass(new THREE.Vector2(W/2,H/2),0.42,0.5,0.8);compB.addPass(bloomB);
 
 // ---------- sky (blue hour, never black) ----------
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{lv:{value:1}},
@@ -75,7 +76,7 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
     vec3 zen=vec3(0.035,0.055,0.12),hor=vec3(0.20,0.20,0.30),glow=vec3(0.42,0.26,0.20);
     vec3 c=mix(hor,zen,smoothstep(0.,0.5,el));
     c+=glow*exp(-max(el,0.)*9.)*0.55;            // warm city glow on the horizon
-    c*=0.75+0.25*lv;
+    c*=0.55+0.45*lv;
     gl_FragColor=vec4(c,1.);}`});
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(2000,32,16),skyMat));
 
@@ -112,7 +113,9 @@ function lightOn(src,s){
     const was=offAt(src,T_PLUG-0.01);return Math.max(was,fl*sstep(tOn,tOn+0.02,s));}
   return offAt(src,s);
 }
-function offAt(src,s){const lv=lightLevel(s);if(src.rank<lv)return 1;
+function offAt(src,s){
+  if(src.kind==='lamp'){const a=s-src.tOff;if(a<0)return 1;if(a<0.22)return Math.sin(a*120+src.x)>0?0.85:0.1;return 0;}
+  const lv=lightLevel(s);if(src.rank<lv)return 1;
   // it just went off at the last beat: a short flicker first
   let b=-1;for(const bt of BEATS)if(s>=bt)b=bt;if(b<0)return 1;const a=s-b-src.rank*0.25;
   if(a<0)return 1;if(a<0.18)return Math.sin(a*140+src.rank*20)>0?0.8:0.15;return 0;}
@@ -159,7 +162,7 @@ const winList=[],shopList=[];
 // ---------- street lamps ----------
 const LAMPS=[];const poleMat=new THREE.MeshStandardMaterial({color:'#20242e',roughness:0.5,metalness:0.6});
 const headMat=new THREE.MeshBasicMaterial({color:'#ffe2b0'});
-for(let k=0;k<10;k++){const x=-1+9*k;if(x===71)continue;
+for(let k=0;k<10;k++){const x=-1+9*k;
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.07,4.3,8),poleMat);pole.position.set(x,2.15,-2.65);scene.add(pole);
   const arm=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.9),poleMat);arm.position.set(x,4.25,-2.25);scene.add(arm);
   const head=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.1,0.22),headMat.clone());head.position.set(x,4.2,-1.85);scene.add(head);
@@ -167,7 +170,7 @@ for(let k=0;k<10;k++){const x=-1+9*k;if(x===71)continue;
   const pool=new THREE.Mesh(new THREE.PlaneGeometry(7,7),new THREE.MeshBasicMaterial({map:POOL,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.55}));pool.rotation.x=-Math.PI/2;pool.position.set(x,GY+0.01,-1.2);scene.add(pool);
   // wet-road reflection streak
   const st=new THREE.Mesh(new THREE.PlaneGeometry(0.7,5.5),new THREE.MeshBasicMaterial({map:STREAK,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.5}));st.rotation.x=-Math.PI/2;st.position.set(x,0.02,4.2);scene.add(st);
-  const src={x,rank:k===0?0.05:0.15+((k*0.37)%0.8),kind:'lamp'};
+  const src={x,kind:'lamp',tOff:Infinity};
   src.set=v=>{head.material.color.set('#ffe2b0').multiplyScalar(0.12+0.88*v);glow.material.opacity=0.95*v;pool.material.opacity=0.55*v;st.material.opacity=0.5*v;};
   sources.push(src);LAMPS.push(src);}
 
@@ -206,6 +209,8 @@ const POSES={
   offer:{p:0.12,tilt:0.1,aL:0.2,aR:-0.25,kL:0.15,kR:0.12,sL:1.32,sR:1.36,eL:0.55,eR:0.5,dy:0},
   push:{p:0.2,tilt:0.12,aL:0.25,aR:-0.3,kL:0.2,kR:0.15,sL:1.42,sR:1.45,eL:0.12,eR:0.1,dy:0},
   tall:{p:-0.06,tilt:-0.3,aL:0.06,aR:-0.06,kL:0.04,kR:0.04,sL:1.3,sR:1.36,eL:0.2,eR:0.16,dy:0},
+  trip:{p:0.85,tilt:-0.25,aL:0.9,aR:-0.45,kL:0.6,kR:0.9,sL:1.25,sR:0.95,eL:0.3,eR:0.4,dy:-0.04},
+  kneel:{p:0.55,tilt:0.6,aL:1.3,aR:0.1,kL:1.4,kR:1.6,sL:0.55,sR:0.15,eL:0.65,eR:0.25,dy:0},
 };
 function solve(P){
   const leg=(a,k)=>{const knee=new THREE.Vector2(Math.sin(a)*L.thigh,-Math.cos(a)*L.thigh);const b=a-k;return [knee,new THREE.Vector2(knee.x+Math.sin(b)*L.shin,knee.y-Math.cos(b)*L.shin)];};
@@ -238,7 +243,7 @@ const hero=makeFigure(wireMat,0.036);scene.add(hero.g);
 // ---------- the tail: a wire with a plug on the end ----------
 const tailMat=new THREE.MeshStandardMaterial({color:'#d9f2ff',roughness:0.4,emissive:new THREE.Color('#7cc8f0'),emissiveIntensity:0.6});
 const NT=28,tailSegs=[];const tcyl=new THREE.CylinderGeometry(0.016,0.016,1,8,1,true);
-for(let i=0;i<NT;i++){const m=new THREE.Mesh(tcyl,tailMat);scene.add(m);tailSegs.push(m);}
+const tailMats=[];for(let i=0;i<NT;i++){const mt=tailMat.clone();tailMats.push(mt);const m=new THREE.Mesh(tcyl,mt);scene.add(m);tailSegs.push(m);}
 const plug=new THREE.Group();{const body=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.05,0.05),new THREE.MeshStandardMaterial({color:'#e8eef6',roughness:0.4,emissive:'#3c5a70',emissiveIntensity:0.8}));plug.add(body);
   for(const z of[-0.012,0.012]){const pr=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.008,0.006),new THREE.MeshStandardMaterial({color:'#d6b25a',metalness:0.9,roughness:0.3}));pr.position.set(0.064,0,z);plug.add(pr);}}
 scene.add(plug);
@@ -250,29 +255,33 @@ function heroState(s){
   const v=(heroX(sc+0.02)-heroX(Math.max(0,sc-0.02)))/0.04;
   const k=clamp(v/6.5,0,1);
   const ph=x/2.3;
-  if(s<2.3){ // bench: slumped, low-battery chirp at 0.12, startle, stand, look down the street
-    z=lerp(-0.92,0,sstep(1.0,1.9,s));yaw=lerp(-Math.PI/2,0,sstep(1.1,2.2,s));
-    const sit=blendPose(POSES.sitSlump,POSES.sitStartle,sstep(0.18,0.42,s));
-    const breathe=Math.sin(s*2.2)*0.03;sit.p+=breathe*(1-sstep(0.18,0.4,s));
-    P=blendPose(sit,POSES.look,sstep(0.75,1.35,s));
-  } else if(s<15.3){
+  if(s<1.5){ // bench: slumped, chirp on frame 0, a sudden startle, stand, look down the street
+    z=lerp(-0.92,0,sstep(0.55,1.2,s));yaw=lerp(-Math.PI/2,0,sstep(0.6,1.4,s));
+    const sit=blendPose(POSES.sitSlump,POSES.sitStartle,sstep(0.05,0.17,s));
+    const breathe=Math.sin(s*2.2)*0.03;sit.p+=breathe*(1-sstep(0.05,0.15,s));
+    sit.dy=0.07*Math.exp(-Math.max(0,s-0.1)*9)*(s>0.08?1:0);   // jolt off the seat
+    P=blendPose(sit,POSES.look,sstep(0.4,0.9,s));
+  } else if(s<13.0){
     P=runPose(ph,Math.max(0.28,k));
-    if(s<3.2)P=blendPose(POSES.look,P,sstep(2.3,3.0,s));
+    if(s<2.2)P=blendPose(POSES.look,P,sstep(1.5,2.1,s));
+    // the stumble: trips, drops to one knee, heaves, gets up
+    const wt=sstep(10.3,10.6,s)*(1-sstep(10.72,10.95,s)),wk=sstep(10.72,11.0,s)*(1-sstep(11.55,12.05,s));
+    P=blendPose(P,POSES.trip,wt);const kn={...POSES.kneel};kn.p+=0.06*Math.sin(s*8);P=blendPose(P,kn,wk);
     // hurdle and puddle leaps
     const jh=(cx,half,hgt)=>{const u=(x-cx)/half;return Math.abs(u)<1?hgt*(1-u*u):0;};
     const jw=Math.max(sstep(1.4,0.9,Math.abs(x-HURDLE_X)),sstep(1.2,0.8,Math.abs(x-PUDDLE_X))*0.6);
     P=blendPose(P,tuck,jw);P.dy+=jh(HURDLE_X,1.3,0.62)+jh(PUDDLE_X,1.1,0.32);
   } else if(s<T_PLUG){
-    const a=sstep(15.3,15.65,s),b=sstep(15.75,16.15,s),c=sstep(16.2,16.38,s);
+    const a=sstep(13.0,13.35,s),b=sstep(13.45,13.85,s),c=sstep(13.95,14.38,s);
     P=blendPose(blendPose(blendPose(runPose(ph,0.28),POSES.reachBack,a),POSES.offer,b),POSES.push,c);
   } else {
-    P=blendPose(POSES.push,POSES.tall,sstep(16.9,17.6,s));
+    P=blendPose(POSES.push,POSES.tall,sstep(14.9,15.6,s));
     P.dy+=0.06*Math.exp(-(s-T_PLUG)*6)*Math.sin((s-T_PLUG)*40); // jolt
   }
   return {x,z,yaw,P,k,v};
 }
 // where his hands are when the plug goes in -> put the socket exactly there
-const HAND_IN=(()=>{const J=solve(POSES.push);return new THREE.Vector3(heroX(16)+(J.hL.x+J.hR.x)/2,GY+(J.hL.y+J.hR.y)/2,0);})();
+const HAND_IN=(()=>{const J=solve(POSES.push);return new THREE.Vector3(heroX(14)+(J.hL.x+J.hR.x)/2,GY+(J.hL.y+J.hR.y)/2,0);})();
 const SOCK=HAND_IN.clone().add(new THREE.Vector3(0.11,0,0));
 const PX=()=>SOCK.x+0.18;
 
@@ -289,6 +298,22 @@ const boltTex=canvasTex(256,(g,s)=>{g.fillStyle='#ffc35a';g.strokeStyle='rgba(10
 const bolt=new THREE.Sprite(new THREE.SpriteMaterial({map:boltTex,transparent:true,depthWrite:false,fog:false}));bolt.scale.set(0.75,0.75,1);bolt.position.set(PX(),GY+2.25,0);scene.add(bolt);
 const boltGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));boltGlow.scale.set(2.6,2.6,1);boltGlow.position.copy(bolt.position);scene.add(boltGlow);
 postLight.position.set(SOCK.x-0.5,1.6,0.6);
+const tAtX=x0=>{if(x0>heroX(40))return Infinity;let lo=0,hi=40;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(heroX(m)>=x0)hi=m;else lo=m;}return hi;};
+// lamps die as he passes them; the ones still ahead go out one by one before 12 s
+{let j=0;LAMPS.slice().sort((a,b)=>a.x-b.x).forEach(L=>{const tp=tAtX(L.x+2.5);L.tOff=tp<11.2?tp:11.2+0.2*(j++);});}
+window.lampOff=()=>LAMPS.map(L=>+L.tOff.toFixed(3));
+// conduit along the kerb: after the plug a gold pulse races back down the street, relighting it
+const pulseX=s=>PX()-38*(s-T_PLUG-0.08);
+const conduitMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{head:{value:1e9},age:{value:0}},
+  vertexShader:`varying float wx;void main(){wx=(modelMatrix*vec4(position,1.)).x;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform float head;uniform float age;varying float wx;
+    void main(){float d=wx-head;float core=exp(-d*d/0.6);float trail=d>0.?0.35*exp(-d/25.)*(1.-smoothstep(1.,3.,age)):0.;
+      gl_FragColor=vec4(vec3(1.0,0.75,0.35)*(core*2.2+trail),1.);}`});
+{const g=new THREE.PlaneGeometry(PX()+12,0.07,200,1);const m=new THREE.Mesh(g,conduitMat);m.rotation.x=-Math.PI/2;m.position.set((PX()-12)/2,GY+0.012,0.95);m.frustumCulled=false;scene.add(m);}
+// glowing wet footprints that fade behind him
+const STEPS=(()=>{const out=[];let last=Math.floor(heroX(1.6)/1.15);for(let i=1600;i<=13000;i++){const t=i/1000;const k=Math.floor(heroX(t)/1.15);if(k>last){out.push(t);last=k;}}return out;})();
+const fpTex=glowTex('rgba(200,240,255,1)','rgba(120,200,255,0.5)');
+const fps=[];for(let i=0;i<14;i++){const m=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.3),new THREE.MeshBasicMaterial({map:fpTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0}));m.rotation.x=-Math.PI/2;m.rotation.z=Math.PI/2;scene.add(m);fps.push(m);}
 
 // ---------- rain (world-fixed, camera-wrapped streaks) ----------
 const rainMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
@@ -303,10 +328,10 @@ const rainMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blendi
   const ln=new THREE.LineSegments(g,rainMat);ln.frustumCulled=false;scene.add(ln);}
 
 // ---------- sparks at the plug ----------
-const sparkMat=new THREE.PointsMaterial({color:'#ffd27a',size:0.035,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
-const NSP=90;const sparkGeo=new THREE.BufferGeometry();sparkGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(NSP*3),3));
+const sparkMat=new THREE.PointsMaterial({color:'#ffd27a',size:0.018,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+const NSP=26;const sparkGeo=new THREE.BufferGeometry();sparkGeo.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(NSP*3),3));
 const sparks=new THREE.Points(sparkGeo,sparkMat);sparks.frustumCulled=false;scene.add(sparks);
-const sparkV=[];{const R=rng(5);for(let i=0;i<NSP;i++)sparkV.push(new THREE.Vector3(-0.5-R()*2.5,(R()-0.3)*3,(R()-0.5)*3));}
+const sparkV=[];{const R=rng(5);for(let i=0;i<NSP;i++)sparkV.push(new THREE.Vector3(-0.3-R()*0.9,(R()-0.2)*1.2,0.3+R()*0.9));}
 
 // ---------- street camera ----------
 function keyLerp(K,t){if(t<=K[0][0])return [new THREE.Vector3(...K[0][1]),new THREE.Vector3(...K[0][2])];
@@ -314,34 +339,40 @@ function keyLerp(K,t){if(t<=K[0][0])return [new THREE.Vector3(...K[0][1]),new TH
   const l=K[K.length-1];return [new THREE.Vector3(...l[1]),new THREE.Vector3(...l[2])];}
 // relative to the (smoothed) hero during the run
 const REL=[
-  [2.2,[-3.2,1.55,2.2],[3.5,0.95,-0.3]],
-  [5.2,[-4.4,1.6,1.4],[3.2,0.9,-0.2]],
-  [6.3,[-1.6,1.05,3.6],[1.4,0.85,-0.1]],     // side-on for the hurdle
-  [7.4,[-1.5,1.1,3.7],[1.5,0.85,-0.1]],
-  [8.6,[-4.2,1.3,1.6],[3.0,0.8,-0.2]],
-  [9.6,[-3.4,0.55,1.5],[3.0,0.7,-0.1]],     // low over the puddle
-  [11.2,[-4.4,1.6,1.3],[3.2,0.9,-0.2]],
-  [13.4,[-2.6,1.2,1.9],[2.0,0.95,-0.15]],
-  [15.0,[-2.0,1.25,2.0],[1.4,1.0,-0.1]],
+  [1.5,[-3.2,1.55,2.2],[3.5,0.95,-0.3]],    // behind: the street and the gold charger ahead
+  [3.0,[-2.3,1.25,1.6],[3.0,0.9,-0.2]],     // push in
+  [4.4,[-1.6,1.0,3.4],[1.3,0.85,-0.1]],     // side-on for the hurdle
+  [5.3,[-1.4,1.0,3.5],[1.4,0.85,-0.1]],
+  [5.9,[1.2,1.05,3.4],[0.2,0.9,0.0]],
+  [6.6,[3.8,1.15,1.1],[0.0,0.95,-0.1]],     // in front, looking back: lamps die behind him
+  [7.05,[3.6,1.0,1.2],[0.0,0.9,-0.1]],
+  [7.6,[3.0,0.5,1.5],[0.0,0.7,0.0]],        // low, he leaps the puddle towards us
+  [8.2,[2.2,0.8,2.6],[0.0,0.8,0.0]],
+  [9.0,[-0.8,1.1,3.6],[1.0,0.9,0.0]],
+  [9.9,[-3.6,1.4,1.6],[3.0,0.9,-0.2]],      // behind: the charger is close now
+  [10.5,[-1.6,1.0,2.6],[1.2,0.7,0.0]],      // close side: the stumble
+  [11.8,[-1.3,0.8,2.4],[1.0,0.6,0.0]],
+  [13.0,[-2.0,1.2,2.0],[1.4,1.0,-0.1]],
 ];
 function heroTrack(s){let x=0;let n=0;for(let d=-0.2;d<=0.2001;d+=0.05){x+=heroX(clamp(s+d,0,40));n++;}return x/n;}
 function streetCam(s){
-  if(s<2.2){ // opening: slow push on the bench (defined for negative times too, so the loop restarts mid-move)
+  if(s<1.5){ // opening: slow push on the bench (defined for negative times too, so the loop restarts mid-move)
     const u=(s+2.5)/4.7;const pos=new THREE.Vector3(lerp(1.25,0.7,u),lerp(1.15,1.05,u),lerp(4.9,3.7,u)),look=new THREE.Vector3(0.05,0.82,-0.85);
-    if(s<1.5)return {pos,look};
-    const w=ease(sstep(1.5,2.2,s));const [p2,l2]=keyLerp(REL,2.2);const hx=heroTrack(2.2);
+    if(s<0.9)return {pos,look};
+    const w=ease(sstep(0.9,1.5,s));const [p2,l2]=keyLerp(REL,1.5);const hx=heroTrack(1.5);
     return {pos:pos.lerp(p2.add(new THREE.Vector3(hx,0,0)),w),look:look.lerp(l2.add(new THREE.Vector3(hx,0,0)),w)};}
-  if(s<15.0){const [p,l]=keyLerp(REL,s);const hx=heroTrack(s);return {pos:p.add(new THREE.Vector3(hx,0,0)),look:l.add(new THREE.Vector3(hx,0,0))};}
-  const hx=heroTrack(15.0);const [p15,l15]=keyLerp(REL,15.0);
+  if(s<13.0){const [p,l]=keyLerp(REL,s);const hx=heroTrack(s);return {pos:p.add(new THREE.Vector3(hx,0,0)),look:l.add(new THREE.Vector3(hx,0,0))};}
+  const hx=heroTrack(13.0);const [p13,l13]=keyLerp(REL,13.0);
   const A=[
-    [15.0,p15.add(new THREE.Vector3(hx,0,0)),l15.add(new THREE.Vector3(hx,0,0))],
-    [16.1,new THREE.Vector3(SOCK.x-0.45,1.38,2.55),new THREE.Vector3(SOCK.x-0.4,1.08,-0.1)],   // 3/4 front: face, plug, socket
-    [16.4,new THREE.Vector3(SOCK.x-0.35,1.34,2.3),new THREE.Vector3(SOCK.x-0.35,1.08,-0.1)],
-    [17.0,new THREE.Vector3(SOCK.x+0.9,2.0,3.6),new THREE.Vector3(SOCK.x-1.2,1.0,-0.3)],
-    [17.8,new THREE.Vector3(SOCK.x+7.5,6.5,9.5),new THREE.Vector3(SOCK.x-16,1.5,-2.0)],      // crane up and look back down the relit street
-    [24.0,new THREE.Vector3(SOCK.x+12,15,16),new THREE.Vector3(SOCK.x-24,0,-3.0)],
+    [13.0,p13.add(new THREE.Vector3(hx,0,0)),l13.add(new THREE.Vector3(hx,0,0))],
+    [13.8,new THREE.Vector3(SOCK.x-0.15,1.2,2.3),new THREE.Vector3(SOCK.x-0.38,1.08,0.0)],    // front-side: his reach, the plug, the socket face
+    [14.4,new THREE.Vector3(SOCK.x-0.12,1.18,1.75),new THREE.Vector3(SOCK.x-0.3,1.1,0.0)],
+    [14.85,new THREE.Vector3(SOCK.x-0.12,1.18,1.7),new THREE.Vector3(SOCK.x-0.32,1.1,0.0)],   // hold: spark, pulse up his tail
+    [15.6,new THREE.Vector3(SOCK.x+1.5,2.0,3.2),new THREE.Vector3(SOCK.x-6,0.4,-0.3)],         // pull back: the pulse races down the street
+    [16.4,new THREE.Vector3(SOCK.x+6.0,5.2,8.0),new THREE.Vector3(SOCK.x-16,1.5,-2.0)],
+    [24.0,new THREE.Vector3(SOCK.x+11,14,15),new THREE.Vector3(SOCK.x-24,0,-3.0)],
   ];
-  for(let i=0;i<A.length-1;i++)if(s<=A[i+1][0]){let u=(s-A[i][0])/(A[i+1][0]-A[i][0]);u=i===2?1-Math.pow(1-u,1.6):(i===4?u:ease(u));
+  for(let i=0;i<A.length-1;i++)if(s<=A[i+1][0]){let u=(s-A[i][0])/(A[i+1][0]-A[i][0]);u=i===3?u*u:(i>=4?u:ease(u));
     return {pos:A[i][1].clone().lerp(A[i+1][1],u),look:A[i][2].clone().lerp(A[i+1][2],u)};}
   return {pos:A[A.length-1][1].clone(),look:A[A.length-1][2].clone()};
 }
@@ -356,14 +387,17 @@ function updateStreet(s){
   const J=solve(S.P);applyPose(hero,J);
   // glow follows the battery: dims and flickers as it drains, flares after the plug
   const p=pct(s),ch=charge(s);
-  let gl=0.12+1.25*p;if(p<0.3&&s<T_PLUG)gl*=0.75+0.25*Math.sign(Math.sin(s*47+Math.sin(s*13)*3));
-  if(s>=T_PLUG)gl=0.5+1.3*Math.exp(-(s-T_PLUG)*2.5)+0.85*ch;
-  wireMat.emissiveIntensity=gl;tailMat.emissiveIntensity=gl*0.6;
+  let gl=0.1+0.75*p;if(p<0.3&&s<T_PLUG)gl*=0.7+0.3*Math.sign(Math.sin(s*47+Math.sin(s*13)*3));
+  if(s>=T_PLUG)gl=0.12+0.85*sstep(T_PLUG+0.28,T_PLUG+1.3,s);
+  wireMat.emissiveIntensity=gl;
+  // the charge travels up the tail from the plug to his hip in 0.3 s
+  const pu=(s-T_PLUG)/0.3;
+  tailMats.forEach((m,i)=>{let e=gl*0.6;if(s>=T_PLUG){const pos=1-i/NT;const d=pu-pos;e+=2.2*Math.exp(-d*d/0.012)+(d>0?0.5*Math.exp(-(s-T_PLUG)*1.5):0);}m.emissiveIntensity=e;});
   heroLight.position.copy(hero.g.position).add(new THREE.Vector3(0,1.1,0.3));heroLight.intensity=0.5*gl;
   // tail: from his hip, lying back along the pavement; at the end it runs to the plug in his hands
   const hipW=J.hip.clone().applyAxisAngle(UP,S.yaw).add(hero.g.position);
   const handW=J.hL.clone().add(J.hR).multiplyScalar(0.5).applyAxisAngle(UP,S.yaw).add(hero.g.position);
-  const grab=sstep(15.4,15.7,s);
+  const grab=sstep(13.1,13.4,s);
   const pts=[];const seg=0.07;
   for(let i=0;i<=NT;i++){const d=i*seg;const u=i/NT;
     const lie=new THREE.Vector3(S.x-0.15-d,GY+0.015+Math.max(0,(hipW.y-GY-0.02)*Math.exp(-d*5.5)),S.z+0.06*Math.sin(d*5-(S.x)*2.2)*sstep(0,0.4,d));
@@ -372,9 +406,13 @@ function updateStreet(s){
       const along=u<0.5?a:b;along.y=Math.max(GY+0.015,along.y-(u<0.5?Math.sin(u*2*Math.PI)*0.15:0));lie.lerp(along,grab);}
     pts.push(lie);}
   for(let i=0;i<NT;i++)bone(tailSegs[i],pts[i],pts[i+1]);
-  let plugP=pts[NT].clone();if(s>=16.2)plugP=new THREE.Vector3(SOCK.x-0.07+0.06*(1-sstep(16.2,T_PLUG,s)),SOCK.y,0);
-  else if(grab>0.99)plugP=handW.clone().add(new THREE.Vector3(0.06,0,0));
-  plug.position.copy(plugP);const dir=grab>0.5?new THREE.Vector3(1,0,0):pts[NT].clone().sub(pts[NT-1]).normalize();plug.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir);
+  // the plug goes into the socket along its (diagonal) axis, so the camera sees it enter
+  const OUT=new THREE.Vector3(-Math.SQRT1_2,0,Math.SQRT1_2),IN=OUT.clone().negate();
+  let plugP=pts[NT].clone();
+  if(grab>0.99){const held=handW.clone().add(new THREE.Vector3(0.06,0,0));const ins=SOCK.clone().addScaledVector(OUT,lerp(0.13,0.055,sstep(14.0,T_PLUG,s)));plugP=held.lerp(ins,sstep(13.8,14.0,s));}
+  plug.position.copy(plugP);const dir=grab>0.5?new THREE.Vector3(1,0,0).lerp(IN,sstep(13.55,13.95,s)).normalize():pts[NT].clone().sub(pts[NT-1]).normalize();plug.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),dir);
+  // last tail point follows the plug's back end
+  if(grab>0.99){const back=plugP.clone().addScaledVector(dir,-0.045);bone(tailSegs[NT-1],pts[NT-1],back);}
   // lights
   const lv=lightLevel(s);const lit=s>=T_PLUG?1:lv;
   sources.forEach(src=>{const on=lightOn(src,s);
@@ -384,21 +422,26 @@ function updateStreet(s){
   // the three lamps nearest the hero give real light
   const near=LAMPS.slice().sort((a,b)=>Math.abs(a.x-S.x)-Math.abs(b.x-S.x)).slice(0,3);
   lampLights.forEach((l,i)=>{const src=near[i];l.position.set(src.x,4.0,-1.8);l.intensity=7*lightOn(src,s);});
-  hemi.intensity=0.5+0.55*(s>=T_PLUG?lerp(lv,1,sstep(T_PLUG,T_PLUG+2,s)):lv);
+  hemi.intensity=0.22+0.83*(s>=T_PLUG?lerp(lv,1,sstep(T_PLUG,T_PLUG+2,s)):lv);
   moon.intensity=0.35+0.25*lit;
   skyMat.uniforms.lv.value=s>=T_PLUG?1:lv;
   // the target pulses
-  const pulse=0.75+0.25*Math.sin(s*5.5);const ping=Math.exp(-Math.max(0,s-1.55)*3)*(s>=1.55?1:0);
+  const pulse=0.75+0.25*Math.sin(s*5.5);const ping=Math.exp(-Math.max(0,s-0.95)*3)*(s>=0.95?1:0);
   boltGlow.material.opacity=0.55*pulse+0.6*ping;bolt.scale.setScalar(0.75*(1+0.25*ping));
-  sockGlow.material.opacity=0.6*pulse+(s>=T_PLUG?1.2*Math.exp(-(s-T_PLUG)*3):0);
-  postLight.intensity=2.5+(s>=T_PLUG?14*Math.exp(-(s-T_PLUG)*2.5):0);
+  sockGlow.material.opacity=(0.6*pulse)*(s<13.6?1:0.35);
+  postLight.intensity=2.5+(s>=T_PLUG?3*Math.exp(-(s-T_PLUG)*3):0);
   // sparks
   const a=s-T_PLUG;const sp=sparkGeo.attributes.position;
-  if(a>=0&&a<1.2){sparkMat.opacity=1-a/1.2;for(let i=0;i<NSP;i++){const v=sparkV[i];sp.setXYZ(i,SOCK.x-0.05+v.x*a*0.6,SOCK.y+v.y*a*0.6-2.5*a*a,v.z*a*0.6);}sp.needsUpdate=true;sparks.visible=true;}else sparks.visible=false;
+  if(a>=0&&a<0.4){sparkMat.opacity=1-a/0.4;for(let i=0;i<NSP;i++){const v=sparkV[i];sp.setXYZ(i,SOCK.x-0.04+v.x*a*0.5,SOCK.y+v.y*a*0.5-3*a*a,0.04+v.z*a*0.5);}sp.needsUpdate=true;sparks.visible=true;}else sparks.visible=false;
+  conduitMat.uniforms.head.value=a>=0?pulseX(s):1e9;conduitMat.uniforms.age.value=Math.max(0,a);
+  // footprints
+  {let n=0;for(let i=STEPS.length-1;i>=0&&n<fps.length;i--){const ti=STEPS[i];if(ti>s)continue;const ag=s-ti;if(ag>1.6)break;const m=fps[n++];
+    m.position.set(heroX(ti)+0.12,GY+0.006,i%2?0.1:-0.1);m.material.opacity=0.55*(1-ag/1.6)*(0.35+0.65*pct(ti));}
+   for(;n<fps.length;n++)fps[n].material.opacity=0;}
   // puddle splash
   const tp=(()=>{let lo=0,hi=16;for(let i=0;i<30;i++){const m=(lo+hi)/2;if(heroX(m)>=PUDDLE_X+0.9)hi=m;else lo=m;}return hi;})();
   ripples.forEach((r,i)=>{const ag=s-tp-i*0.12;if(ag>0&&ag<1.4){r.material.opacity=0.5*(1-ag/1.4);const sc=0.25+ag*1.1;r.scale.set(sc,sc,1);r.position.x=PUDDLE_X+0.7;}else r.material.opacity=0;});
-  bloomA.strength=bloomB.strength=0.5+0.2*Math.exp(-Math.max(0,a)*1.5)*(a>=0?1:0);
+  bloomA.strength=bloomB.strength=0.42;
   // camera
   const cam=streetCam(s);camera.position.copy(cam.pos);camera.lookAt(cam.look);
   rainMat.uniforms.camPos.value.copy(camera.position);rainMat.uniforms.t.value=s;rainMat.uniforms.box.value=14+Math.min(30,camera.position.y*1.5);
@@ -413,8 +456,11 @@ room.add(new THREE.HemisphereLight('#6c7fb0','#2a2028',0.32));
 const rMoon=new THREE.DirectionalLight('#8ea6e0',0.45);rMoon.position.set(-2,3,1);room.add(rMoon);
 const lampL=new THREE.PointLight('#ffb870',0.32,2.5,1.6);lampL.position.set(-0.26,0.95,-0.16);room.add(lampL);
 const screenL=new THREE.PointLight('#bcd6ff',0.0,0.6,1.6);room.add(screenL);
+// warm key from the bedside lamp's direction: the only shadow caster (contact shadows for phone and cable)
+const rKey=new THREE.DirectionalLight('#ffc48a',0.6);rKey.position.set(-0.55,1.05,-0.35);rKey.target.position.set(0.02,0.6,0.05);room.add(rKey);room.add(rKey.target);
+rKey.castShadow=true;rKey.shadow.mapSize.set(2048,2048);Object.assign(rKey.shadow.camera,{left:-0.3,right:0.3,top:0.3,bottom:-0.3,near:0.1,far:2.5});rKey.shadow.bias=-0.0004;rKey.shadow.normalBias=0.002;rKey.shadow.radius=3;
 const wood=canvasTex(256,(g,s)=>{const R=rng(12);for(let y=0;y<s;y++){const v=70+30*Math.sin(y*0.09+Math.sin(y*0.013)*4)+R()*10;g.fillStyle=`rgb(${v*1.0|0},${v*0.66|0},${v*0.45|0})`;g.fillRect(0,y,s,1);}},[1,1]);wood.colorSpace=THREE.SRGBColorSpace;
-const table=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.035,0.46),new THREE.MeshStandardMaterial({map:wood,roughness:0.55}));table.position.set(0,0.6,0);room.add(table);
+const table=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.035,0.46),new THREE.MeshStandardMaterial({map:wood,roughness:0.55}));table.position.set(0,0.6,0);table.receiveShadow=true;room.add(table);
 const TOP=0.6175;
 const tbody=new THREE.Mesh(new THREE.BoxGeometry(0.58,0.55,0.42),new THREE.MeshStandardMaterial({color:'#4a3324',roughness:0.7}));tbody.position.set(0,0.3,0);room.add(tbody);
 const wall=new THREE.Mesh(new THREE.PlaneGeometry(6,4),new THREE.MeshStandardMaterial({color:'#3a4466',roughness:0.95}));wall.position.set(0,1.5,-0.3);room.add(wall);
@@ -426,12 +472,15 @@ const pillow=new THREE.Mesh(new RoundedBoxGeometry(0.6,0.14,0.4,3,0.06),new THRE
   const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.24,8),base.material);stem.position.set(-0.22,TOP+0.14,-0.13);room.add(stem);
   const shade=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,0.13,32,1,true),new THREE.MeshStandardMaterial({color:'#f0d7a8',emissive:'#ffb86a',emissiveIntensity:0.9,side:THREE.DoubleSide,roughness:0.9}));shade.position.set(-0.22,TOP+0.3,-0.13);room.add(shade);}
 // mug and book
-{const mug=new THREE.Mesh(new THREE.CylinderGeometry(0.036,0.034,0.09,28),new THREE.MeshStandardMaterial({color:'#c96f4a',roughness:0.5}));mug.position.set(0.19,TOP+0.045,-0.12);room.add(mug);
-  const book=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.025,0.21),new THREE.MeshStandardMaterial({color:'#2f5a5a',roughness:0.8}));book.position.set(-0.17,TOP+0.0125,0.1);book.rotation.y=0.25;room.add(book);}
+{const mug=new THREE.Mesh(new THREE.CylinderGeometry(0.036,0.034,0.09,28),new THREE.MeshStandardMaterial({color:'#c96f4a',roughness:0.5}));mug.position.set(0.19,TOP+0.045,-0.12);mug.castShadow=true;room.add(mug);
+  const book=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.025,0.21),new THREE.MeshStandardMaterial({color:'#2f5a5a',roughness:0.8}));book.position.set(-0.17,TOP+0.0125,0.1);book.rotation.y=0.25;book.castShadow=true;book.receiveShadow=true;room.add(book);}
 // the phone, flat on the table, top towards -z
 const PH={w:0.076,l:0.138,th:0.0085};const SW=0.068,SH=SW*16/9;
 const phone=new THREE.Mesh(new RoundedBoxGeometry(PH.w,PH.th,PH.l,4,0.006),new THREE.MeshStandardMaterial({color:'#15171c',roughness:0.3,metalness:0.6}));
-phone.position.set(0.02,TOP+PH.th/2,0.0);room.add(phone);
+phone.position.set(0.02,TOP+PH.th/2,0.0);phone.castShadow=true;room.add(phone);
+// soft contact shadow right under the phone
+const aoTex=canvasTex(128,(g,s)=>{const gr=g.createRadialGradient(64,64,10,64,64,64);gr.addColorStop(0,'rgba(0,0,0,0.85)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,s,s);});
+const ao=new THREE.Mesh(new THREE.PlaneGeometry(PH.w*1.35,PH.l*1.2),new THREE.MeshBasicMaterial({map:aoTex,transparent:true,depthWrite:false,opacity:0.8}));ao.rotation.x=-Math.PI/2;ao.position.set(0.02,TOP+0.0006,0.002);room.add(ao);
 const SC=new THREE.Vector3(phone.position.x,TOP+PH.th+0.0004,phone.position.z);
 const screenMat=new THREE.ShaderMaterial({uniforms:{map:{value:null},bri:{value:1}},
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -447,19 +496,27 @@ status.rotation.x=-Math.PI/2;status.position.set(SC.x,SC.y+0.0003,SC.z-SH/2+SW/2
 // the charging cable: lies right there, 3 cm short of the port
 const cableMat=new THREE.MeshStandardMaterial({color:'#e9e6df',roughness:0.5});
 const portZ=phone.position.z+PH.l/2;const tipZ=portZ+0.032;
+// the charging port and speaker holes on the bottom edge
+{const port=new THREE.Mesh(new RoundedBoxGeometry(0.0095,0.0034,0.002,2,0.0012),new THREE.MeshStandardMaterial({color:'#020203',roughness:0.9}));port.position.set(SC.x,TOP+PH.th/2,portZ+0.0002);room.add(port);
+  const holeM=new THREE.MeshStandardMaterial({color:'#050506',roughness:0.9});for(const dx of[-0.016,-0.0125,-0.009,0.009,0.0125,0.016]){const h=new THREE.Mesh(new THREE.CylinderGeometry(0.0007,0.0007,0.002,8),holeM);h.rotation.x=Math.PI/2;h.position.set(SC.x+dx,TOP+PH.th/2,portZ+0.0002);room.add(h);}}
 {const c=new THREE.CatmullRomCurve3([new THREE.Vector3(0.31,TOP-0.25,-0.12),new THREE.Vector3(0.31,TOP+0.003,-0.05),new THREE.Vector3(0.24,TOP+0.003,0.06),new THREE.Vector3(0.12,TOP+0.003,0.15),new THREE.Vector3(0.05,TOP+0.003,0.15),new THREE.Vector3(SC.x,TOP+0.003,tipZ+0.045),new THREE.Vector3(SC.x,TOP+0.003,tipZ+0.012)]);
-  room.add(new THREE.Mesh(new THREE.TubeGeometry(c,80,0.0022,8,false),cableMat));
-  const boot=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.005,0.022),cableMat);boot.position.set(SC.x,TOP+0.003,tipZ+0.006);room.add(boot);
-  const pin=new THREE.Mesh(new THREE.BoxGeometry(0.0055,0.0022,0.008),new THREE.MeshStandardMaterial({color:'#c8ccd2',metalness:0.9,roughness:0.25}));pin.position.set(SC.x,TOP+0.003,tipZ-0.009);room.add(pin);}
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(c,80,0.0022,8,false),cableMat);tube.castShadow=true;room.add(tube);
+  const boot=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.005,0.022),cableMat);boot.position.set(SC.x,TOP+0.003,tipZ+0.006);boot.castShadow=true;room.add(boot);
+  const pin=new THREE.Mesh(new THREE.BoxGeometry(0.0055,0.0022,0.008),new THREE.MeshStandardMaterial({color:'#c8ccd2',metalness:0.9,roughness:0.25}));pin.position.set(SC.x,TOP+0.003,tipZ-0.009);pin.castShadow=true;room.add(pin);}
 const D_FILL=(SH/2)/Math.tan(THREE.MathUtils.degToRad(20));
-rcam.up.set(0,0,-1);
+// macro target: half way between the port and the connector tip
+const MAC=new THREE.Vector3(SC.x,TOP+0.004,portZ+0.016);const MOFF=new THREE.Vector3(0.13,0.045,0.04);   // side-on: phone right, connector left, the gap in between
+const T_WIDE=18.2,T_MAC=19.6,T_MAC2=21.7;
 function roomCam(t){
-  const fill=new THREE.Vector3(0,D_FILL,0);const wide=new THREE.Vector3(0.01,0.235,0.20);const drift=new THREE.Vector3(0.0,0.215,0.185);
-  let off,look=SC.clone();
-  if(t<20.6){const u=sstep(T_SW,20.6,t);const ue=1-Math.pow(1-u,2.2);off=fill.clone().lerp(wide,ue);look.lerp(SC.clone().add(new THREE.Vector3(0,0,0.025)),ue);}
-  else if(t<T_RESET){const u=(t-20.6)/(T_RESET-20.6);off=wide.clone().lerp(drift,ease(u));look.add(new THREE.Vector3(0,0,0.025));}
-  else{const u=(t-T_RESET)/(DUR-T_RESET);const ue=u*u*(1.4-0.4*u);off=drift.clone().lerp(fill,ue);look.add(new THREE.Vector3(0,0,0.025*(1-ue)));}
-  return {pos:SC.clone().add(off),look};
+  const fill=new THREE.Vector3(0,D_FILL,0),wide=new THREE.Vector3(0.01,0.235,0.20),drift=new THREE.Vector3(0.0,0.215,0.185);
+  const lookW=SC.clone().add(new THREE.Vector3(0,0,0.025));
+  let pos,look,w;
+  if(t<T_WIDE){const u=sstep(T_SW,T_WIDE,t);const ue=1-Math.pow(1-u,2.2);pos=SC.clone().add(fill.clone().lerp(wide,ue));look=SC.clone().lerp(lookW,ue);w=0;}
+  else if(t<T_MAC){const u=ease((t-T_WIDE)/(T_MAC-T_WIDE));pos=SC.clone().add(wide).lerp(MAC.clone().add(MOFF),u);look=lookW.clone().lerp(MAC,u);w=u;}
+  else if(t<T_MAC2){const u=(t-T_MAC)/(T_MAC2-T_MAC);pos=MAC.clone().add(MOFF.clone().multiplyScalar(1-0.12*u));look=MAC.clone();w=1;}
+  else if(t<T_RESET){const u=ease((t-T_MAC2)/(T_RESET-T_MAC2));pos=MAC.clone().add(MOFF.clone().multiplyScalar(0.88)).lerp(SC.clone().add(drift),u);look=MAC.clone().lerp(lookW,u);w=1-u;}
+  else{const u=ease((t-T_RESET)/(DUR-T_RESET));pos=SC.clone().add(drift.clone().lerp(fill,u));look=lookW.clone().lerp(SC,u);w=0;}
+  return {pos,look,up:new THREE.Vector3(0,0,-1).lerp(new THREE.Vector3(0,1,0),w).normalize()};
 }
 
 // ---------- frame ----------
@@ -471,9 +528,9 @@ function renderFrame(t){
   if(t<T_SW){updateStreet(t);compA.render();return;}
   updateStreet(streetT(t));compB.render();
   screenMat.uniforms.map.value=compB.readBuffer.texture;screenMat.uniforms.bri.value=screenBri(t);
-  status.material.opacity=sstep(T_SW+0.5,T_SW+1.0,t)*(1-sstep(DUR-0.9,DUR-0.4,t))*(t>20.6&&t<T_RESET?(Math.sin((t-20.6)*6.3)>-0.3?1:0.25):1);
+  status.material.opacity=sstep(T_SW+0.5,T_SW+1.0,t)*(1-sstep(DUR-0.9,DUR-0.4,t))*(t>T_WIDE-0.6&&t<T_RESET?(Math.sin((t-T_WIDE)*6.3)>-0.3?1:0.25):1);
   screenL.position.copy(SC).add(new THREE.Vector3(0,0.05,0));screenL.intensity=0.6*screenBri(t)*sstep(T_SW,T_SW+0.8,t);
-  const c=roomCam(t);rcam.position.copy(c.pos);rcam.lookAt(c.look);compR.render();
+  const c=roomCam(t);rcam.position.copy(c.pos);rcam.up.copy(c.up);rcam.lookAt(c.look);compR.render();
 }
 window.renderAt=(t,samples)=>{
   const n=samples||1;const shutter=1/60;
@@ -487,7 +544,7 @@ window.renderAt=(t,samples)=>{
 window.proj=(t)=>{if(t>=T_SW)return null;const {S,J}=updateStreet(t);const hw=J.head.clone().applyAxisAngle(UP,S.yaw).add(hero.g.position).add(new THREE.Vector3(0,0.32,0));
   camera.updateMatrixWorld();const v=hw.project(camera);return {x:(v.x*0.5+0.5)*W,y:(-v.y*0.5+0.5)*H,d:camera.position.distanceTo(hw),pct:pct(t),charge:charge(t),beat:BEATS.filter(b=>t>=b).length};};
 // foot contacts for the sound (phase x/2.3 crosses each half cycle while running)
-window.steps=()=>{const out=[];let last=Math.floor(heroX(2.4)/1.15);for(let i=0;i<=15300;i++){const s=i/1000;if(s<2.4)continue;const k=Math.floor(heroX(s)/1.15);if(k>last){out.push(+s.toFixed(3));last=k;}}return out;};
+window.steps=()=>{const out=[];let last=Math.floor(heroX(1.6)/1.15);for(let i=0;i<=13000;i++){const s=i/1000;if(s<1.6)continue;const k=Math.floor(heroX(s)/1.15);if(k>last){out.push(+s.toFixed(3));last=k;}}return out;};
 window.leaps=()=>{const f=x0=>{let lo=0,hi=16;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(heroX(m)>=x0)hi=m;else lo=m;}return +hi.toFixed(3);};return {hurdleUp:f(HURDLE_X-1.3),hurdleDown:f(HURDLE_X+1.3),puddleUp:f(PUDDLE_X-1.1),puddleDown:f(PUDDLE_X+1.1)};};
 window.DUR=DUR;window.ready=true;
 </script></body></html>

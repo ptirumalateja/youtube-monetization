@@ -6,6 +6,7 @@ and the end line over the rendered 3D frames with PIL, then pipes them to ffmpeg
 Pass '-' instead of a wav for a silent, music-ready copy.
 """
 import json, subprocess, sys
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 frames, timing_f, wav, out = sys.argv[1:5]
@@ -14,7 +15,7 @@ T = json.load(open(timing_f))
 PROJ = T['proj']
 FPS, W, H = 30, 1080, 1920
 NF = len(PROJ)
-T_PLUG, T_SW = T['T_PLUG'], T['T_SW']
+T_PLUG, T_SW, DUR = T['T_PLUG'], T['T_SW'], T['DUR']
 MONO = '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'
 SMALL = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
 CREAM, GOLD, TEAL, RED, INK = (244, 236, 220), (255, 200, 120), (150, 214, 208), (214, 62, 48), (6, 9, 16)
@@ -56,6 +57,22 @@ def battery(d, cx, cy, w, frac, col, a, outline=CREAM):
     d.rectangle([x0 + pad, y0 + pad, x0 + pad + fw, y0 + h - pad], fill=col + (int(255 * a),))
 
 
+# red low-battery warning around the frame edges (flashes on frame 0)
+yy, xx = np.mgrid[0:H, 0:W]
+rr = np.sqrt(((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)
+VIG = np.clip((rr - 0.55) / 0.7, 0, 1) ** 1.6
+VIG_RGBA = np.zeros((H, W, 4), np.uint8)
+VIG_RGBA[..., 0], VIG_RGBA[..., 1], VIG_RGBA[..., 2] = 225, 40, 30
+
+
+def counter(d, p, a, blink=1.0):
+    num = f'{p:.2f}%'
+    nw = d.textlength(num, font=f_num)
+    col = (255, 90, 72) if p < 0.3 else CREAM
+    d.text(((W - nw) / 2, 1400), num, font=f_num, fill=col + (int(255 * a * blink),), stroke_width=8, stroke_fill=INK + (int(235 * a),))
+    text_c(d, 1512, 'BATTERY', f_small, CREAM, a * 0.9, stroke=5)
+
+
 last_pct = 9.0
 cmd = ['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-']
 if wav != '-':
@@ -74,10 +91,18 @@ for f in range(NF):
     d = ImageDraw.Draw(ov)
     pr = PROJ[f]
 
-    # hook: typed by 0.6 s
-    a = 1 - sstep(2.7, 3.1, t)
-    s1 = typed('1% LEFT.', t, 0.0, 0.6)
-    if s1 and a > 0.01:
+    # warning flash on frame 0
+    fl = 0.55 * np.exp(-t / 0.18) + 0.3 * np.exp(-max(0, t - 0.45) / 0.12) * (t >= 0.45)
+    if fl > 0.02:
+        v = VIG_RGBA.copy()
+        v[..., 3] = (VIG * 255 * fl).astype(np.uint8)
+        ov = Image.alpha_composite(ov, Image.fromarray(v, 'RGBA'))
+        d = ImageDraw.Draw(ov)
+    # hook: fully on screen from frame 0 (and back over the last frames, so the loop has no pop)
+    end_in = sstep(DUR - 0.4, DUR - 1 / FPS, t)
+    a = max(1 - sstep(2.4, 2.8, t), end_in)
+    s1 = '1% LEFT.'
+    if a > 0.01:
         w_all = d.textlength('1% LEFT.', font=f_hook)
         x = (W - w_all) / 2
         red_part, rest = s1[:2], s1[2:]
@@ -106,11 +131,7 @@ for f in range(NF):
             p = pr['pct']
             assert p <= last_pct + 1e-9, (f, p, last_pct)
             last_pct = p
-            num = f'{p:.2f}%'
-            nw = d.textlength(num, font=f_num)
-            col = (255, 90, 72) if p < 0.3 else CREAM
-            d.text(((W - nw) / 2, y0), num, font=f_num, fill=col + (int(255 * a * blink),), stroke_width=8, stroke_fill=INK + (int(235 * a),))
-            text_c(d, y0 + 112, 'BATTERY', f_small, CREAM, a * 0.9, stroke=5)
+            counter(d, p, a, blink)
         else:
             pulse = 1 + 0.25 * max(0.0, 1 - (t - T_PLUG) / 0.25)
             fc = F(int(46 * pulse))
@@ -122,11 +143,13 @@ for f in range(NF):
             bolt(d, x0 + 50, y0 + 20 + 42 * pulse, 56 * pulse, GOLD + (int(255 * a),))
             d.text((x0 + 88, y0 + 20 + 42 * pulse - fc.size * 0.6), lab, font=fc, fill=CREAM + (int(255 * a),))
 
+    elif end_in > 0.01:
+        counter(d, 1.0, end_in)
     # the twist: the real phone is the one at 1%, and its charger is right there
-    a = sstep(20.3, 20.5, t) * (1 - sstep(22.1, 22.45, t))
-    if t >= 20.3:
-        text_c(d, 236, typed('THE CHARGER WAS', t, 20.3, 0.55), f_end, CREAM, a, stroke=8)
-        text_c(d, 318, typed('RIGHT THERE.', t, 20.85, 0.45), f_end, GOLD, a, stroke=8)
+    a = sstep(19.8, 20.0, t) * (1 - sstep(22.0, 22.35, t))
+    if t >= 19.8:
+        text_c(d, 236, typed('THE CHARGER WAS', t, 19.8, 0.5), f_end, CREAM, a, stroke=8)
+        text_c(d, 318, typed('RIGHT THERE.', t, 20.35, 0.4), f_end, GOLD, a, stroke=8)
 
     frame = Image.alpha_composite(base.convert('RGBA'), ov).convert('RGB')
     ff.stdin.write(frame.tobytes())
