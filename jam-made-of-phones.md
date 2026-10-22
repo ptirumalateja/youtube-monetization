@@ -57,7 +57,7 @@ Everything is synthesised in `tools/phone-jam/mix.py` (numpy/scipy). It uses no 
 > The jam is made of phones.
 >
 > Illustration, not to scale. Sources: Google Maps blog "Google Maps 101: How AI helps predict traffic and determine routes" (2020); Google blog "The bright side of sitting in traffic" (2009); Simon Weckert, "Google Maps Hacks" (2020).
-> Sound: original, made for this video.
+> Voiceover: AI-generated voice (ElevenLabs). Sound design: original, made for this video.
 >
 > #GoogleMaps #Traffic #Shorts #Science #Tech #DidYouKnow #SlowLight
 
@@ -69,7 +69,7 @@ Everything is synthesised in `tools/phone-jam/mix.py` (numpy/scipy). It uses no 
 
 **Pinned comment:** Would you have taken the detour? 🚗↪️
 
-**Upload checklist:** turn the AI or synthetic label on (the visuals are computer-generated). Cover frame: the red block with the "TRAFFIC JAM" chip (about 10.3 s).
+**Upload checklist:** use `jam-made-of-phones-vo.mp4`. Turn the AI or synthetic label on (the visuals are computer-generated and the voice is AI). Cover frame: the red block with the "TRAFFIC JAM" chip (about 10.3 s).
 
 ## 6. How to rebuild
 
