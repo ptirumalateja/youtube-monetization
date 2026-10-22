@@ -104,3 +104,16 @@ Final render, 22 Oct 2026:
 - Audio after AAC: -15.0 LUFS integrated, true peak -3.2 dBTP (soft-clip + limiter in `compose.py`; the plug transient was the overshoot). Held breath 15.9-16.4 s; one big hit on the drop at 16.4 s.
 - Loop: the last frame is the phone screen filling the frame with the street at time 0; mean pixel difference to frame 0 is about 6/255 (the camera push is still moving, as intended).
 - Soft spots for a v2: the battery icon over his head is small in the wide sprint shots; the street inside the phone during the reveal is a wide shot where the wireman is too small to see.
+
+## 9. v2 polish pass (22 Oct 2026, from Teja's review)
+
+Files: `final-reels/last-one-percent_v2.mp4` (sound), `final-reels/last-one-percent_v2_music-ready.mp4` (silent), `final-reels/last-one-percent_v2_contact_2fps.jpg`. v1 files are kept.
+
+- **Hook:** "1% LEFT." is fully on screen from frame 0 with a red warning flash at the screen edges; the startle is sharper (jolt off the bench).
+- **Chase:** about 2 s shorter. Camera now cuts the monotony with a push-in, a side-on hurdle, a front-facing shot looking back at the lamps dying, a low puddle leap and a close-side stumble. Glowing wet footprints fade behind him.
+- **Desperation:** at 10.8 s he trips, drops to one knee, gets up and drags to the charger.
+- **Blackout:** each lamp goes out in sequence as he passes it (flicker, then dead); the rest go out one by one before 12 s; windows are near dark from 12 s. Only the sky, the charger and his fading glow remain.
+- **Plug-in (now 14.4 s):** wide close-up from the front-side so the plug is seen entering the socket, a tiny spark, a charge pulse travelling up his tail, then a gold pulse racing back down the kerb as the lamps relight. Bloom is capped (no white-out).
+- **Reveal (from 16.4 s):** the street becomes the phone, then a side-on macro shows the phone's port and speaker holes, the connector stopping short of the port, with contact shadows from a warm lamp key. Caption lands at 19.8 s.
+- **Loop:** the HUD (1% LEFT. and 1.00%) fades back in over the last 0.4 s so the seam has no pop.
+- **Sound:** cable drag, per-lamp clicks, stumble thud and breaths, near-silent held breath before the plug, one big hit on the plug-in, then the epic sound is cut dead at the phone and a tiny dry tick plays at the connector (19.6 s). **Music: put the drop at 14.4 s.** Audio -14.5 LUFS, true peak -3.1 dBTP.
