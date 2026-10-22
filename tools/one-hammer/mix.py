@@ -15,10 +15,13 @@ SR = 48000
 timing = json.load(open(sys.argv[1]))
 OUT = sys.argv[2]
 DUR = timing['dur']
-DROP = timing['drop']
+DROP = timing['drop']          # video seconds (the break)
+WK, VK = np.array(timing['wk']), np.array(timing['vk'])
 NS = int(DUR * SR)
+V = lambda w: float(np.interp(w, WK, VK))   # world seconds (the scene's clock) -> video seconds
 rng = np.random.default_rng(11)
-t = np.arange(NS) / SR
+tv = np.arange(NS) / SR                  # video time (oscillators, durations)
+t = np.interp(tv, VK, WK)                # world time (all envelopes and cue times below are in world seconds)
 strikes = np.array(timing['strikes'])
 
 
@@ -111,7 +114,7 @@ for i, (st, gap) in enumerate(zip(strikes, gaps)):
 for st in strikes[(strikes > 14.9) & (strikes < DROP - 0.01)]:
     place(metal, reverb(np.concatenate([pings[1], np.zeros(SR)]), 2.4, 0.6)[: int(1.3 * SR)], st, 0.45)
 # hook: a canyon-sized first strike on frame 2
-T1 = strikes[0]
+T1 = float(strikes[0])
 place(hit, boom(1.8, 130, 52, 0.5), T1, 0.85)
 place(hit, thunks[1], T1, 0.9)
 place(hit, pings[1], T1, 0.9)
@@ -120,7 +123,7 @@ rock = hp(rock, 90)
 
 # bed: a low A drone kept inside the phone band, opening up through the work; a soft shepard riser for the years
 f0 = 110.0
-drone = sum(a * np.sin(2 * np.pi * f0 * m * t + ph) for m, a, ph in [(1, 1, 0), (1.5, 0.5, 1), (2, 0.45, 2), (3, 0.2, 0.5), (1.004, 0.6, 3)])
+drone = sum(a * np.sin(2 * np.pi * f0 * m * tv + ph) for m, a, ph in [(1, 1, 0), (1.5, 0.5, 1), (2, 0.45, 2), (3, 0.2, 0.5), (1.004, 0.6, 3)])
 drone = lpf(drone, 900)
 bed += drone * (0.02 + 0.05 * sstep(3, 14, t)) * (1 - 0.9 * sstep(14.6, 15.4, t)) * (1 - sstep(23.5, 24.0, t))
 sh = np.zeros(NS)
@@ -132,7 +135,7 @@ bed += 0.035 * sh * sstep(3.8, 6.0, t) * (1 - sstep(13.8, 14.5, t))
 
 # wind through the cut, with gusts; quieter at night
 n = rng.standard_normal(NS)
-gust = 0.6 + 0.4 * np.sin(2 * np.pi * 0.31 * t + 1) * np.sin(2 * np.pi * 0.11 * t)
+gust = 0.6 + 0.4 * np.sin(2 * np.pi * 0.31 * tv + 1) * np.sin(2 * np.pi * 0.11 * tv)
 wind += hp(lpf(n, 650), 160) * gust * (0.35 + 0.35 * sstep(3, 12, t)) * (1 - 0.7 * sstep(15.0, 15.6, t) * (1 - sstep(DROP, DROP + 0.5, t)))
 
 # the rush in at dusk (14.3-15.4)
@@ -140,7 +143,7 @@ rush = hp(lpf(rng.standard_normal(NS), 2500), 300) * sstep(14.2, 14.9, t) * (1 -
 air += 0.25 * rush
 # crickets at night (15.2-16.0), gone for the held breath
 cr = np.zeros(NS)
-for c0 in np.arange(15.15, 16.0, 0.27):
+for c0 in V(15.15) + np.arange(0, V(16.0) - V(15.15), 0.2):
     for k in range(3):
         n_ = int(0.018 * SR); kk = np.arange(n_) / SR
         place(cr, np.sin(2 * np.pi * 4400 * kk) * np.sin(np.pi * kk / 0.018), c0 + k * 0.035 + rng.random() * 0.02, 0.5)
@@ -149,7 +152,7 @@ nat += cr * 0.08 * (1 - sstep(15.85, 15.98, t))
 # held breath 16.0-16.6: near silence, a creaking crack that grows with the light in the wall, 50 ms vacuum
 crk = np.zeros(NS)
 for k in range(140):
-    at = 16.0 + 0.6 * (k / 140) ** 0.6 + rng.random() * 0.01
+    at = V(16.0) + (DROP - V(16.0)) * (k / 140) ** 0.6 + rng.random() * 0.01
     n_ = int(0.004 * SR)
     place(crk, rng.standard_normal(n_) * np.exp(-np.arange(n_) / SR / 0.001), at, 0.15 + 0.6 * (k / 140))
 crk = hp(crk, 1500) * (t < DROP - 0.05)
@@ -157,7 +160,7 @@ air += 0.25 * crk
 hold = 1 - 0.96 * sstep(15.95, 16.05, t) * (1 - sstep(DROP - 0.001, DROP, t))
 
 # the break at DROP: rock burst, crumble, debris rattle, sub; the beat drop for the music
-place(hit, boom(2.4, 160, 46, 0.7), DROP, 1.0)
+place(hit, boom(2.4, 160, 46, 0.7), DROP, 1.0)  # DROP is in video seconds
 place(hit, thunks[0], DROP, 1.0)
 place(hit, pings[2], DROP - 0.004, 0.7)
 nb = int(2.2 * SR); kb = np.arange(nb) / SR
@@ -173,30 +176,31 @@ hit = reverb(hit, 2.8, 0.35)
 
 # dawn: birds and a warm chord under the reveal (kept low; the music sits on top)
 for k in range(16):
-    at = DROP + 0.9 + rng.random() * 5.5
+    at = DROP + 0.7 + rng.random() * 4.0
     n_ = int(0.11 * SR); kk = np.arange(n_) / SR
     fch = 3200 + 1300 * np.sin(2 * np.pi * (9 + rng.random() * 5) * kk) + 900 * (1 - kk / 0.11)
     place(nat, np.sin(2 * np.pi * np.cumsum(fch) / SR) * np.sin(np.pi * kk / 0.11) ** 2, at, 0.12 + 0.1 * rng.random())
 cl = int(6.5 * SR); tc = np.arange(cl) / SR
 chord = sum(a * np.sin(2 * np.pi * f * tc + i) for i, (f, a) in enumerate([(110, 1), (164.8, 0.7), (220, 0.6), (277.2, 0.45), (329.6, 0.35), (493.9, 0.2)]))
 chord *= sstep(0, 1.6, tc) * (1 - sstep(4.0, 6.5, tc))
-place(bed, lpf(chord, 1500) / 5, DROP + 0.8, 0.13)
+place(bed, lpf(chord, 1500) / 5, DROP + 0.6, 0.13)
 # the routes draw in: a soft rising shimmer
 shim = np.sin(2 * np.pi * np.cumsum(660 * 2 ** (sstep(19.9, 21.4, t))) / SR) * sstep(19.9, 20.3, t) * (1 - sstep(21.2, 21.6, t))
 air += 0.03 * shim
 # end line: a struck-stone note (lithophone partials)
 ln = int(3.0 * SR); tl = np.arange(ln) / SR
 litho = sum(a * np.sin(2 * np.pi * 392 * r * tl) * np.exp(-tl / d) for r, a, d in [(1, 1, 0.9), (2.76, 0.5, 0.45), (5.40, 0.25, 0.25), (8.93, 0.12, 0.12)])
-place(air, reverb(litho * 0.35, 2.0, 0.5), 21.75, 0.5)
+place(air, reverb(litho * 0.35, 2.0, 0.5), V(21.75), 0.5)
 
-# rewind (23.6-25): the whir played backwards and pitched up, a reverse whoosh, a rising tone into frame 0
-seg = metal[int(5.0 * SR):int(13.5 * SR)][::-1]
-L = int((DUR - 23.6) * SR)
+# rewind (world 23.6-25 = the last 1.6 video seconds): the whir played backwards and pitched up, a reverse whoosh, a rising tone into frame 0
+R0 = V(23.6)
+seg = metal[int(V(5.0) * SR):int(V(13.5) * SR)][::-1]
+L = int((DUR - R0) * SR)
 rw = np.interp(np.linspace(0, len(seg) - 1, L), np.arange(len(seg)), seg)
-place(air, rw * sstep(0, 0.3, np.arange(L) / SR / 1.4) * 0.6, 23.6, 1.0)
-wh = hp(lpf(rng.standard_normal(NS), 3000), 300) * sstep(23.5, 24.7, t) ** 2 * (1 - sstep(24.85, 24.99, t))
+place(air, rw * sstep(0, 0.3, np.arange(L) / SR / 1.0) * 0.6, R0, 1.0)
+wh = hp(lpf(rng.standard_normal(NS), 3000), 300) * sstep(R0 - 0.05, R0 + 0.8, tv) ** 2 * (1 - sstep(DUR - 0.15, DUR - 0.01, tv))
 air += 0.18 * wh
-rise = np.sin(2 * np.pi * np.cumsum(220 * 2 ** (sstep(24.3, 25.0, t))) / SR) * sstep(24.35, 25.0, t) ** 2
+rise = np.sin(2 * np.pi * np.cumsum(220 * 2 ** (sstep(DUR - 0.7, DUR, tv))) / SR) * sstep(DUR - 0.65, DUR, tv) ** 2
 air += 0.07 * rise
 
 # ---------- master ----------

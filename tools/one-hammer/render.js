@@ -7,6 +7,6 @@ await p.goto(`http://localhost:${port}/index.html?w=${W}&h=${H}`);await p.waitFo
 const DUR=await p.evaluate(()=>window.DUR);const NF=Math.round(DUR*FPS);
 for(let f=+wi;f<NF;f+=+nw){const fn=`${out}/f${String(f).padStart(4,'0')}.jpg`;if(fs.existsSync(fn))continue;const t=f/FPS;
   // more sub-frames where things move fast (time-lapse strikes, the rush in, the break, the crane, the rewind dive)
-  const n=(t>3.6&&t<15.7)||(t>16.55&&t<21.7)||(t>23.5)?5:3;
+  const n=(t>1.3&&t<9.0)||(t>9.5&&t<16)?5:3;
   const d=await p.evaluate(([t,n])=>window.renderAt(t,n),[t,n]);fs.writeFileSync(fn,Buffer.from(d.split(',')[1],'base64'));if(f%60<+nw)console.log('frame',f);}
 await b.close();})();

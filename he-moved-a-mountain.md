@@ -1,17 +1,25 @@
-# Stickman: He Moved a Mountain (reel, concept #6 "habit time-lapse"), v2
+# Stickman: He Moved a Mountain (reel, concept #6 "habit time-lapse"), v3
 
-Slow Light stickman series. 25.0 s, 1080x1920, 30 fps, wordless (no voiceover, no music in the file), loops.
+Slow Light stickman series. v3 is 17.0 s (v1/v2 were 25.0 s), 1080x1920, 30 fps, wordless (no voiceover, no music in the file), loops.
 Brief: a wireman does one tiny action every day while the world around him ages, and the last frames reveal what it built. It had to feel different from One Step a Day (`one-step-a-day.md`): a different habit and a sharper reveal.
 
 - Source: `tools/one-hammer/` (`index.html` scene with `window.renderAt(t, samples)`, `render.js`, `shot.js`, `times.js`, `mix.py`, `compose.py`)
-- Final file (v2): `final-reels/he-moved-a-mountain_v2.mp4` (13.8 MB share encode) and `_v2_master.mp4` (45 MB, CRF 18), contact sheet `_v2_contact_2fps.jpg`. v1 files are kept next to them. Not in git.
+- Final file (v3): `final-reels/he-moved-a-mountain_v3.mp4` (9.7 MB share encode) and `_v3_master.mp4` (42 MB, CRF 18), contact sheet `_v3_contact_3fps.jpg`. v1 and v2 files are kept next to them. Not in git.
+
+## 0a. What changed in v3 (owner: "nothing feels exciting, trim it, improve pacing and screenplay")
+
+- **Length 25 s to 17 s.** The scene is still authored in 25 world-seconds; a monotone video-to-world warp plays the hook 1.4x, the 22 years 2.2x, the dusk and held breath near real time, the reveal 1.2x and the rewind 1x (`warp` in `index.html`; `times.js` exports the per-frame world time, `compose.py` and `mix.py` keep their cues in world seconds).
+- **Screenplay: a question, then the answer.** Hook "55 KM THE LONG WAY. / ONE MOUNTAIN. / ONE HAMMER." (the 55 km is the real Atri to Wazirganj road distance) poses the problem on the first three strikes. The payoff is visual: when the wall breaks, the cut frames a town with a clinic and a glowing red cross at its far end, before the map shows OLD ROUTE 55 KM and NEW ROUTE 15 KM.
+- **Pacing:** a new camera angle roughly every 1.4 video seconds (behind, low side profile, overhead, slow close-up, long low view from the village end, rush in), camera shake on strikes and a big one on the break, YEAR digit tick on each new year (22 changes in about 5 s).
+- **Setting:** Lambert terrain (the old shiny plain read as water), smoother plain colour, shrubs, a town of pitched-roof houses with colours and a taller clinic, finer terrain grid.
+- The YEAR counter now leaves as the comparison starts, so it never collides with the route numbers.
 
 ## 0. What changed in v2 (review notes applied)
 
 - **Historical wording:** he carved a **110 m shortcut** through the ridge; he did not build a 15 km road. The ending now shows OLD ROUTE 55 KM and NEW ROUTE 15 KM (the journey), with the carved 110 m highlighted bright on the map and "110 METRES CARVED. 22 YEARS OF HIS LIFE." The notes and publish copy say "shortcut/path", not "road".
 - **Rock:** ragged ledged walls with wandering width, ragged face, fractured strata and bumped normals in the rock shader, fake wall-base ambient occlusion, rubble that only exists behind the face, boulders on the ridge, branched trees with lumpy canopies.
 - **Grade ("Dust, Stone & Dawn"):** a grade pass (lift/gain/saturation/contrast/vignette/grain) keyed in four stages: warm ochre 1960s, slate 1970s, a lit blue night, a controlled golden dawn. No white-out at the break.
-- **Effort:** a slow close-up on a single day around 1968 ("ANOTHER DAY. SAME BLOW."), the follow camera stays much closer, and from 11.6 s his stoop deepens, his hammer arm no longer reaches full height and the last blows slow right down (last four at 14.4, 14.9, 15.45 and 16.0 s).
+- **Effort:** a slow close-up on a single day around 1968 ("ANOTHER DAY. SAME BLOW."), the follow camera stays much closer, and from 11.6 s his stoop deepens, his hammer arm no longer reaches full height and the last blows slow right down (last four at world 14.4, 14.9, 15.45 and 16.0 s).
 - **Hook:** the three lines land on the first three strikes (0.0, 0.3, 0.6 s), fully typed on their first frame.
 - **Breakthrough:** the last strike is at 16.0 s, a crack spreads, near silence, one narrow beam of dawn comes through at about 16.4 s, and the wall slumps open at 16.6 s (beat drop, unchanged) as organic slabs and small rock that fall and settle, with light dust.
 - **Loop:** frame 749 vs frame 0 mean pixel difference 1.6 (of 255).
@@ -85,7 +93,7 @@ The year counter runs evenly through the 22 years and the metres carved run with
 - Break at 16.60 s: rock burst, pitch-drop body, sub, debris rattle, with reverb and a duck on the bed. This is the beat drop.
 - Dawn birds and a quiet A-major chord under the reveal, kept low so a music track sits on top; a soft shimmer as the routes draw; a struck-stone (lithophone) note under the end line.
 - Rewind: the whir played backwards and pitched up, a reverse whoosh and a rising tone into the frame-0 strike (closes the loop).
-- No Instagram music is in the file. To add a track: line its drop up with 16.60 s and lower the original audio to about 30-40% in the app.
+- No Instagram music is in the file. To add a track: line its drop up with 9.6 s (v3) and lower the original audio to about 30-40% in the app.
 
 ## 6. Pipeline (rebuild)
 
@@ -137,3 +145,5 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows (the 
 - Known soft spots for a v2: the break frames are hazy (low dawn sun straight into the lens); the 3.4-4.4 s rise behind him is soft from motion blur; the town is simple blocks.
 
 v2: 1080x1920, 30 fps, 25.0 s. Master CRF 18 (45 MB, grain makes it large) and a CRF 24 share encode (13.8 MB). Audio after AAC: -16.4 LUFS integrated, LRA 7.8 LU, true peak -1.1 dBFS. Loop mean pixel difference 1.6. Known soft spots: the dawn plain beyond the cut still reads a little like water, the town is simple blocks, the crack is a bold zigzag rather than a hairline.
+
+v3: 1080x1920, 30 fps, 17.0 s, 510 frames. Master CRF 18 (42 MB) and a CRF 24 share encode (9.7 MB). Audio after AAC: -14.9 LUFS integrated, LRA 5.1 LU, true peak -1.1 dBFS. Beat drop (the wall breaks) is at **9.6 s**; near silence from about 8.7 s. Loop mean pixel difference 3.8 (of 255). Hook strikes at 0.0, 0.23 and 0.47 s.

@@ -17,7 +17,9 @@ import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 
 const Q = new URLSearchParams(location.search);
 const W = +(Q.get('w')||1080), H = +(Q.get('h')||1920);
-const DUR = 25.0, FPS = 30;
+const DUR = 25.0, FPS = 30;           // DUR: world seconds (scene is authored in these)
+const VDUR = 17.0;                    // video seconds
+
 const DROP = 16.6;            // the last strike: the wall breaks (the music beat drop)
 const REW0 = 23.6;            // rewind to frame 0 starts
 const Z0 = 55, Z1 = -55;      // ridge feet along the cut
@@ -44,6 +46,11 @@ function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;con
   return lerp(lerp(hash2(xi,yi),hash2(xi+1,yi),u),lerp(hash2(xi,yi+1),hash2(xi+1,yi+1),u),v);}
 function fbm(x,y,o=4){let a=0.5,s=0,f=1;for(let i=0;i<o;i++){s+=a*vnoise(x*f,y*f);f*=2.03;a*=0.5;}return s;}
 
+// ---------- video time -> world time ----------
+// hook 1.4x, the 22 years 2.2x, the dusk and held breath near real time, the reveal 1.2x, rewind 1x.
+const warp=pchip([[0,0],[1.8,2.4],[7.6,15.0],[9.6,16.6],[15.4,23.6],[VDUR,DUR]]);
+function invWarp(w){let lo=0,hi=VDUR;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(warp(m)>=w)hi=m;else lo=m;}return hi;}
+window.warp=warp;window.invWarp=invWarp;
 // ---------- world clock ----------
 // tau(t): world time. Equal to t until REW0, then the world rewinds to tau=0 at the loop point.
 function tau(t){ if(t<REW0)return t; const u=clamp((t-REW0)/(DUR-REW0),0,1); return DROP*(1-ease(u)); }
@@ -168,7 +175,7 @@ const frontOff=x=>0.22*Math.sin(x*1.3)+0.12*Math.sin(x*2.9+0.4)+0.1*(vnoise(x*2.
 // grid: dense across the cut and along it, coarse elsewhere
 function axis(dense0,dense1,step,lo,hi,grow){const a=[];for(let v=dense0;v<=dense1+1e-6;v+=step)a.push(+v.toFixed(4));
   let s=step,v=dense0;while(v>lo){s*=grow;v-=s;a.unshift(Math.max(lo,v));}s=step;v=dense1;while(v<hi){s*=grow;v+=s;a.push(Math.min(hi,v));}return a;}
-const XS=axis(-6.4,6.4,0.1,-900,700,1.09),ZS=axis(-60,60,0.33,-700,700,1.09);
+const XS=axis(-6.4,6.4,0.1,-900,700,1.055),ZS=axis(-60,60,0.33,-700,700,1.07);
 const NX=XS.length,NZ=ZS.length;
 const tGeo=new THREE.BufferGeometry();
 const tPos=new Float32Array(NX*NZ*3),tCol=new Float32Array(NX*NZ*3),BASE=new Float32Array(NX*NZ);
@@ -181,12 +188,12 @@ tGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));tGeo.setAttribut
 const C_ROCK=new THREE.Color('#8b7258'),C_ROCK2=new THREE.Color('#5f4c3e'),C_FRESH=new THREE.Color('#cfb48c'),C_FLOOR=new THREE.Color('#a88a66'),C_FIELD=new THREE.Color('#6b6a3c'),C_FIELD2=new THREE.Color('#8a7448');
 const tmpC=new THREE.Color();const C_WEATHER=new THREE.Color('#6c6650'),C_PATH=new THREE.Color('#c2a47c');
 function baseColor(k){const x=tPos[k*3],z=tPos[k*3+2],h=BASE[k];const rock=sstep(0.3,1.5,h);
-  const n=fbm(x*0.05+3,z*0.05,3);tmpC.copy(C_FIELD).lerp(C_FIELD2,n);const r=C_ROCK2.clone().lerp(C_ROCK,fbm(x*0.3,z*0.3,3));tmpC.lerp(r,rock);return tmpC;}
+  const n=0.5+0.35*(fbm(x*0.012+3,z*0.012,2)-0.5);tmpC.copy(C_FIELD).lerp(C_FIELD2,n);const r=C_ROCK2.clone().lerp(C_ROCK,fbm(x*0.3,z*0.3,3));tmpC.lerp(r,rock);return tmpC;}
 for(let k=0;k<NX*NZ;k++){const c=baseColor(k);tCol[k*3]=c.r;tCol[k*3+1]=c.g;tCol[k*3+2]=c.b;}
 const BASECOL=tCol.slice();
 // paths: the village track to the ridge foot (and, once it exists, the road on to the town)
 function trackW(x,z){return Math.exp(-Math.pow(x/(1.6+0.004*Math.abs(z)),2));}
-const rockMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.95,metalness:0});
+const rockMat=new THREE.MeshLambertMaterial({vertexColors:true});
 rockMat.onBeforeCompile=sh=>{
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vW;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvW=worldPosition.xyz;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
@@ -264,15 +271,25 @@ const mtx=new THREE.Matrix4(),qq=new THREE.Quaternion(),vv=new THREE.Vector3(),s
 function setHuts(n){n=Math.min(hutSpots.length,n);for(let i=0;i<hutSpots.length;i++){const [x,z,r,s]=hutSpots[i];const g=clamp(n-i,0,1);
   qq.setFromAxisAngle(new THREE.Vector3(0,1,0),r);vv.set(x,baseH(x,z)-0.1,z);ss.set(s,s*Math.max(0.001,g),s);mtx.compose(vv,qq,ss);hutWall.setMatrixAt(i,mtx);hutRoof.setMatrixAt(i,mtx);}
   hutWall.instanceMatrix.needsUpdate=hutRoof.instanceMatrix.needsUpdate=true;}
-// town on the far side: already there (bigger, flat roofs)
-const townSpots=makeHuts(30,44,10,-118,44,24,7,true);
-const tG=new THREE.BoxGeometry(1,1,1);tG.translate(0,0.5,0);
-const town=new THREE.InstancedMesh(tG,new THREE.MeshStandardMaterial({color:'#9d8f7c',roughness:0.95}),townSpots.length);town.castShadow=town.receiveShadow=true;
-{const R=rng(5);townSpots.forEach(([x,z,r,s],i)=>{qq.setFromAxisAngle(new THREE.Vector3(0,1,0),r*0.2);vv.set(x,baseH(x,z)-0.1,z);ss.set(3+R()*3,2.5+R()*3.5,3+R()*3);mtx.compose(vv,qq,ss);town.setMatrixAt(i,mtx);});}
-scene.add(town);town.visible=false;
+// the town on the far side: pitched-roof houses along a street that continues the cut, a taller clinic with a red cross
+const townSpots=[];{const R=rng(44);
+  for(let i=0;i<9;i++){const z=-78-i*9;for(const side of [-1,1]){const x=side*(7.5+R()*4);townSpots.push([x,z+(R()-0.5)*3,side>0?Math.PI*0.5:-Math.PI*0.5,0.9+R()*0.6,i>5&&R()<0.5?1:0]);}}
+  for(let i=0;i<22;i++){const x=(R()<0.5?-1:1)*(18+R()*38),z=-76-R()*70;townSpots.push([x,z,R()*Math.PI,0.8+R()*0.7,0]);}}
+const townWall=new THREE.InstancedMesh(wallG,new THREE.MeshLambertMaterial({color:'#ffffff',emissive:new THREE.Color('#ffb060'),emissiveIntensity:0}),townSpots.length);
+const townRoof=new THREE.InstancedMesh(roofG,new THREE.MeshLambertMaterial({color:'#ffffff'}),townSpots.length);
+{const R=rng(5);const wc=['#dcc7a2','#cf9a74','#9fb5bf','#e6dcc4','#c9b27e','#b98a6a'],rc=['#8a4a32','#6a4e34','#7a5a3a','#9a5a3a'];
+  townSpots.forEach(([x,z,r,sc,tall],i)=>{qq.setFromAxisAngle(new THREE.Vector3(0,1,0),r);vv.set(x,baseH(x,z)-0.1,z);ss.set(sc*(1+0.4*tall),sc*(1+0.9*tall),sc*(1+0.3*tall));mtx.compose(vv,qq,ss);townWall.setMatrixAt(i,mtx);townRoof.setMatrixAt(i,mtx);
+    townWall.setColorAt(i,new THREE.Color(wc[Math.floor(R()*wc.length)]));townRoof.setColorAt(i,new THREE.Color(rc[Math.floor(R()*rc.length)]));});}
+townWall.castShadow=townRoof.castShadow=true;townWall.receiveShadow=townRoof.receiveShadow=true;scene.add(townWall);scene.add(townRoof);
+const clinic=new THREE.Group();{const w=new THREE.Mesh(new THREE.BoxGeometry(9,6.5,6),new THREE.MeshLambertMaterial({color:'#efe6d4'}));w.position.y=3.25;w.castShadow=w.receiveShadow=true;clinic.add(w);
+  const rf=new THREE.Mesh(new THREE.BoxGeometry(9.6,0.5,6.6),new THREE.MeshLambertMaterial({color:'#8a7a68'}));rf.position.y=6.75;clinic.add(rf);}
+clinic.position.set(0,baseH(0,-108),-108);scene.add(clinic);
+function crossTex(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='#f4ecdc';g.beginPath();g.arc(64,64,60,0,7);g.fill();g.fillStyle='#d63e30';g.fillRect(52,22,24,84);g.fillRect(22,52,84,24);return new THREE.CanvasTexture(c);}
+const medCross=new THREE.Sprite(new THREE.SpriteMaterial({map:crossTex(),transparent:true,depthWrite:false,fog:false}));medCross.scale.set(7,7,1);medCross.position.set(0,10.5,-104.5);scene.add(medCross);
+const town={visible:true};Object.defineProperty(town,'visible',{set(v){townWall.visible=townRoof.visible=clinic.visible=medCross.visible=v;},get(){return townWall.visible;}});
 // village and town lamps (small warm points) that glow at dusk and dawn
 const lampMat=new THREE.SpriteMaterial({map:GLOW,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,color:'#ffc27a'});
-const lamps=[];[...hutSpots.map((p,i)=>[p[0]+1.8,p[1],i]),...townSpots.map(p=>[p[0],p[1],-1])].forEach(([x,z,i])=>{const s=new THREE.Sprite(lampMat.clone());s.position.set(x,baseH(x,z)+1.6,z);s.scale.set(2.4,2.4,1);s.userData.i=i;scene.add(s);lamps.push(s);});
+const lamps=[];[...hutSpots.map((p,i)=>[p[0]+1.8,p[1],i]),...townSpots.map(p=>[p[0]*0.96,p[1],-1])].forEach(([x,z,i])=>{const s=new THREE.Sprite(lampMat.clone());s.position.set(x,baseH(x,z)+1.6,z);s.scale.set(2.4,2.4,1);s.userData.i=i;scene.add(s);lamps.push(s);});
 // trees: a trunk with branches and a lumpy, flat-topped canopy of many clumps (no low-poly balls); they grow with the years
 const barkMat=new THREE.MeshStandardMaterial({color:'#4a3828',roughness:1});
 const leafMats=['#4f6b33','#5f7a3a','#6e7f3f'].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:0.95}));
@@ -300,6 +317,10 @@ const boulders=new THREE.InstancedMesh(bGeo,propMat,160);boulders.castShadow=bou
   const c=new THREE.Color('#8b7258').lerp(new THREE.Color('#5f4c3e'),R());boulders.setColorAt(i,c);i++;}
   boulders.count=i;}
 scene.add(boulders);
+const NSH=420;const shrubs=new THREE.InstancedMesh(bGeo,propMat,NSH);shrubs.castShadow=false;shrubs.receiveShadow=true;
+{const R=rng(88);let i=0,g=0;while(i<NSH&&g++<9000){const x=-150+R()*300,z=-170+R()*340;if(Math.abs(x)<9&&z<62&&z>-72)continue;if(baseH(x,z)>0.5)continue;if(Math.abs(x)<5&&z<-76)continue;
+  const sc=0.25+R()*0.6;qq.setFromEuler(new THREE.Euler(0,R()*6,0));vv.set(x,sc*0.25,z);ss.set(sc*1.4,sc*0.6,sc*1.4);mtx.compose(vv,qq,ss);shrubs.setMatrixAt(i,mtx);shrubs.setColorAt(i,new THREE.Color('#6a7a3a').lerp(new THREE.Color('#8a7448'),R()));i++;}shrubs.count=i;}
+scene.add(shrubs);
 const NRB=220;const rubble=new THREE.InstancedMesh(bGeo,propMat,NRB);rubble.castShadow=rubble.receiveShadow=true;rubble.frustumCulled=false;scene.add(rubble);
 const rubSeed=[];{const R=rng(77);for(let i=0;i<NRB;i++){const z=Z0-2-R()*106;const side=R()<0.5?-1:1;const hw=hwAt(z);const sc=0.12+Math.pow(R(),2)*0.5;
   rubSeed.push({z,x:side*(hw-0.15-R()*R()*1.6),sc,e:new THREE.Euler(R()*3,R()*6,R()*3),k:[0.8+R()*0.5,0.5+R()*0.4,0.8+R()*0.5]});
@@ -456,6 +477,9 @@ function follow(t){ // behind him and above the cut, looking past him at the fac
   const cu=sstep(8.7,9.4,t)*(1-sstep(11.0,11.8,t));
   if(cu>0){const hp=new THREE.Vector3(0,1.35,zh-0.55);const cl={pos:new THREE.Vector3(1.5+0.2*Math.sin(t*0.9),1.3,zh+2.7),look:new THREE.Vector3(0,1.45,zh-0.45)};
     c={pos:c.pos.lerp(cl.pos,cu),look:c.look.lerp(cl.look,cu)};}
+  // a new angle every ~1.4 video seconds: quick eased swings between holds (world seconds)
+  const shots=[[5.0,5.3,6.3,6.6,[3.3,1.15,0.6],[0,1.4,-0.6]],[6.6,6.9,8.1,8.5,[2.5,8.5,9.0],[0,0.5,-3.0]],[11.9,12.2,13.3,13.7,[0.6,1.4,26.0],[0,2.2,-3.0]]];
+  for(const [a0,a1,b0,b1,po,lo] of shots){const w=sstep(a0,a1,t)*(1-sstep(b0,b1,t));if(w>0){c={pos:c.pos.lerp(new THREE.Vector3(po[0],po[1],zh+po[2]),w),look:c.look.lerp(new THREE.Vector3(lo[0],lo[1],zh+lo[2]),w)};}}
   return c;}
 const WIDE_POS=new THREE.Vector3(38,320,118),WIDE_LOOK=new THREE.Vector3(38,0,6);
 function cameraAt(t){
@@ -543,6 +567,8 @@ function update(t){
   const warm=1-sstep(5,20,sunElevF(lw));skyMat.uniforms.warm.value=warm;
   sunSprite.position.copy(sd).multiplyScalar(3200);sunSprite.material.opacity=sstep(-2,1,sunElevF(lw))*0.42;sunSprite.scale.setScalar(200);
   const cam=cameraAt(t);
+  {const bt0=w-DROP;const amp=(w<DROP?(since<0.22?(Hs.Wk>0.3?0.05:0.012)*Math.exp(-since/0.08)*(w<1.4?1.8:1):0):(bt0>=0&&bt0<1?0.3*Math.exp(-bt0/0.28):0));
+   if(amp>0.0005&&t<REW0){const sx=Math.sin(t*173.1)*amp,sy=Math.cos(t*211.7)*amp*0.7;cam.pos.x+=sx;cam.pos.y+=sy;cam.look.x+=sx;cam.look.y+=sy;}}
   const focus=t<DROP+2.0?new THREE.Vector3(0,1,Hs.z):cam.look.clone();
   const wide=sstep(DROP+2.0,21.0,t)*(t<REW0?1:1-sstep(REW0,REW0+0.6,t));
   const sz=lerp(t<3.8?14:22,190,wide);
@@ -571,9 +597,9 @@ function update(t){
 const acc=document.createElement('canvas');acc.width=W;acc.height=H;const actx=acc.getContext('2d');
 window.renderAt=(t,samples)=>{
   const n=samples||1;const shutter=1/60;
-  for(let i=0;i<n;i++){const tt=Math.max(0,t-shutter*(n>1?i/(n-1):0)+(n>1?shutter*0.5:0));update(Math.min(DUR-1e-4,tt));composer.render();
+  for(let i=0;i<n;i++){const tt=Math.max(0,t-shutter*(n>1?i/(n-1):0)+(n>1?shutter*0.5:0));update(Math.min(DUR-1e-4,warp(Math.min(VDUR,tt))));composer.render();
     actx.globalAlpha=1/(i+1);actx.drawImage(renderer.domElement,0,0);}
   actx.globalAlpha=1;return acc.toDataURL('image/jpeg',0.94);
 };
-window.DUR=DUR;window.DROP=DROP;window.__scene=scene;window.__o={boulders,rubble,chips,sparks,hammer,chisel,hero:hero.g,faceDust,dust,terrain,crack,beam};window.ready=true;
+window.DUR=VDUR;window.WDUR=DUR;window.DROP=DROP;window.__scene=scene;window.__o={boulders,rubble,chips,sparks,hammer,chisel,hero:hero.g,faceDust,dust,terrain,crack,beam};window.ready=true;
 </script></body></html>

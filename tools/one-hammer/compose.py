@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 frames, timing_f, wav, out = sys.argv[1:5]
 crf = sys.argv[5] if len(sys.argv) > 5 else '18'
 T = json.load(open(timing_f))
-YEAR, MET = T['year'], T['m']
+YEAR, MET, WT = T['year'], T['m'], T['wt']   # per video frame; WT is the world time the scene was authored in
 DROP = T['drop']
 FPS, W, H = 30, 1080, 1920
 NF = len(YEAR)
@@ -53,7 +53,7 @@ cmd = ['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s
        '-af', 'volume=4.5dB,alimiter=limit=0.84:attack=2:release=80:level=disabled', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out]
 ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 for f in range(NF):
-    t = f / FPS
+    t = WT[f]   # all text timings below are in world seconds (the scene's own clock)
     base = Image.open(f'{frames}/f{f:04d}.jpg').convert('RGB')
     if base.size != (W, H):
         base = base.resize((W, H), Image.LANCZOS)
@@ -62,16 +62,16 @@ for f in range(NF):
 
     # hook: three lines land with the first three strikes (0.0, 0.3, 0.6 s), full text from the first frame of each line
     a = 1 - sstep(3.0, 3.4, t)
-    for t0, y, s_, col, st in ((0.0, 230, 'ONE MAN.', CREAM, 7), (0.3, 316, 'ONE HAMMER.', CREAM, 7), (0.6, 402, 'ONE MOUNTAIN.', GOLD, 8)):
+    for t0, y, s_, col, st in ((0.0, 230, '55 KM THE LONG WAY.', CREAM, 7), (0.3, 316, 'ONE MOUNTAIN.', CREAM, 7), (0.6, 402, 'ONE HAMMER.', GOLD, 8)):
         if t >= t0:
             text_c(d, y, s_, f_hook, col, a * sstep(t0, t0 + 0.07, t), stroke=st)
     # mid captions (true: "people called me a lunatic")
-    a = sstep(6.4, 6.6, t) * (1 - sstep(8.9, 9.3, t))
+    a = sstep(6.4, 6.6, t) * (1 - sstep(8.5, 8.8, t))
     if t >= 6.4:
         text_c(d, 286, typed('THEY CALLED HIM MAD.', t, 6.4, 0.8), f_cap, CREAM, a)
-    a = sstep(9.55, 9.75, t) * (1 - sstep(11.0, 11.4, t))
-    if t >= 9.55:
-        text_c(d, 286, typed('ANOTHER DAY. SAME BLOW.', t, 9.55, 0.9), f_cap, CREAM, a)
+    a = sstep(9.0, 9.2, t) * (1 - sstep(11.0, 11.4, t))
+    if t >= 9.0:
+        text_c(d, 286, typed('ANOTHER DAY. SAME BLOW.', t, 9.0, 0.9), f_cap, CREAM, a)
     # after the break
     a = sstep(17.3, 17.45, t) * (1 - sstep(19.0, 19.3, t))
     if t >= 17.3:
@@ -99,13 +99,18 @@ for f in range(NF):
         text_c(d, 548, 'TRUE STORY', f_leg, TEAL, b, stroke=5, spacing=6)
 
     # year counter, under the hook lines (the lower third belongs to him)
-    a = sstep(0.0, 0.05, t) * (1 - sstep(21.25, 21.55, t))
+    a = sstep(0.0, 0.05, t) * (1 - sstep(18.9, 19.2, t))   # the counter has done its job once the comparison starts
     yr, m = YEAR[f], MET[f]
     if t < 23.6:
         assert yr >= last_year and m >= last_m, (f, yr, last_year, m, last_m)   # counters only go up
         last_year, last_m = yr, m
     if a > 0.01:
-        pulse = 1 + 0.18 * (2.718 ** (-max(0, t - DROP) / 0.2)) * (t >= DROP)
+        tick = 0.0
+        if f > 0 and YEAR[f] != YEAR[f - 1]:
+            last_tick = f
+        if 'last_tick' in globals() and f - last_tick < 5 and t < 15.0:
+            tick = 0.14 * (1 - (f - last_tick) / 5)
+        pulse = 1 + tick + 0.18 * (2.718 ** (-max(0, t - DROP) / 0.2)) * (t >= DROP)
         fn = F(int(92 * pulse))
         num, chip = f'{yr}', 'YEAR'
         cw = d.textlength(chip, font=f_chip) + 30
