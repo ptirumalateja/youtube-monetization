@@ -326,6 +326,8 @@ const TRAIL_COL = [[0.85, 0.82, 0.78], [1, 0.85, 0.55], [0.35, 0.85, 0.95], [1, 
 // true paths in the galaxy's frame, relative to the Sun now:  P(y) = V*(y - now) + k*orbit(y)
 const trails = PL.map((p, i) => ribbonMesh(ecl, 'trail' + i, 2400, keplerGLSL(p, 'orb') + `vec3 P(float y){ return ${v3s(VE.clone().multiplyScalar(VD))}*(y - uNow) + ${f6(p.k)}*orb(y); }`, TRAIL_COL[i]));
 // the orbits themselves (Sun at rest), brightest just behind each planet
+// during the lap each planet is smeared into a solid ring (230 million Earth orbits in one lap)
+const smears = PL.map((p, i) => ribbonMesh(ecl, 'smear' + i, 720, keplerGLSL(p, 'orb') + `vec3 P(float y){ return ${f6(p.k)}*orb(y); }`, TRAIL_COL[i], { base: 0.9, pw: 1 }));
 const rings = PL.map((p, i) => ribbonMesh(ecl, 'ring' + i, 720, keplerGLSL(p, 'orb') + `vec3 P(float y){ return ${f6(p.k)}*orb(y); }`, TRAIL_COL[i], { base: 0.22, pw: 3 }));
 // the myth: tight coils trailing in a cone, relative to the myth Sun now
 const mythTrails = PL.map((p, i) => { const m = MYTH[i];
@@ -544,6 +546,7 @@ function overlay(t, st) {
   const pA = smooth(17.6, 17.8, t) * (1 - smooth(23.6, 23.8, t));
   text(typed('ONE LAP AROUND THE GALAXY', 17.6, 18.1, t), 540, 280, 44, C_CREAM, { alpha: pA });
   if (pA > 0) { text(`${Math.round(st.myr)}`, 540, 1520, 120, C_GOLD, { alpha: pA }); text('MILLION YEARS', 540, 1610, 36, C_CREAM, { alpha: pA, spacing: 4 }); }
+  text('EARTH ORBITS THE SUN 230 MILLION TIMES', 540, 1690, 26, C_CREAM, { alpha: smooth(18.3, 18.7, t) * (1 - smooth(22.9, 23.4, t)) * 0.9, spacing: 2 });
   // home
   const yA = smooth(23.8, 23.95, t) * (1 - smooth(25.1, 25.3, t));
   text(typed('NOW YOU KNOW.', 23.8, 24.1, t), 540, 320, 88, C_CREAM, { alpha: yA });
@@ -566,7 +569,7 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   const st = state(t), y = yearAt(t), myth = t < 2.6;
   U.uTime.value = t;
   renderer.setClearColor('#02040a', 1); renderer.clear();
-  let poseS, sunNdc = null;
+  let poseS, sunNdc = null, insetVis = 1;
   // ---- galaxy layer ----
   if (!myth) {
     const g = galPoseAt(t), sun = sunGal(t);
@@ -585,7 +588,8 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
     galSun.position.copy(sun); galSun.material.uniforms.uA.value = smooth(13.8, 14.6, t) * (1 - smooth(15.0, 16.0, t)); galSun.material.uniforms.uPx.value = 22;
     // the inset's camera: the galaxy camera's offset from the Sun times K, so the two line up exactly; once the galaxy takes over it
     // eases into its own orrery view, with the Sun kept on the screen point where the galaxy shows it
-    const rel = g.pos.clone().sub(sun), dSv = dSAt(t), K = dSv / rel.length(), w = smooth(12.6, 17.0, t), o2 = orreryLate(t);
+    const rel = g.pos.clone().sub(sun), dSv = dSAt(t), K = dSv / rel.length(), w = t < 14.6 ? 0 : 1, o2 = orreryLate(t);
+    insetVis = t < 14.6 ? 1 - smooth(13.9, 14.6, t) : smooth(14.6, 15.3, t);      // the inset shrinks away, turns unseen, and grows back top-down
     const look = g.look.clone().sub(sun).multiplyScalar(K * (1 - w));
     poseS = P(slerpDir(rel, o2.dir, w).multiplyScalar(dSv), look, slerpDir(g.up, o2.up, w));
     sunNdc = sun.clone().project(camG);
@@ -597,11 +601,11 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   setCam(camS, poseS, myth ? 0.01 : Math.max(1e-3, dS * 2e-3));
   if (sunNdc) { const so = V3().project(camS); camS.projectionMatrix.elements[8] += so.x - sunNdc.x; camS.projectionMatrix.elements[9] += so.y - sunNdc.y; }
   sky.visible = myth; sky.position.copy(camS.position);
-  const lapW = smooth(15.5, 17.2, t) * (1 - smooth(24.2, 24.9, t));
+  const lapW = smooth(15.5, 17.2, t) * (1 - smooth(24.2, 24.9, t)), smear = smooth(17.4, 18.4, t) * (1 - smooth(24.2, 24.9, t));
   const mythW = PL.map((p, i) => mythPos(i, t).addScaledVector(MYTH_AX, -MYTH_V * t)), mScale = PL.map((p, i) => myth ? MYTHR[i] / p.R : 1);
-  bodies.forEach((b, i) => { const pe = myth ? g2e(mythW[i]) : posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(mScale[i]);
-    b.spin.rotation.y = (myth ? t * 30 : spinHours(t)) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3; b.group.visible = myth || showSolar > 0.01;
-    glows[i].position.copy(pe); glows[i].material.uniforms.uA.value = showSolar * smooth(30, 160, dS) * 0.9; glows[i].material.uniforms.uPx.value = 9 + 1.5 * Math.sqrt(i) + 8 * lapW; });
+  bodies.forEach((b, i) => { const pe = myth ? g2e(mythW[i]) : posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(mScale[i] * Math.max(insetVis, 1e-3));
+    b.spin.rotation.y = (myth ? t * 30 : spinHours(t)) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3; b.group.visible = (myth || showSolar > 0.01) && smear < 0.95;
+    glows[i].position.copy(pe); glows[i].material.uniforms.uA.value = showSolar * smooth(30, 160, dS) * 0.9 * (1 - smear) * insetVis; glows[i].material.uniforms.uPx.value = 9 + 1.5 * Math.sqrt(i) + 8 * lapW; });
   for (const m of [...mats, ringMat, uRingMat, ...moonBodies.map(mb => mb.mat)]) m.uniforms.uSunPos.value.set(0, 0, 0);
   mats[5].uniforms.uCtr.value.copy(myth ? mythW[5] : e2g(posD(5, y))); mats[5].uniforms.uRad.value = PL[5].R * mScale[5]; mats[5].uniforms.uRingN.value.copy(e2g(bodies[5].pole));
   ringU.uCtr.value.copy(mats[5].uniforms.uCtr.value); ringU.uRad.value = PL[5].R * mScale[5];
@@ -616,8 +620,9 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   astBelt.material.uniforms.uY.value = kuiper.material.uniforms.uY.value = y;
   const lapA = smooth(15.5, 17.2, t) * (1 - smooth(24.2, 24.9, t)), restA = myth ? 0 : smooth(2.6, 3.2, t) * (1 - smooth(T_MOVE, T_MOVE + 0.8, t)) + smooth(25.1, 25.6, t) + lapA;
   astBelt.material.uniforms.uA.value = (restA - lapA) * 0.35; kuiper.material.uniforms.uA.value = (restA - lapA) * 0.3;
-  rings.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = y - PL[i].P * 0.995; m.uniforms.uA.value = restA * 0.8; m.uniforms.uWidth.value = 2.2 + 1.8 * lapA; m.uniforms.uHead.value = 0.02; });
-  const moveA = myth ? 0 : smooth(T_MOVE, T_MOVE + 0.4, t) * (1 - smooth(14.5, 16.5, t)) * showSolar;
+  rings.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = y - PL[i].P * 0.995; m.uniforms.uA.value = restA * 0.8 * (1 - smear); m.uniforms.uWidth.value = 2.2 + 1.8 * lapA; m.uniforms.uHead.value = 0.02; });
+  smears.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = y - PL[i].P; m.uniforms.uA.value = smear * 0.85; m.uniforms.uWidth.value = 3.6; m.uniforms.uHead.value = 1e-6; });
+  const moveA = myth ? 0 : smooth(T_MOVE, T_MOVE + 0.4, t) * (1 - smooth(13.9, 14.6, t)) * showSolar;
   trails.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = Y_MOVE; m.uniforms.uA.value = moveA * (i === 2 ? 1.25 : 1);
     m.uniforms.uWidth.value = i === 2 ? 4 : 3; m.uniforms.uHead.value = 0.04; });
   sunTrailMat.uniforms.uLen.value = Math.max(0, y - Y_MOVE) * VD; sunTrailMat.uniforms.uA.value = moveA * 0.9;
