@@ -117,3 +117,10 @@ Files: `final-reels/last-one-percent_v2.mp4` (sound), `final-reels/last-one-perc
 - **Reveal (from 16.4 s):** the street becomes the phone, then a side-on macro shows the phone's port and speaker holes, the connector stopping short of the port, with contact shadows from a warm lamp key. Caption lands at 19.8 s.
 - **Loop:** the HUD (1% LEFT. and 1.00%) fades back in over the last 0.4 s so the seam has no pop.
 - **Sound:** cable drag, per-lamp clicks, stumble thud and breaths, near-silent held breath before the plug, one big hit on the plug-in, then the epic sound is cut dead at the phone and a tiny dry tick plays at the connector (19.6 s). **Music: put the drop at 14.4 s.** Audio -14.5 LUFS, true peak -3.1 dBTP.
+
+## 10. v3 captions (22 Oct 2026, Teja)
+
+`final-reels/last-one-percent_v3.mp4` and `_v3_music-ready.mp4`: picture, sound and timing identical to v2; only text changed.
+- Hook now has a second line under "1% LEFT.": "me every night with my phone" (gold, held until 3.1 s, back over the last 0.4 s for the loop).
+- End caption is now "SOMETIMES THE ANSWER IS / ALREADY NEXT TO YOU." (19.8-22.2 s) instead of "THE CHARGER WAS RIGHT THERE."
+- Music drop is still at 14.4 s.

@@ -21,6 +21,7 @@ SMALL = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
 CREAM, GOLD, TEAL, RED, INK = (244, 236, 220), (255, 200, 120), (150, 214, 208), (214, 62, 48), (6, 9, 16)
 F = lambda s, p=MONO: ImageFont.truetype(p, s)
 f_hook, f_end, f_num, f_chip, f_small = F(84), F(66), F(96), F(40), F(34, SMALL)
+f_sub, f_end2 = F(44), F(58)
 
 
 def sstep(a, b, x):
@@ -100,7 +101,7 @@ for f in range(NF):
         d = ImageDraw.Draw(ov)
     # hook: fully on screen from frame 0 (and back over the last frames, so the loop has no pop)
     end_in = sstep(DUR - 0.4, DUR - 1 / FPS, t)
-    a = max(1 - sstep(2.4, 2.8, t), end_in)
+    a = max(1 - sstep(2.9, 3.3, t), end_in)
     s1 = '1% LEFT.'
     if a > 0.01:
         w_all = d.textlength('1% LEFT.', font=f_hook)
@@ -108,6 +109,7 @@ for f in range(NF):
         red_part, rest = s1[:2], s1[2:]
         d.text((x, 230), red_part, font=f_hook, fill=(255, 90, 72, int(255 * a)), stroke_width=8, stroke_fill=INK + (int(235 * a),))
         d.text((x + d.textlength('1%', font=f_hook), 230), rest, font=f_hook, fill=CREAM + (int(255 * a),), stroke_width=8, stroke_fill=INK + (int(235 * a),))
+        text_c(d, 342, 'me every night with my phone', f_sub, GOLD, a, stroke=6)
 
     if pr is not None:
         # battery icon above his head (his battery, readable at any angle)
@@ -148,8 +150,8 @@ for f in range(NF):
     # the twist: the real phone is the one at 1%, and its charger is right there
     a = sstep(19.8, 20.0, t) * (1 - sstep(22.0, 22.35, t))
     if t >= 19.8:
-        text_c(d, 236, typed('THE CHARGER WAS', t, 19.8, 0.5), f_end, CREAM, a, stroke=8)
-        text_c(d, 318, typed('RIGHT THERE.', t, 20.35, 0.4), f_end, GOLD, a, stroke=8)
+        text_c(d, 236, typed('SOMETIMES THE ANSWER IS', t, 19.8, 0.7), f_end2, CREAM, a, stroke=8)
+        text_c(d, 314, typed('ALREADY NEXT TO YOU.', t, 20.5, 0.6), f_end2, GOLD, a, stroke=8)
 
     frame = Image.alpha_composite(base.convert('RGBA'), ov).convert('RGB')
     ff.stdin.write(frame.tobytes())
