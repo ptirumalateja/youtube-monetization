@@ -1,0 +1,510 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>He Moved a Mountain</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+// Slow Light reel: "He Moved a Mountain" (stickman series, after Dashrath Manjhi, 1960-1982).
+// window.renderAt(t, samples) -> JPEG dataURL of the frame at video time t (s).
+// World units are metres. The ridge runs along x; the cut runs along z, from the village (z>0) to the town (z<0).
+// He starts at the ridge foot (z=+55) and cuts toward -z; the cut is 9.1 m wide, 110 m long, up to 7.7 m deep.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get('w')||1080), H = +(Q.get('h')||1920);
+const DUR = 25.0, FPS = 30;
+const DROP = 16.6;            // the last strike: the wall breaks (the music beat drop)
+const REW0 = 23.6;            // rewind to frame 0 starts
+const Z0 = 55, Z1 = -55;      // ridge feet along the cut
+const HALFW = 4.55;           // half the cut width (9.1 m)
+
+// ---------- helpers ----------
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,u)=>a+(b-a)*u;
+const sstep=(a,b,x)=>{const u=clamp((x-a)/(b-a),0,1);return u*u*(3-2*u);};
+const ease=u=>u<0.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function pchip(keys){
+  const n=keys.length,x=keys.map(k=>k[0]),y=keys.map(k=>k[1]),d=[],m=new Array(n);
+  for(let i=0;i<n-1;i++)d.push((y[i+1]-y[i])/(x[i+1]-x[i]));
+  m[0]=d[0];m[n-1]=d[n-2];
+  for(let i=1;i<n-1;i++){ if(d[i-1]*d[i]<=0)m[i]=0; else{const w1=2*(x[i+1]-x[i])+(x[i]-x[i-1]),w2=(x[i+1]-x[i])+2*(x[i]-x[i-1]);m[i]=(w1+w2)/(w1/d[i-1]+w2/d[i]);} }
+  return t=>{ if(t<=x[0])return y[0]; if(t>=x[n-1])return y[n-1];
+    let i=0;while(t>x[i+1])i++; const h=x[i+1]-x[i],s=(t-x[i])/h,s2=s*s,s3=s2*s;
+    return (2*s3-3*s2+1)*y[i]+(s3-2*s2+s)*h*m[i]+(-2*s3+3*s2)*y[i+1]+(s3-s2)*h*m[i+1]; };
+}
+// cheap smooth value noise (2D)
+function hash2(x,y){const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s);}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return lerp(lerp(hash2(xi,yi),hash2(xi+1,yi),u),lerp(hash2(xi,yi+1),hash2(xi+1,yi+1),u),v);}
+function fbm(x,y,o=4){let a=0.5,s=0,f=1;for(let i=0;i<o;i++){s+=a*vnoise(x*f,y*f);f*=2.03;a*=0.5;}return s;}
+
+// ---------- world clock ----------
+// tau(t): world time. Equal to t until REW0, then the world rewinds to tau=0 at the loop point.
+function tau(t){ if(t<REW0)return t; const u=clamp((t-REW0)/(DUR-REW0),0,1); return DROP*(1-ease(u)); }
+// progress of the cut, 0..1 (1 = through). PROG_END is where the front stops before the final strike.
+const PROG_END=0.9864;
+const progF=pchip([[0,0],[2.4,0.0015],[3.8,0.012],[5.0,0.055],[8.0,0.30],[11.0,0.60],[13.5,0.86],[15.0,0.955],[16.0,0.978],[DROP-0.001,PROG_END]]);
+const prog=w=>w>=DROP?1:Math.min(PROG_END,progF(w));
+const zFront=w=>Z0-110*Math.min(prog(w),PROG_END);
+// strike count: a strike lands each time S crosses an integer. Hook strikes at 1/30, ~0.8, ~1.55, ~2.3 s.
+const SK=[[0,0.92],[0.8,2.0],[1.55,3.0],[2.3,4.0],[3.0,5.6],[3.8,10],[5.0,40],[13.5,900],[14.6,960],[15.0,964],[15.5,965],[16.0,966],[DROP,967],[DUR,967]];
+const Sf=pchip(SK);
+const S=w=>Sf(w);
+window.strikeTimes=()=>{const out=[];let k=1;for(let f=0;f<=DROP*4000;f++){const t=f/4000;while(k<=967&&S(t)>=k){out.push(+t.toFixed(4));k++;}}return out;};
+// counters (monotonic in the forward pass): year and metres carved
+const yearAt=w=>{const p=prog(w);return p>=1?1982:Math.min(1981,1960+Math.floor(22*p/PROG_END));};
+const metresAt=w=>{const p=prog(w);return p>=1?110:Math.min(109,110*p/PROG_END);};
+window.counters=t=>{const w=tau(t);return {year:yearAt(w),m:metresAt(w),prog:prog(w)};};
+const age=w=>sstep(2.4,16.0,w); // how old he is (0 young, 1 old)
+
+// ---------- renderer ----------
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(W,H);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const FOG=new THREE.Color('#2a3348');
+scene.fog=new THREE.FogExp2(FOG,0.0032);
+const camera=new THREE.PerspectiveCamera(46,W/H,0.05,5000);
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W/2,H/2),0.4,0.6,0.82);
+composer.addPass(bloom);composer.addPass(new OutputPass());
+
+// ---------- sun & sky ----------
+// sun sits on the far (-z) side of the ridge. Elevation by world time: golden afternoon during the work,
+// dusk then dark before the last strike, a low dawn sun along the cut at the break.
+const sunElevF=pchip([[0,24],[2.4,26],[3.8,42],[14.4,42],[15.1,8],[15.6,-6],[16.1,-2.5],[DROP,3.0],[19,9],[24,14]]);
+const sunAzF=pchip([[0,105],[2.4,110],[3.8,150],[14.4,150],[15.2,110],[15.6,20],[DROP,0],[24,4]]);
+const sweep=w=>Math.sin((w-3.8)*Math.PI*2/2.2)*sstep(3.8,4.8,w)*(1-sstep(13.6,14.4,w));
+function sunDir(w){const e=THREE.MathUtils.degToRad(sunElevF(w)-8*Math.abs(sweep(w))),a=THREE.MathUtils.degToRad(sunAzF(w)+38*sweep(w));return new THREE.Vector3(Math.cos(e)*Math.sin(a),Math.sin(e),-Math.cos(e)*Math.cos(a));}
+const dayF=w=>sstep(-6,6,sunElevF(w));
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{sun:{value:new THREE.Vector3(0,0.2,-1)},day:{value:1},warm:{value:0}},
+  vertexShader:`varying vec3 vd;void main(){vd=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position.z=gl_Position.w;}`,
+  fragmentShader:`varying vec3 vd;uniform vec3 sun;uniform float day;uniform float warm;
+  float h(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+  void main(){vec3 d=normalize(vd);float el=d.y;
+    vec3 zenN=vec3(0.018,0.028,0.060),horN=vec3(0.060,0.085,0.140);
+    vec3 zenD=vec3(0.10,0.17,0.30),horD=vec3(0.42,0.38,0.36);
+    vec3 zen=mix(zenN,zenD,day),hor=mix(horN,horD,day);
+    vec3 c=mix(hor,zen,smoothstep(-0.02,0.5,el));
+    c=mix(c,hor*0.55,smoothstep(0.,-0.2,el));
+    float s=max(dot(d,sun),0.);
+    vec3 gold=vec3(1.0,0.60,0.26);
+    float band=exp(-abs(el-0.02)*6.);
+    c+=gold*band*pow(s,4.)*(0.15+0.45*warm);
+    c+=gold*pow(s,90.)*(0.25+0.6*warm)*smoothstep(-0.1,0.02,sun.y);
+    vec3 g=floor(d*420.);float st=step(0.9972,h(g));c+=vec3(0.85,0.88,1.)*st*smoothstep(0.05,0.4,el)*(1.-day)*0.8;
+    gl_FragColor=vec4(c,1.);}`});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),skyMat));
+function glowTex(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');const gr=g.createRadialGradient(128,128,0,128,128,128);
+  gr.addColorStop(0,'rgba(255,240,210,1)');gr.addColorStop(0.12,'rgba(255,214,150,0.9)');gr.addColorStop(0.32,'rgba(255,170,90,0.3)');gr.addColorStop(1,'rgba(255,140,60,0)');g.fillStyle=gr;g.fillRect(0,0,256,256);return new THREE.CanvasTexture(c);}
+const GLOW=glowTex();
+const sunSprite=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
+sunSprite.scale.set(300,300,1);scene.add(sunSprite);
+
+// distant mountain rings for the horizon (parallax)
+function ring(r,hgt,seed,col){const R=rng(seed),seg=360,pos=[],idx=[];const ph=[R()*6,R()*6,R()*6];
+  for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2;const y=hgt*(0.45+0.3*Math.sin(a*3+ph[0])+0.18*Math.sin(a*11+ph[1])+0.08*Math.sin(a*29+ph[2]));
+    pos.push(Math.cos(a)*r,-80,Math.sin(a)*r, Math.cos(a)*r,y,Math.sin(a)*r);}
+  for(let i=0;i<seg;i++){const k=i*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);
+  return new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,side:THREE.DoubleSide,fog:true}));}
+const rings=[ring(1500,120,3,'#3a4256'),ring(2200,230,7,'#2e364a'),ring(1000,60,11,'#434a5c')];rings.forEach(r=>scene.add(r));
+
+// ---------- terrain: the ridge, carved live ----------
+// crest height of the ridge along x (7.7 m over the cut, rising to peaks on the -x side, ending at x~50 on the +x side)
+function crest(x){
+  const ax=Math.abs(x);
+  let c=7.7+24*sstep(6,42,ax)+26*sstep(40,160,ax)*(x<0?1:0.6)+6*(fbm(x*0.03,3.1,3)-0.5)*sstep(6,30,ax);
+  c+=10*Math.pow(Math.max(0,Math.sin(x*0.035+1.2)),3)*sstep(30,90,ax);
+  return c*sstep(52,34,x); // the +x end of the ridge (the old road goes round it)
+}
+function halfLen(x){return 55+(0.35*Math.abs(x)*(x<0?1:0.5)+16*(fbm(x*0.02,9.3,3)-0.35))*sstep(8,40,Math.abs(x));}
+function baseH(x,z){
+  const L=halfLen(x),u=Math.abs(z)/L;
+  let s;
+  if(z>=0) s=sstep(1.0,0.86,u)*(1-0.18*u*u);            // village side: a short steep foot, then the ridge
+  else     s=sstep(1.0,0.975,u)*(0.62+0.38*(1-u*u));     // town side: a cliff, about 4.6 m at the cut
+  let h=crest(x)*s;
+  h+=s*(0.9*(fbm(x*0.18+7,z*0.18,4)-0.5)+0.35*(vnoise(x*1.1,z*1.1)-0.5));
+  // fields and soft ground away from the ridge
+  h+=(1-s)*0.25*(fbm(x*0.02,z*0.02,3)-0.5);
+  return h;
+}
+const hwAt=z=>HALFW+0.06*Math.sin(z*0.9)+0.04*Math.sin(z*2.1+1.0);
+const frontOff=x=>0.16*Math.sin(x*1.3)+0.08*Math.sin(x*2.9+0.4);
+// grid: dense across the cut and along it, coarse elsewhere
+function axis(dense0,dense1,step,lo,hi,grow){const a=[];for(let v=dense0;v<=dense1+1e-6;v+=step)a.push(+v.toFixed(4));
+  let s=step,v=dense0;while(v>lo){s*=grow;v-=s;a.unshift(Math.max(lo,v));}s=step;v=dense1;while(v<hi){s*=grow;v+=s;a.push(Math.min(hi,v));}return a;}
+const XS=axis(-6.4,6.4,0.1,-900,700,1.09),ZS=axis(-60,60,0.33,-700,700,1.09);
+const NX=XS.length,NZ=ZS.length;
+const tGeo=new THREE.BufferGeometry();
+const tPos=new Float32Array(NX*NZ*3),tCol=new Float32Array(NX*NZ*3),BASE=new Float32Array(NX*NZ);
+const BAND=[];// vertex indices that can be carved
+for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const k=j*NX+i,x=XS[i],z=ZS[j];const h=baseH(x,z);BASE[k]=h;tPos[k*3]=x;tPos[k*3+1]=h;tPos[k*3+2]=z;
+  if(Math.abs(x)<6.3&&z<Z0+1&&z>Z1-1)BAND.push(k);}
+{const idx=[];for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const a=j*NX+i,b=a+1,c=a+NX,d=c+1;idx.push(a,c,b,b,c,d);}tGeo.setIndex(idx);}
+tGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));tGeo.setAttribute('color',new THREE.BufferAttribute(tCol,3));
+// colours: weathered rock (dark warm grey), fresh cut rock (pale granite), road floor (dusty tan), fields
+const C_ROCK=new THREE.Color('#6f6a66'),C_ROCK2=new THREE.Color('#57524f'),C_FRESH=new THREE.Color('#c9bba4'),C_FLOOR=new THREE.Color('#a08a6c'),C_FIELD=new THREE.Color('#4d5236'),C_FIELD2=new THREE.Color('#6b5f40');
+const tmpC=new THREE.Color();const C_WEATHER=new THREE.Color('#5d6448'),C_PATH=new THREE.Color('#c4a983');
+function baseColor(k){const x=tPos[k*3],z=tPos[k*3+2],h=BASE[k];const rock=sstep(0.3,1.5,h);
+  const n=fbm(x*0.05+3,z*0.05,3);tmpC.copy(C_FIELD).lerp(C_FIELD2,n);const r=C_ROCK2.clone().lerp(C_ROCK,fbm(x*0.3,z*0.3,3));tmpC.lerp(r,rock);return tmpC;}
+for(let k=0;k<NX*NZ;k++){const c=baseColor(k);tCol[k*3]=c.r;tCol[k*3+1]=c.g;tCol[k*3+2]=c.b;}
+const BASECOL=tCol.slice();
+// paths: the village track to the ridge foot (and, once it exists, the road on to the town)
+function trackW(x,z){return Math.exp(-Math.pow(x/(1.6+0.004*Math.abs(z)),2));}
+const rockMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.95,metalness:0});
+rockMat.onBeforeCompile=sh=>{
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vW;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvW=(modelMatrix*vec4(transformed,1.)).xyz;');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
+varying vec3 vW;
+float hh(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(mix(hh(i),hh(i+vec3(1,0,0)),f.x),mix(hh(i+vec3(0,1,0)),hh(i+vec3(1,1,0)),f.x),f.y),mix(mix(hh(i+vec3(0,0,1)),hh(i+vec3(1,0,1)),f.x),mix(hh(i+vec3(0,1,1)),hh(i+vec3(1,1,1)),f.x),f.y),f.z);}`)
+  .replace('#include <color_fragment>',`#include <color_fragment>
+  {float n=vn(vW*1.7)*0.5+vn(vW*4.3)*0.3+vn(vW*0.35)*0.4;
+   vec3 nrm=normalize(cross(dFdx(vW),dFdy(vW)));float steep=1.-abs(nrm.y);
+   float strata=0.5+0.5*sin(vW.y*6.3+vn(vW*vec3(0.4,0.,0.4))*5.);
+   diffuseColor.rgb*=0.78+0.36*n;
+   diffuseColor.rgb*=mix(1.,0.88+0.18*strata,smoothstep(0.85,0.97,steep));
+   float chis=step(0.82,fract(vW.y*3.1+vn(vW*2.)*0.6))*smoothstep(0.7,0.95,steep)*smoothstep(4.,4.4,abs(vW.x))*(1.-smoothstep(4.9,5.2,abs(vW.x)));
+   diffuseColor.rgb*=1.-0.18*chis;}`);
+};
+const terrain=new THREE.Mesh(tGeo,rockMat);terrain.receiveShadow=true;terrain.castShadow=true;terrain.frustumCulled=false;scene.add(terrain);
+let lastCarve=-1e9;
+function carve(w){
+  const zf=zFront(w),done=prog(w)>=1;
+  const roadOn=sstep(DROP,DROP+0.01,w); // the road on the town side only exists after the break
+  for(const k of BAND){const x=tPos[k*3],z=tPos[k*3+2];const hw=hwAt(z);
+    const floorY=0.02+0.03*(vnoise(x*2,z*2)-0.5);
+    // cut amount: 1 inside the cut, ramping over 0.25 m at the walls and 0.35 m at the face
+    const side=1-sstep(hw-0.05,hw+0.22,Math.abs(x));
+    const front=done?1:sstep(zf+frontOff(x)-0.05,zf+frontOff(x)+0.32,z);
+    const cut=side*front*(z<Z0+0.5?1:0);
+    let h=BASE[k],c0=BASECOL[k*3],c1=BASECOL[k*3+1],c2=BASECOL[k*3+2];
+    if(cut>0&&h>floorY){h=lerp(h,floorY,cut);
+      tmpC.setRGB(c0,c1,c2).lerp(C_FRESH,0.75*Math.min(1,cut*3)).lerp(C_FLOOR.clone().multiplyScalar(0.85+0.3*vnoise(x*0.7,z*0.7)),sstep(0.9,1,cut));c0=tmpC.r;c1=tmpC.g;c2=tmpC.b;}
+    if(cut>0){const wx=sstep(4,60,z-zf)*(done?1:1);tmpC.setRGB(c0,c1,c2);
+      if(cut<0.9)tmpC.lerp(C_WEATHER,0.55*wx*(0.6+0.4*vnoise(x*3,z*0.8)));else tmpC.lerp(C_PATH,0.5*wx*Math.exp(-x*x/3));c0=tmpC.r;c1=tmpC.g;c2=tmpC.b;}
+    tPos[k*3+1]=h;tCol[k*3]=c0;tCol[k*3+1]=c1;tCol[k*3+2]=c2;}
+  tGeo.attributes.position.needsUpdate=true;tGeo.attributes.color.needsUpdate=true;tGeo.computeVertexNormals();
+}
+// dirt tracks drawn as thin planes just above the ground
+function strip(pts,wd,col,op){const pos=[],idx=[];for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[Math.min(pts.length-1,i+1)],o=pts[Math.max(0,i-1)];
+    const dx=q[0]-o[0],dz=q[1]-o[1],l=Math.hypot(dx,dz)||1;const nx=-dz/l*wd/2,nz=dx/l*wd/2;
+    pos.push(p[0]+nx,baseH(p[0]+nx,p[1])+0.06,p[1]+nz,p[0]-nx,baseH(p[0]-nx,p[1])+0.06,p[1]-nz);
+    if(i<pts.length-1){const k=i*2;idx.push(k,k+1,k+2,k+1,k+3,k+2);}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:col,roughness:1,transparent:true,opacity:op,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));m.receiveShadow=true;scene.add(m);return m;}
+const trackV=[];for(let z=56;z<=150;z+=2)trackV.push([Math.sin(z*0.04)*2.2*sstep(60,80,z),z]);
+strip(trackV,3.2,'#8f7a5d',0.7);
+const trackT=[];for(let z=-56;z>=-150;z-=2)trackT.push([Math.sin(z*0.05)*2.5*sstep(-60,-80,z),z]);
+const townRoad=strip(trackT,3.6,'#8f7a5d',0.75);
+// the old road: round the +x end of the ridge
+const oldPts=[];for(let i=0;i<=80;i++){const a=i/80;const ang=Math.PI*(0.5-a);// from +z round to -z
+  oldPts.push([18+62*Math.cos(ang)*Math.pow(Math.sin(Math.PI*a),0.6)+ (a<0.5?0:0), 110*Math.sin(ang)]);}
+strip(oldPts,2.4,'#7d6c54',0.5);
+
+// ---------- village (ages: more huts, a growing tree, a debris heap) and the town ----------
+function makeHuts(n,seed,cx,cz,rx,rz,minR,big){const R=rng(seed);const list=[];let guard=0;
+  while(list.length<n&&guard++<5000){const x=cx+(R()-0.5)*2*rx,z=cz+(R()-0.5)*2*rz;if(Math.abs(x)<minR)continue;if(list.some(p=>Math.hypot(p[0]-x,p[1]-z)<(big?9:6)))continue;list.push([x,z,R()*Math.PI,0.8+R()*0.5]);}
+  return list;}
+const hutSpots=makeHuts(46,12,0,105,48,38,6,false).sort((a,b)=>Math.hypot(a[0],a[1]-62)-Math.hypot(b[0],b[1]-62));
+const wallG=new THREE.BoxGeometry(3.2,2.2,3.6);wallG.translate(0,1.1,0);
+const roofG=new THREE.ConeGeometry(2.9,1.7,4);roofG.rotateY(Math.PI/4);roofG.translate(0,2.2+0.85,0);
+const hutWall=new THREE.InstancedMesh(wallG,new THREE.MeshStandardMaterial({color:'#b59a78',roughness:1,emissive:new THREE.Color('#ffb060'),emissiveIntensity:0}),hutSpots.length);
+const hutRoof=new THREE.InstancedMesh(roofG,new THREE.MeshStandardMaterial({color:'#6a4e34',roughness:1}),hutSpots.length);
+hutWall.castShadow=hutRoof.castShadow=true;hutWall.receiveShadow=hutRoof.receiveShadow=true;scene.add(hutWall);scene.add(hutRoof);
+const mtx=new THREE.Matrix4(),qq=new THREE.Quaternion(),vv=new THREE.Vector3(),ss=new THREE.Vector3();
+function setHuts(n){n=Math.min(hutSpots.length,n);for(let i=0;i<hutSpots.length;i++){const [x,z,r,s]=hutSpots[i];const g=clamp(n-i,0,1);
+  qq.setFromAxisAngle(new THREE.Vector3(0,1,0),r);vv.set(x,baseH(x,z)-0.1,z);ss.set(s,s*Math.max(0.001,g),s);mtx.compose(vv,qq,ss);hutWall.setMatrixAt(i,mtx);hutRoof.setMatrixAt(i,mtx);}
+  hutWall.instanceMatrix.needsUpdate=hutRoof.instanceMatrix.needsUpdate=true;}
+// town on the far side: already there (bigger, flat roofs)
+const townSpots=makeHuts(30,44,10,-118,44,24,7,true);
+const tG=new THREE.BoxGeometry(1,1,1);tG.translate(0,0.5,0);
+const town=new THREE.InstancedMesh(tG,new THREE.MeshStandardMaterial({color:'#9d8f7c',roughness:0.95}),townSpots.length);town.castShadow=town.receiveShadow=true;
+{const R=rng(5);townSpots.forEach(([x,z,r,s],i)=>{qq.setFromAxisAngle(new THREE.Vector3(0,1,0),r*0.2);vv.set(x,baseH(x,z)-0.1,z);ss.set(3+R()*3,2.5+R()*3.5,3+R()*3);mtx.compose(vv,qq,ss);town.setMatrixAt(i,mtx);});}
+scene.add(town);town.visible=false;
+// village and town lamps (small warm points) that glow at dusk and dawn
+const lampMat=new THREE.SpriteMaterial({map:GLOW,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,color:'#ffc27a'});
+const lamps=[];[...hutSpots.map((p,i)=>[p[0]+1.8,p[1],i]),...townSpots.map(p=>[p[0],p[1],-1])].forEach(([x,z,i])=>{const s=new THREE.Sprite(lampMat.clone());s.position.set(x,baseH(x,z)+1.6,z);s.scale.set(2.4,2.4,1);s.userData.i=i;scene.add(s);lamps.push(s);});
+// the tree he passes every day: a sapling at frame 0, a big shade tree by the end
+const tree=new THREE.Group();scene.add(tree);
+const barkMat=new THREE.MeshStandardMaterial({color:'#4a382a',roughness:1});
+const leafMat=new THREE.MeshStandardMaterial({color:'#5c7a3a',roughness:0.9,flatShading:true});
+const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.45,1,8),barkMat);trunk.castShadow=true;tree.add(trunk);
+const canopy=[];{const R=rng(8);for(let i=0;i<9;i++){const m=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),leafMat);m.castShadow=true;m.userData.o=new THREE.Vector3((R()-0.5)*1.6,0.75+R()*0.5,(R()-0.5)*1.6);m.userData.s=0.55+R()*0.45;tree.add(m);canopy.push(m);}}
+const TREE=new THREE.Vector3(-8.5,0,63.5);tree.position.set(TREE.x,baseH(TREE.x,TREE.z),TREE.z);
+function setTree(g){// g 0..1
+  const hgt=lerp(0.9,9.5,Math.pow(g,0.8)),rad=lerp(0.35,5.2,Math.pow(g,0.9));
+  trunk.scale.set(lerp(0.12,1.3,g),hgt*0.6,lerp(0.12,1.3,g));trunk.position.y=hgt*0.3;
+  canopy.forEach(m=>{const o=m.userData.o;m.position.set(o.x*rad*0.75,hgt*0.6+o.y*rad*0.55,o.z*rad*0.75);m.scale.setScalar(rad*m.userData.s);});}
+function makeTree(x,z,seed){const g=new THREE.Group();const tr=new THREE.Mesh(trunk.geometry,barkMat);tr.castShadow=true;g.add(tr);const cs=[];const R=rng(seed);
+  for(let i=0;i<6;i++){const m=new THREE.Mesh(canopy[0].geometry,leafMat);m.castShadow=true;m.userData.o=new THREE.Vector3((R()-0.5)*1.6,0.75+R()*0.5,(R()-0.5)*1.6);m.userData.s=0.55+R()*0.45;g.add(m);cs.push(m);}
+  g.position.set(x,baseH(x,z)-0.1,z);scene.add(g);return {g,tr,cs,size:0.6+R()*0.5};}
+const rimTrees=[[-7.5,38,1],[8.2,22,2],[-8.6,4,3],[7.6,-14,4],[-7.8,-30,5],[8.8,-42,6],[-11,48,7],[12,-2,8]].map(([x,z,s])=>makeTree(x,z,s));
+function setRim(g){rimTrees.forEach(T=>{const hgt=lerp(0.4,5.5*T.size,g),rad=lerp(0.2,2.6*T.size,g);T.tr.scale.set(lerp(0.08,0.7,g),hgt*0.6,lerp(0.08,0.7,g));T.tr.position.y=hgt*0.3;
+  T.cs.forEach(m=>{const o=m.userData.o;m.position.set(o.x*rad*0.75,hgt*0.6+o.y*rad*0.55,o.z*rad*0.75);m.scale.setScalar(rad*m.userData.s);});});}
+// debris heap beside the cut mouth: grows with the work
+const heapMat=new THREE.MeshStandardMaterial({color:'#9a8b78',roughness:1,flatShading:true});
+const heapG=new THREE.ConeGeometry(1,1,14,3);{const p=heapG.attributes.position,R=rng(3);for(let i=0;i<p.count;i++){if(p.getY(i)>-0.49){p.setX(i,p.getX(i)*(0.85+R()*0.3));p.setZ(i,p.getZ(i)*(0.85+R()*0.3));}}heapG.computeVertexNormals();}
+const heaps=[[9.5,61],[12.5,66.5],[-12.5,58.5]].map(([x,z])=>{const m=new THREE.Mesh(heapG,heapMat);m.position.set(x,0,z);m.castShadow=m.receiveShadow=true;scene.add(m);return m;});
+function setHeaps(p){heaps.forEach((m,i)=>{const g=clamp(p*3-i*0.7,0,1);const r=lerp(0.4,5.5-i*0.8,Math.sqrt(g)),h=lerp(0.2,3.2-i*0.4,Math.sqrt(g));m.scale.set(r,h,r);m.position.y=h*0.5-0.05;m.visible=g>0.01;});}
+
+// ---------- stickman rig (shared with the series) ----------
+const L={thigh:0.46,shin:0.46,torso:0.56,neck:0.07,head:0.125,upper:0.31,fore:0.29};
+function makeFigure(color,emis,r){
+  const mat=new THREE.MeshStandardMaterial({color,roughness:0.55,metalness:0,emissive:new THREE.Color(emis),emissiveIntensity:1});
+  const g=new THREE.Group();const cyl=new THREE.CylinderGeometry(r,r,1,10,1,true),sph=new THREE.SphereGeometry(r,12,8);
+  const bones=[],joints=[];for(let i=0;i<9;i++){const b=new THREE.Mesh(cyl,mat);b.castShadow=true;g.add(b);bones.push(b);}
+  for(let i=0;i<12;i++){const j=new THREE.Mesh(sph,mat);j.castShadow=true;g.add(j);joints.push(j);}
+  const head=new THREE.Mesh(new THREE.SphereGeometry(L.head,24,16),mat);head.castShadow=true;g.add(head);
+  return {g,mat,bones,joints,head};
+}
+const UP=new THREE.Vector3(0,1,0),tmp=new THREE.Vector3();
+function bone(m,a,b){tmp.subVectors(b,a);const len=tmp.length();m.position.addVectors(a,b).multiplyScalar(0.5);m.scale.set(1,Math.max(len,1e-4),1);m.quaternion.setFromUnitVectors(UP,tmp.normalize());}
+const P0={p:0.05,tilt:0,aL:0.05,aR:-0.05,kL:0.05,kR:0.05,sL:0.12,sR:-0.05,eL:0.2,eR:0.2,dy:0};
+// hammer and chisel: left hand holds the chisel on the face, right hand swings the hammer
+const POSES={
+  stand:{...P0},
+  raise:{p:0.10,tilt:-0.10,aL:0.32,aR:-0.22,kL:0.18,kR:0.10,sL:1.45,sR:2.75,eL:0.12,eR:0.95,dy:0},
+  strike:{p:0.32,tilt:0.10,aL:0.42,aR:-0.18,kL:0.32,kR:0.12,sL:1.40,sR:1.45,eL:0.12,eR:0.10,dy:-0.02},
+  rest:{p:0.06,tilt:-0.55,aL:0.12,aR:-0.10,kL:0.08,kR:0.06,sL:0.2,sR:0.35,eL:0.25,eR:0.35,dy:0},
+};
+function solve(P){
+  const leg=(a,k)=>{const knee=new THREE.Vector2(Math.sin(a)*L.thigh,-Math.cos(a)*L.thigh);const b=a-k;return [knee,new THREE.Vector2(knee.x+Math.sin(b)*L.shin,knee.y-Math.cos(b)*L.shin)];};
+  const [kl,fl]=leg(P.aL,P.kL),[kr,fr]=leg(P.aR,P.kR);
+  const hipY=-Math.min(fl.y,fr.y)+P.dy; const hipX=-(fl.x+fr.x)*0.5*0.6;
+  const V=(v,z)=>new THREE.Vector3(hipX+v.x,hipY+v.y,z);
+  const hip=new THREE.Vector3(hipX,hipY,0);
+  const neck=new THREE.Vector3(hipX+Math.sin(P.p)*L.torso,hipY+Math.cos(P.p)*L.torso,0);
+  const hd=P.p+P.tilt;const head=new THREE.Vector3(neck.x+Math.sin(hd)*(L.neck+L.head),neck.y+Math.cos(hd)*(L.neck+L.head),0);
+  const sh=new THREE.Vector3(neck.x-Math.sin(P.p)*0.05,neck.y-Math.cos(P.p)*0.05,0);
+  const arm=(s,e,z)=>{const el=new THREE.Vector3(sh.x+Math.sin(s)*L.upper,sh.y-Math.cos(s)*L.upper,z);const f=s+e;return [el,new THREE.Vector3(el.x+Math.sin(f)*L.fore,el.y-Math.cos(f)*L.fore,z)];};
+  const [elL,hL]=arm(P.sL,P.eL,0.15),[elR,hR]=arm(P.sR,P.eR,-0.10);
+  return {hip,hipL:new THREE.Vector3(hipX,hipY,0.09),hipR:new THREE.Vector3(hipX,hipY,-0.09),kL:V(kl,0.1),fL:V(fl,0.1),kR:V(kr,-0.1),fR:V(fr,-0.1),neck,head,shL:new THREE.Vector3(sh.x,sh.y,0.17),shR:new THREE.Vector3(sh.x,sh.y,-0.17),elL,hL,elR,hR};
+}
+function applyPose(F,J){
+  const B=F.bones;bone(B[0],J.hip,J.neck);bone(B[1],J.hipL,J.kL);bone(B[2],J.kL,J.fL);bone(B[3],J.hipR,J.kR);bone(B[4],J.kR,J.fR);
+  bone(B[5],J.shL,J.elL);bone(B[6],J.elL,J.hL);bone(B[7],J.shR,J.elR);bone(B[8],J.elR,J.hR);
+  const js=[J.hipL,J.hipR,J.kL,J.kR,J.fL,J.fR,J.shL,J.shR,J.elL,J.elR,J.hL,J.hR];js.forEach((p,i)=>F.joints[i].position.copy(p));
+  F.head.position.copy(J.head);
+}
+function blendPose(a,b,u){const o={};for(const k in P0)o[k]=lerp(a[k],b[k],u);return o;}
+// one strike cycle: phase u in [0,1): recover from the strike (0-0.25), raise (0.25-0.82), swing down (0.82-1, impact at 1)
+function strikePose(u){
+  if(u<0.25)return blendPose(POSES.strike,POSES.raise,ease(u/0.25)*0.35);
+  if(u<0.82)return blendPose(blendPose(POSES.strike,POSES.raise,0.35),POSES.raise,ease((u-0.25)/0.57));
+  const v=(u-0.82)/0.18;return blendPose(POSES.raise,POSES.strike,v*v);
+}
+// age: a stoop, slower knees, the head drops
+function aged(P,a){const o={...P};o.p+=0.30*a;o.tilt-=0.12*a;o.kL+=0.18*a;o.kR+=0.14*a;o.dy-=0.03*a;return o;}
+const hero=makeFigure('#efe6d4','#2a241a',0.045);scene.add(hero.g);hero.g.rotation.y=Math.PI/2; // local +x -> world -z
+const ironMat=new THREE.MeshStandardMaterial({color:'#3a3d44',roughness:0.4,metalness:0.8,emissive:new THREE.Color('#ff8a3a'),emissiveIntensity:0});
+const woodMat=new THREE.MeshStandardMaterial({color:'#8a6a48',roughness:0.8});
+const hammer=new THREE.Group();{const h=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.02,0.42,8),woodMat);h.position.y=0.17;hammer.add(h);
+  const hd=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.07,0.07),ironMat);hd.position.y=0.38;hammer.add(hd);hammer.traverse(m=>m.castShadow=true);}
+hero.g.add(hammer);
+const chisel=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.016,0.24,6),ironMat);chisel.castShadow=true;hero.g.add(chisel);
+const REACH=0.80; // hero root to the rock face
+// people who use the road after it is open (the reveal)
+const walkers=[0,1,2].map(i=>{const f=makeFigure('#8391ab','#10151f',0.045);scene.add(f.g);return f;});
+
+// ---------- sparks, chips and the break ----------
+const sparkMat=new THREE.PointsMaterial({color:'#ffc070',size:0.05,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+const NSP=40;const spGeo=new THREE.BufferGeometry();spGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(NSP*3*3),3));
+const sparks=new THREE.Points(spGeo,sparkMat);sparks.frustumCulled=false;scene.add(sparks);
+const chipG=new THREE.DodecahedronGeometry(1,0);
+const chipMat=new THREE.MeshStandardMaterial({color:'#9c8f7e',roughness:0.95,flatShading:true});
+const NCH=24;const chips=new THREE.InstancedMesh(chipG,chipMat,NCH);chips.castShadow=true;chips.frustumCulled=false;scene.add(chips);
+const NBR=150;const brk=new THREE.InstancedMesh(chipG,chipMat,NBR);brk.castShadow=true;brk.frustumCulled=false;scene.add(brk);
+const brkSeed=[];{const R=rng(99);for(let i=0;i<NBR;i++)brkSeed.push({x:(R()-0.5)*8.6,y:0.2+R()*4.2,z:Z1+0.2+R()*1.3,vx:(R()-0.5)*5,vy:1.5+R()*5.5,vz:-(3+R()*9),s:0.05+Math.pow(R(),2.2)*0.32,r:R()*6});}
+// dust: soft puffs
+function puffTex(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'rgba(255,255,255,0.55)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);}
+const PUFF=puffTex();
+const dust=[];{const R=rng(17);for(let i=0;i<46;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:PUFF,transparent:true,depthWrite:false,color:'#d9c4a2',opacity:0}));s.userData={x:(R()-0.5)*9,y:0.5+R()*3.5,z:Z1+0.5+R()*2,vx:(R()-0.5)*3,vy:0.3+R()*1.2,vz:-(1+R()*4),s:1.5+R()*3};scene.add(s);dust.push(s);}}
+const faceDust=[];{const R=rng(23);for(let i=0;i<14;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:PUFF,transparent:true,depthWrite:false,color:'#cdb89a',opacity:0}));s.userData={ph:R(),x:(R()-0.5)*1.2,s:0.5+R()*0.8};scene.add(s);faceDust.push(s);}}
+
+// drifting motes, world-fixed and camera-wrapped (true parallax)
+const moteMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+  uniforms:{camPos:{value:new THREE.Vector3()},box:{value:24},t:{value:0},col:{value:new THREE.Color('#ffd9a0')},pxs:{value:H/1920},amt:{value:1}},
+  vertexShader:`uniform vec3 camPos;uniform float box;uniform float t;uniform float pxs;attribute float seed;varying float vA;
+    void main(){vec3 p=position*box;p.y+=sin(t*0.4+seed*6.)*0.3;p.x+=t*0.25;vec3 rel=mod(p-camPos+box*0.5,box)-box*0.5;vec3 w=camPos+rel;
+      vec4 mv=modelViewMatrix*vec4(w,1.);float d=-mv.z;vA=smoothstep(0.4,2.,d)*(1.-smoothstep(box*0.3,box*0.5,length(rel)))*(0.35+0.65*seed);
+      gl_PointSize=clamp(46./d,1.,6.)*pxs*1.8;gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`uniform vec3 col;uniform float amt;varying float vA;void main(){vec2 c=gl_PointCoord-0.5;float a=smoothstep(0.5,0.,length(c));gl_FragColor=vec4(col,a*vA*0.5*amt);}`});
+{const n=2200,R=rng(91),p=[],s=[];for(let i=0;i<n;i++){p.push(R(),R(),R());s.push(R());}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('seed',new THREE.Float32BufferAttribute(s,1));
+  const pts=new THREE.Points(g,moteMat);pts.frustumCulled=false;scene.add(pts);}
+
+// ---------- route lines for the reveal ----------
+function routeLine(pts,col,dashed){const pos=[];const segs=[];for(const p of pts)pos.push(new THREE.Vector3(p[0],Math.max(baseH(p[0],p[1]),0)+0.6,p[1]));
+  const curve=new THREE.CatmullRomCurve3(pos);const g=new THREE.TubeGeometry(curve,400,0.55,6,false);
+  const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.95,fog:false,depthTest:true});
+  if(dashed){m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying float vU;').replace('#include <begin_vertex>','#include <begin_vertex>\nvU=uv.x;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vU;').replace('#include <color_fragment>','#include <color_fragment>\nif(fract(vU*46.)>0.55)discard;');};}
+  const mesh=new THREE.Mesh(g,m);mesh.renderOrder=8;scene.add(mesh);mesh.userData.total=g.index.count;g.setDrawRange(0,0);return mesh;}
+const newRoute=routeLine([[0.3,96],[0.6,70],[0,56],[0,0],[0,-56],[-0.5,-80],[0.4,-104]],'#ffc66a',false);
+const oldRoute2=routeLine([[0.3,96],[30,104],[62,86],[82,44],[88,0],[82,-44],[62,-86],[30,-104],[0.4,-104]],'#d63e30',true);
+
+// ---------- the crack in the last wall ----------
+const crackPts=[];{const R=rng(61);for(let i=0;i<16;i++){crackPts.push(new THREE.Vector3(0.25*(R()-0.5)+0.12*Math.sin(i*1.7),0.25+i*0.27,0));}}
+const crack=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(crackPts,false,'catmullrom',0.1),160,0.022,5,false),new THREE.MeshBasicMaterial({color:'#ffd08a',fog:false,transparent:true}));
+crack.renderOrder=6;scene.add(crack);
+// ---------- lights ----------
+const hemi=new THREE.HemisphereLight('#a7b6d6','#3a3328',0.8);scene.add(hemi);
+const sunL=new THREE.DirectionalLight('#ffd2a0',2.4);sunL.castShadow=true;sunL.shadow.mapSize.set(2048,2048);sunL.shadow.bias=-0.0005;sunL.shadow.normalBias=0.03;
+scene.add(sunL);scene.add(sunL.target);
+const fill=new THREE.DirectionalLight('#8fa6d8',0.35);scene.add(fill);scene.add(fill.target);
+const faceLamp=new THREE.PointLight('#ffbf7a',0,6,2);scene.add(faceLamp); // spark flash at the chisel
+
+// ---------- hero state ----------
+function heroState(w){
+  const s=S(w),k=Math.floor(s),u=s-k;
+  const dt=1/240;const rate=(S(w+dt)-S(Math.max(0,w-dt)))/(2*dt);
+  const Wk=1-sstep(4.0,7.0,rate); // 1 = readable strikes, 0 = time-lapse blur
+  const zf=zFront(w);
+  const z=(w>=DROP?Z1+0.25+frontOff(0):zf+frontOff(0))+REACH;
+  const fast=strikePose(((w*7.5)%1+1)%1);
+  let P=blendPose(fast,strikePose(u),Wk);
+  if(w>=DROP){const v=sstep(DROP+0.25,DROP+1.6,w);P=blendPose(POSES.strike,POSES.rest,v);}
+  P=aged(P,age(w));
+  return {s,u,rate,Wk,z,P};
+}
+
+// ---------- camera ----------
+function keyPath(K,t){ // K: [t,[pos],[look]] with eased segments
+  if(t<=K[0][0])return {pos:new THREE.Vector3(...K[0][1]),look:new THREE.Vector3(...K[0][2])};
+  for(let i=0;i<K.length-1;i++)if(t<=K[i+1][0]){const u=ease((t-K[i][0])/(K[i+1][0]-K[i][0]));
+    return {pos:new THREE.Vector3(...K[i][1]).lerp(new THREE.Vector3(...K[i+1][1]),u),look:new THREE.Vector3(...K[i][2]).lerp(new THREE.Vector3(...K[i+1][2]),u)};}
+  const e=K[K.length-1];return {pos:new THREE.Vector3(...e[1]),look:new THREE.Vector3(...e[2])};}
+const HOOK_POS=[4.2,1.05,65.5],HOOK_LOOK=[-5.5,6.5,40.0];
+function follow(t){ // behind him and above the cut, looking past him at the face and the ridge
+  const zh=heroState(t).z;const sw=Math.sin((t-3.8)*0.35);
+  const g=sstep(4.0,13.6,t); // the camera lags further and further behind as the years pile up, so the cut behind him grows in frame
+  const far={pos:new THREE.Vector3(1.4+0.8*sw,6.0+6.5*g+0.3*Math.sin(t*0.21),zh+11.5+26*g),look:new THREE.Vector3(0,3.6-1.6*g,zh-6+3*g)};
+  const near={pos:new THREE.Vector3(1.1,3.6,zh+6.8),look:new THREE.Vector3(0,2.4,zh-6)};
+  const u=sstep(14.2,15.6,t);return {pos:far.pos.lerp(near.pos,u),look:far.look.lerp(near.look,u)};}
+const WIDE_POS=new THREE.Vector3(38,320,118),WIDE_LOOK=new THREE.Vector3(38,0,6);
+function cameraAt(t){
+  if(t<DROP){const u=t/2.4;const hk={pos:new THREE.Vector3(...HOOK_POS).lerp(new THREE.Vector3(3.6,1.15,64.0),Math.min(1,u)),look:new THREE.Vector3(...HOOK_LOOK).lerp(new THREE.Vector3(-5.0,6.3,40.5),Math.min(1,u))};
+    if(t<2.3)return hk;const f=follow(t),b=ease(clamp((t-2.3)/1.5,0,1));return {pos:hk.pos.lerp(f.pos,b),look:hk.look.lerp(f.look,b)};}
+  const zh=heroState(DROP).z;
+  const p0=new THREE.Vector3(1.1,3.6,zh+6.8),l0=new THREE.Vector3(0,2.4,zh-6);
+  if(t<DROP+2.0){const u=ease((t-DROP)/2.0);return {pos:p0.clone().lerp(new THREE.Vector3(0.9,3.0,zh+5.2),u),look:l0.clone().lerp(new THREE.Vector3(0,2.6,zh-8),u)};}
+  const p1=new THREE.Vector3(0.9,3.0,zh+5.2),l1=new THREE.Vector3(0,2.6,zh-8);
+  if(t<21.6){// crane up and back: log-distance blend toward the wide view
+    const u=ease((t-DROP-2.0)/(21.6-DROP-2.0));
+    const d0=p1.distanceTo(l1),d1=WIDE_POS.distanceTo(WIDE_LOOK);const look=l1.clone().lerp(WIDE_LOOK,Math.pow(u,0.85));look.x=lerp(l1.x,WIDE_LOOK.x,Math.pow(u,3));
+    const dir0=p1.clone().sub(l1).normalize(),dir1=WIDE_POS.clone().sub(WIDE_LOOK).normalize();const dir=dir0.lerp(dir1,sstep(0,0.45,u)).normalize();
+    const dist=d0*Math.pow(d1/d0,u);return {pos:look.clone().add(dir.multiplyScalar(dist)),look};}
+  const wd=WIDE_POS.clone().add(new THREE.Vector3(-3,10,5));
+  if(t<REW0){const u=(t-21.6)/(REW0-21.6);return {pos:WIDE_POS.clone().lerp(wd,u),look:WIDE_LOOK.clone()};}
+  // dive home to the frame-0 shot
+  const u=ease((t-REW0)/(DUR-REW0));
+  const ph=new THREE.Vector3(...HOOK_POS),lh=new THREE.Vector3(...HOOK_LOOK);
+  const look=WIDE_LOOK.clone().lerp(lh,Math.pow(u,0.7));
+  const d0=wd.distanceTo(WIDE_LOOK),d1=ph.distanceTo(lh);
+  const dir=wd.clone().sub(WIDE_LOOK).normalize().lerp(ph.clone().sub(lh).normalize(),sstep(0.15,1,u)).normalize();
+  return {pos:look.clone().add(dir.multiplyScalar(d0*Math.pow(d1/d0,u))),look};
+}
+window.cameraAt=t=>{const c=cameraAt(t);return {pos:c.pos.toArray(),look:c.look.toArray()};};
+
+// ---------- scene update ----------
+const hutsN=w=>6+Math.floor(38*sstep(3.0,15.5,w));
+function update(t){
+  const w=tau(t);const lw=(t>=REW0&&w>14.2&&w<DROP)?DROP+2.4:w;
+  carve(w);
+  const p=prog(w);
+  setHuts(hutsN(w));setTree(sstep(1.0,15.5,w));setRim(sstep(3.0,15.5,w));town.visible=w>=DROP-0.4;setHeaps(Math.min(p,PROG_END));
+  // season tint on the tree: green in the work years, a little gold now and then
+  leafMat.color.set('#5c7a3a').lerp(new THREE.Color('#9a8a3a'),0.25*(0.5+0.5*Math.sin(w*22*Math.PI*2/12.6))*sstep(3.8,6,w)*(1-sstep(14,15,w)));
+  townRoad.material.opacity=0.75*sstep(DROP,DROP+1.5,w);
+  // hero
+  const Hs=heroState(w);hero.g.position.set(0,0.03,Hs.z);
+  const J=solve(Hs.P);applyPose(hero,J);
+  const a=age(w);hero.mat.color.set('#efe6d4').lerp(new THREE.Color('#b9b3a8'),0.7*a);
+  // hammer along the right forearm, head past the hand
+  {const d=J.hR.clone().sub(J.elR).normalize();hammer.position.copy(J.hR);hammer.quaternion.setFromUnitVectors(UP,d);}
+  {chisel.position.copy(J.hL).add(new THREE.Vector3(0.11,0,0));chisel.quaternion.setFromUnitVectors(UP,new THREE.Vector3(1,0.05,0));chisel.visible=w<DROP+0.2;}
+  // sparks and chips at each strike (time since the last integer crossing)
+  const k=Math.floor(Hs.s);let since=1;
+  if(Hs.Wk>0.3&&k>=1){let lo=0,hi=w;for(let i=0;i<26;i++){const m=(lo+hi)/2;if(S(m)>=k)hi=m;else lo=m;}since=w-hi;}
+  else if(Hs.Wk<=0.3)since=((w*7.5)%1)/7.5;
+  const tip=new THREE.Vector3(0,J.hL.y,Hs.z-0.12-J.hL.x-0.11);
+  const spP=spGeo.attributes.position.array;const fl=Math.exp(-since/0.07);
+  {const R=rng(k*13+7);for(let i=0;i<NSP*3;i++){const vx=(R()-0.5)*3,vy=R()*3,vz=(R()-0.2)*3;const st=since-(i%3)*0.008;
+    spP[i*3]=tip.x+vx*st;spP[i*3+1]=tip.y+vy*st-4.9*st*st;spP[i*3+2]=tip.z+vz*st;}}
+  spGeo.attributes.position.needsUpdate=true;sparkMat.opacity=since<0.25&&w<DROP+0.05?(1-since/0.25):0;sparks.visible=w<DROP+0.3;
+  faceLamp.position.copy(tip).add(new THREE.Vector3(0,0.1,0.3));faceLamp.intensity=(w<DROP+0.05?1.4*fl:0);
+  ironMat.emissiveIntensity=0.0;
+  {const R=rng(k*7+3);for(let i=0;i<NCH;i++){const st=since;const vx=(R()-0.5)*2.4,vy=0.5+R()*2.2,vz=0.5+R()*1.8;let y=tip.y+vy*st-4.9*st*st;const show=st<0.6&&y>0.02&&w<DROP;
+    vv.set(tip.x+vx*st,Math.max(0.02,y),tip.z+vz*st);qq.setFromEuler(new THREE.Euler(st*9+i,st*7,0));const sc=show?0.012+0.02*R():0.0001;ss.set(sc,sc,sc);mtx.compose(vv,qq,ss);chips.setMatrixAt(i,mtx);}}
+  chips.instanceMatrix.needsUpdate=true;
+  // face dust, lit by the sun
+  faceDust.forEach((s,i)=>{const d=s.userData;const ph=((since*1.5+d.ph)%1);s.position.set(d.x,tip.y-0.2+ph*1.2,tip.z+0.25+ph*0.6);s.scale.setScalar(d.s*(0.6+ph));s.material.opacity=(w<DROP?0.16:0)*(1-ph)*(Hs.Wk>0.3?Math.exp(-since/0.5):0.6);});
+  // the break: chunks fly out toward the camera (town side), dust rolls out
+  const bt=w-DROP;
+  for(let i=0;i<NBR;i++){const b=brkSeed[i];let m;
+    if(bt<0||t>=REW0){ss.set(0.0001,0.0001,0.0001);vv.set(0,-10,0);}
+    else{const tt=Math.min(bt,3);let y=b.y+b.vy*tt-4.9*tt*tt;const floorY=b.s*0.4;let x=b.x+b.vx*tt,z=b.z+b.vz*tt;if(y<floorY){y=floorY;}vv.set(x,y,z);ss.setScalar(b.s);}
+    qq.setFromEuler(new THREE.Euler(b.r+bt*3*(i%5),b.r*2+bt*2,0));mtx.compose(vv,qq,ss);brk.setMatrixAt(i,mtx);}
+  brk.instanceMatrix.needsUpdate=true;
+  dust.forEach(s=>{const d=s.userData;if(bt<0||t>=REW0){s.material.opacity=0;return;}const tt=bt;const sl=1-Math.exp(-tt*1.2);
+    s.position.set(d.x+d.vx*sl*1.5,d.y+d.vy*tt*0.6,d.z+d.vz*sl*1.8);s.scale.setScalar(d.s*(1+tt*0.9));s.material.opacity=0.2*Math.min(1,tt*8)*Math.exp(-tt/1.2);});
+  // walkers on the new road during the reveal
+  walkers.forEach((f,i)=>{const on=w>=DROP+1.2&&t<REW0;f.g.visible=on;if(!on)return;const zz=40-i*7-(t-DROP-1.2)*1.3;f.g.position.set(-1.6+i*1.4,0.03,zz);f.g.rotation.y=Math.PI/2;
+    const ph=(t*1.6+i*0.33)%1,s=Math.sin(ph*Math.PI*2);const P={...P0,aL:0.35*s,aR:-0.35*s,kL:0.2+0.3*Math.max(0,s),kR:0.2+0.3*Math.max(0,-s),sL:-0.3*s,sR:0.3*s};applyPose(f,solve(P));});
+  // the crack: light from the dawn behind the wall, growing up the face before the last strike
+  {const g=sstep(15.95,16.5,w)*(w<DROP?1:0);crack.visible=g>0.01;crack.position.set(0.9,0.05,zFront(w)+frontOff(0.3)-0.02);crack.scale.set(1,Math.max(0.01,g),1);crack.material.opacity=Math.min(1,g*2);}
+  // routes
+  const rv=t<REW0?sstep(19.9,20.7,t):0, ro=t<REW0?sstep(20.3,21.4,t):0;
+  newRoute.geometry.setDrawRange(0,Math.floor(newRoute.userData.total*rv/6)*6);newRoute.visible=rv>0;
+  oldRoute2.geometry.setDrawRange(0,Math.floor(oldRoute2.userData.total*ro/6)*6);oldRoute2.visible=ro>0;
+  const fadeR=1-sstep(REW0-0.4,REW0,t);newRoute.material.opacity=0.95*fadeR;oldRoute2.material.opacity=0.95*fadeR;
+
+  // sky and light
+  const sd=sunDir(lw),day=dayF(lw);skyMat.uniforms.sun.value.copy(sd);skyMat.uniforms.day.value=day;
+  const warm=1-sstep(5,20,sunElevF(lw));skyMat.uniforms.warm.value=warm;
+  sunSprite.position.copy(sd).multiplyScalar(3200);sunSprite.material.opacity=sstep(-2,1,sunElevF(lw))*0.42;sunSprite.scale.setScalar(200);
+  const cam=cameraAt(t);
+  const focus=t<DROP+2.0?new THREE.Vector3(0,1,Hs.z):cam.look.clone();
+  const wide=sstep(DROP+2.0,21.0,t)*(t<REW0?1:1-sstep(REW0,REW0+0.6,t));
+  const sz=lerp(t<3.8?14:22,190,wide);
+  const sc=sunL.shadow.camera;sc.left=-sz;sc.right=sz;sc.top=sz;sc.bottom=-sz;sc.near=1;sc.far=lerp(120,900,wide);sc.updateProjectionMatrix();
+  sunL.shadow.bias=lerp(-0.0005,-0.004,wide);sunL.shadow.normalBias=lerp(0.03,0.8,wide);sunL.target.position.copy(focus);sunL.position.copy(focus).add(sd.clone().multiplyScalar(lerp(60,420,wide)));
+  sunL.intensity=2.6*sstep(-3,2,sunElevF(lw))*(0.7+0.3*sstep(0,10,sunElevF(lw)));
+  sunL.color.set('#ffe0bc').lerp(new THREE.Color('#ffae62'),warm);
+  hemi.intensity=0.45+0.5*day;hemi.color.set('#6d7fa8').lerp(new THREE.Color('#b9c4dc'),day);
+  fill.position.copy(focus).add(new THREE.Vector3(-20,15,30));fill.target.position.copy(focus);fill.intensity=0.25+0.25*(1-day);
+  scene.fog.color.set('#1b2236').lerp(new THREE.Color('#8a8580'),day*0.6).lerp(new THREE.Color('#a8825e'),warm*day*0.25);
+  scene.fog.density=lerp(0.0032,0.0016,wide)*(1-0.45*sstep(DROP-0.3,DROP,w));
+  const lampOn=1-sstep(-4,4,sunElevF(lw));lamps.forEach(s=>{const i=s.userData.i;const ex=i<0?1:(i<hutsN(w)?1:0);s.material.opacity=0.9*lampOn*ex*(t<REW0?1:1);s.visible=s.material.opacity>0.01;});
+  hutWall.material.emissiveIntensity=0.25*lampOn;
+  rings.forEach(r=>r.material.color.set('#272d3f').lerp(new THREE.Color('#5a5c66'),day).lerp(new THREE.Color('#6a5a52'),warm*day*0.4));
+  bloom.strength=0.36+0.14*sstep(DROP-0.05,DROP+0.15,t)*(1-sstep(DROP+0.6,DROP+2.5,t))*(t<REW0?1:0);
+  renderer.toneMappingExposure=1.0+0.10*sstep(DROP,DROP+0.12,w)*(1-sstep(DROP+0.4,DROP+1.5,w));
+  camera.position.copy(cam.pos);camera.lookAt(cam.look);
+  camera.fov=46;camera.updateProjectionMatrix();
+  moteMat.uniforms.camPos.value.copy(camera.position);moteMat.uniforms.t.value=t;moteMat.uniforms.box.value=24+Math.min(140,cam.pos.distanceTo(cam.look)*1.2);
+  moteMat.uniforms.amt.value=0.5+0.8*sstep(DROP,DROP+0.4,w)*(1-sstep(DROP+3,DROP+5,w));
+}
+
+// ---------- frame accumulation (motion blur) ----------
+const acc=document.createElement('canvas');acc.width=W;acc.height=H;const actx=acc.getContext('2d');
+window.renderAt=(t,samples)=>{
+  const n=samples||1;const shutter=1/60;
+  for(let i=0;i<n;i++){const tt=Math.max(0,t-shutter*(n>1?i/(n-1):0)+(n>1?shutter*0.5:0));update(Math.min(DUR-1e-4,tt));composer.render();
+    actx.globalAlpha=1/(i+1);actx.drawImage(renderer.domElement,0,0);}
+  actx.globalAlpha=1;return acc.toDataURL('image/jpeg',0.94);
+};
+window.DUR=DUR;window.DROP=DROP;window.ready=true;
+</script></body></html>
