@@ -19,6 +19,7 @@ SMALL = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
 CREAM, GOLD, TEAL, RED, INK = (244, 236, 220), (255, 200, 120), (150, 214, 208), (214, 62, 48), (6, 9, 16)
 F = lambda s, p=MONO: ImageFont.truetype(p, s)
 f_hook, f_cap, f_end, f_num, f_chip, f_small, f_tag, f_leg = F(66), F(54), F(70), F(92), F(46), F(31), F(24, SMALL), F(36)
+f_big, f_end2, f_name = F(104), F(58), F(60)
 
 
 def sstep(a, b, x):
@@ -59,37 +60,43 @@ for f in range(NF):
     ov = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(ov)
 
-    # hook, typed by 1.7 s
+    # hook: three lines land with the first three strikes (0.0, 0.3, 0.6 s), full text from the first frame of each line
     a = 1 - sstep(3.0, 3.4, t)
-    text_c(d, 230, typed('ONE MAN.', t, 0.0, 0.35), f_hook, CREAM, a)
-    if t >= 0.45:
-        text_c(d, 316, typed('ONE HAMMER.', t, 0.45, 0.5), f_hook, CREAM, a)
-    if t >= 1.05:
-        text_c(d, 402, typed('ONE MOUNTAIN.', t, 1.05, 0.6), f_hook, GOLD, a, stroke=8)
-    # mid caption (true: "people called me a lunatic")
-    a = sstep(6.4, 6.6, t) * (1 - sstep(9.4, 9.8, t))
+    for t0, y, s_, col, st in ((0.0, 230, 'ONE MAN.', CREAM, 7), (0.3, 316, 'ONE HAMMER.', CREAM, 7), (0.6, 402, 'ONE MOUNTAIN.', GOLD, 8)):
+        if t >= t0:
+            text_c(d, y, s_, f_hook, col, a * sstep(t0, t0 + 0.07, t), stroke=st)
+    # mid captions (true: "people called me a lunatic")
+    a = sstep(6.4, 6.6, t) * (1 - sstep(8.9, 9.3, t))
     if t >= 6.4:
         text_c(d, 286, typed('THEY CALLED HIM MAD.', t, 6.4, 0.8), f_cap, CREAM, a)
+    a = sstep(9.55, 9.75, t) * (1 - sstep(11.0, 11.4, t))
+    if t >= 9.55:
+        text_c(d, 286, typed('ANOTHER DAY. SAME BLOW.', t, 9.55, 0.9), f_cap, CREAM, a)
     # after the break
-    a = sstep(17.3, 17.45, t) * (1 - sstep(21.25, 21.55, t))
+    a = sstep(17.3, 17.45, t) * (1 - sstep(19.0, 19.3, t))
     if t >= 17.3:
         text_c(d, 236, typed('22 YEARS.', t, 17.3, 0.45), f_end, GOLD, a, stroke=8)
         text_c(d, 336, 'ONE HAMMER AND CHISEL.', f_small, CREAM, a * sstep(17.9, 18.2, t), stroke=5)
-    a = sstep(20.0, 20.2, t) * (1 - sstep(21.25, 21.55, t))
-    if a > 0.01:
-        # route legend, matched to the lines drawn in the scene
-        b = a * sstep(20.3, 20.5, t)
-        text_c(d, 408, 'HIS ROAD   15 KM', f_leg, GOLD, a, stroke=6)
-        text_c(d, 460, 'OLD ROAD   55 KM', f_leg, (240, 120, 100), b, stroke=6)
-        text_c(d, 520, 'ROUTES NOT TO SCALE', f_tag, TEAL, b * 0.9, stroke=4, spacing=3)
-    # end line
-    a = sstep(21.7, 21.85, t) * (1 - sstep(23.2, 23.55, t))
+    # the comparison, readable in two seconds: OLD ROUTE 55 KM -> NEW ROUTE 15 KM
+    a = (1 - sstep(21.25, 21.55, t))
+    if t >= 19.4 and a > 0.01:
+        b = sstep(19.4, 19.6, t) * a
+        text_c(d, 214, 'OLD ROUTE', f_leg, (240, 128, 108), b, stroke=6, spacing=4)
+        text_c(d, 262, '55 KM', f_big, (240, 96, 80), b, stroke=8)
+        c = sstep(20.2, 20.4, t) * a
+        text_c(d, 396, 'NEW ROUTE', f_leg, GOLD, c, stroke=6, spacing=4)
+        text_c(d, 444, '15 KM', f_big, GOLD, c, stroke=8)
+        text_c(d, 548, 'ROUTES NOT TO SCALE', f_tag, TEAL, c * 0.9, stroke=4, spacing=3)
+    # the achievement and the attribution
+    a = sstep(21.7, 21.85, t) * (1 - sstep(23.25, 23.55, t))
     if t >= 21.7:
-        text_c(d, 236, typed('HE MOVED', t, 21.7, 0.35), f_end, CREAM, a, stroke=8)
-        if t >= 22.05:
-            text_c(d, 322, typed('A MOUNTAIN.', t, 22.05, 0.45), f_end, GOLD, a, stroke=8)
-        text_c(d, 430, 'TRUE STORY: DASHRATH MANJHI', f_tag, TEAL, a * sstep(22.4, 22.6, t), stroke=4, spacing=2)
-        text_c(d, 466, 'GEHLAUR, BIHAR, 1960-1982', f_tag, TEAL, a * sstep(22.4, 22.6, t), stroke=4, spacing=2)
+        text_c(d, 214, typed('110 METRES CARVED.', t, 21.7, 0.55), f_end2, GOLD, a, stroke=8)
+        if t >= 22.1:
+            text_c(d, 300, typed('22 YEARS OF HIS LIFE.', t, 22.1, 0.6), f_end2, CREAM, a, stroke=8)
+        b = a * sstep(22.5, 22.7, t)
+        text_c(d, 430, 'DASHRATH MANJHI', f_name, CREAM, b, stroke=7, spacing=2)
+        text_c(d, 496, 'GEHLAUR, BIHAR  /  1960-1982', f_leg, TEAL, b, stroke=5, spacing=2)
+        text_c(d, 548, 'TRUE STORY', f_leg, TEAL, b, stroke=5, spacing=6)
 
     # year counter, under the hook lines (the lower third belongs to him)
     a = sstep(0.0, 0.05, t) * (1 - sstep(21.25, 21.55, t))

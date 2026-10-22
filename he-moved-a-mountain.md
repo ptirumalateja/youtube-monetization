@@ -1,10 +1,21 @@
-# Stickman: He Moved a Mountain (reel, concept #6 "habit time-lapse")
+# Stickman: He Moved a Mountain (reel, concept #6 "habit time-lapse"), v2
 
 Slow Light stickman series. 25.0 s, 1080x1920, 30 fps, wordless (no voiceover, no music in the file), loops.
 Brief: a wireman does one tiny action every day while the world around him ages, and the last frames reveal what it built. It had to feel different from One Step a Day (`one-step-a-day.md`): a different habit and a sharper reveal.
 
 - Source: `tools/one-hammer/` (`index.html` scene with `window.renderAt(t, samples)`, `render.js`, `shot.js`, `times.js`, `mix.py`, `compose.py`)
-- Final file: `final-reels/he-moved-a-mountain.mp4` in the project files (not in git), contact sheet `final-reels/he-moved-a-mountain_contact_2fps.jpg`
+- Final file (v2): `final-reels/he-moved-a-mountain_v2.mp4` (13.8 MB share encode) and `_v2_master.mp4` (45 MB, CRF 18), contact sheet `_v2_contact_2fps.jpg`. v1 files are kept next to them. Not in git.
+
+## 0. What changed in v2 (review notes applied)
+
+- **Historical wording:** he carved a **110 m shortcut** through the ridge; he did not build a 15 km road. The ending now shows OLD ROUTE 55 KM and NEW ROUTE 15 KM (the journey), with the carved 110 m highlighted bright on the map and "110 METRES CARVED. 22 YEARS OF HIS LIFE." The notes and publish copy say "shortcut/path", not "road".
+- **Rock:** ragged ledged walls with wandering width, ragged face, fractured strata and bumped normals in the rock shader, fake wall-base ambient occlusion, rubble that only exists behind the face, boulders on the ridge, branched trees with lumpy canopies.
+- **Grade ("Dust, Stone & Dawn"):** a grade pass (lift/gain/saturation/contrast/vignette/grain) keyed in four stages: warm ochre 1960s, slate 1970s, a lit blue night, a controlled golden dawn. No white-out at the break.
+- **Effort:** a slow close-up on a single day around 1968 ("ANOTHER DAY. SAME BLOW."), the follow camera stays much closer, and from 11.6 s his stoop deepens, his hammer arm no longer reaches full height and the last blows slow right down (last four at 14.4, 14.9, 15.45 and 16.0 s).
+- **Hook:** the three lines land on the first three strikes (0.0, 0.3, 0.6 s), fully typed on their first frame.
+- **Breakthrough:** the last strike is at 16.0 s, a crack spreads, near silence, one narrow beam of dawn comes through at about 16.4 s, and the wall slumps open at 16.6 s (beat drop, unchanged) as organic slabs and small rock that fall and settle, with light dust.
+- **Loop:** frame 749 vs frame 0 mean pixel difference 1.6 (of 255).
+- Counters unchanged (YEAR 1960 to 1982, M CARVED 0 to 110, asserted monotonic).
 
 ## 1. Concept
 
@@ -98,7 +109,7 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows (the 
 
 **YouTube description:**
 > One man. One hammer. One mountain.
-> In 1959 Dashrath Manjhi's wife Falguni Devi was badly hurt in a fall on the ridge outside their village, and she died. The nearest town with a doctor was far away round the ridge. In 1960 he started cutting a path through the ridge with a hammer and chisel. People called him mad. In 1982 he broke through: 110 m long, 9.1 m wide, up to 7.7 m deep. The trip became 15 km.
+> In 1959 Dashrath Manjhi's wife Falguni Devi was badly hurt in a fall on the ridge outside their village, and she died. The nearest town with a doctor was far away round the ridge. In 1960 he started cutting a path through the ridge with a hammer and chisel. People called him mad. In 1982 he broke through: a shortcut 110 m long, 9.1 m wide, up to 7.7 m deep. The trip between the two blocks dropped from 55 km to 15 km.
 > They call him the Mountain Man.
 >
 > A Slow Light tribute: real dimensions, routes not to scale. All visuals and sound made by Slow Light.
@@ -107,7 +118,7 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows (the 
 
 **Instagram / Facebook caption:**
 > He hit a mountain every day for 22 years. ⛏️
-> 110 m of rock. One hammer and chisel. 55 km became 15 km.
+> 110 m of rock. One hammer and chisel. His shortcut cut the trip from 55 km to 15 km.
 > True story: Dashrath Manjhi, Bihar, 1960-1982.
 > #mountainman #dashrathmanjhi #consistency #stickman #reels
 
@@ -115,7 +126,7 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows (the 
 
 **Upload settings:** 9:16, AI/synthetic media label on (synthetic scene), no music claimed in the file; if you add a track in Instagram, put its drop at 0:16.6.
 
-## 8. QA (final render, 22 Oct 2026)
+## 8. QA (v1 final render, 22 Oct 2026; v2 numbers below)
 
 - File: `final-reels/he-moved-a-mountain.mp4`, 1080x1920, 30 fps, H.264 CRF 18 + AAC 256k, 25.0 s, 18.6 MB (under the 30 MB chat limit). Contact sheet: `final-reels/he-moved-a-mountain_contact_2fps.jpg`.
 - Frame 0 is moving and the first strike lands on frame 2; hook fully typed by 1.7 s.
@@ -124,3 +135,5 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows (the 
 - Audio after AAC: -15.7 LUFS integrated, LRA 8.6 LU, true peak -0.9 dBTP. Held breath 16.0-16.6 s; one biggest hit at 16.60 s (the beat drop).
 - Loop: the last frame is the frame-0 camera on the ridge foot with the cut filled back in.
 - Known soft spots for a v2: the break frames are hazy (low dawn sun straight into the lens); the 3.4-4.4 s rise behind him is soft from motion blur; the town is simple blocks.
+
+v2: 1080x1920, 30 fps, 25.0 s. Master CRF 18 (45 MB, grain makes it large) and a CRF 24 share encode (13.8 MB). Audio after AAC: -16.4 LUFS integrated, LRA 7.8 LU, true peak -1.1 dBFS. Loop mean pixel difference 1.6. Known soft spots: the dawn plain beyond the cut still reads a little like water, the town is simple blocks, the crack is a bold zigzag rather than a hairline.

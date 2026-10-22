@@ -97,8 +97,6 @@ hit = np.zeros(NS); air = np.zeros(NS); nat = np.zeros(NS)
 # every strike has a sound; fast strikes blur into a whir that climbs a little as the years pass
 gaps = np.diff(np.concatenate([[-1.0], strikes]))
 for i, (st, gap) in enumerate(zip(strikes, gaps)):
-    if i == len(strikes) - 1:
-        continue  # the last strike belongs to the break
     slow = float(np.clip((gap - 0.05) / 0.3, 0, 1))
     p = pings[i % 4]
     if slow < 0.5:  # whir: short, pitched-up pings
@@ -109,7 +107,7 @@ for i, (st, gap) in enumerate(zip(strikes, gaps)):
     place(metal, p, st, g)
     if slow > 0.05:
         place(rock, thunks[i % 3], st + 0.002, 0.8 * slow)
-# the 3 slow night strikes ring out longer in the dark
+# the slow night strikes (and the last one at 16.0 s) ring out longer in the dark
 for st in strikes[(strikes > 14.9) & (strikes < DROP - 0.01)]:
     place(metal, reverb(np.concatenate([pings[1], np.zeros(SR)]), 2.4, 0.6)[: int(1.3 * SR)], st, 0.45)
 # hook: a canyon-sized first strike on frame 2
