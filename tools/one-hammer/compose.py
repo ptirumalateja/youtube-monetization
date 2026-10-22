@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 frames, timing_f, wav, out = sys.argv[1:5]
 crf = sys.argv[5] if len(sys.argv) > 5 else '18'
 T = json.load(open(timing_f))
-YEAR, MET, WT = T['year'], T['m'], T['wt']   # per video frame; WT is the world time the scene was authored in
+YEAR, MET, WT, DAY = T['year'], T['m'], T['wt'], T['day']   # per video frame; WT is the world time the scene was authored in
 DROP = T['drop']
 FPS, W, H = 30, 1080, 1920
 NF = len(YEAR)
@@ -47,7 +47,7 @@ def text_c(d, y, s, font, fill, alpha, stroke=7, spacing=0, x=None):
         d.text((x, y), s, font=font, fill=col, stroke_width=stroke, stroke_fill=ink)
 
 
-last_year, last_m = 0, -1.0
+last_year, last_m, last_day = 0, -1.0, 0
 cmd = ['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-', '-i', wav,
        '-c:v', 'libx264', '-preset', 'slow', '-crf', crf, '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-tune', 'film',
        '-af', 'volume=4.5dB,alimiter=limit=0.84:attack=2:release=80:level=disabled', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out]
@@ -65,18 +65,21 @@ for f in range(NF):
     for t0, y, s_, col, st in ((0.0, 230, '55 KM THE LONG WAY.', CREAM, 7), (0.3, 316, 'ONE MOUNTAIN.', CREAM, 7), (0.6, 402, 'ONE HAMMER.', GOLD, 8)):
         if t >= t0:
             text_c(d, y, s_, f_hook, col, a * sstep(t0, t0 + 0.07, t), stroke=st)
-    # mid captions (true: "people called me a lunatic")
+    # the conflict: the crowd laughs (true: "people called me a lunatic"), then nobody stays
+    a = sstep(1.2, 1.35, t) * (1 - sstep(2.7, 3.0, t))
+    if t >= 1.2:
+        text_c(d, 496, typed('THEY CALLED HIM MAD.', t, 1.2, 0.7), f_cap, CREAM, a)
     a = sstep(6.4, 6.6, t) * (1 - sstep(8.5, 8.8, t))
     if t >= 6.4:
-        text_c(d, 286, typed('THEY CALLED HIM MAD.', t, 6.4, 0.8), f_cap, CREAM, a)
+        text_c(d, 286, typed('NOBODY STAYED.', t, 6.4, 0.6), f_cap, CREAM, a)
     a = sstep(9.0, 9.2, t) * (1 - sstep(11.0, 11.4, t))
     if t >= 9.0:
         text_c(d, 286, typed('ANOTHER DAY. SAME BLOW.', t, 9.0, 0.9), f_cap, CREAM, a)
     # after the break
     a = sstep(17.3, 17.45, t) * (1 - sstep(19.0, 19.3, t))
     if t >= 17.3:
-        text_c(d, 236, typed('22 YEARS.', t, 17.3, 0.45), f_end, GOLD, a, stroke=8)
-        text_c(d, 336, 'ONE HAMMER AND CHISEL.', f_small, CREAM, a * sstep(17.9, 18.2, t), stroke=5)
+        text_c(d, 236, typed('8,030 DAYS.', t, 17.3, 0.5), f_end, GOLD, a, stroke=8)
+        text_c(d, 336, '22 YEARS. ONE HAMMER AND CHISEL.', f_small, CREAM, a * sstep(17.9, 18.2, t), stroke=5)
     # the comparison, readable in two seconds: OLD ROUTE 55 KM -> NEW ROUTE 15 KM
     a = (1 - sstep(21.25, 21.55, t))
     if t >= 19.4 and a > 0.01:
@@ -92,7 +95,8 @@ for f in range(NF):
     if t >= 21.7:
         text_c(d, 214, typed('110 METRES CARVED.', t, 21.7, 0.55), f_end2, GOLD, a, stroke=8)
         if t >= 22.1:
-            text_c(d, 300, typed('22 YEARS OF HIS LIFE.', t, 22.1, 0.6), f_end2, CREAM, a, stroke=8)
+            text_c(d, 300, typed('ONE BLOW A DAY.', t, 22.1, 0.6), f_end, CREAM, a, stroke=8)
+            text_c(d, 384, 'ABOUT 1.4 CM A DAY, ON AVERAGE', f_tag, TEAL, a * sstep(22.7, 22.9, t), stroke=4, spacing=2)
         b = a * sstep(22.5, 22.7, t)
         text_c(d, 430, 'DASHRATH MANJHI', f_name, CREAM, b, stroke=7, spacing=2)
         text_c(d, 496, 'GEHLAUR, BIHAR  /  1960-1982', f_leg, TEAL, b, stroke=5, spacing=2)
@@ -102,8 +106,8 @@ for f in range(NF):
     a = sstep(0.0, 0.05, t) * (1 - sstep(18.9, 19.2, t))   # the counter has done its job once the comparison starts
     yr, m = YEAR[f], MET[f]
     if t < 23.6:
-        assert yr >= last_year and m >= last_m, (f, yr, last_year, m, last_m)   # counters only go up
-        last_year, last_m = yr, m
+        assert yr >= last_year and m >= last_m and DAY[f] >= last_day, (f, yr, last_year, m, last_m)   # counters only go up
+        last_year, last_m, last_day = yr, m, DAY[f]
     if a > 0.01:
         tick = 0.0
         if f > 0 and YEAR[f] != YEAR[f - 1]:
@@ -112,7 +116,7 @@ for f in range(NF):
             tick = 0.14 * (1 - (f - last_tick) / 5)
         pulse = 1 + tick + 0.18 * (2.718 ** (-max(0, t - DROP) / 0.2)) * (t >= DROP)
         fn = F(int(92 * pulse))
-        num, chip = f'{yr}', 'YEAR'
+        num, chip = f'{DAY[f]:,}', 'DAY'
         cw = d.textlength(chip, font=f_chip) + 30
         nw = d.textlength(num, font=fn)
         gap = 22
@@ -121,7 +125,7 @@ for f in range(NF):
         d.rounded_rectangle([x0, y0 + 18, x0 + cw, y0 + 18 + 64], radius=8, fill=RED + (int(240 * a),))
         d.text((x0 + 15, y0 + 22), chip, font=f_chip, fill=CREAM + (int(255 * a),))
         d.text((x0 + cw + gap, y0 + 50 - fn.size * 0.55), num, font=fn, fill=CREAM + (int(255 * a),), stroke_width=7, stroke_fill=INK + (int(235 * a),))
-        ms = f'{m:.1f} M CARVED' if m < 10 else f'{int(m)} M CARVED'
+        ms = f'YEAR {yr}   /   ' + (f'{m:.1f} M CARVED' if m < 10 else f'{int(m)} M CARVED')
         text_c(d, y0 + 118, ms, f_small, TEAL, a, stroke=5, spacing=4)
     frame = Image.alpha_composite(base.convert('RGBA'), ov).convert('RGB')
     ff.stdin.write(frame.tobytes())

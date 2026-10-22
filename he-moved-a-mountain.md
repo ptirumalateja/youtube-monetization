@@ -147,3 +147,11 @@ Render: three.js r0.170, headless Chromium + SwiftShader, PCF soft shadows (the 
 v2: 1080x1920, 30 fps, 25.0 s. Master CRF 18 (45 MB, grain makes it large) and a CRF 24 share encode (13.8 MB). Audio after AAC: -16.4 LUFS integrated, LRA 7.8 LU, true peak -1.1 dBFS. Loop mean pixel difference 1.6. Known soft spots: the dawn plain beyond the cut still reads a little like water, the town is simple blocks, the crack is a bold zigzag rather than a hairline.
 
 v3: 1080x1920, 30 fps, 17.0 s, 510 frames. Master CRF 18 (42 MB) and a CRF 24 share encode (9.7 MB). Audio after AAC: -14.9 LUFS integrated, LRA 5.1 LU, true peak -1.1 dBFS. Beat drop (the wall breaks) is at **9.6 s**; near silence from about 8.7 s. Loop mean pixel difference 3.8 (of 255). Hook strikes at 0.0, 0.23 and 0.47 s.
+
+
+## v4 change log (Conflict, Effort, Time, Reveal, Loop)
+- Conflict: nine slate villagers laugh ("HA" pops, "THEY CALLED HIM MAD.") beside the cut in the hook, then walk away one by one; "NOBODY STAYED."
+- Time: the counter is now DAY 1 to 8,030 (accelerating with the time warp), with YEAR and metres carved beneath it.
+- Reveal: the same villagers walk through the new opening after the beat drop (9.6 s), "8,030 DAYS.", the 55 km vs 15 km comparison, then "110 METRES CARVED." / "ONE BLOW A DAY." (about 1.4 cm a day, on average; the line is a metaphor) / Manjhi attribution.
+- Loop: the rewind ends on the crowd laughing at frame 0.
+- Audio: -14.9 LUFS, true peak -1.1 dBFS after AAC.
