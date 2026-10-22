@@ -1,0 +1,160 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/960;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H); document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x03060d);
+const FOV=60; const cam=new THREE.PerspectiveCamera(FOV,W/H,0.05,200);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const R=rnd(77);
+const TAN=Math.tan(FOV*Math.PI/360), HALF=H/2;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)); const sm=x=>{x=clamp(x);return x*x*(3-2*x)};
+const win=(t,a,b,c,d)=>sm((t-a)/(b-a))*(1-sm((t-c)/(d-c)));      // fade in a..b, hold, fade out c..d
+function keys(t,K){ if(t<=K[0][0])return K[0].slice(1); for(let i=0;i<K.length-1;i++){ if(t<K[i+1][0]){ const u=sm((t-K[i][0])/(K[i+1][0]-K[i][0])); return K[i].slice(1).map((v,j)=>v+(K[i+1][j+1]-v)*u);} } return K[K.length-1].slice(1); }
+
+// ---------------- shared field-position GLSL (dipole <-> torus morph) ----------------
+const FP=`
+const float PI=3.14159265;
+uniform float uM,uQ,uLmax,uR,uAmax,uEl;
+vec3 fpos(float u,float v,float s){
+  float L=mix(0.42,uLmax,pow(u,0.85));
+  float th0=asin(sqrt(0.1/L));
+  float th=th0+(PI-2.0*th0)*s;
+  float r=L*sin(th)*sin(th);
+  vec3 pd=vec3(r*sin(th)*cos(v), r*cos(th), r*sin(th)*sin(v));
+  float a=0.08+u*uAmax;
+  float al=2.0*PI*s+uQ*v;
+  vec3 pt=vec3((uR+a*cos(al))*cos(v), a*sin(al)*uEl, (uR+a*cos(al))*sin(v));
+  return mix(pd,pt,uM);
+}`;
+const common={uM:{value:0},uQ:{value:0},uLmax:{value:2.5},uR:{value:1.25},uAmax:{value:0.9},uEl:{value:1}};
+
+// ---------------- flowing field-line particles ----------------
+const NL=1500, NT=28, N=NL*NT;
+const pos=new Float32Array(N*3), aU=new Float32Array(N), aV=new Float32Array(N), aS=new Float32Array(N), aK=new Float32Array(N);
+for(let i=0;i<NL;i++){ const u=R(), v=R()*6.2831853, s=R(); for(let k=0;k<NT;k++){ const j=i*NT+k; aU[j]=u;aV[j]=v;aS[j]=s;aK[j]=k/(NT-1);} }
+const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pos,3)); pg.setAttribute('aU',new THREE.BufferAttribute(aU,1)); pg.setAttribute('aV',new THREE.BufferAttribute(aV,1)); pg.setAttribute('aS',new THREE.BufferAttribute(aS,1)); pg.setAttribute('aK',new THREE.BufferAttribute(aK,1));
+const pm=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,customProgramCacheKey:()=>'fieldpts',
+ uniforms:Object.assign({uT:{value:0},uWphi:{value:0},uAmp:{value:1},uK:{value:HALF/TAN},uSz:{value:SC},uColIn:{value:new THREE.Color(1,.78,.3)},uColOut:{value:new THREE.Color(.2,.85,.9)}},common),
+ vertexShader:FP+`attribute float aU,aV,aS,aK; uniform float uT,uWphi,uAmp,uK,uSz; uniform vec3 uColIn,uColOut; varying vec3 vc;
+  void main(){ float L=mix(0.42,uLmax,pow(aU,0.85)); float a=0.08+aU*uAmax;
+   float sp=mix(0.10/sqrt(L),0.12/sqrt(a),uM);
+   float s=fract(aS+uT*sp-aK*0.16); float v=aV+uT*uWphi*uM;
+   vec3 p=fpos(aU,v,s); vec4 mv=modelViewMatrix*vec4(p,1.0); float d=max(-mv.z,0.2);
+   gl_PointSize=clamp((1.0-aK*0.55)*0.055*uK/d*uSz,1.2*uSz,6.5*uSz);
+   float head=pow(1.0-aK,2.2);
+   float dens=mix(1.0/(0.35+L*L*0.9),1.0/(0.6+a*a*1.2),uM); vc=mix(uColIn,uColOut,pow(aU,0.7))*uAmp*dens*(0.03+0.6*head);
+   gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying vec3 vc; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(vc*a,a); }`});
+const pts=new THREE.Points(pg,pm); pts.frustumCulled=false; scene.add(pts);
+
+// ---------------- translucent "solid" shells ----------------
+const shells=[]; const SHU=[0.12,0.34,0.58,0.82,1.0];
+for(const u of SHU){
+  const g=new THREE.PlaneGeometry(1,1,120,80);
+  const m=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,customProgramCacheKey:()=>'shell'+u,
+   uniforms:Object.assign({uU:{value:u},uOp:{value:0},uGrid:{value:1},uColIn:{value:new THREE.Color(1,.78,.3)},uColOut:{value:new THREE.Color(.2,.85,.9)}},common),
+   vertexShader:FP+`uniform float uU; varying vec3 vP; varying vec2 vUv; void main(){ vUv=uv; float s=clamp(uv.x,0.0,0.999); float v=uv.y*2.0*PI; vec3 p=fpos(uU,v,s); vec4 mv=modelViewMatrix*vec4(p,1.0); vP=mv.xyz; gl_Position=projectionMatrix*mv; }`,
+   fragmentShader:`uniform float uOp,uU,uGrid; uniform vec3 uColIn,uColOut; varying vec3 vP; varying vec2 vUv;
+    void main(){ vec3 n=normalize(cross(dFdx(vP),dFdy(vP))); float f=1.0-abs(dot(n,normalize(-vP)));
+     float rim=pow(f,2.2); float gx=abs(fract(vUv.x*14.0)-0.5), gy=abs(fract(vUv.y*28.0)-0.5);
+     float gl=uGrid*(smoothstep(0.46,0.5,gx)+smoothstep(0.46,0.5,gy))*0.35;
+     vec3 c=mix(uColIn,uColOut,pow(uU,0.7)); float a=uOp*(0.03+0.4*rim+gl*0.6); gl_FragColor=vec4(c*a,a); }`});
+  const mesh=new THREE.Mesh(g,m); mesh.frustumCulled=false; mesh.renderOrder=2; scene.add(mesh); shells.push(m);
+}
+
+// ---------------- lights ----------------
+scene.add(new THREE.AmbientLight(0x5a6a88,0.9)); const key=new THREE.DirectionalLight(0xfff0d0,2.4); key.position.set(4,6,5); scene.add(key); const rim=new THREE.DirectionalLight(0x40c8ff,1.6); rim.position.set(-5,-2,-4); scene.add(rim);
+
+// ---------------- bar magnet ----------------
+const magnet=new THREE.Group();
+{ const mk=(y0,y1,col)=>{ const g=new THREE.CylinderGeometry(.2,.2,y1-y0,40,1); const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:col,metalness:.55,roughness:.32,transparent:true})); m.position.y=(y0+y1)/2; return m; };
+  magnet.add(mk(0,.5,0xd8392c)); magnet.add(mk(-.5,0,0x2d6fd0));
+  const capT=new THREE.Mesh(new THREE.SphereGeometry(.2,40,16,0,6.2832,0,1.5708),new THREE.MeshStandardMaterial({color:0xd8392c,metalness:.55,roughness:.32,transparent:true})); capT.position.y=.5; magnet.add(capT);
+  const capB=new THREE.Mesh(new THREE.SphereGeometry(.2,40,16,0,6.2832,1.5708,1.5708),new THREE.MeshStandardMaterial({color:0x2d6fd0,metalness:.55,roughness:.32,transparent:true})); capB.position.y=-.5; magnet.add(capB);
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(.205,.205,.03,40),new THREE.MeshStandardMaterial({color:0xf2ead8,emissive:0x333333,transparent:true})); magnet.add(band); }
+scene.add(magnet);
+
+// ---------------- Earth ----------------
+const earth=new THREE.Group();
+{ const cv=document.createElement('canvas'); cv.width=512; cv.height=256; const cx=cv.getContext('2d'); const im=cx.createImageData(512,256);
+  const hs=(x,y)=>{const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)};
+  const vn=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);return hs(xi,yi)*(1-u)*(1-v)+hs(xi+1,yi)*u*(1-v)+hs(xi,yi+1)*(1-u)*v+hs(xi+1,yi+1)*u*v};
+  for(let y=0;y<256;y++)for(let x=0;x<512;x++){ let h=0,a=.5,f=3; for(let o=0;o<5;o++){h+=a*vn((x/512*f)+(o*7.3),(y/256*f*0.5)+o*3.1);a*=.5;f*=2;} const lat=Math.abs(y/256-.5)*2; let r,g,b; if(h>0.55){ const t=(h-.55)*3; r=60+60*t+40*lat;g=110+50*t;b=60;} else {const t=h/.55; r=10;g=40+50*t;b=90+90*t;} if(lat>.86){r=g=b=235;} const i=(y*512+x)*4; im.data[i]=r;im.data[i+1]=g;im.data[i+2]=b;im.data[i+3]=255; }
+  cx.putImageData(im,0,0); const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace;
+  const s=new THREE.Mesh(new THREE.SphereGeometry(.6,64,48),new THREE.MeshStandardMaterial({map:tex,roughness:.8,metalness:0,transparent:true})); earth.add(s);
+  const atm=new THREE.Mesh(new THREE.SphereGeometry(.64,48,32),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false,uniforms:{uOp:{value:1}},vertexShader:`varying vec3 n; varying vec3 vp; void main(){ n=normalize(normalMatrix*normal); vec4 mv=modelViewMatrix*vec4(position,1.0); vp=mv.xyz; gl_Position=projectionMatrix*mv; }`,fragmentShader:`uniform float uOp; varying vec3 n; varying vec3 vp; void main(){ float f=pow(clamp(dot(normalize(-vp),-n)+0.25,0.0,1.0),2.0); gl_FragColor=vec4(vec3(.25,.6,1.)*f*uOp,f*uOp); }`})); earth.add(atm); earth.userData.atm=atm; }
+scene.add(earth);
+
+// ---------------- solar wind (flow past a sphere) ----------------
+const NW=700, NWT=7, RM=2.75, NS=330, DS=0.05, XS=7.5;
+const stream=new Float32Array(NW*NS*3), wphase=new Float32Array(NW);
+function vel(x,y,z){ const r2=x*x+y*y+z*z, r=Math.sqrt(r2), r3=r2*r, r5=r3*r2, R3=RM*RM*RM; const k=R3/2; return [-(1+k/r3)+3*k*x*x/r5, 3*k*x*y/r5, 3*k*x*z/r5]; }
+for(let i=0;i<NW;i++){ const b=0.4+3.4*Math.sqrt(R()), ps=R()*6.2832, cy=Math.cos(ps), sy=Math.sin(ps); let p=[XS,b*cy,b*sy]; wphase[i]=R();
+  for(let j=0;j<NS;j++){ stream.set(p,(i*NS+j)*3); let v1=vel(...p), l=Math.hypot(...v1); const mid=p.map((c,m)=>c+v1[m]/l*DS*.5); let v2=vel(...mid); l=Math.hypot(...v2); p=p.map((c,m)=>c+v2[m]/l*DS); const rr=Math.hypot(...p); if(rr<RM){p=p.map(c=>c*RM/rr);} } }
+const wpos=new Float32Array(NW*NWT*3), wk=new Float32Array(NW*NWT);
+for(let i=0;i<NW;i++)for(let k=0;k<NWT;k++)wk[i*NWT+k]=k/(NWT-1);
+const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.BufferAttribute(wpos,3)); wg.setAttribute('aK',new THREE.BufferAttribute(wk,1));
+const wm=new THREE.ShaderMaterial({transparent:true,depthTest:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uOp:{value:0},uK:{value:HALF/TAN},uSz:{value:SC}},
+ vertexShader:`attribute float aK; uniform float uK,uSz,uOp; varying vec3 vc; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); float d=max(-mv.z,.2); gl_PointSize=clamp((1.0-aK*.5)*.05*uK/d*uSz,1.2*uSz,5.0*uSz); vc=vec3(1.,.72,.28)*uOp*(0.3+2.2*pow(1.0-aK,2.0)); gl_Position=projectionMatrix*mv; }`,
+ fragmentShader:`varying vec3 vc; void main(){ float r=length(gl_PointCoord-.5)*2.0; float a=smoothstep(1.0,0.0,r); gl_FragColor=vec4(vc*a,a); }`});
+const wind=new THREE.Points(wg,wm); wind.frustumCulled=false; scene.add(wind);
+// sun glow marker (far +x)
+const sun=new THREE.Mesh(new THREE.SphereGeometry(1.4,32,24),new THREE.MeshBasicMaterial({color:0xffc060,transparent:true,opacity:0})); sun.position.set(14,0,0); scene.add(sun);
+
+// ---------------- current loop wire + tokamak hardware ----------------
+const wire=new THREE.Mesh(new THREE.TorusGeometry(1.25,.05,16,160),new THREE.ShaderMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,uniforms:{uT:{value:0},uOp:{value:0}},
+ vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+ fragmentShader:`uniform float uT,uOp; varying vec2 vUv; void main(){ float p=0.55+0.45*sin((vUv.x*24.0-uT*6.0)*3.14159); vec3 c=vec3(1.0,.62,.2)*(0.35+0.8*p); gl_FragColor=vec4(c*uOp,uOp); }`}));
+wire.rotation.x=Math.PI/2; scene.add(wire);
+const toka=new THREE.Group();
+{ const cm=new THREE.MeshStandardMaterial({color:0x8a97aa,metalness:.85,roughness:.28,transparent:true});
+  for(let i=0;i<16;i++){ const g=new THREE.TorusGeometry(1.0,.075,14,48); const m=new THREE.Mesh(g,cm); m.scale.set(1,1.3,1); const a=i/16*6.2832; m.position.set(1.25*Math.cos(a),0,1.25*Math.sin(a)); m.rotation.y=-a; toka.add(m); } toka.userData.cm=cm;
+  const base=new THREE.MeshStandardMaterial({color:0x2a3446,metalness:.7,roughness:.4,transparent:true}); const ring=new THREE.Mesh(new THREE.TorusGeometry(1.25,.09,12,120),base); ring.rotation.x=Math.PI/2; ring.position.y=-1.5; ring.scale.set(1.8,1.8,1.8); toka.add(ring); toka.userData.base=base; }
+scene.add(toka);
+
+// ---------------- faint star dust ----------------
+{ const n=1600, p=new Float32Array(n*3); for(let i=0;i<n;i++){ const th=R()*6.2832, ph=Math.acos(2*R()-1), r=40; p[i*3]=r*Math.sin(ph)*Math.cos(th); p[i*3+1]=r*Math.cos(ph); p[i*3+2]=r*Math.sin(ph)*Math.sin(th); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x8fa4c8,size:1.5*SC,sizeAttenuation:false,transparent:true,opacity:.55}))); }
+
+// ---------------- post ----------------
+const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,cam)); const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.55,0.45,0.55); composer.addPass(bloom); composer.addPass(new OutputPass());
+
+function setOp(o,v){ o.traverse(c=>{ if(c.material){ c.material.opacity=v; } c.visible=v>0.01||c===o; }); o.visible=v>0.01; }
+const C=(r,g,b)=>new THREE.Color(r,g,b);
+
+// ---------------- timeline ----------------
+const CAM=[[0,7.2,20,16,0],[2.4,7.4,50,22,0],[4.8,7.6,110,60,0],[6.2,8.4,150,30,0],[10.5,8.8,205,16,0],[14,6.9,250,34,0],[15.2,7.2,280,10,0],[17.4,7.0,300,14,0],[18.5,6.4,330,24,0.0],[21.5,7.2,370,30,0],[25,7.2,380,16,0]];
+window.renderAt=function(t,exp){
+  const m=sm((t-10.6)/2.2)*(1-sm((t-21.8)/1.9));           // dipole -> torus -> dipole
+  const qk=sm((t-17.2)/0.9)*(1-sm((t-21.6)/0.7));           // helical twist (tokamak)
+  const tt=t; common.uM.value=m; common.uQ.value=Math.round(3*qk*100)/100; common.uEl.value=1+0.3*qk;
+  pm.uniforms.uT.value=tt; pm.uniforms.uWphi.value=0.05+0.12*qk;
+  // colours
+  const smoke=win(t,14.2,15.0,17.2,17.9), hot=qk, wireCol=win(t,11.0,12.0,14.4,15.2);
+  const cin=C(1,.78,.3).lerp(C(.95,.92,.85),smoke).lerp(C(1,.5,.18),hot), cout=C(.2,.85,.9).lerp(C(.7,.8,.9),smoke).lerp(C(.35,.6,1),hot*0.6);
+  pm.uniforms.uColIn.value.copy(cin); pm.uniforms.uColOut.value.copy(cout);
+  const shellBase=0.35+0.65*win(t,1.3,2.6,5.0,7.0)*1.0; shells.forEach((s,i)=>{ s.uniforms.uOp.value=(0.4+0.6*win(t,1.3,2.8,6.0,7.5))*(i%2?0.8:1)*(0.55+0.45*Math.min(1,win(t,1.0,2.4,24,25))); s.uniforms.uColIn.value.copy(cin); s.uniforms.uColOut.value.copy(cout); s.uniforms.uGrid.value=1; });
+  pm.uniforms.uAmp.value=(1.0+0.35*win(t,0,0.2,0.5,1.4))*(1-0.45*smoke)*(1-0.25*wireCol);
+  // objects
+  const mag=win(t,-1,0,5.6,7.2)+win(t,21.8,23.2,26,27); setOp(magnet,clamp(mag));
+  const ea=win(t,5.8,7.2,10.0,11.4); setOp(earth,ea); earth.userData.atm.material.uniforms.uOp.value=ea; earth.rotation.y=t*0.25;
+  wm.uniforms.uOp.value=win(t,6.6,7.6,10.0,11.0); sun.material.opacity=0.0;
+  { const ph=(t*0.09); for(let i=0;i<NW;i++){ const f=((wphase[i]+ph)%1); for(let k=0;k<NWT;k++){ const fi=Math.max(0,f*(NS-1)-k*2.2); const j0=Math.floor(fi), j1=Math.min(NS-1,j0+1), w=fi-j0; const a=(i*NS+j0)*3,b=(i*NS+j1)*3, o=(i*NWT+k)*3; wpos[o]=stream[a]+(stream[b]-stream[a])*w; wpos[o+1]=stream[a+1]+(stream[b+1]-stream[a+1])*w; wpos[o+2]=stream[a+2]+(stream[b+2]-stream[a+2])*w; } } wg.attributes.position.needsUpdate=true; }
+  wire.material.uniforms.uOp.value=wireCol; wire.material.uniforms.uT.value=t; wire.visible=wireCol>0.01;
+  const ta=win(t,17.3,18.4,21.2,22.2); setOp(toka,ta);
+  // camera
+  const [d,az,el,ly]=keys(t,CAM); const A=az*Math.PI/180, E=el*Math.PI/180;
+  cam.position.set(d*Math.cos(E)*Math.sin(A),d*Math.sin(E)+ly,d*Math.cos(E)*Math.cos(A)); cam.lookAt(0,ly*0.0,0);
+  // frame-0 punch and tokamak breath
+  bloom.strength=0.5+0.35*win(t,-0.1,0.0,0.25,0.9)+0.2*win(t,17.4,17.7,18.3,19.0);
+  composer.render();
+  return renderer.domElement.toDataURL('image/jpeg',0.92);
+};
+window.ready=true;
+</script></body></html>
