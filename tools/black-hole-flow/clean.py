@@ -13,12 +13,13 @@ CLIPS, TRACK = sys.argv[1], sys.argv[2]
 A, SA, B, SB = sys.argv[3], float(sys.argv[4]), sys.argv[5], float(sys.argv[6])
 W, H, FPS = 1080, 1920, 24
 DA, DB, X = 6.0, 6.0, 1.0           # shot lengths and dissolve (total 11 s)
+DELOGO = "delogo=x=856:y=1696:w=88:h=88"  # Veo sparkle watermark, bottom right of the 1080x1920 source
 
 
 def load(key, start, dur):
     path = subprocess.check_output(f"ls {CLIPS}/{key}*/*.mp4", shell=True, text=True).strip()
     raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-ss", str(start), "-i", path, "-t", str(dur + 0.1),
-                          "-vf", f"scale={W}:{H}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                          "-vf", f"scale={W}:{H},{DELOGO}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
                          capture_output=True, check=True).stdout
     return np.frombuffer(raw, np.uint8).reshape(-1, H, W, 3)
 

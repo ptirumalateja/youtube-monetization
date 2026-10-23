@@ -1,9 +1,8 @@
 # Black hole, clean cut (11 s, 9:16)
 
-Two versions, same edit: the galaxy long shot (6 s, slow eased zoom to 1.28x), a 1 s soft dissolve, then the second black hole (6 s, slow zoom to 1.35x with a 5 degree roll). No text, no whooshes, no effects. Calm drone bed (no riser); silent copies included.
+Files: black-hole-clean.mp4 (with sound) and black-hole-clean_silent.mp4.
 
-- black-hole-clean_ring.mp4: shot 3 = the ring. Same look as the galaxy shot, so the dissolve is seamless. A few loose light strands appear in the last 2 s.
-- black-hole-clean_vortex.mp4: shot 3 = the swirling vortex with debris. The rotation is much more visible and it stays clean throughout.
+Edit: it opens on Black_hole_with_accretion_disk_20261023133956 (the galaxy long shot) for 6 s with a slow eased zoom to 1.28x. A 1 s soft dissolve leads into Black_hole_with_accretion_disk_20261023133756 for 6 s, with a slow zoom to 1.35x and a 5 degree roll. The Gemini sparkle watermark is removed from both clips. There is no text and there are no effects, only a calm drone bed.
 
 ## Caption
 Stay with it. Watch how slowly light gives up.
