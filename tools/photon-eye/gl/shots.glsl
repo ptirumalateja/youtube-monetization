@@ -1,6 +1,7 @@
 #version 300 es
 precision highp float;
 uniform vec2 R;
+uniform float uT,uZ,uPX,uPY,uA,uR;   // local time, zoom, photon screen pos, shot param, roll
 out vec4 o;
 #define SHOT SHOT_ID
 
@@ -22,11 +23,14 @@ vec3 gold(float t){ // dark ember -> amber -> gold -> cream
 }
 
 // ---------------------------------------------------------------- 1: inside the Sun (tunnel of lit plasma)
-uniform float tw;   // twist
+vec2 rot2(vec2 v,float a){return mat2(cos(a),-sin(a),sin(a),cos(a))*v;}
 vec3 trap(vec2 uv){
  vec3 col=vec3(0);float T=1.;
- vec3 L=vec3(0.,.02,1.25);            // the photon
- const int N=72;
+ float zz=uZ>0.?uZ:1.;
+ uv=rot2(uv,uR)/zz;
+ vec2 ph=rot2(vec2(uPX,uPY),uR)/zz;
+ vec3 L=vec3(ph*1.25,1.25);            // the photon (lights the fog wherever it is)
+ const int N=60;
  float jit=h31(vec3(gl_FragCoord.xy,7.));
  for(int i=0;i<N;i++){
   float fi=(float(i)+jit)/float(N);
@@ -34,9 +38,9 @@ vec3 trap(vec2 uv){
   float dz=2.4/float(N);
   vec2 w=uv*z;
   float r=length(w*vec2(1.,.62));
-  float a=.35*z+.07/(r+.1);
+  float a=.35*z+.07/(r+.1)+uT*.05;
   w=mat2(cos(a),-sin(a),sin(a),cos(a))*w;
-  float s=smoke(vec3(w*2.0,z*2.4),8);
+  float s=smoke(vec3(w*2.0,z*2.4-uT*.32),8);
   float wall=smoothstep(.42,.95,r+.45*(s-.5));
   float d=smoothstep(.48,.66,s)*wall;
   d+=.35*smoothstep(.60,.72,s)*(1.-wall);   // thin veils drifting in the hollow
@@ -63,7 +67,7 @@ vec3 escape(vec2 uv){
  vec2 q=uv-C;float an=atan(q.y,q.x);
  // photosphere: billowing plasma with dark lanes, limb darkened
  if(d<0.){
-  float s=smoke(vec3(q*6.5,.0),8);
+  float s=smoke(vec3(q*6.5,uT*.22),8);
   float gr=1.-abs(fbm(vec3(q*30.,1.),4)*2.-1.);
   float t=smoothstep(.30,.80,s)*.65+.35*gr;
   float limb=smoothstep(0.,.30,-d);
@@ -73,7 +77,7 @@ vec3 escape(vec2 uv){
  }
  // corona: smoky wisps streaming off the limb
  if(d>0.){
-  float s=smoke(vec3(an*5.,d*4.,.7),7);
+  float s=smoke(vec3(an*5.,d*4.-uT*.7,.7+uT*.1),7);
   float wisps=smoothstep(.40,.80,s)*exp(-d*4.5)*1.3+exp(-d*16.)*.8;
   col+=wisps*gold(.45+.45*s)*1.15;
   col+=exp(-d*2.5)*vec3(.30,.09,.02);
@@ -81,21 +85,24 @@ vec3 escape(vec2 uv){
  // shockwave: a soft dome of light (no hard shell) + a jet of plasma torn up behind the photon
  vec2 sv=(uv-sp)*vec2(1.,1.25);
  float rr=length(sv);
- float sm=smoke(vec3(sv*5.,3.1),8);
+ float sm=smoke(vec3(sv*5.,3.1+uT*.3),8);
  float above=smoothstep(-.03,.04,d);
- float x=rr-.55;
+ float x=rr-(.12+.48*smoothstep(0.,1.3,uT));
  float fres=.15+1.2*pow(abs(sv.x)/max(rr,1e-3),5.);
  col+=above*exp(-abs(x)*9.)*fres*(.35+.5*sm)*vec3(1.3,.65,.2);
  col+=above*exp(-rr*3.2)*.55*vec3(1.2,.6,.18);
  vec2 jp=uv-sp;float hgt=max(jp.y,0.);
  float wid=.035+hgt*.22;
- float js=smoke(vec3(jp.x*7.,jp.y*3.5,5.),8);
- float jet=exp(-pow(jp.x/wid,2.))*smoothstep(.0,.02,jp.y)*exp(-hgt*2.2)*smoothstep(.35,.7,js);
+ float js=smoke(vec3(jp.x*7.,jp.y*3.5-uT*1.6,5.),8);
+ float reach=.12+.75*uT;
+ float jet=exp(-pow(jp.x/wid,2.))*smoothstep(.0,.02,jp.y)*exp(-hgt*2.2)*smoothstep(.35,.7,js)*smoothstep(reach,reach-.2,hgt);
  col+=above*jet*gold(.5+.5*exp(-hgt*4.))*(1.+4.*exp(-hgt*6.));
  // rim light racing along the limb from the break-out
- col+=exp(-abs(d)/.007)*exp(-abs(uv.x-sp.x)*1.6)*vec3(3.,2.,1.1)*1.2+exp(-abs(d)/.05)*exp(-abs(uv.x-sp.x)*2.)*vec3(1.2,.5,.12)*.8;
+ float spread=.10+.95*smoothstep(0.,1.6,uT);float ax=abs(uv.x-sp.x);
+ float along=exp(-pow(ax/spread,2.))+exp(-pow((ax-spread)/.05,2.))*1.4;
+ col+=exp(-abs(d)/.007)*along*vec3(3.,2.,1.1)*1.2+exp(-abs(d)/.05)*along*vec3(1.2,.5,.12)*.8;
  // the burst at the surface
- col+=exp(-length((uv-sp)*vec2(.7,1.6))*9.)*vec3(4.,3.,2.);
+ col+=exp(-length((uv-sp)*vec2(.7,1.6))*9.)*vec3(4.,3.,2.)*(.45+1.8*exp(-uT*2.5));
  return col;
 }
 
@@ -103,7 +110,7 @@ vec3 escape(vec2 uv){
 vec3 earth(vec2 p,float r){
  float d=length(p);if(d>r)return vec3(-1);
  vec3 n=vec3(p/r,sqrt(max(0.,1.-dot(p,p)/(r*r))));
- vec2 q=n.xy/(n.z+.6)*1.6+vec2(.3,.1);
+ vec2 q=n.xy/(n.z+.6)*1.6+vec2(.3+uT*.06,.1);
  float land=smoothstep(.52,.56,fbm(vec3(q*2.2,3.),6));
  float cl=smoothstep(.55,.75,smoke(vec3(q*3.,9.),5));
  vec3 c=mix(vec3(.02,.10,.32),vec3(.20,.32,.12),land);c=mix(c,vec3(.95),cl*.85);
@@ -114,7 +121,8 @@ vec3 earth(vec2 p,float r){
 }
 vec3 eye(vec2 uv){
  vec2 c=vec2(0.,.0);
- vec2 p=(uv-c)*.80;float r=length(p)/.80;float a=atan(p.y,p.x);
+ float zz=uZ>0.?uZ:1.;
+ vec2 p=(uv-c)*.80/zz;float r=length(p)/.80;float a=atan(p.y,p.x);
  // lids crop the iris top and bottom: macro framing
  float u=p.x/1.25;
  float top=.80*pow(max(0.,1.-u*u),.75)-.02, bot=-.70*pow(max(0.,1.-u*u),1.0)+.02;
@@ -122,7 +130,7 @@ vec3 eye(vec2 uv){
  vec2 Ld=normalize(vec2(-.45,1.));
  float lightside=.5+.5*dot(normalize(p+1e-4),Ld);
  // iris: fine radial fibres woven with a coarser layer, gold flecks near the pupil, deep blue-grey outer ring
- float fib=fbm(vec3(a*60.,r*4.,1.),6);
+ float fib=fbm(vec3(a*60.,r*4.+sin(uT*2.3)*.03,1.+uT*.06),6);
  float fib2=fbm(vec3(a*14.,r*2.,5.),5);
  float wav=fbm(vec3(a*24.+fib2*3.,r*9.,9.),5);
  float t=smoothstep(.38,.80,fib*.6+wav*.5);t=.10+.9*t*t*(.6+.6*fib2);
@@ -133,14 +141,14 @@ vec3 eye(vec2 uv){
  ir*=mix(1.,.04,smoothstep(.82,1.,r));                                // limbal ring
  ir*=.30+1.1*smoothstep(1.,.3,r);
  ir*=.35+1.25*lightside;
- float pr=.25;
+ float pr=uA>0.?uA:.25;
  ir*=smoothstep(pr,pr+.10,r)*.6+.4;                                    // shadowed pupil margin
  vec3 sc=vec3(.70,.62,.58)*(.18+.6*smoothstep(1.7,.95,r))*(.35+.7*lightside);
  vec3 col=mix(sc,ir,smoothstep(1.015,.985,r));
  col=mix(col,vec3(.003,.002,.004),smoothstep(pr+.006,pr-.006,r));
  // Earth reflected in the pupil (cornea as a curved mirror: small, soft, bright)
  vec3 e=earth(p-vec2(.035,.03),.085);
- if(e.x>=0.)col=mix(col,e*.95,.85);
+ if(e.x>=0.)col=mix(col,e*.95,.85*(1.-smoothstep(1.4,2.6,zz)));
  // cornea: big soft window reflection + sharp sun catchlight
  col+=exp(-pow(length((p-vec2(-.28,.30))*vec2(1.,1.6))/.16,2.))*.16*vec3(1.,.88,.7)*smoothstep(1.1,.9,r);
  col+=exp(-pow(length(p-vec2(-.27,.29))/.012,2.))*3.5*vec3(1.,.95,.85);
@@ -155,7 +163,7 @@ vec3 eye(vec2 uv){
 // ---------------------------------------------------------------- 4: the sunset sky
 vec3 sky(vec2 uv){
  float hz=-.42;
- vec2 S=vec2(.34,hz+.05);
+ vec2 S=vec2(.34,hz+.05-uT*.012);
  float h=uv.y-hz;
  float d=length((uv-S)*vec2(1.,1.15));
  vec3 col=mix(vec3(1.7,.70,.20),vec3(.95,.30,.12),smoothstep(0.,.35,h));
@@ -166,7 +174,7 @@ vec3 sky(vec2 uv){
  for(int i=0;i<2;i++){
   float fi=float(i);
   float y0=.12+fi*.32;
-  float cl=smoke(vec3(uv.x*(1.3+fi*.5)+fi*3.,(uv.y-hz-y0)*6.5,1.+fi*4.),7);
+  float cl=smoke(vec3(uv.x*(1.3+fi*.5)+fi*3.+uT*.05*(1.+fi),(uv.y-hz-y0)*6.5,1.+fi*4.+uT*.04),7);
   float band=exp(-pow((h-y0)/(.10+fi*.06),2.));
   float cd=smoothstep(.45,.70,cl)*band;
   float edge=smoothstep(.45,.55,cl)-smoothstep(.58,.75,cl);

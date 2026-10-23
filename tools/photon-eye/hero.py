@@ -103,12 +103,19 @@ def font(p, f=BOLD):
     return ImageFont.truetype(f, int(px(p)))
 
 
+SAFE_W = 900          # text stays at least 90 px from each edge (1080 wide) so small phones never crop it
+
+
 def put(img, lines, y, size, f=BOLD, col=CREAM, track=0, glow_col=None, shadow=.75):
-    """Centred lines; each line may be [(text, colour), ...]."""
+    """Centred lines; each line may be [(text, colour), ...]. Shrinks to fit the safe width."""
     base = img.convert('RGBA')
     sh = Image.new('L', img.size, 0); dsh = ImageDraw.Draw(sh)
     fg = Image.new('RGBA', img.size, (0, 0, 0, 0)); dfg = ImageDraw.Draw(fg)
     fo = font(size, f)
+    widest = max(sum(dfg.textlength(t, font=fo) for t, _ in (l if isinstance(l, list) else [(l, col)])) for l in lines)
+    if widest > px(SAFE_W):
+        size = size * px(SAFE_W) / widest
+        fo = font(size, f)
     for i, line in enumerate(lines):
         parts = line if isinstance(line, list) else [(line, col)]
         wtot = sum(dfg.textlength(t, font=fo) for t, _ in parts)
