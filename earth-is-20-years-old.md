@@ -112,3 +112,41 @@ Files: `final-reels/earth-is-20-years-old_v2.mp4` (share encode, 27.7 MB, 9.2 Mb
 - Rendered at 1350x2400 and downsampled to 1080x1920 (`SS=1.25`) for sharper, anti-aliased stars.
 - Galaxy: 560k stars (was 230k), sharper arm crests, 170 spurs/feathers off the arms, 900 young-star knots, a soft gas-glow layer along the arms (faded out near the camera), 60k finer dust blobs, a 3D stellar halo and 70 globular clusters above and below the disc, a mid-field star layer between camera and galaxy for parallax.
 - Camera: during the laps it sweeps about 40° in azimuth and drops from about 58° to 38° above the plane (more oblique, more depth) with a slight dolly; the twist shot trucks sideways. Bloom radius tightened and grain reduced for crispness.
+
+## 9. v3 (cinematic: every orbit is an event, four cutaways, a real final reveal)
+
+Built in `tools/galactic-years-v3/` (V1/V2 in `tools/galactic-years/` are untouched). 26.0 s, 1080x1920, 30 fps, rendered at 1350x2400 and downsampled. Files: `final-reels/earth-is-20-years-old_v3.mp4` (share encode, 29.9 MB, 9.2 Mb/s two-pass) and `_v3_master.mp4` (CRF 17, 84.7 MB). Measured after AAC: -14.8 LUFS, true peak -2.9 dBFS. Counter monotonic, ends at 19.7. `timeline.json` is the source of truth for every cut, card and beat.
+
+Why: V1/V2 sat on one galaxy composition from 3 s to 17 s and read like an infographic. V3 keeps the hook exactly as it was (frame-0 chase, "EARTH IS / 20 YEARS OLD." + "IN GALACTIC YEARS", same sound) and changes everything after it.
+
+- **Every lap is an event:** each completed orbit leaves a persistent golden trace (older laps dimmer), sends out a ripple ring from the Sun, flashes the Sun and gives the camera a small kick; one tick plus a shimmer bell per lap in the sound.
+- **Schematic orbit, labelled:** the Sun's path is drawn as a rosette (it swings in and out and bobs through the disc, so 20 laps never overlap into one ring). This is a schematic, not the real orbit, and the frame says "SCHEMATIC ORBIT · NOT TO SCALE".
+- **Four cutaways with continuous camera motion,** each opening on a lap count so the clock never stops: molten Earth with impactors (3.3-4.9 s), a plunge into an early ocean down to microbial cells (7.4-9.2 s), a sauropod at dusk under a golden orbit line, then the asteroid (11.8-14.4 s), a person on a hill under the Milky Way (16.0-17.6 s).
+- **Typography in three levels only,** upper-middle and off the trail: the big lap number (monotonic, asserted), a short event title on a red chip, an optional small note.
+- **Pace varies:** fast laps between the cutaways, slow for the dinosaurs, almost stopped for humans.
+- **Final reveal (17.6-22.6 s):** near face-on view of all 20 rosette laps; "ALL OF HUMAN HISTORY..." then a held breath, then the biggest hit on "...BARELY MOVES THE CLOCK." while the 0.5° sliver of modern humans glows at the Sun. Then a push into the Sun and a dive back to the frame-0 chase shot ("WE JUST GOT HERE."), so it loops.
+
+| Time | Shot | Text |
+|---|---|---|
+| 0-3.3 | hook chase, snap pull-back (unchanged) | hook; "1 GALACTIC YEAR = 1 LAP ≈230 MILLION YEARS" |
+| 3.3-4.9 | molten Earth, impacts, push in | 0.0 · EARTH FORMS · 4.54 BILLION YEARS AGO |
+| 4.9-7.4 | pull out from the Sun's neighbourhood, laps 1-4 | THE SUN marker; 1 LAP ≈ 230 MILLION YEARS |
+| 7.4-9.2 | ocean plunge into cells | 4.6 · LIFE · OLDEST FOSSILS ~3.5 BILLION YEARS AGO |
+| 9.2-11.8 | low oblique sweep, fastest laps | OXYGEN ~2.4 Ga; ANIMALS ~539 Ma |
+| 11.8-14.4 | dusk, dinosaur, orbit line, asteroid | DINOSAURS ~231 Ma; ASTEROID 66 Ma |
+| 14.4-16.0 | galaxy, red arc of the last 0.29 lap | LESS THAN ONE LAP AGO · 66 MILLION YEARS = 0.29 LAP |
+| 16.0-17.6 | person under the Milky Way | MODERN HUMANS ~300,000 YEARS AGO |
+| 17.6-22.6 | all 20 laps, then push to the Sun | ALL OF HUMAN HISTORY... / ...BARELY MOVES THE CLOCK. / MODERN HUMANS: ~300,000 YEARS ≈ 0.5° OF ONE LAP |
+| 22.6-26.0 | dive back to frame 0 | WE JUST GOT HERE. |
+
+Accuracy notes for V3: a galactic year is only known to roughly 220-250 million years (Teja's brief: 225-250); we use 230 and say "≈". All event dates are the ones in section 4. "Human history" in the caption means the whole Homo sapiens span (~300,000 years), stated in the small note so it is not read as recorded history only.
+
+Sound: same "orbital clockwork" family, plus synth rumble/crackle/impacts for the molten Earth, bubbles and a whoosh for the plunge, footsteps and an asteroid roar for the dinosaurs. Only external file: "wind.ogg" by sleepCircle (Freesound 22331, CC0). Rebuild: `RW=1080 RH=1920 SS=1.25 ./render_all.sh OUT/f3d3` (server `python3 -m http.server 8778` in the folder), then `python3 overlay3.py OUT/f3d3` and `python3 mix3.py` from the build folder, then the ffmpeg command in section 6 with `gy3_overlay.mov`, `gy3_mix.wav`, `-t 26`.
+
+### V3 publish copy note
+Use the same titles and hashtags as section 7. Swap the YouTube description's middle lines for:
+"Every lap the Sun makes around the Milky Way takes about 230 million years. Earth has made about 20.
+Lap 0: a molten planet. Lap 4.6: the oldest fossil life. Lap 18.7: dinosaurs. The asteroid hit 0.29 of a lap ago.
+All of human history barely moves the clock: about half a degree of one lap.
+Schematic orbit, not to scale. A galactic year is estimated at about 220-250 million years."
+Pinned comment stays. IG/FB first line: "All of human history barely moves the galactic clock. 🌌"
