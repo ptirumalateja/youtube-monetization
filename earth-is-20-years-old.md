@@ -150,3 +150,21 @@ Lap 0: a molten planet. Lap 4.6: the oldest fossil life. Lap 18.7: dinosaurs. Th
 All of human history barely moves the clock: about half a degree of one lap.
 Schematic orbit, not to scale. A galactic year is estimated at about 220-250 million years."
 Pinned comment stays. IG/FB first line: "All of human history barely moves the galactic clock. 🌌"
+
+## 10. v4 (one continuous shot: Earth itself laps the galaxy; V2's story and ending)
+
+Teja's verdict on V3: it felt like bits and pieces and strayed from the demonstration; the ask was V2, visually better. V4 goes back to the V2 timeline, text and sound, and makes it a single unbroken camera move. Built in `tools/galactic-years-v4/` (V1/V2 and V3 untouched). 25.0 s, 1080x1920, 30 fps, rendered at 1350x2400 and downsampled. Files: `final-reels/earth-is-20-years-old_v4.mp4` (share encode, 29.2 MB, 9.2 Mb/s two-pass) and `_v4_master.mp4` (CRF 17, 106.9 MB). Measured after AAC: -14.2 LUFS, true peak -2.8 dBFS. Counter monotonic, ends at 19.7.
+
+- **Earth instead of the glowing bead.** A lit globe with atmosphere, clouds, ocean glint and a soft era-coloured glow, riding the orbit with its trail. Its surface follows its age (Ma = 4540 - laps x 230): molten crack network, steam and first oceans (~4.4 Ga), dark green-teal iron-rich ocean with small cratons, microbial-mat tint on the shelves (~3.5 Ga), rust-red land and blue ocean after the oxygen rise (~2.4 Ga), the Huronian glaciation (~2.4-2.1 Ga), Rodinia (~1.1-0.75 Ga), Snowball Earth (~717-635 Ma), green land once plants spread (~470-370 Ma), Pangaea (~335-175 Ma), then today's coastlines from ~190 Ma on, an asteroid strike on the Yucatan at 66 Ma with a shock ring and impact-winter dust, and city lights on the night side at the very end. Present-day continents are Natural Earth (public domain, `world-atlas` npm package, rasterized by `make_earth.py`); earlier continent shapes are illustrative only.
+- **The galaxy is the backdrop and it is huge.** In the two close passages the camera rides with Earth (co-rotating, so the core stays put and the arms sweep past) and Earth is drawn big, not to scale, with the barred spiral towering behind it. In between, a wide oblique view shows the laps as V2 did, with Earth as a small globe plus a red marker.
+- **One camera move:** hook chase on today's Earth (unchanged framing idea, Earth now the subject) -> pull back while Earth's surface rewinds to molten -> dive to the newborn Earth (EARTH FORMS, FIRST OCEANS) -> Earth races away and the camera rises to the wide laps (LIFE, OXYGEN, ANIMALS) -> fly down to meet Earth for the last lap (FIRST DINOSAURS on Pangaea, continents drift apart, asteroid, DINOSAURS DIE OUT, TODAY) -> V2 ending unchanged (red 66-million-year arc, the last half degree, dive home to frame 0 for the loop).
+- No dinosaur figures or cutaway scenes: from space you see the planet, so the extinction is shown as the impact on the globe.
+- Text: V2's, with the marker now on Earth ("EARTH") and the tag moved below the globe.
+- Sound: V2 mix plus an asteroid streak and impact (synth). Only external file is still "wind.ogg" by sleepCircle (Freesound 22331, CC0).
+
+Accuracy note: it is the Sun, carrying Earth, that laps the galaxy; the Earth stands in for the Solar System. Galactic year ≈230 My (estimates 220-250).
+
+Rebuild: `node land_rings.js <world-atlas>/package <topojson-client.js> > land_rings.json && python3 make_earth.py land_rings.json`, serve the folder on 8779, `RW=1080 RH=1920 SS=1.25 ./render_all.sh OUT/f4`, then `python3 overlay.py OUT/f4` and `python3 mix_gy.py` in the build folder, and the section 6 ffmpeg command with `gy4_overlay.mov`, `gy4_mix.wav`, `-t 25`.
+
+### V4 publish copy note
+Use section 7 as is (V4 tells the same story). Optional first line for IG/FB: "Watch Earth change while it laps the galaxy 20 times. 🌍🌌"
