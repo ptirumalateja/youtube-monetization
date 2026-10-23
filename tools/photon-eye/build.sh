@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Full build: shader plates -> composited frames -> sound -> encodes. Usage: ./build.sh OUTDIR
+# Full build: shader plates -> composited frames -> sound -> encodes. Usage: ./build.sh OUTDIR  (ANIM=anim.py for v1)
 set -euo pipefail
 cd "$(dirname "$0")"
 O=${1:?outdir}
-python3 anim.py events "$O"
-python3 anim.py plates "$O"          # skips plates that already exist
-python3 anim.py frames "$O"          # skips frames that already exist
+A=${ANIM:-anim2.py}
+python3 "$A" events "$O"
+python3 "$A" plates "$O"          # skips plates that already exist
+python3 "$A" frames "$O"          # skips frames that already exist
 python3 sound.py "$O/events.json" "$O/mix.wav"
 V="-framerate 30 -i $O/frames/f%04d.png"
 ffmpeg -y -loglevel error $V -i "$O/mix.wav" -af "loudnorm=I=-15:TP=-2:LRA=11" -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p \

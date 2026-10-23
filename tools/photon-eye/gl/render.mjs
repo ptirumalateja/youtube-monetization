@@ -4,7 +4,7 @@ import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
 import fs from 'fs';
 import path from 'path';
 const dir = path.dirname(new URL(import.meta.url).pathname);
-const frag = fs.readFileSync(path.join(dir, 'shots.glsl'), 'utf8');
+const frag = fs.readFileSync(path.join(dir, process.env.SHADER || 'shots.glsl'), 'utf8');
 const jobs = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')).filter(j => !fs.existsSync(j.out));
 if (!jobs.length) process.exit(0);
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
@@ -27,7 +27,7 @@ await page.evaluate((frag) => {
     c.width = w; c.height = h; gl.viewport(0, 0, w, h);
     const l = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0);
     gl.uniform2f(gl.getUniformLocation(pr, 'R'), w, h);
-    for (const k of ['uT', 'uZ', 'uPX', 'uPY', 'uA', 'uR']) gl.uniform1f(gl.getUniformLocation(pr, k), u[k] || 0);
+    for (const k in u) { const l = gl.getUniformLocation(pr, k); if (l) gl.uniform1f(l, u[k]); }
     gl.enable(gl.SCISSOR_TEST);
     for (let y = 0; y < h; y += 64) { gl.scissor(0, y, w, 64); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish(); await new Promise(r => setTimeout(r, 0)); }
     gl.disable(gl.SCISSOR_TEST);
