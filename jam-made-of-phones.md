@@ -101,3 +101,22 @@ Rendering is headless Chromium with SwiftShader (CPU). Motion blur averages 2 su
 - Map captions match the narration: "MAPS SAW A JAM / AND SENT DRIVERS AROUND."
 - Sound design is ducked about 8 dB under the voice. Final master: -15.7 LUFS integrated, true peak -1.5 dBFS after AAC.
 - Voice credit: ElevenLabs-generated voiceover (disclose as synthetic voice on upload).
+
+## 9. v3 rebuild: "The road was empty" (`jam-made-of-phones-v3.mp4`, 22 s, no voiceover)
+
+Feedback applied: lead with the contradiction instead of the explanation, hold the wagon back, say 99 once, and make the sound tell the story. v1 and v2 are kept as they were. Source: `tools/phone-jam/index3.html`, `overlay3.py`, `mix3.py` (render with `PAGE=index3.html node render.js ...`; `proj.js` and `shot.js` take the same `PAGE` variable).
+
+| Time (s) | Shot | On-screen text | Sound |
+|---|---|---|---|
+| 0-2.4 | Road-level view of an empty night avenue that is already painted crimson, with a tiny figure far ahead. Fast dolly forward. | "THE ROAD WAS EMPTY." / "MAPS SAID: TRAFFIC JAM." + red chip | Phone alert chirps, big impact on frame 0, wind |
+| 2.4-6.2 | The dolly settles behind a lone figure pulling a wagon. Nothing else on the street. | "NOT ONE CAR." / "ONE PERSON." | Near silence, isolated footsteps (louder as the camera closes in), wagon wheels, a tightening low pulse |
+| 6.2-8.9 | The camera rises over the wagon. 99 phone screens light up in a cascade from the front of the wagon to the back. | "99 PHONES." (the only time the number appears), then the chip "REAL STORY · BERLIN 2020" and the credit | One ping becomes 99 (spacing shrinks, pitch climbs) |
+| 8.9-13.6 | Held breath, then a straight rise from the screens into the top-down map. The red line on the screens becomes the red road. | "THE MAP THOUGHT / THEY WERE CARS." | Silence, rising riser and rhythmic data pulses |
+| 13.6-18.5 | Aerial pull-back. The red block sits on an otherwise ordinary street grid, and a route draws around it. | "A JAM THAT / NEVER EXISTED." + "TRAFFIC JAM" chip + "YOU" | Heavy impact, sonar sweep, pluck arpeggio |
+| 18.5-22 | The camera drops back to the road-level opening composition (the loop). | "NO TRAFFIC. / JUST DATA." | Silence, one phone notification, swell into the frame-0 impact |
+
+Removed: the 0-to-99 counter, the changing average-speed readout, and the speed colour-coding of the road. None of them were measured data. The route that bends around the red block is a single illustrative "YOU" dot and does not claim how many real drivers were rerouted. Weckert's footage isn't used; the scene is a recreation, so no permission is needed. Master: -16.9 LUFS integrated, true peak -1.4 dBFS after AAC.
+
+**v3 publish copy.** Title: "The road was empty. Google Maps said traffic jam." Alt: "99 phones faked a traffic jam." Description: "The street was empty. Google Maps showed a traffic jam. In 2020 a Berlin artist, Simon Weckert, pulled 99 phones in a wagon down empty streets and the map read them as traffic ('Google Maps Hacks'). No traffic. Just data. Illustration, not to scale. Sources: Google Maps blog 'Google Maps 101' (2020); Google blog 'The bright side of sitting in traffic' (2009); Simon Weckert (2020). Sound: original. #GoogleMaps #Traffic #Shorts #DidYouKnow #SlowLight". Instagram/Facebook: "The road was empty. Maps said traffic jam. 🚗🟥 In 2020 an artist pulled 99 phones in a wagon and the map saw congestion. No traffic. Just data." Pinned comment: "Ever been stuck in traffic that turned out to be nothing?"
+
+If a voiceover is wanted for v3, a suggested script (about 19 s at a brisk pace): "This road was empty. Google Maps said traffic jam. One person. One wagon. 99 phones. The map thought they were cars. A jam that never existed. No traffic. Just data."
