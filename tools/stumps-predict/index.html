@@ -1,0 +1,373 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// "Would this ball hit the stumps?" (Slow Light, Oct 2026). Crimson Physics look.
+// World: metres. z runs down the pitch (batter's stumps at z=0, bowler's at 20.12), y up, +x = off side of a right-hander.
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+const q=new URLSearchParams(location.search); const W=+q.get('w')||720, H=+q.get('h')||1280; const SC=H/1280;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0; document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x020103); scene.fog=new THREE.FogExp2(0x070304,0.006);
+const cam=new THREE.PerspectiveCamera(40,W/H,0.02,2000);
+function rnd(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+const RND=rnd(2026);
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x)), lerp=(a,b,u)=>a+(b-a)*u;
+const sstep=(a,b,x)=>{const u=clamp((x-a)/(b-a),0,1);return u*u*(3-2*u)}, s5=(a,b,x)=>{const u=clamp((x-a)/(b-a),0,1);return u*u*u*(u*(6*u-15)+10)};
+
+// ------------------------------------------------------------------ physics (one off-break, simulated)
+const G=9.81, BR=0.036;                          // ball radius 3.6 cm (circumference ~22.6 cm)
+const P0=V(0.30,2.05,18.6), VZ0=-21.5, AZ=1.0, AX=0.18;   // release; drag decel; drift toward off
+const ZP=3.6, XP=0.25;                            // pitches 3.6 m from the batter's stumps, outside off
+const XS=-0.162;                                  // where the projected path crosses the stumps plane
+const T1=(()=>{const a=0.5*AZ,b=VZ0,c=P0.z-ZP;return(-b-Math.sqrt(b*b-4*a*c))/(2*a)})();
+const VY0=(BR-P0.y+0.5*G*T1*T1)/T1, VX0=(XP-P0.x-0.5*AX*T1*T1)/T1;
+const VB=V(VX0+AX*T1,VY0-G*T1,VZ0+AZ*T1);         // velocity at bounce
+const VY2=-0.55*VB.y, VZ2=0.86*VB.z, AZ2=0.8*AZ;  // restitution + friction at the bounce
+const T2=(()=>{const a=0.5*AZ2,b=VZ2,c=ZP;return(-b-Math.sqrt(b*b-4*a*c))/(2*a)})();
+const VX2=(XS-XP)/T2;
+function ballPos(t){ // t: seconds since release; continues past the stumps plane (projection)
+  if(t<=T1) return V(P0.x+VX0*t+0.5*AX*t*t, P0.y+VY0*t-0.5*G*t*t, P0.z+VZ0*t+0.5*AZ*t*t);
+  const u=t-T1; return V(XP+VX2*u, BR+VY2*u-0.5*G*u*u, ZP+VZ2*u+0.5*AZ2*u*u);
+}
+function timeAtZ(z){ const a=0.5*AZ2,b=VZ2,c=ZP-z; return T1+(-b-Math.sqrt(b*b-4*a*c))/(2*a); }
+const Z_IMP=2.28;                                 // ball centre when it meets the front pad
+const T_IMP=timeAtZ(Z_IMP), T_FREEZE=timeAtZ(Z_IMP+0.05), T_STUMP=timeAtZ(0);
+const PIMP=ballPos(T_IMP), PST=ballPos(T_STUMP);
+window.phys={T1,T2,VY0,VX0,VB:VB.toArray(),T_IMP,T_FREEZE,T_STUMP,PIMP:PIMP.toArray(),PST:PST.toArray(),
+  releaseKmh:Math.hypot(VZ0,VY0,VX0)*3.6, turnDeg:(Math.atan2(VX2,-VZ2)-Math.atan2(VB.x,-VB.z))*180/Math.PI,
+  gapCm:(Math.abs(PST.x)-BR-0.1143)*100};
+
+// ------------------------------------------------------------------ timeline (video seconds)
+const TF=4.2;           // freeze
+const PJ0=8.6, PJ1=13.75; // projection grows
+const RW0=18.0, END=19.0;
+function ballTime(T){
+  if(T<2.0) return 0.02+0.22*T;
+  if(T<TF){ const u=(T-2.0)/(TF-2.0), p=0.22*(TF-2.0)/(T_FREEZE-0.46); return 0.46+(T_FREEZE-0.46)*(1-Math.pow(1-u,p)); }
+  if(T<RW0) return T_FREEZE;
+  return lerp(T_FREEZE,0.02,s5(RW0,END,T));
+}
+function projProgress(T){ // 0 at the pad -> 1 at the stumps plane; held breath just short of the stumps
+  if(T<PJ0) return 0; if(T>=RW0) return Math.max(0,1-s5(RW0,RW0+0.5,T));
+  const a=13.0, b=13.45;
+  if(T<a) return 0.86*s5(PJ0,a,T)**0.85;
+  if(T<b) return 0.86+0.04*sstep(a,b,T);
+  return Math.min(1,0.90+0.10*sstep(b,PJ1,T));
+}
+
+// ------------------------------------------------------------------ textures
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;}
+const ballTex=canvasTex(1024,512,(g,w,h)=>{
+  g.fillStyle='#6d0a0c';g.fillRect(0,0,w,h);
+  for(let i=0;i<26000;i++){const x=RND()*w,y=RND()*h,r=RND()*2.2+0.4;g.fillStyle=`rgba(${120+RND()*70|0},${8+RND()*18|0},${12+RND()*14|0},${0.18+RND()*0.25})`;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+  const grd=g.createLinearGradient(0,0,0,h);grd.addColorStop(0,'rgba(0,0,0,0.25)');grd.addColorStop(0.5,'rgba(255,40,30,0.08)');grd.addColorStop(1,'rgba(0,0,0,0.25)');g.fillStyle=grd;g.fillRect(0,0,w,h);
+  // main seam: raised band on the equator with six rows of stitching
+  const y0=h/2; g.fillStyle='#4a0507';g.fillRect(0,y0-10,w,20);
+  g.fillStyle='#8c1414';g.fillRect(0,y0-2,w,4);
+  for(const row of [-8,-5,5,8]){ for(let x=0;x<w;x+=7){ g.fillStyle=row*row>30?'#e9dcc0':'#d9c7a4'; g.save();g.translate(x,y0+row);g.rotate(row>0?0.5:-0.5);g.fillRect(-2.6,-1.1,5.2,2.2);g.restore(); } }
+  // quarter seams (faint) on two meridians
+  for(const xm of [w*0.25,w*0.75]){ g.fillStyle='rgba(40,0,0,0.6)';g.fillRect(xm-1.5,0,3,h); for(let y=0;y<h;y+=9){g.fillStyle='rgba(210,190,160,0.35)';g.fillRect(xm-4,y,2,3);g.fillRect(xm+2,y+4,2,3);} }
+});
+const pitchTex=canvasTex(512,2048,(g,w,h)=>{
+  g.fillStyle='#8a7350';g.fillRect(0,0,w,h);
+  for(let i=0;i<60000;i++){const x=RND()*w,y=RND()*h;const v=RND();g.fillStyle=`rgba(${v>0.5?190:70},${v>0.5?160:55},${v>0.5?110:35},${0.05+RND()*0.12})`;g.fillRect(x,y,1+RND()*3,1+RND()*3);}
+  g.strokeStyle='rgba(40,28,15,0.45)';g.lineWidth=1.2;
+  for(let i=0;i<220;i++){let x=RND()*w,y=RND()*h;g.beginPath();g.moveTo(x,y);for(let k=0;k<6;k++){x+=(RND()-0.5)*30;y+=(RND()-0.5)*30;g.lineTo(x,y);}g.stroke();}
+  // worn footmarks near both ends
+  for(const yc of [h*0.07,h*0.93]){for(let i=0;i<500;i++){const x=w*(0.3+RND()*0.4),y=yc+(RND()-0.5)*h*0.06;g.fillStyle=`rgba(60,42,22,${RND()*0.18})`;g.beginPath();g.arc(x,y,2+RND()*6,0,7);g.fill();}}
+});
+const grassTex=canvasTex(1024,1024,(g,w,h)=>{
+  g.fillStyle='#16301a';g.fillRect(0,0,w,h);
+  for(let i=0;i<16;i++){g.fillStyle=i%2?'rgba(255,255,255,0.035)':'rgba(0,0,0,0.05)';g.fillRect(0,i*h/16,w,h/16);}
+  for(let i=0;i<40000;i++){g.fillStyle=`rgba(${RND()*40|0},${60+RND()*60|0},${RND()*40|0},0.12)`;g.fillRect(RND()*w,RND()*h,1,2);}
+});
+grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping; grassTex.repeat.set(6,6);
+
+// ------------------------------------------------------------------ lights
+scene.add(new THREE.HemisphereLight(0x3a1c22,0x050302,0.25));
+const flood1=new THREE.DirectionalLight(0xfff0e0,2.2); flood1.position.set(40,45,-40); scene.add(flood1);
+const flood2=new THREE.DirectionalLight(0xffe6d0,1.4); flood2.position.set(-45,40,50); scene.add(flood2);
+const rimL=new THREE.DirectionalLight(0xff3a2a,1.6); rimL.position.set(-30,10,-60); scene.add(rimL);
+const ballKey=new THREE.PointLight(0xffe2d0,3.0,3.0,1.5); scene.add(ballKey);
+const ballRim=new THREE.PointLight(0xff2a1a,4.0,3.0,1.5); scene.add(ballRim);
+
+// ------------------------------------------------------------------ ground, pitch, creases
+const ground=new THREE.Mesh(new THREE.CircleGeometry(78,96),new THREE.MeshStandardMaterial({map:grassTex,roughness:0.95,color:0x9fb0a0}));
+ground.rotation.x=-Math.PI/2; ground.position.set(0,-0.002,10); scene.add(ground);
+// pool of floodlight on the square (soft additive ellipse)
+const poolMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uA:{value:0.20}},
+  vertexShader:`varying vec2 vu;void main(){vu=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`varying vec2 vu;uniform float uA;void main(){vec2 c=(vu-0.5)*2.;float r=length(c);float a=exp(-r*r*2.2)*uA;gl_FragColor=vec4(vec3(1.0,0.82,0.7)*a,1.);}`});
+const pool=new THREE.Mesh(new THREE.PlaneGeometry(26,46),poolMat); pool.rotation.x=-Math.PI/2; pool.position.set(0,0.001,10); scene.add(pool);
+const pitch=new THREE.Mesh(new THREE.PlaneGeometry(3.05,22.0),new THREE.MeshStandardMaterial({map:pitchTex,roughness:0.9,color:0xb9a586}));
+pitch.rotation.x=-Math.PI/2; pitch.position.set(0,0.0,10.06); scene.add(pitch);
+const lineMat=new THREE.MeshBasicMaterial({color:0xfff4e6,toneMapped:false});
+const lineGlowMat=new THREE.MeshBasicMaterial({color:0xff6a50,transparent:true,opacity:0.18,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+function crease(x0,x1,z0,z1){ const len=Math.hypot(x1-x0,z1-z0); const m=new THREE.Mesh(new THREE.PlaneGeometry(0.05,len),lineMat);
+  m.rotation.x=-Math.PI/2; m.rotation.z=Math.atan2(x1-x0,z1-z0); m.position.set((x0+x1)/2,0.004,(z0+z1)/2); scene.add(m);
+  const gl=new THREE.Mesh(new THREE.PlaneGeometry(0.30,len+0.2),lineGlowMat); gl.rotation.copy(m.rotation); gl.position.copy(m.position); gl.position.y=0.005; scene.add(gl); }
+for(const [zs,dir] of [[0,1],[20.12,-1]]){
+  const zp=zs+dir*1.22;
+  crease(-1.32,1.32,zs,zs);                 // bowling crease
+  crease(-1.83,1.83,zp,zp);                 // popping crease
+  for(const xr of [-1.32,1.32]) crease(xr,xr,zs-dir*0.35,zp);   // return creases
+}
+// stumps (3 x 3.6 cm, 22.86 cm wide outside to outside, 71.1 cm tall) + bails
+const stumpMat=new THREE.MeshStandardMaterial({color:0xf3e6cf,roughness:0.5,emissive:0x5a3a2a,emissiveIntensity:0.35});
+const stumpGlowMat=new THREE.MeshBasicMaterial({color:0xffe9d6,toneMapped:false});
+const STUMP_X=[-0.0963,0,0.0963], STUMP_R=0.018, STUMP_H=0.711;
+const stumpsNear=new THREE.Group();
+function makeStumps(z,glow){ const gp=new THREE.Group();
+  for(const x of STUMP_X){ const s=new THREE.Mesh(new THREE.CylinderGeometry(STUMP_R,STUMP_R*0.92,STUMP_H-0.012,24),glow?stumpGlowMat:stumpMat); s.position.set(x,(STUMP_H-0.012)/2,z); gp.add(s);
+    const tip=new THREE.Mesh(new THREE.ConeGeometry(STUMP_R*0.9,0.05,16),stumpMat); tip.rotation.x=Math.PI; tip.position.set(x,-0.02,z); gp.add(tip); }
+  for(const xb of [-0.048,0.048]){ const b=new THREE.Mesh(new THREE.CapsuleGeometry(0.0065,0.09,4,10),glow?stumpGlowMat:stumpMat); b.rotation.z=Math.PI/2; b.position.set(xb,STUMP_H-0.004,z); gp.add(b); }
+  scene.add(gp); return gp; }
+const nearStumps=makeStumps(0,true); makeStumps(20.12,false);
+// soft halo behind the near stumps so they read against the dark
+const haloMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{uA:{value:0.5}},
+  vertexShader:`varying vec2 vu;void main(){vu=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`varying vec2 vu;uniform float uA;void main(){vec2 c=(vu-0.5)*2.;c.y*=0.8;float r=length(c);float a=exp(-r*r*3.0)*uA;gl_FragColor=vec4(vec3(1.0,0.35,0.25)*a,1.);}`});
+const halo=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),haloMat); halo.position.set(0,0.38,-0.25); scene.add(halo);
+
+// ------------------------------------------------------------------ stadium: stands, crowd specks, floodlight towers, boundary
+const standMat=new THREE.MeshStandardMaterial({color:0x140a0c,roughness:1,side:THREE.DoubleSide});
+for(let k=0;k<4;k++){ const r0=82+k*7, h0=2+k*5.5; const g=new THREE.CylinderGeometry(r0+7,r0,5.5,120,1,true); const m=new THREE.Mesh(g,standMat); m.position.set(0,h0+2.75,10); scene.add(m); }
+{ const N=60000,pos=new Float32Array(N*3),col=new Float32Array(N*3),R2=rnd(7);
+  for(let i=0;i<N;i++){ const k=R2()*4, th=R2()*Math.PI*2, r=82+k*7+R2()*0.3+ (k%1)*7; const y=2+Math.floor(k)*5.5+(k%1)*5.5+0.5;
+    pos.set([r*Math.cos(th),y,10+r*Math.sin(th)],i*3); const w=R2(); const c=w<0.08?[1,0.25,0.2]:w<0.5?[0.55,0.45,0.42]:[0.3,0.25,0.25]; const b=0.25+R2()*0.5; col.set([c[0]*b,c[1]*b,c[2]*b],i*3); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:0.35,vertexColors:true,transparent:true,opacity:0.8,depthWrite:false,fog:true}))); }
+const glowTex=canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(0.15,'rgba(255,230,210,0.6)');r.addColorStop(0.45,'rgba(255,120,90,0.12)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});
+const towerMat=new THREE.MeshStandardMaterial({color:0x0b0708,roughness:1});
+for(const [tx,tz] of [[-62,-38],[62,-38],[-62,58],[62,58],[0,-82]]){
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.6,1.0,44,8),towerMat); pole.position.set(tx,22,tz); scene.add(pole);
+  const face=V(-tx,0,10-tz).normalize();
+  for(let i=0;i<5;i++)for(let j=0;j<3;j++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xfff2e6,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+    const side=V(face.z,0,-face.x); s.position.set(tx+side.x*(i-2)*1.6,44+j*1.5,tz+side.z*(i-2)*1.6); s.scale.set(4.5,4.5,1); scene.add(s); }
+  const big=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff9a80,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); big.position.set(tx,45.5,tz); big.scale.set(34,34,1); scene.add(big);
+}
+{ const ring=new THREE.Mesh(new THREE.TorusGeometry(70,0.12,8,240),new THREE.MeshBasicMaterial({color:0xff3b2e,toneMapped:false})); ring.rotation.x=Math.PI/2; ring.position.set(0,0.12,10); scene.add(ring); }
+// floating dust in the light
+const dustMat=new THREE.PointsMaterial({size:0.03,color:0xffd2c0,transparent:true,opacity:0.35,depthWrite:false,blending:THREE.AdditiveBlending});
+{ const N=5000,pos=new Float32Array(N*3),R3=rnd(11); for(let i=0;i<N;i++) pos.set([(R3()-0.5)*8,R3()*4,-2+R3()*24],i*3);
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); scene.add(new THREE.Points(g,dustMat)); }
+
+// ------------------------------------------------------------------ ball
+const ballMat=new THREE.MeshPhysicalMaterial({map:ballTex,roughness:0.42,clearcoat:0.8,clearcoatRoughness:0.25,emissive:0x2a0202,emissiveIntensity:0.6});
+const ball=new THREE.Mesh(new THREE.SphereGeometry(BR,64,32),ballMat); scene.add(ball);
+const ballGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff2a18,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending}));
+ballGlow.scale.set(0.32,0.32,1); scene.add(ballGlow);
+const SPIN_AXIS=V(0.55,0.25,-0.80).normalize();   // off-break: side spin with a little top spin, seam roughly upright
+const seamQ=new THREE.Quaternion().setFromUnitVectors(V(0,1,0),SPIN_AXIS);
+function spinAngle(tb){ return tb*2*Math.PI*6.0; } // drawn slower than a real ~25 rev/s so the seam reads on screen
+
+// ------------------------------------------------------------------ trail (actual path) and projection (predicted path)
+function pointsMat(key){ const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,
+  uniforms:{uK:{value:H/2/Math.tan(20*Math.PI/180)},uMax:{value:40*SC}},
+  vertexShader:`attribute vec3 color;attribute float aSize;varying vec3 vc;uniform float uK,uMax;
+    void main(){vec4 mv=modelViewMatrix*vec4(position,1.);float d=max(-mv.z,0.01);gl_PointSize=clamp(aSize*uK/d,0.0,uMax);
+      float near=smoothstep(0.12,0.5,d); vc=color*near*min(1.0,aSize*uK/d/1.2); gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`varying vec3 vc;void main(){vec2 c=gl_PointCoord-0.5;float r=length(c)*2.;float a=smoothstep(1.,0.,r);a=a*a;gl_FragColor=vec4(vc*a,1.);}`});
+  m.customProgramCacheKey=()=>key; return m; }
+const TRN=1400; const trailGeo=new THREE.BufferGeometry();
+trailGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(TRN*3),3));
+trailGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(TRN*3),3));
+trailGeo.setAttribute('aSize',new THREE.BufferAttribute(new Float32Array(TRN),1));
+const trailMat=pointsMat('trail'); const trail=new THREE.Points(trailGeo,trailMat); trail.frustumCulled=false; scene.add(trail);
+const PJN=420; const projGeo=new THREE.BufferGeometry();
+projGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(PJN*3),3));
+projGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(PJN*3),3));
+projGeo.setAttribute('aSize',new THREE.BufferAttribute(new Float32Array(PJN),1));
+const projPts=new THREE.Points(projGeo,pointsMat('proj')); projPts.frustumCulled=false; scene.add(projPts);
+const ghostMat=new THREE.MeshPhysicalMaterial({color:0xffe6cc,roughness:0.3,transparent:true,opacity:0.55,emissive:0xff6a40,emissiveIntensity:0.6,depthWrite:false});
+const ghost=new THREE.Mesh(new THREE.SphereGeometry(BR,48,24),ghostMat); scene.add(ghost);
+const ghostRing=new THREE.Mesh(new THREE.TorusGeometry(BR*1.02,0.0016,8,64),new THREE.MeshBasicMaterial({color:0xfff0dc,toneMapped:false,transparent:true}));
+scene.add(ghostRing);
+// pitch mark (where it bounced) and the impact mark on the pad
+const markMat=new THREE.MeshBasicMaterial({color:0xff3322,transparent:true,opacity:0,toneMapped:false,depthWrite:false,blending:THREE.AdditiveBlending});
+const pitchMark=new THREE.Mesh(new THREE.RingGeometry(0.035,0.05,48),markMat); pitchMark.rotation.x=-Math.PI/2; pitchMark.scale.set(1,1.8,1); pitchMark.position.set(XP,0.006,ZP); scene.add(pitchMark);
+const pitchDot=new THREE.Mesh(new THREE.CircleGeometry(0.03,32),markMat); pitchDot.rotation.x=-Math.PI/2; pitchDot.scale.set(1,1.8,1); pitchDot.position.set(XP,0.006,ZP); scene.add(pitchDot);
+// dust puff at the bounce
+const PUFF=900; const puffGeo=new THREE.BufferGeometry(); const puffSeed=[]; {const R4=rnd(5);
+  for(let i=0;i<PUFF;i++) puffSeed.push([ (R4()-0.5)*1.2, R4()*0.9+0.15, -R4()*1.6-0.2, R4() ]); }
+puffGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(PUFF*3),3));
+puffGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(PUFF*3),3));
+puffGeo.setAttribute('aSize',new THREE.BufferAttribute(new Float32Array(PUFF),1));
+const puff=new THREE.Points(puffGeo,pointsMat('puff')); puff.frustumCulled=false; scene.add(puff);
+
+// ------------------------------------------------------------------ batter: right-hander, forward defence, clean silhouette
+const silMat=new THREE.ShaderMaterial({transparent:true,uniforms:{uA:{value:1},uRim:{value:new THREE.Color(0xff5a40)}},
+  vertexShader:`varying vec3 vn;varying vec3 vv;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vn=normalize(normalMatrix*normal);vv=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`varying vec3 vn;varying vec3 vv;uniform float uA;uniform vec3 uRim;void main(){float f=pow(1.0-abs(dot(normalize(vn),normalize(vv))),4.0);
+    vec3 c=vec3(0.010,0.007,0.008)+uRim*f*0.55; gl_FragColor=vec4(c,uA);}`});
+const batter=new THREE.Group(); scene.add(batter);
+const unitSph=new THREE.SphereGeometry(1,32,20);
+function ellipsoid(c,basis,r){ const m=new THREE.Mesh(unitSph,silMat); const M=new THREE.Matrix4().makeBasis(...basis); m.quaternion.setFromRotationMatrix(M); m.scale.set(...r); m.position.copy(c); batter.add(m); return m; }
+function sphere(c,r){ return ellipsoid(c,[V(1,0,0),V(0,1,0),V(0,0,1)],[r,r,r]); }
+function limb(a,b,ra,rb){ const d=b.clone().sub(a), L=d.length(); const g=new THREE.CylinderGeometry(rb,ra,L,24,1,true); const m=new THREE.Mesh(g,silMat);
+  m.quaternion.setFromUnitVectors(V(0,1,0),d.clone().normalize()); m.position.copy(a).addScaledVector(d,0.5); batter.add(m); sphere(a,ra); sphere(b,rb); return m; }
+function box(c,basis,size,rad){ const m=new THREE.Mesh(new RoundedBoxGeometry(size[0],size[1],size[2],3,rad),silMat); m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(...basis)); m.position.copy(c); batter.add(m); return m; }
+function ik(S,Wt,L1,L2,pole){ const d0=Wt.clone().sub(S); let d=d0.length(); const dir=d0.clone().normalize(); d=Math.min(d,L1+L2-1e-3);
+  const a=(L1*L1-L2*L2+d*d)/(2*d), h=Math.sqrt(Math.max(0,L1*L1-a*a)); const pp=pole.clone().sub(dir.clone().multiplyScalar(pole.dot(dir))).normalize();
+  return S.clone().addScaledVector(dir,a).addScaledVector(pp,h); }
+function frame(up,fwdHint){ const u=up.clone().normalize(); const f=fwdHint.clone().sub(u.clone().multiplyScalar(fwdHint.dot(u))).normalize(); const s=new THREE.Vector3().crossVectors(u,f); return [s,u,f]; }
+// joint centres for a 1.80 m batter (anthropometric segment lengths)
+const J={};
+J.pelvis=V(0.02,0.86,1.80); J.hipL=V(0.03,0.86,1.89); J.hipR=V(0.01,0.86,1.71);
+J.ankL=V(0.10,0.085,2.06); J.ankR=V(0.0,0.11,1.12);
+J.kneL=ik(J.hipL,J.ankL,0.46,0.44,V(0.25,0.1,1)); J.kneR=ik(J.hipR,J.ankR,0.46,0.44,V(0.35,0,1));
+J.neck=V(0.05,1.39,2.04); J.shL=V(0.08,1.34,2.21); J.shR=V(0.05,1.38,1.89);
+J.head=V(0.08,1.58,2.15);
+J.handT=V(0.26,0.96,2.17); J.handB=V(0.27,0.86,2.18);
+J.elbL=ik(J.shL,J.handT,0.30,0.31,V(0.35,0.55,0.75)); J.elbR=ik(J.shR,J.handB,0.30,0.31,V(0.25,-0.5,-0.6));
+window.J=J;
+{ // torso
+  const B=frame(J.neck.clone().sub(J.pelvis),V(1,0,0.15));  // s ~ -z.. so flip: we want s from right to left shoulder
+  const up=B[1], fw=B[2], side=new THREE.Vector3().crossVectors(fw,up).normalize(); const basis=[side,up,fw];
+  const L=J.neck.distanceTo(J.pelvis);
+  ellipsoid(J.pelvis.clone().addScaledVector(up,0.02),basis,[0.17,0.12,0.115]);
+  ellipsoid(J.pelvis.clone().addScaledVector(up,0.20*L),basis,[0.150,0.15,0.105]);
+  ellipsoid(J.pelvis.clone().addScaledVector(up,0.62*L).addScaledVector(fw,0.01),basis,[0.175,0.20,0.120]);
+  limb(J.neck.clone().addScaledVector(up,-0.03),J.head.clone().addScaledVector(up,-0.08),0.058,0.052);
+  sphere(J.shL,0.062); sphere(J.shR,0.062);
+}
+limb(J.hipL,J.kneL,0.085,0.060); limb(J.hipR,J.kneR,0.085,0.060);
+limb(J.kneL,J.ankL,0.058,0.040); limb(J.kneR,J.ankR,0.058,0.040);
+limb(J.shL,J.elbL,0.056,0.044); limb(J.shR,J.elbR,0.056,0.044);
+limb(J.elbL,J.handT,0.044,0.034); limb(J.elbR,J.handB,0.044,0.034);
+// gloves
+for(const [h,e] of [[J.handT,J.elbL],[J.handB,J.elbR]]){ const d=h.clone().sub(e).normalize(); ellipsoid(h.clone().addScaledVector(d,0.035),frame(d,V(0,0,1)),[0.055,0.075,0.05]); }
+// feet (heel under ankle, toe forward)
+function foot(ank,dirHint,lift){ const f=dirHint.clone().normalize(); const c=ank.clone().addScaledVector(f,0.07); c.y=Math.max(0.035,ank.y-0.05)+lift*0.5;
+  const tilt=V(0,1,0).applyAxisAngle(new THREE.Vector3().crossVectors(V(0,1,0),f).normalize(),-lift*2.2);
+  box(c,frame(tilt,f),[0.105,0.075,0.29],0.03); }
+foot(J.ankL,V(0.45,0,0.9),0); foot(J.ankR,V(0.95,0,0.25),0.06);
+// pads: on the front of each shin, from the instep to above the knee, facing the bowler
+function pad(kne,ank){ const d=kne.clone().sub(ank).normalize(); const fwHint=V(0.15,0,1); const B=frame(d,fwHint); const up=B[1], fw=B[2];
+  const len=ank.distanceTo(kne)+0.17; const c=ank.clone().addScaledVector(up,len/2-0.06).addScaledVector(fw,0.052);
+  box(c,[B[0],up,fw],[0.165,len,0.085],0.035);
+  box(kne.clone().addScaledVector(up,0.03).addScaledVector(fw,0.085),[B[0],up,fw],[0.15,0.13,0.06],0.03);
+  return {c,up,fw}; }
+const padL=pad(J.kneL,J.ankL); pad(J.kneR,J.ankR);
+// helmet with peak and grille, face toward the bowler and a little down
+{ const fw=V(0.05,-0.25,1).normalize(); const B=frame(V(0,1,0.25),fw);
+  ellipsoid(J.head,B,[0.125,0.13,0.145]);
+  box(J.head.clone().addScaledVector(B[1],0.04).addScaledVector(B[2],0.15),B,[0.20,0.012,0.08],0.005);
+  for(let i=0;i<3;i++){ const y=-0.03-i*0.045; const m=new THREE.Mesh(new THREE.TorusGeometry(0.115,0.006,6,24,Math.PI*0.9),silMat);
+    m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(B[0],B[2].clone().negate(),B[1])); m.rotateZ(Math.PI*0.05); m.position.copy(J.head).addScaledVector(B[1],y).addScaledVector(B[2],0.03); batter.add(m); }
+  const bar=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.006,0.13,6),silMat); bar.quaternion.setFromUnitVectors(V(0,1,0),B[1]); bar.position.copy(J.head).addScaledVector(B[1],-0.07).addScaledVector(B[2],0.145); batter.add(bar);
+}
+// bat: handle in the hands, blade angled down beside the front pad, face to the bowler, hands ahead of the blade
+{ const grip=J.handT.clone().add(J.handB).multiplyScalar(0.5); const toe=V(0.32,0.06,2.11); const ax=grip.clone().sub(toe).normalize();
+  const B=frame(ax,V(0,0,1));
+  const hTop=grip.clone().addScaledVector(ax,0.17), hBot=grip.clone().addScaledVector(ax,-0.14);
+  limb(hTop,hBot,0.017,0.017);
+  const bladeLen=0.56; const bc=toe.clone().addScaledVector(ax,bladeLen/2);
+  box(bc,B,[0.108,bladeLen,0.055],0.012);
+}
+// place the batter so the front pad meets the ball exactly at the impact point
+{ const pc=padL.c, up=padL.up, fw=padL.fw; // pad front surface line: pc + fw*0.0425 + up*s
+  const s=(PIMP.y-pc.y-fw.y*0.0425)/up.y; const front=pc.clone().addScaledVector(fw,0.0425).addScaledVector(up,s);
+  batter.position.set(PIMP.x-front.x, 0, (PIMP.z-BR)-front.z); window.batterShift=batter.position.toArray(); }
+
+// ------------------------------------------------------------------ post: bloom + grade (vignette, crimson shadows, grain)
+const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.55,0.5,0.82); composer.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uSat:{value:1},uFlash:{value:0}},
+  vertexShader:`varying vec2 vu;void main(){vu=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform sampler2D tDiffuse;uniform float uT,uSat,uFlash;varying vec2 vu;
+    float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+    void main(){vec4 c=texture2D(tDiffuse,vu);vec3 col=c.rgb;float l=dot(col,vec3(0.299,0.587,0.114));
+      col=mix(vec3(l),col,uSat); col+=vec3(0.020,0.002,0.004)*(1.0-smoothstep(0.0,0.25,l));
+      vec2 q=vu-0.5;q.x*=0.75;float v=smoothstep(0.85,0.25,length(q));col*=mix(0.45,1.0,v);
+      col+=(h(vu*1000.0+uT)-0.5)*0.025; col=mix(col,vec3(1.0,0.92,0.88),uFlash); gl_FragColor=vec4(col,1.);}`});
+composer.addPass(grade); composer.addPass(new OutputPass());
+
+// ------------------------------------------------------------------ cameras
+function camState(p,t,fov,up){return {p,t,fov,up:up||V(0,1,0)};}
+function mixCam(a,b,u){return {p:a.p.clone().lerp(b.p,u),t:a.t.clone().lerp(b.t,u),fov:lerp(a.fov,b.fov,u),up:a.up.clone().lerp(b.up,u).normalize()};}
+function hookCam(tb,T){ const b=ballPos(tb); const lag=0.62+0.12*clamp(T/2,0,1);
+  return camState(b.clone().add(V(-0.20,0.10,lag)), b.clone().add(V(0.38,-0.62,-7.0)), 38); }
+const BROAD=camState(V(0.55,3.6,27.5),V(0.05,0.55,1.6),10.5);
+const BROAD2=camState(V(0.50,3.3,26.0),V(0.08,0.38,2.0),7.2);
+const PLAN=camState(V(-0.05,8.2,2.2),V(0.0,0.0,1.75),33,V(0,0,-1));
+const PLANOBL=camState(V(1.1,4.6,5.6),V(0.0,0.2,1.3),36,V(0,0.6,-0.8));
+const ENDON=camState(V(0.02,0.50,4.4),V(-0.07,0.40,0.0),22);
+const CLOSE=camState(V(-0.105,0.535,0.62),V(-0.132,0.535,0.0),24);
+function cameraAt(T){
+  const tb=ballTime(T);
+  if(T<2.6){ const u=s5(1.55,2.6,T); return mixCam(hookCam(tb,T),BROAD,u); }
+  if(T<7.4){ return mixCam(BROAD,BROAD2,s5(TF,7.4,T)); }
+  if(T<9.4){ return mixCam(BROAD2,PLANOBL,s5(7.4,9.4,T)); }
+  if(T<10.6){ return mixCam(PLANOBL,PLAN,s5(9.4,10.6,T)); }
+  if(T<11.4) return PLAN;
+  if(T<13.2){ return mixCam(PLAN,ENDON,s5(11.4,13.2,T)); }
+  if(T<13.8) return ENDON;
+  if(T<RW0){ return mixCam(ENDON,CLOSE,s5(13.8,15.4,T)); }
+  return mixCam(CLOSE,hookCam(tb,0),s5(RW0,END,T));
+}
+
+// ------------------------------------------------------------------ state
+const tmp=new THREE.Vector3();
+function setState(T){
+  const tb=ballTime(T);
+  const c=cameraAt(T); cam.position.copy(c.p); cam.up.copy(c.up); cam.lookAt(c.t); cam.fov=c.fov; cam.updateProjectionMatrix();
+  trailMat.uniforms.uK.value=pointsMat_uK(); projPts.material.uniforms.uK.value=pointsMat_uK(); puff.material.uniforms.uK.value=pointsMat_uK();
+  // ball
+  const bp=ballPos(tb); ball.position.copy(bp);
+  const qs=new THREE.Quaternion().setFromAxisAngle(SPIN_AXIS,spinAngle(tb)); ball.quaternion.copy(qs).multiply(seamQ);
+  ballGlow.position.copy(bp); ballGlow.material.opacity=0.45;
+  ballKey.position.copy(bp).add(V(0.25,0.35,0.45)); ballRim.position.copy(bp).add(V(-0.3,0.1,-0.35));
+  // trail: whole path so far, brighter towards the ball
+  const P=trailGeo.attributes.position.array, C=trailGeo.attributes.color.array, S=trailGeo.attributes.aSize.array;
+  const fadeIn=T<0.4?0.5+T/0.8:1;
+  for(let i=0;i<TRN;i++){ const f=i/(TRN-1); const t=tb*f; const p=ballPos(t); P[i*3]=p.x;P[i*3+1]=p.y;P[i*3+2]=p.z;
+    const recent=Math.exp(-(tb-t)/0.12); const a=(0.30+0.70*recent)*fadeIn*(t<0.015?0:1);
+    C[i*3]=1.0*a; C[i*3+1]=0.16*a+0.25*recent*a; C[i*3+2]=0.10*a; S[i]=0.020+0.012*recent; }
+  trailGeo.attributes.position.needsUpdate=trailGeo.attributes.color.needsUpdate=trailGeo.attributes.aSize.needsUpdate=true;
+  // pitch mark appears at the bounce
+  const mk=tb>T1?Math.min(1,(tb-T1)/0.03):0; markMat.opacity=0.85*mk;
+  // dust puff
+  { const P2=puffGeo.attributes.position.array, C2=puffGeo.attributes.color.array, S2=puffGeo.attributes.aSize.array; const age=tb-T1+ (T>TF && T<RW0? 0:0);
+    for(let i=0;i<PUFF;i++){ const sd=puffSeed[i]; const a=age>0?age:0; const k=1-Math.exp(-a*9); const x=XP+sd[0]*0.10*k*3, y=0.01+sd[1]*0.16*k, z=ZP+sd[2]*0.25*k*2.2;
+      P2[i*3]=x;P2[i*3+1]=y;P2[i*3+2]=z; const al=age>0?Math.exp(-a*1.2)*0.11*(0.4+sd[3]):0; C2[i*3]=al*0.95;C2[i*3+1]=al*0.7;C2[i*3+2]=al*0.5; S2[i]=0.012+0.02*k; }
+    puffGeo.attributes.position.needsUpdate=puffGeo.attributes.color.needsUpdate=puffGeo.attributes.aSize.needsUpdate=true; }
+  // batter ghosts out while the projection is drawn (Hawk-Eye style), back for the loop
+  const ga=T<RW0? 1-0.80*sstep(7.9,9.0,T) : 0.2+0.8*sstep(RW0+0.2,END,T);
+  silMat.uniforms.uA.value=ga; silMat.depthWrite=ga>0.99; silMat.transparent=ga<0.999;
+  // projection
+  const pr=projProgress(T); const tEnd=lerp(T_FREEZE,T_STUMP,pr);
+  const P3=projGeo.attributes.position.array, C3=projGeo.attributes.color.array, S3=projGeo.attributes.aSize.array;
+  for(let i=0;i<PJN;i++){ const f=i/(PJN-1); const t=lerp(T_FREEZE,T_STUMP,f); const p=ballPos(t); P3[i*3]=p.x;P3[i*3+1]=p.y;P3[i*3+2]=p.z;
+    const on=(t<=tEnd&&pr>0)?1:0; const dash=(Math.floor(f*46)%2===0)?1:0.15; const a=on*dash*0.9;
+    C3[i*3]=1.0*a;C3[i*3+1]=0.86*a;C3[i*3+2]=0.66*a; S3[i]=0.016; }
+  projGeo.attributes.position.needsUpdate=projGeo.attributes.color.needsUpdate=projGeo.attributes.aSize.needsUpdate=true;
+  const gp=ballPos(tEnd); ghost.position.copy(gp); ghostRing.position.copy(gp); ghostRing.lookAt(cam.position);
+  const gv=pr>0.0005?Math.min(1,pr*30):0; ghost.visible=ghostRing.visible=gv>0; ghostMat.opacity=0.55*gv; ghostRing.material.opacity=gv;
+  // stumps glow a little brighter at the reveal
+  haloMat.uniforms.uA.value=0.35+0.4*sstep(12.0,13.8,T)*(T<RW0?1:1-s5(RW0,END,T));
+  grade.uniforms.uT.value=T*7.31;
+  const fl=Math.max(Math.exp(-Math.abs(T-TF)*30)*(T>=TF?1:0)*0.10, (T>=13.75&&T<14.2)?Math.exp(-(T-13.75)*18)*0.08:0);
+  grade.uniforms.uFlash.value=fl;
+  grade.uniforms.uSat.value=(T>=TF&&T<7.4)?0.82:1;
+}
+function pointsMat_uK(){ return H/2/Math.tan(cam.fov*Math.PI/360); }
+
+// ------------------------------------------------------------------ render API
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
+window.renderAt=(T,nsub,shutter)=>{ nsub=nsub||1; shutter=shutter===undefined?0.5/30:shutter;
+  actx.globalAlpha=1; actx.fillStyle='#000'; actx.fillRect(0,0,W,H);
+  for(let k=0;k<nsub;k++){ const Tk=nsub>1?T+(k/(nsub-1)-0.5)*shutter:T; setState(Math.max(0,Math.min(END-1e-4,Tk<0?Tk+END:Tk))); composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(renderer.domElement,0,0); }
+  setState(T); return acc.toDataURL('image/jpeg',0.93); };
+window.info=(T)=>{ setState(T); const pr=(p)=>{const v=p.clone().project(cam);return [(v.x+1)/2*W,(1-v.y)/2*H,v.z];};
+  const gp=ghost.position.clone(); return {tb:ballTime(T),proj:projProgress(T),ball:pr(ball.position),ghost:pr(gp),
+    legEdge:pr(V(-0.1143,PST.y,0)), ghostInner:pr(V(PST.x+BR,PST.y,0)), stumpTop:pr(V(0,STUMP_H,0)), stumpBase:pr(V(0,0,0)), pitchMark:pr(V(XP,0,ZP))}; };
+window.ready=true;
+</script></body></html>
