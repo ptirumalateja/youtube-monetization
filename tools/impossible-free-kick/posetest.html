@@ -1,0 +1,17 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#888}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script></head><body><script type="module">
+import * as THREE from 'three'; import {Human,P,run} from './human.js';
+const q=new URLSearchParams(location.search),W=+q.get('w'),H=+q.get('h');
+const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); r.setSize(W,H); document.body.appendChild(r.domElement);
+const sc=new THREE.Scene(); sc.background=new THREE.Color(0xb8c4cc);
+const mat=new THREE.MeshBasicMaterial({color:0x050608});
+window.POSES=[P.stand,P.ready,P.wall,run(0.0),run(0.25),run(0.5),P.crouch,P.duck];
+let hs=[];
+const cam=new THREE.PerspectiveCamera(22,W/H,0.1,100);
+window.renderAt=(t)=>{ hs.forEach(h=>sc.remove(h.root)); hs=[];
+  const n=window.POSES.length; window.POSES.forEach((p,i)=>{const h=new Human(mat,{keeper:i==1}); h.root.position.set((i-(n-1)/2)*1.25,0,0); sc.add(h.root); h.pose(p); h.ground(); hs.push(h);});
+  const views=[[0,1.0,9],[9,1.0,0.01],[-6,3,-6]]; const v=views[Math.round(t)%3];
+  if(Math.round(t)==1){ hs.forEach((h,i)=>{h.root.position.set(0,0,(i-(n-1)/2)*1.25*0); h.root.position.z=(i-(n-1)/2)*1.3; h.root.rotation.y=0; h.ground();}); }
+  cam.position.set(...v); cam.lookAt(0,0.9,0); r.render(sc,cam); return r.domElement.toDataURL('image/jpeg',0.92);};
+window.ready=true;
+</script></body></html>
