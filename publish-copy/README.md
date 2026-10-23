@@ -28,6 +28,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [The Edge of the Wind (Voyager 1)](edge-of-the-wind.md) | Final (v1) | `final-reels/edge-of-the-wind-hq.mp4` for YouTube (share: `edge-of-the-wind.mp4`) |
 | [The Higher He Got (stickman)](the-higher-he-got.md) | Final (v1) | `final-reels/the-higher-he-got.mp4` (share: `the-higher-he-got-share.mp4`) |
 | [The Jam Is Made of Phones (Google Maps)](jam-made-of-phones.md) | Final (voiced v2) | `final-reels/jam-made-of-phones-vo.mp4` |
+| [The Photon That Made Your Eye](the-photon-that-made-your-eye.md) | v1 delivered, awaiting Teja's review | `final-reels/the-photon-that-made-your-eye.mp4` (master: `_master.mp4`; silent: `_music-ready.mp4`, drop on 10.0 s) |
 | [The Moon Never Loops](moon-never-loops.md) | Final (v2, cinematic) | `final-reels/moon-never-loops-v2.mp4` |
 | [The Shape of Flow (torus)](shape-of-flow.md) | Final (v2, kept by Teja) | `final-reels/shape-of-flow_v2.mp4` |
 | [The Ship Never Moves (warp drive)](the-ship-never-moves.md) | Final (v2) | `final-reels/the-ship-never-moves_master.mp4` (share: `the-ship-never-moves.mp4`) |
