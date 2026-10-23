@@ -32,6 +32,8 @@
 > Follow @slowlight for stories worth slowing down for.
 > #php2shell #cybersecurity #hacking #infosec #webdev #tech #reels
 
+**Facebook tags (Tags field, no #):** PHP2Shell, PHP, PHP vulnerability, cyber attack, cybersecurity, hacking, zero day, website security, web server, WordPress security, data breach, cybersecurity news, tech news, internet security, ethical hacking, web development, programming, infosec, Slow Light
+
 **Pinned comment:** Who do you think knew first? 👀 (And if you run a site: which PHP version are you on?)
 
 **Upload checklist:** use `php2shell-who-knew.mp4` (or the music-ready file with a dark, tense track whose drop hits 9.0 s). Turn the AI/synthetic label on (computer-generated visuals). Cover frame: "NO PASSWORD." with the shockwave (about 9.3 s) or "ATTACKS ARE SPREADING." over the lit map (about 6.5 s). Post soon: the story is from 17 to 22 Oct 2026.
