@@ -31,5 +31,5 @@ Music drop point for the silent copy: 8.6 s (the reveal hit). Secondary accents:
 ```
 python3 render.py OUT/frames
 python3 sound.py OUT/mix.wav
-ffmpeg -framerate 30 -i OUT/frames/f%04d.png -i OUT/mix.wav -af "loudnorm=I=-15:TP=-2:LRA=11" -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart what-andromeda-sees.mp4
+ffmpeg -framerate 30 -i OUT/frames/f%04d.png -i OUT/mix.wav -af "volume=-3.9dB,alimiter=limit=0.84:level=false" -c:v libx264 -b:v 15M -maxrate 17M -bufsize 30M -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -shortest -movflags +faststart what-andromeda-sees.mp4
 ```
