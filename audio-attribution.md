@@ -36,20 +36,20 @@ Paste the exact line into the description of any reel that uses the file.
 
 | File | Author | Used in |
 |---|---|---|
-| 814046 Explosion From Another Dimension | qubodup | Night Sky, Scale Ladder, Roberto Carlos V2 |
+| 814046 Explosion From Another Dimension | qubodup | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
 | 814047 Fantasy Implosion | qubodup | Night Sky, Scale Ladder, Roberto Carlos V2 |
 | 869757 Dark Suspense Accent | mikiko850 | Night Sky, Scale Ladder |
 | 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | Night Sky, Scale Ladder |
 | 822420 Riser Hit sfx 120 | AudioPapkin | Night Sky, Scale Ladder, Roberto Carlos V2 |
-| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2 |
-| 276871 Sword In Air | lucabia | Night Sky only, Roberto Carlos V2 |
+| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
+| 276871 Sword In Air | lucabia | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 768664 portal gate opening | berkup | Night Sky only |
 | 735062 Fast Warp In | GammaGool | Night Sky only |
 | 752034 Sci-Fi Gateway | Bachsambora | Night Sky only |
-| 649445 Cinematic Woosh SFX-015 | AudioPapkin | Night Sky only, Roberto Carlos V2 |
-| 238375 CP_Subby_Whoosh | stewdio2003 | Night Sky only, Roberto Carlos V2 |
+| 649445 Cinematic Woosh SFX-015 | AudioPapkin | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
+| 238375 CP_Subby_Whoosh | stewdio2003 | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 
-Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin, sleepCircle, lucabia, berkup, GammaGool, Bachsambora and stewdio2003 via Freesound." (Trim to the authors of the reel you are posting. Roberto Carlos V2: qubodup, AudioPapkin, lucabia, stewdio2003 and sleepCircle.)
+Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin, sleepCircle, lucabia, berkup, GammaGool, Bachsambora and stewdio2003 via Freesound." (Trim to the authors of the reel you are posting. Roberto Carlos V2 and What Andromeda Sees: qubodup, AudioPapkin, lucabia, stewdio2003 and sleepCircle.)
 
 ## 3. Non-Freesound files: verify before a monetised upload
 
