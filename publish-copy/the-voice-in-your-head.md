@@ -2,14 +2,29 @@
 
 | | |
 |---|---|
-| Status | Final (wordless; voiceover dropped by Teja) |
-| Upload file | `final-reels/the-voice-in-your-head.mp4` |
+| Status | V2 final (reach cut, 23 Oct 2026), awaiting Teja's review. V1 (chalk on navy) kept as an alternative. |
+| Upload file | `final-reels/the-voice-in-your-head-v2.mp4` (silent: `the-voice-in-your-head-v2_silent.mp4`); V1: `final-reels/the-voice-in-your-head.mp4` |
 | Length | 20.0 s |
 | Voice | None (wordless) |
-| Copy taken from | `final-reels/the-voice-in-your-head.md` on branch `claude/project-thread-hagl9o` |
+| Copy taken from | `final-reels/the-voice-in-your-head-v2.md` on branch `claude/project-thread-hagl9o` |
 
-## Publish copy
+## Publish copy (V2)
 
+- **YouTube title:** Can You Hear This Without Speaking? 🧠 #shorts
+- **Alt titles:** "Try 5 Seconds With No Words in Your Head" / "Some People Think Without Words"
+- **Description:**
+  Read "hello" in your head. Did you hear it?
+  Now a quick experiment, just for fun: 5 seconds with no words at all. How long did you last?
+  Most people hear an inner voice. Some people have little or no inner voice; researchers call it anendophasia (Nedergaard & Lupyan, Psychological Science, 2024). Many of them think in pictures instead.
+  Do you hear a voice when you think? Comment: WORDS or PICTURES.
+  Sound: original, synthesised for Slow Light.
+  #innervoice #anendophasia #psychology #brain #mind #thinking #slowlight #shorts
+- **Pinned comment:** WORDS or PICTURES? And how many seconds did you last? 👇
+- **Instagram / Facebook caption:** Can you hear this without speaking? 🧠 Try 5 seconds with no words in your head. Some people think without words at all (anendophasia). Do you hear a voice when you think? Comment WORDS or PICTURES 👇 #innervoice #psychology #mind #slowlight #reels
+- Upload: 9:16; AI/synthetic content label on (animation is code-generated). Use the silent copy if adding platform music.
+- The 5-second test is labelled "JUST FOR FUN · NOT A TEST" on screen; don't describe it as a test for anendophasia in comments either.
+
+## Publish copy (V1, if posting the chalk version)
 - **YouTube title:** Say "Hello" in Your Head. Now Stay Silent for 5 Seconds. #shorts
 - **Alt hook titles:** "Can You Turn Off the Voice in Your Head?" / "Some People Don't Have an Inner Voice"
 - **Description:**
