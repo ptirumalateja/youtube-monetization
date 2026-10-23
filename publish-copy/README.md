@@ -20,6 +20,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [Photon Rain (200 MP vs 24 MP)](photon-rain.md) | v2 final; a v3 storyboard is waiting on Teja's hook pick | `final-reels/photon-rain-v2.mp4` |
 | [Proton Laps: One Minute](proton-laps-one-minute.md) | Final (v3) | `final-reels/proton-laps-one-minute.mp4` |
 | [Sleep Paralysis: The Thing in Your Room](sleep-paralysis.md) | Final (v4, Conjuring cut) | `final-reels/sleep-paralysis.mp4` |
+| [Someone Knew 4 Days Early (PHP2Shell attacks)](php2shell-who-knew.md) | Final (v1), awaiting Teja's review; time-sensitive news reel | `final-reels/php2shell-who-knew_master.mp4` (share: `php2shell-who-knew.mp4`; silent: `_music-ready.mp4`) |
 | [The Deepest Hole (Kola)](the-deepest-hole.md) | Final (v2 of reel #16) | `final-reels/the-deepest-hole.mp4` |
 | [The Dipper Is Melting](the-dipper-is-melting.md) | Final | `final-reels/the-dipper-is-melting.mp4` |
 | [The Edge of the Wind (Voyager 1)](edge-of-the-wind.md) | Final (v1) | `final-reels/edge-of-the-wind-hq.mp4` for YouTube (share: `edge-of-the-wind.mp4`) |
