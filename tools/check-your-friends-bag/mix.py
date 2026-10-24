@@ -112,7 +112,10 @@ w = hp(lp(n, 700 + 500 * gust), 150) * gust
 wind += w * (1 - sstep(0.04, 0.32, t)) * 0.9             # Part 1's wind, stopping
 wind += w * 0.18 * sstep(17.8, 19.0, t)                  # outside air again on the payoff
 # Part 1's lamp hum carries across the join (soft, inside the phone band)
-hum = sum(g * np.sin(2 * np.pi * f * t + i) for i, (f, g) in enumerate([(120, 1), (240, 0.5), (360, 0.2)]))
+hum = np.sin(2 * np.pi * 110 * t) + 0.3 * np.sin(2 * np.pi * 220 * t)          # Part 1's hum (sound.py: 110 + 220 Hz)
+# Part 1's D major pad, carried over and released in the first 1.5 s
+pad = sum(np.sin(2 * np.pi * f * t + i) for i, f in enumerate([110, 146.8, 185, 220, 293.7]))
+air += 0.012 * lp(pad, 2500) * (1 - sstep(0.1, 1.5, t))
 air += 0.006 * hum * (0.85 + 0.15 * np.sin(2 * np.pi * 5.3 * t)) * (1 - 0.7 * sstep(6.0, 7.0, t))
 for at, nm, v in [(0.2, 'D4', 0.9), (0.2, 'A3', 0.5), (1.25, 'F4', 0.75), (2.3, 'E4', 0.6), (2.3, 'A3', 0.4)]:
     place(piano, note(hz(nm), 3.5, v), at)
