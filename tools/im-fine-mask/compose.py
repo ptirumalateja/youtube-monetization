@@ -25,7 +25,7 @@ for f, path in enumerate(frames):
 enc.stdin.close(); assert enc.wait() == 0
 print('video ok')
 
-# gain to -15 LUFS, then a look-ahead limiter at -2.5 dBFS (loudnorm alone overshot +1.8 dBTP after AAC); verify after AAC
+# gain to -15 LUFS, then a look-ahead limiter at -3.3 dBFS (loudnorm alone overshot +1.8 dBTP after AAC); verify after AAC
 wav = os.path.join(src, 'mix.wav')
 def lufs(path, af=None):
     cmd = ['ffmpeg', '-hide_banner', '-i', path] + (['-af', af + ',ebur128=peak=true'] if af else ['-af', 'ebur128=peak=true']) + ['-f', 'null', '-']
@@ -33,7 +33,7 @@ def lufs(path, af=None):
     return float(re.search(r'I:\s+(\S+) LUFS', summ).group(1)), float(re.search(r'Peak:\s+(\S+) dBFS', summ).group(1))
 g = -15.0 - lufs(wav)[0]
 for _ in range(3):   # the limiter costs a little loudness: nudge the gain until the limited mix sits at -15
-    af = f"volume={g:.2f}dB,alimiter=limit=0.75:attack=4:release=60:level=false,aresample=48000"
+    af = f"volume={g:.2f}dB,alimiter=limit=0.68:attack=4:release=60:level=false,aresample=48000"
     i, _p = lufs(wav, af); g += -15.0 - i
 master = os.path.join(out, 'im-fine-mask.mp4')
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', silent, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-af', af,
