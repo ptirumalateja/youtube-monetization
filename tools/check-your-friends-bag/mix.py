@@ -111,6 +111,9 @@ gust = 0.6 + 0.4 * np.sin(2 * np.pi * 0.37 * t + 1)
 w = hp(lp(n, 700 + 500 * gust), 150) * gust
 wind += w * (1 - sstep(0.04, 0.32, t)) * 0.9             # Part 1's wind, stopping
 wind += w * 0.18 * sstep(17.8, 19.0, t)                  # outside air again on the payoff
+# Part 1's lamp hum carries across the join (soft, inside the phone band)
+hum = sum(g * np.sin(2 * np.pi * f * t + i) for i, (f, g) in enumerate([(120, 1), (240, 0.5), (360, 0.2)]))
+air += 0.006 * hum * (0.85 + 0.15 * np.sin(2 * np.pi * 5.3 * t)) * (1 - 0.7 * sstep(6.0, 7.0, t))
 for at, nm, v in [(0.2, 'D4', 0.9), (0.2, 'A3', 0.5), (1.25, 'F4', 0.75), (2.3, 'E4', 0.6), (2.3, 'A3', 0.4)]:
     place(piano, note(hz(nm), 3.5, v), at)
 
@@ -134,7 +137,7 @@ while bt < 13.5:
 dr = lp(rng.standard_normal(NS), 400 + 3500 * sstep(2.95, 3.3, t) * (1 - sstep(3.3, 3.6, t)))
 air += 0.35 * hp(dr, 180) * sstep(2.95, 3.2, t) * (1 - sstep(3.35, 3.6, t))
 # X-ray switch: a glassy shimmer up and a low swell
-xs = TL['xray'][0]
+xs = TL['xray']
 sh = sum(np.sin(2 * np.pi * f * t) for f in (1320, 1980, 2640)) * sstep(xs - 0.02, xs + 0.06, t) * np.exp(-np.clip(t - xs, 0, None) / 0.5)
 air += 0.03 * sh
 # heartbeat: lub-dub, speeding up to the collapse, gone once he is helped
@@ -158,8 +161,9 @@ place(sfx, thudB * 0.6, TL['collapse'][1] - 0.02)
 
 # ---------- 6-10 s: down his own stairs, each step lights with a chime ----------
 desc = ['A5', 'F#5', 'E5', 'D5', 'B4', 'A4', 'F#4']
-for i, p in enumerate(TL['passes'][1:]):
-    place(sfx, thudB * 0.32, p - 0.01)
+for i, p in enumerate(TL['flares']):      # step 7 lights as he sets off, then 6..1 as he lands on each
+    if i:
+        place(sfx, thudB * 0.32, p - 0.01)
     place(piano, note(hz(desc[i]), 1.8, 0.33), p)
 for at, nm, v in [(6.4, 'D3', 0.5), (8.7, 'B2', 0.45)]:
     place(piano, note(hz(nm), 4.0, v), at)
@@ -212,7 +216,7 @@ place(hit, sub, B, 0.45)
 for nm, v in [('D3', 0.6), ('A3', 0.5), ('D4', 0.55), ('F#4', 0.5), ('A4', 0.45), ('D5', 0.4)]:
     place(piano, note(hz(nm), 3.5, v), B + 0.03)
 # the empty bag lands below (fall time from the scene: 0.5 s after the drop)
-place(sfx, lp(thudB, 600) * 0.5, TL['bagDrop'] + 0.48)
+place(sfx, lp(thudB, 600) * 0.5, TL['bagLand'])
 # end card bell
 bl = int(2.5 * SR); tb = np.arange(bl) / SR
 bell = sum(a * np.sin(2 * np.pi * f * tb) * np.exp(-tb / d) for f, a, d in [(1174.7, 1, 0.9), (1761, 0.4, 0.6), (2349, 0.25, 0.4)])

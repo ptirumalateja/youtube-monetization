@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v1 delivered, awaiting Teja's review (Part 1 style sync pending) |
+| Status | v1 delivered, awaiting Teja's review (built on Part 1's locked scene; opens on its last frame) |
 | Upload file | `final-reels/check-your-friends-bag_master.mp4` (silent: `check-your-friends-bag_music-ready.mp4`) |
 | Length | 20.0 s |
 | Voice | None (wordless, on-screen text only) |
