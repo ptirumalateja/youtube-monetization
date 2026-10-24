@@ -10,6 +10,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 |---|---|---|
 | [16 Sunrises a Day (ISS free fall)](iss-16-sunrises.md) | Delivered, awaiting Teja's review | `iss_16_sunrises_v1.mp4` (project files root) / `final-reels/iss-16-sunrises.mp4` on the Mac |
 | [Born From Static (how AI art is made)](born-from-static.md) | Final (v1), awaiting Teja's review | `final-reels/born-from-static_master.mp4` (share: `born-from-static.mp4`; silent: `_music-ready.mp4`) |
+| [Check Your Friend's Bag (stickman, Invisible Backpack Part 2)](check-your-friends-bag.md) | v1 delivered, awaiting Teja's review; post the day after Part 1 | `final-reels/check-your-friends-bag_master.mp4` (silent: `_music-ready.mp4`) |
 | [Earth Is 20 Years Old (in galactic years)](earth-is-20-years-old.md) | Final (v2) | `final-reels/earth-is-20-years-old_v2_master.mp4` (share: `_v2.mp4`) |
 | [Frozen Lightning (fulgurites)](frozen-lightning.md) | Final | `final-reels/frozen-lightning.mp4` |
 | [He Moved a Mountain (Dashrath Manjhi)](he-moved-a-mountain.md) | v3 delivered; v4 in progress | `final-reels/he-moved-a-mountain_v3_master.mp4` (share: `_v3.mp4`) |

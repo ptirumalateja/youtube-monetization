@@ -57,6 +57,7 @@ Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin
 |---|---|---|---|
 | Uppbeat braam bass drop / long impact / screaming echo (Tomas Herudek / The Foundation / Epic Stock Media) | Uppbeat free SFX | Scale Ladder | Credit not required for SFX per the Uppbeat help centre, but terms change: re-check the current Uppbeat licence before uploading. |
 | Circuits-hum and explosion files shared later in chat | Unknown source/licence | Experiments only | Not in the final cuts. Confirm origin and licence before using. |
+| `el_thud2`, `el_thud3`, `el_hit1` (stone thuds, impact) | ElevenLabs Sound Effects, generated for One Step a Day on Teja's account | One Step a Day, Check Your Friend's Bag | No credit needed; commercial use requires a paid ElevenLabs plan at generation time: confirm before a monetised upload. Copies in `tools/check-your-friends-bag/sfx/`. Everything else in Check Your Friend's Bag (piano, breathing, heartbeat, clinks, wind, gong) is synthesised in its `mix.py`. |
 
 Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, choir pad, pings, risers, whooshes, ticks) and needs no credit.
 
