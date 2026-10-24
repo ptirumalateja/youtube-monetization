@@ -2,10 +2,10 @@
 
 Synth layers plus CC0 Freesound files from tools/sfxlib (no credit needed): qubodup explosion-from-another-dimension,
 AudioPapkin cinematic-woosh-sfx-015, stewdio2003 cp_subby_whoosh, lucabia sword-in-air, sleepCircle wind.
-Everything sits on a circular 12 s buffer so tails wrap and the loop is seamless.
+Everything sits on a circular buffer as long as the reel so tails wrap and the loop is seamless.
 Contrast: breathing hum on the dot, muffled plasma rumble with a tick on every scatter inside the Sun,
 an explosion then 0.4 s of hard silence at the escape, a jet roar, a tight click when the photon lands in the eye,
-and the biggest hit (boom + gong + warm chord) on the sunset at 10.0 s.
+and the biggest hit (boom + gong + warm chord) on the sunset (events 'punch').
 """
 import json
 import sys
@@ -14,11 +14,11 @@ import numpy as np
 import soundfile as sf
 from scipy import signal
 
-SR = 48000; DUR = 12.0; N = int(SR * DUR)
+EV = json.load(open(sys.argv[1]))
+SR = 48000; DUR = EV.get('dur', 12.0); N = int(SR * DUR)
 t = np.arange(N) / SR
 rng = np.random.default_rng(11)
 LIB = __file__.rsplit('/', 2)[0] + '/sfxlib/'
-EV = json.load(open(sys.argv[1]))
 T_TRAP, T_ESC, T_EYE, T_PUNCH = (EV['cuts'][k] for k in ('trap', 'escape', 'eye', 'punch'))
 
 
@@ -74,8 +74,8 @@ subby = load('238375__stewdio2003__cp_subby_whoosh.aiff')
 wind = load('22331__sleepcircle__wind.ogg')
 
 # ---------------------------------------------------------------- the hum: breathes with the dot, the frame-0 sound (wraps)
-hum_g = env([(0, .9), (1.4, .9), (1.55, .25), (T_ESC, .25), (T_ESC + .05, 0), (T_EYE + .3, 0), (T_EYE + .8, .35), (9.5, .35),
-             (9.9, 0), (11.3, 0), (11.9, .9), (12, .9)])
+hum_g = env([(0, .9), (T_TRAP - .1, .9), (T_TRAP + .05, .25), (T_ESC, .25), (T_ESC + .05, 0), (T_EYE + .3, 0), (T_EYE + .8, .35),
+             (T_PUNCH - .5, .35), (T_PUNCH - .1, 0), (DUR - .7, 0), (DUR - .1, .9), (DUR, .9)])
 hum = sum(a * np.sin(2 * np.pi * f * t + ph) for f, a, ph in ((55, 1, 0), (82.5, .5, 1), (110.2, .35, 2), (164.8, .15, 3)))
 hum *= 1 + .18 * np.sin(2 * np.pi * 1.4 * t)          # the dot breathes at 1.4 Hz
 tone += lp(hum, 600) * hum_g * .16
@@ -83,7 +83,7 @@ tone += lp(hum, 600) * hum_g * .16
 # ---------------------------------------------------------------- 0.0 ignition (also the loop point)
 place(hit, boom(150, 48, 1.4, .35, .6) * .55, 0.0)
 place(tone, bell(1975.5, 1.8), 0.0, .16)                  # glassy tink
-place(sfx, swell(.25, 2000, 9000), 12.0 - .25, .25)       # the sun sets into the dot
+place(sfx, swell(.25, 2000, 9000), DUR - .25, .25)       # the sun sets into the dot
 
 # ---------------------------------------------------------------- 1.5 into the Sun
 place(sfx, swell(.35, 200, 4000), T_TRAP - .35, .45)
@@ -91,7 +91,7 @@ place(sfx, subby[: int(1.6 * SR)], T_TRAP - .12, .7)
 place(hit, boom(120, 42, 1.4, .25, .9, 2.0) * .7, T_TRAP)
 
 # plasma rumble: muffled, opening up as the years roll
-rum_g = env([(0, 0), (T_TRAP, 0), (T_TRAP + .2, 1), (T_ESC - .05, 1.15), (T_ESC, 0), (12, 0)])
+rum_g = env([(0, 0), (T_TRAP, 0), (T_TRAP + .2, 1), (T_ESC - .05, 1.15), (T_ESC, 0), (DUR, 0)])
 noise = rng.standard_normal(N)
 u = np.clip((t - T_TRAP) / (T_ESC - T_TRAP), 0, 1)             # the low-pass opens as the years roll
 l1, l2, l3 = lp(noise, 260), lp(noise, 700), lp(noise, 1800)
@@ -104,19 +104,21 @@ bed += (.5 * rumble + .35 * bp(w, 200, 2500)) * rum_g
 scale = [392, 440, 523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5]
 for i, at in enumerate(EV['scatter']):
     place(sfx, tick(scale[min(i * len(scale) // len(EV['scatter']), len(scale) - 1)]), at, .30 + .25 * i / len(EV['scatter']))
-# 4.3 s mini rehook (the camera roll)
-place(sfx, sword, T_TRAP + 2.75, .45)
-place(hit, boom(110, 45, .8, .2, .6, 1.6) * .45, T_TRAP + 2.8)
+# the near-escape (year 51,000): a rising swell as it nears the surface, then a thud as it is knocked back in
+NEAR = EV.get('near', T_TRAP + 2.8)
+place(sfx, swell(1.1, 300, 6000), NEAR - 1.1, .5)
+place(sfx, sword, NEAR - .05, .45)
+place(hit, boom(110, 45, .8, .2, .6, 1.6) * .6, NEAR)
 
 # ---------------------------------------------------------------- 6.0 the escape: explosion, then hard silence
 place(sfx, swell(.3, 400, 8000), T_ESC - .3, .55)
 place(hit, boom(200, 44, 2.0, .9, 1.0, 3.0) * .75, T_ESC)
 place(hit, expl[: int(.5 * SR)] * dec(int(.5 * SR), .12), T_ESC, .7)
 place(sfx, woosh[: int(.4 * SR)] * dec(int(.4 * SR), .1), T_ESC - .02, .5)
-silence = env([(0, 1), (T_ESC + .14, 1), (T_ESC + .17, .0), (T_ESC + .55, 0), (T_ESC + .62, 1), (12, 1)])
+silence = env([(0, 1), (T_ESC + .14, 1), (T_ESC + .17, .0), (T_ESC + .55, 0), (T_ESC + .62, 1), (DUR, 1)])
 place(tone, np.sin(2 * np.pi * 3520 * np.arange(int(.4 * SR)) / SR) * np.linspace(1, 0, int(.4 * SR)) * .02, T_ESC + .16)  # ear ring
 # jet roar rising out of the silence
-jet_g = env([(0, 0), (T_ESC + .55, 0), (T_ESC + .7, .9), (T_EYE - .3, 1.1), (T_EYE, 0), (12, 0)])
+jet_g = env([(0, 0), (T_ESC + .55, 0), (T_ESC + .7, .9), (T_EYE - .3, 1.1), (T_EYE, 0), (DUR, 0)])
 jf = np.interp(t, [T_ESC, T_EYE], [500, 2600])
 roar = bp(rng.standard_normal(N), 150, 5000) * .6 + np.sin(2 * np.pi * np.cumsum(jf * .25) / SR) * .25
 bed += lp(roar, 3000) * jet_g * .75
@@ -136,19 +138,19 @@ for at in (hitT + .45, hitT + 1.05):                         # two heartbeats
     place(hit, boom(70, 42, .35, 0, .6, 1.4) * .28, at)
     place(hit, boom(70, 42, .30, 0, .5, 1.4) * .18, at + .22)
 place(sfx, swell(.45, 150, 3000), T_PUNCH - .45, .6)          # the pupil swallows the frame
-pre = env([(0, 1), (T_PUNCH - .08, 1), (T_PUNCH - .06, .15), (T_PUNCH, .15), (T_PUNCH + .01, 1), (12, 1)])
+pre = env([(0, 1), (T_PUNCH - .08, 1), (T_PUNCH - .06, .15), (T_PUNCH, .15), (T_PUNCH + .01, 1), (DUR, 1)])
 
 # ---------------------------------------------------------------- 10.0 the biggest hit + the warm chord
 place(hit, boom(210, 42, 2.8, 1.0, 1.1, 3.4), T_PUNCH)
 place(hit, expl[: int(2.0 * SR)] * dec(int(2.0 * SR), .6), T_PUNCH, .55)
 place(hit, gong(87.3), T_PUNCH, .35)
 place(hit, lp(rng.standard_normal(int(2.4 * SR)), 110) * dec(int(2.4 * SR), .8) * 4, T_PUNCH, .5)
-chord_g = env([(0, 0), (T_PUNCH, 0), (T_PUNCH + .25, 1), (11.3, .9), (11.95, 0), (12, 0)])
+chord_g = env([(0, 0), (T_PUNCH, 0), (T_PUNCH + .25, 1), (DUR - .7, .9), (DUR - .05, 0), (DUR, 0)])
 chord = sum(a * np.sin(2 * np.pi * f * t + rng.uniform(0, 6)) * (1 + .004 * np.sin(2 * np.pi * 5 * t)) for f, a in
             ((110, .5), (164.8, .4), (220, .45), (277.2, .35), (329.6, .35), (440, .2), (554.4, .12)))
 tone += lp(chord, 2200) * chord_g * .11
 place(tone, bell(659.3, 2.2), T_PUNCH + .4, .14)               # lands with the gold line
-bed += hp(w, 300) * env([(0, 0), (T_PUNCH, 0), (T_PUNCH + .4, .25), (11.6, .25), (12, 0)]) * .4   # evening wind
+bed += hp(w, 300) * env([(0, 0), (T_PUNCH, 0), (T_PUNCH + .4, .25), (DUR - .4, .25), (DUR, 0)]) * .4   # evening wind
 
 # ---------------------------------------------------------------- mix
 mix = (1.0 * hit * silence + .8 * sfx * silence + .7 * bed * silence + 1.0 * tone * np.maximum(silence, .3)) * pre

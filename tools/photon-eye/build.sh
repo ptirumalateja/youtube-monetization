@@ -15,5 +15,5 @@ ffmpeg -y -loglevel error $V -i "$O/mix.wav" -af "loudnorm=I=-15:TP=-2:LRA=11" -
   -c:a aac -b:a 256k -shortest -movflags +faststart "$O/the-photon-that-made-your-eye_master.mp4"
 ffmpeg -y -loglevel error $V -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p -an -movflags +faststart \
   "$O/the-photon-that-made-your-eye_music-ready.mp4"
-ffmpeg -y -loglevel error -i "$O/the-photon-that-made-your-eye.mp4" -vf "fps=2,scale=216:384,tile=8x3" -frames:v 1 \
+ffmpeg -y -loglevel error -i "$O/the-photon-that-made-your-eye.mp4" -vf "fps=2,scale=150:267,tile=12x4" -frames:v 1 \
   "$O/the-photon-that-made-your-eye_contact_2fps.jpg"

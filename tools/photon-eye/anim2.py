@@ -4,12 +4,14 @@
     python3 anim2.py frames OUTDIR [a b]   # composite frames
     python3 anim2.py events OUTDIR         # sound cue times
 
-0.0-7.3  one 3D camera (path2.py): the dot in the dark -> the fog lights up -> follow the photon's random walk through the
-         Sun -> it breaks the surface -> we rise out after it, a ring of light races across the surface, we turn to ride the beam
-7.3-8.3  riding the beam: stars streak past, Earth grows ahead until it fills the frame
-8.3-9.7  the photon lands; pull back - Earth was the reflection in a pupil; the iris opens around it, the pupil tightens
-9.7-10.05 push into the eye's catchlight until it flares
-10.05-12 the flare is the setting sun: pull back to the stargazer; the sun sets and condenses into the frame-0 dot
+0.0-13.5  one 3D camera (path2.py): the dot in the dark (hook, 2.5 s) -> the fog lights up -> follow the photon's random
+          walk through the Sun for 8.5 s while the year counter runs 0 -> 100,000; at year 51,000 it nearly reaches the
+          surface and is knocked back down -> the final run: the surface boils up, it breaks through, we rise after it,
+          a ring of light races across the surface, we turn to ride the beam
+13.5-15.5 the travel: stars streak past, a blue dot ahead grows into Earth (one Earth only)
+15.5-17.25 the photon lands; pull back while the iris grows out of the black around it: Earth was the reflection in a pupil
+17.25-17.6 push into the eye's catchlight until it flares
+17.6-22   the flare is the setting sun: pull back to the stargazer; the text holds; the sun sets into the frame-0 dot
 """
 import json
 import math
@@ -27,12 +29,13 @@ from hero import W, H, XX, YY, put, smooth, BLACK, CREAM, GOLDT, MONO
 import path2 as P2
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FPS, DUR = 30, 12.0
+FPS, DUR = 30, 23.0
 NF = int(FPS * DUR)
-T_SPACE, T_HIT, T_HOLD, T_PUSH, T_SKY = 7.30, 8.30, 9.35, 9.70, 10.05
+T_SPACE, T_HIT, T_HOLD, T_PUSH, T_SKY = 13.50, 17.00, 17.90, 19.15, 19.50
+T_CTA = 22.0
 SUN_W, SUN_H = 540, 960
 EARTH_C = (.035, .03)
-Z_MAX = 10.0
+Z_HIT = 4.0                    # Earth's size when the photon lands (then the camera pulls back to the pupil, zoom 1)
 YEARS = 100_000
 WARM = np.array([1.0, .92, .78], np.float32)
 
@@ -61,11 +64,11 @@ def eye_params(t):
     """zoom, centre (p units), pupil radius, space-mode, saccade"""
     if t < T_HIT:
         u = (t - T_SPACE) / (T_HIT - T_SPACE)
-        zz = math.exp(lerp(math.log(.06), math.log(Z_MAX), u ** 1.6))           # flying at Earth: exponential growth
+        zz = math.exp(lerp(math.log(.035), math.log(Z_HIT), u ** 1.9))         # dot -> marble -> atmosphere
         c = EARTH_C
     elif t < T_HOLD:
         u = ease((t - T_HIT) / (T_HOLD - T_HIT))
-        zz = math.exp(lerp(math.log(Z_MAX), 0.0, u))
+        zz = math.exp(lerp(math.log(Z_HIT), 0.0, u))
         c = (EARTH_C[0] * (1 - u), EARTH_C[1] * (1 - u))
     elif t < T_PUSH:
         zz, c = 1.0, (0.0, 0.0)
@@ -73,10 +76,10 @@ def eye_params(t):
         u = ease_in((t - T_PUSH) / (T_SKY - T_PUSH))
         zz = math.exp(lerp(0.0, math.log(30), u))
         c = (lerp(0, -.27, ease((t - T_PUSH) / .25)), lerp(0, .29, ease((t - T_PUSH) / .25)))
-    s = 1.0 if t < T_HIT + .02 else 0.0
-    pupil = .27 - .05 * ease_out((t - (T_HIT + .1)) / .4)
+    s = 1.0 - ease((t - (T_HIT + .05)) / .75)                                   # the iris grows out of the black around Earth
+    pupil = .27 - .05 * ease_out((t - (T_HOLD + .1)) / .5)                        # then the pupil tightens on the light
     sx = sy = 0.0
-    for at, dx, dy in ((9.42, .006, -.003), (9.58, -.004, .004)):               # micro-saccades
+    for at, dx, dy in ((T_HOLD + .35, .006, -.003), (T_HOLD + .65, -.004, .004)):   # micro-saccades
         k = ease((t - at) / .04)
         sx += dx * k; sy += dy * k
     return zz, c, pupil, s, (sx, sy)
@@ -84,7 +87,7 @@ def eye_params(t):
 
 def sky_params(t):
     zz = math.exp(lerp(math.log(7.0), 0.0, ease_out((t - T_SKY) / .9)))
-    sun_set = .07 * ease((t - T_SKY) / (12 - T_SKY))
+    sun_set = .07 * ease((t - T_SKY) / (DUR - T_SKY))
     return zz, sun_set
 
 
@@ -153,8 +156,8 @@ def load_plate(out, f):
 
 # ---------------------------------------------------------------- 3D dust (three depths for free: it is in the world)
 _r = np.random.default_rng(31)
-DUST_N = 1100
-DUST0 = np.stack([_r.uniform(-1.6, 1.6, DUST_N), _r.uniform(-1.0, 1.5, DUST_N), _r.uniform(-.6, 8.0, DUST_N)], 1)
+DUST_N = 1700
+DUST0 = np.stack([_r.uniform(-1.6, 1.6, DUST_N), _r.uniform(-1.0, 1.5, DUST_N), _r.uniform(-.6, 12.0, DUST_N)], 1)
 DUST_V = _r.normal(0, .035, (DUST_N, 3))
 DUST_PH = _r.uniform(0, 6.28, (DUST_N, 3))
 DUST_B = _r.uniform(.3, 1.0, DUST_N)
@@ -202,6 +205,8 @@ def draw_trail(t, cam):
     ss = 2
     img = Image.new('F', (W * ss, H * ss), 0)
     dr = ImageDraw.Draw(img)
+    halo = Image.new('F', (W, H), 0)
+    dh = ImageDraw.Draw(halo)
     vel = np.r_[0, np.linalg.norm(np.diff(pts, axis=0), axis=1)] / P2.DT
     step = 2
     for j in range(step, n, step):
@@ -211,10 +216,13 @@ def draw_trail(t, cam):
         age = t - times[j]
         v = math.exp(-age / 1.4) * .95 + .10                                      # fresh light bright, old tangle faint
         v *= math.exp(-max(zj - .4, 0) * .55) * float(smooth(.25, .5, min(zj, z[j - step])))   # deeper in the fog = dimmer
-        w = (1.0 + 3.2 * math.exp(-age / .6)) * min(2.2, .9 / zj) * (1 + .25 * math.sin(j * .07))
+        w = (1.6 + 3.6 * math.exp(-age / .8)) * min(2.6, 1.1 / zj) * (1 + .25 * math.sin(j * .07))
         dr.line([(x[j - step] * ss, y[j - step] * ss), (x[j] * ss, y[j] * ss)], fill=float(v), width=max(1, int(w * ss)))
+        dh.line([(x[j - step], y[j - step]), (x[j], y[j])], fill=float(v * .45), width=max(2, int(w * 4.5)))   # the tube's glow
     L = np.asarray(img.resize((W, H), Image.BILINEAR), np.float32)
-    light = L[..., None] * np.array([1.0, .95, .85]) * 2.6 + fbloom(L * 1.0, (2, 7, 22, 60), (1, .8, .55, .35))[..., None] * np.array([1, .72, .32])
+    Hh = gaussian_filter(np.asarray(halo, np.float32), 5)
+    light = (L[..., None] * np.array([1.0, .95, .85]) * 2.2 + Hh[..., None] * np.array([1.2, .78, .34]) * 1.5 +
+             fbloom(L * 1.0, (2, 7, 22, 60), (1, .8, .55, .35))[..., None] * np.array([1, .72, .32]))
     # scatter pops
     for st in P2.SCAT:
         if st <= t < st + .35:
@@ -321,10 +329,12 @@ def odometer(img, value, y, al, rate=0.0):
     return base
 
 
+YEAR_KNOTS = ((P2.T_WALK0 + .15, 0), (7.0, 18_485), (P2.T_BOUNCE, 35_645), (11.0, 57_305), (P2.T_EXIT - .12, YEARS))
+
+
 def year_at(t):
-    u = (t - 1.85) / (P2.T_WALK1 + .25 - 1.85)
-    u = min(max(u, 0), 1)
-    return YEARS * (u if u < .97 else .97 + (u - .97) * 1.0)
+    ts, ys = zip(*YEAR_KNOTS)
+    return float(np.interp(t, ts, ys))
 
 
 # ---------------------------------------------------------------- the film layer: grain, chromatic aberration, lens dust, breathing bloom
@@ -385,6 +395,64 @@ def dot0():
     return DOT0
 
 
+_h = np.random.default_rng(23)
+HOOK_N = 20                                                                     # the hook's gold dust: 3 depths, 3 speeds
+HOOK_P = np.stack([_h.uniform(-.45, .45, HOOK_N), _h.uniform(-.75, .75, HOOK_N), _h.choice([.45, 1.0, 2.2], HOOK_N)], 1)
+HOOK_V = np.stack([_h.normal(0, .02, HOOK_N), _h.uniform(.005, .03, HOOK_N), np.zeros(HOOK_N)], 1)
+LOCKIN = (('INSIDE THE SUN', 3.0), ('A PHOTON BOUNCES RANDOMLY', 3.7), ('TRYING TO ESCAPE', 4.4),
+          ([('FOR ', CREAM), ('100,000', GOLDT), (' YEARS', CREAM)], 5.1))
+
+
+def hook_dust(t, cam):
+    k = 1 - ease((t - P2.T_LIT1) / .8)
+    if k <= .01:
+        return 0
+    P = P2.C0 + HOOK_P * np.array([HOOK_P[:, 2:3].ravel(), HOOK_P[:, 2:3].ravel(), np.ones(HOOK_N)]).T + HOOK_V * t
+    P[:, 0] += .015 * np.sin(t * .8 + np.arange(HOOK_N))
+    x, y, z = P2.project(P, cam)
+    img = Image.new('F', (W, H), 0); dr = ImageDraw.Draw(img)
+    for i in range(HOOK_N):
+        if z[i] < .1:
+            continue
+        r = 2.2 / z[i]
+        v = .9 * (.6 + .4 * math.sin(t * 1.7 + i)) / (1 + .3 * z[i])
+        dr.ellipse([x[i] - r, y[i] - r, x[i] + r, y[i] + r], fill=float(v))
+    a = gaussian_filter(np.asarray(img, np.float32), 1.5)
+    return (a * k)[..., None] * np.array([1.4, .95, .45])
+
+
+def timer(img, secs, y, al):
+    """the 8 m 20 s trip, ticking: fixed-width cells so the digits never jitter"""
+    if al <= .01:
+        return img
+    s = f'{int(secs) // 60}:{int(secs) % 60:02d}'
+    lay = Image.new('RGBA', img.size, (0, 0, 0, 0)); dr = ImageDraw.Draw(lay)
+    cw = 46
+    x = (W - sum(18 if ch == ':' else cw for ch in s)) / 2
+    for ch in s:
+        w_ = 18 if ch == ':' else cw
+        tw = dr.textlength(ch, font=DIGIT_FONT)
+        dr.text((x + (w_ - tw) / 2, y - 2), ch, font=DIGIT_FONT, fill=(252, 244, 228, int(255 * al)))
+        x += w_
+    sh = lay.split()[3].filter(ImageFilter.GaussianBlur(10))
+    base = img.convert('RGBA')
+    base.paste((0, 0, 0, 255), (0, 0), sh.point(lambda v: int(v * .7)))
+    base.alpha_composite(lay)
+    return put_alpha(base.convert('RGB'), lambda im: put(im, ['MINUTES TO EARTH'], y - 40, 30, BLACK, (180, 215, 255)), al)
+
+
+def atmosphere(t, zz, c, s, sac):
+    """Earth's blue limb as we fall toward it; gone once the iris has grown around it"""
+    k = s * ease((zz - .4) / 1.6)
+    if k <= .01:
+        return 0
+    ux, uy = (EARTH_C[0] - c[0] + sac[0]) * zz / .80, (EARTH_C[1] - c[1] + sac[1]) * zz / .80
+    cx, cy, R = W / 2 + ux * W / 2, H / 2 - uy * W / 2, .085 * zz / .80 * W / 2
+    d = np.sqrt((XX - cx) ** 2 + (YY - cy) ** 2)
+    limb = np.exp(-((d - R) / (2 + R * .035)) ** 2) * .9 + (d > R) * np.exp(-np.maximum(d - R, 0) / (3 + R * .14)) * .55
+    return (limb * k)[..., None] * np.array([.30, .62, 1.25])
+
+
 def seg_sun(out, f, t):
     cam = P2.camera(t)
     base = load_plate(out, f)
@@ -404,19 +472,22 @@ def seg_sun(out, f, t):
         size = min(26, 9 / max(hz, .3) ** .6) * (1 + .3 * min(sp / 3, 1))
         hot = 22 * breathe * (1 + .5 * min(sp / 3, 1))
         light = light + photon_glow(hx, hy, size, hot, flare=1 + .4 * (breathe - 1))
+    light = light + hook_dust(t, cam)
     if t > P2.T_EXIT - .1:
         light = light + stars_sky(cam, ease((t - P2.T_EXIT - .2) / .4))
     a = screen(base, light)
     # breaking through the surface: the photon first, then the camera
     a = flash(a, .55 * math.exp(-abs(t - P2.T_EXIT) / .07) + .7 * math.exp(-abs(t - (P2.T_EXIT + .30)) / .09))
-    if t > T_SPACE - .3:                                                           # hand-over to the beam ride
-        a = a * (1 - .0) + 0
+    a = flash(a, .30 * math.exp(-abs(t - P2.T_BOUNCE) / .06))                     # the near-escape: knocked back in
     img = to_img(film(a, t, f))
-    if t < 1.5:
-        al = 1 - ease((t - 1.25) / .2)
+    if t < P2.T_WALK0:
+        al = 1 - ease((t - (P2.T_WALK0 - .35)) / .25)
         img = put_alpha(img, lambda im: put(put(im, ['THIS LIGHT WAS MADE'], 1160, 76, BLACK),
                                             [[('100,000', GOLDT), (' YEARS AGO', CREAM)]], 1252, 76, BLACK, glow_col=(255, 150, 40)), al)
-    oal = ease((t - 1.75) / .25) * (1 - ease((t - (P2.T_EXIT - .1)) / .2))
+    for i, (ln, at) in enumerate(LOCKIN):                                        # lock-in: four small lines, one by one
+        lal = ease((t - at) / .25) * (1 - ease((t - 6.75) / .25))
+        img = put_alpha(img, lambda im, ln=ln, i=i: put(im, [ln], 230 + 64 * i, 46, BLACK), lal)
+    oal = ease((t - (P2.T_WALK0 + .15)) / .25) * (1 - ease((t - (P2.T_EXIT - .1)) / .2))
     img = odometer(img, year_at(t), 1580, oal, rate=(year_at(t + .02) - year_at(t - .02)) / .04)
     eal = ease((t - (P2.T_EXIT + .35)) / .2) * (1 - ease((t - (T_SPACE - .1)) / .2))
     img = put_alpha(img, lambda im: put(im, ['THEN IT ESCAPED.'], 270, 94, BLACK, glow_col=(255, 160, 60)), eal)
@@ -436,8 +507,9 @@ def seg_eye(out, f, t):
     if hit > .01:
         light = light + photon_glow(W / 2, H / 2, 14, 30 * hit, flare=3)
     if T_HIT <= t < T_SKY:                                                       # warm light lingering in the pupil + dust in the air
-        lin = math.exp(-(t - T_HIT) / .9)
+        lin = math.exp(-(t - T_HIT) / 1.1) * (1 + .25 * math.sin(t * 37) * math.sin(t * 11.3))   # the beam flickers
         light = light + point(W / 2, H / 2, 40, 1.2 * lin)[..., None] * np.array([1, .75, .35])
+    light = light + atmosphere(t, zz, c, s, sac)
     a = screen(base, light)
     a = flash(a, .35 * hit)
     if t > T_PUSH:                                                               # the catchlight flares into the sun
@@ -445,8 +517,10 @@ def seg_eye(out, f, t):
         a = screen(a, point(W / 2, H / 2, 60 + 500 * k, 6 * k)[..., None] * np.array([1, .85, .6]))
         a = flash(a, k ** 2)
     img = to_img(film(a, t, f))
+    tal = ease((t - (T_SPACE + .2)) / .25) * (1 - ease((t - (T_HIT - .25)) / .2))
+    img = timer(img, 500 * ease((t - (T_SPACE + .2)) / (T_HIT - .45 - T_SPACE)) ** 1.15, 1580, tal)
     al = ease((t - (T_HIT + .35)) / .2) * (1 - ease((t - (T_PUSH - .05)) / .15))
-    img = put_alpha(img, lambda im: put(im, ['AND ENDED IN YOUR EYE.'], 1640, 50, BLACK, (255, 236, 205)), al)
+    img = put_alpha(img, lambda im: put(im, ['AND ENDED', 'IN YOUR EYE.'], 1520, 88, BLACK, glow_col=(255, 160, 60)), al)
     return img
 
 
@@ -511,18 +585,20 @@ def seg_sky(out, f, t):
     a = screen(col, light)
     a = flash(a, math.exp(-lt / .18))                                              # out of the catchlight's flare
     # the sun sets back into the frame-0 dot
-    end = ease((t - 11.40) / .45)
+    end = ease((t - (DUR - .60)) / .45)
     if end > 0:
         a = a * (1 - end)
         dx, dy = dot0()
-        px_, py_ = lerp(sx, dx, ease((t - 11.45) / .45)), lerp(sy, dy, ease((t - 11.45) / .45))
+        px_, py_ = lerp(sx, dx, ease((t - (DUR - .55)) / .45)), lerp(sy, dy, ease((t - (DUR - .55)) / .45))
         a = screen(a, photon_glow(px_, py_, lerp(30, 7, end), 22, flare=1)[...] * end)
     # handheld float
     img = to_img(film(a, t, f))
     ox = 3 * math.sin(lt * 1.1) + 2 * math.sin(lt * 2.7 + 1); oy = 2 * math.sin(lt * 1.4 + 2)
     img = img.transform(img.size, Image.AFFINE, (1, 0, ox, 0, 1, oy), resample=Image.BILINEAR) if end < .5 else img
-    a1 = ease((lt - .30) / .2) * (1 - ease((t - 11.30) / .2))
-    a2 = ease((lt - .55) / .2) * (1 - ease((t - 11.30) / .2))
+    a1 = ease((lt - .15) / .2) * (1 - ease((t - (DUR - .70)) / .2))
+    a2 = ease((lt - .35) / .2) * (1 - ease((t - (DUR - .70)) / .2))
+    cal = ease((t - T_CTA) / .25) * (1 - ease((t - (DUR - .2)) / .15))
+    img = put_alpha(img, lambda im: put(im, ['FOLLOW @SLOWLIGHTTV', 'I TRACK ONE PHOTON EVERY WEEK'], 1500, 40, BLACK, (255, 236, 205)), cal)
     img = put_alpha(img, lambda im: put(im, ['THE LIGHT YOU SEE WITH'], 210, 68, BLACK), a1)
     img = put_alpha(img, lambda im: put(im, ['IS OLDER THAN', 'CIVILIZATION.'], 296, 112, BLACK, GOLDT, glow_col=(255, 130, 30)), a2)
     return img
@@ -548,7 +624,7 @@ def frame(args):
 def events():
     return dict(scatter=[round(s, 3) for s in P2.SCAT], year_end=P2.T_WALK1 + .25,
                 cuts=dict(trap=P2.T_WALK0, escape=P2.T_EXIT, eye=T_HIT, punch=T_SKY),
-                beam_hit=T_HIT + .1, space=T_SPACE, push=T_PUSH)
+                beam_hit=T_HOLD + .1, space=T_SPACE, push=T_PUSH, near=P2.T_BOUNCE, dur=DUR)
 
 
 if __name__ == '__main__':

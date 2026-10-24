@@ -9,9 +9,10 @@ import numpy as np
 
 F = 0.70                       # half-width of the view at unit depth (uv x in [-1, 1])
 YS = 1.15                      # the photosphere
-T_LIT0, T_LIT1 = 1.05, 1.75    # the fog lights up around the dot
-T_WALK0, T_WALK1 = 1.60, 5.55  # the random walk
-T_SPACE = 7.30                 # hand-over to the space/eye shader
+T_LIT0, T_LIT1 = 2.30, 3.00    # lock-in: we dolly into the fog as it lights up
+T_WALK0, T_WALK1 = 2.60, 11.3  # the random walk
+T_BOUNCE = 8.80                # body 1, year ~35,600: it almost reaches the surface, then is scattered back down hard
+T_SPACE = 13.50                # hand-over to the space/eye shader
 DT = 1 / 240
 
 
@@ -46,26 +47,41 @@ def rot_z(v, a):
 
 
 # ---------------------------------------------------------------- the photon: stuttering random walk, then the run for the surface
-def build_walk(seed=9):
-    r = np.random.default_rng(seed)
-    pts, times = [P0.copy()], [T_WALK0]
-    p = P0.copy()
+def _wander(r, p, n, up):
     segs = []
-    while len(segs) < 30:
+    while len(segs) < n:
         d = r.normal(size=3); d /= np.linalg.norm(d)
-        d[2] += .45; d[1] += .08; d /= np.linalg.norm(d)                  # drifts forward (the camera follows) and slightly up
-        L = r.uniform(.10, .42)
+        d[2] += .40; d[1] += up; d /= np.linalg.norm(d)                    # drifts forward (the camera follows)
+        L = r.uniform(.10, .38)
         q = p + d * L
         q[0] = np.clip(q[0], -.55, .55); q[1] = np.clip(q[1], -.25, .75)
         speed = math.exp(r.normal(0, .55))                                  # stutter: slow in dense knots, fast in gaps
-        segs.append((p, q, L / speed, r.normal(0, .06, 3)))
+        segs.append([p, q, L / speed, r.normal(0, .06, 3)])
         p = q
-    tot = sum(s[2] for s in segs)
-    k = (T_WALK1 - T_WALK0) / tot
+    return segs, p
+
+
+def _fit(segs, t0, t1):
+    k = (t1 - t0) / sum(s[2] for s in segs)
+    for s in segs:
+        s[2] *= k
+    return segs
+
+
+def build_walk(seed=9):
+    r = np.random.default_rng(seed)
+    pts, times = [P0.copy()], [T_WALK0]
+    a, p = _wander(r, P0.copy(), 20, .14)                                   # first half: wandering, slowly rising
+    a = _fit(a, T_WALK0, T_BOUNCE - 1.15)
+    top = np.array([np.clip(p[0] + .10, -.5, .5), YS - .13, p[2] + .55])     # the near-escape: a long run for the light
+    deep = np.array([np.clip(top[0] - .15, -.5, .5), .05, top[2] + .45])    # ...then knocked straight back down
+    b = [[p, top, 1.15, np.array([0, -.04, 0])], [top, deep, .70, np.array([.05, .06, 0])]]
+    c, p = _wander(r, deep, 18, .10)
+    c = _fit(c, T_BOUNCE + .70, T_WALK1)
+    segs = a + b + c
     t = T_WALK0
     scat = []
     for a, b, dur, bend in segs:
-        dur *= k
         n = max(2, int(dur / DT))
         for i in range(1, n + 1):
             u = i / n
@@ -79,12 +95,13 @@ def build_walk(seed=9):
     exit_pt = np.array([last[0] + .12, YS, last[2] + .95])
     d_exit = exit_pt - last; d_exit /= np.linalg.norm(d_exit)
     run0 = t
-    t_exit = run0 + np.linalg.norm(exit_pt - last) / 2.4
+    v0 = 1.5                                                                # the final run: the surface boils up toward us
+    t_exit = run0 + np.linalg.norm(exit_pt - last) / v0
     tt = run0
-    while tt < 12:
+    while tt < T_SPACE + 1:
         tt += DT
         dt_ = tt - run0
-        s = 2.4 * dt_ + (0 if tt < t_exit else 3.0 * (tt - t_exit) ** 2)   # light leaves the camera behind once outside
+        s = v0 * dt_ + (0 if tt < t_exit else 2.2 * (tt - t_exit) ** 2)    # light leaves the camera behind once outside
         pts.append(last + d_exit * s)
         times.append(tt)
     return np.array(pts), np.array(times), scat[:-1], exit_pt, d_exit, t_exit
@@ -146,7 +163,7 @@ def build_camera():
                 tgt_yaw = tgt_yaw * (1 - u) + full_y * u
         kk = 1 - math.exp(-DT / .25)
         yaw += (tgt_yaw - yaw) * kk; pitch += (tgt_pitch - pitch) * kk
-        roll = .06 * math.sin(t * .7) + (.18 * ease((t - 3.6) / .7) if t > 3.6 else 0) * (1 - ease((t - 5.4) / .8))
+        roll = .06 * math.sin(t * .7) + (.18 * ease((t - 8.4) / .9) if t > 8.4 else 0) * (1 - ease((t - 10.2) / .9))
         amp = .004 if t < T_EXIT else .002
         cams.append((t, C + amp * np.array([hx[i], hy[i], hz[i]]), yaw + .003 * ha[i], pitch + .003 * hb[i], roll + .003 * hc[i]))
     return ts, cams
@@ -188,10 +205,11 @@ def sun_uniforms(t):
     C, yaw, pitch, roll = camera(t)
     P = photon(t)
     lit = ease((t - T_LIT0) / (T_LIT1 - T_LIT0))
-    sg = (.30 + .55 * ease((t - 3.0) / 3.0)) * lit
+    sg = (.30 + .55 * ease((t - (T_WALK0 + 1.5)) / 6.0)) * lit
+    sg *= 1 + 1.4 * math.exp(-((t - (T_BOUNCE - .15)) / .55) ** 2)          # the near-escape: the surface glows overhead
     if t > T_EXIT:
         sg = .45 + .15 * ease((t - T_EXIT) / .4)
     te = max(0.0, t - T_EXIT)
     return dict(uT=t, uCx=C[0], uCy=C[1], uCz=C[2], uYaw=yaw, uPitch=pitch, uRoll=roll, uF=F,
-                uPx=P[0], uPy=P[1], uPz=P[2], uLit=lit * (1.0 + .5 * ease((t - 5.0) / 1.0)), uYS=YS,
+                uPx=P[0], uPy=P[1], uPz=P[2], uLit=lit * (1.0 + .5 * ease((t - (T_WALK1 - .8)) / 1.0)) * (1 - .28 * ease((t - 7.0) / 1.0) * (1 - ease((t - 9.6) / 1.2))), uYS=YS,
                 uEx=EXIT[0], uEz=EXIT[2], uTe=te if t > T_EXIT else 0.0, uSG=sg, uRing=.05 + 2.4 * ease_out(te / 1.6))
