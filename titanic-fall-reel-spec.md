@@ -63,7 +63,7 @@ World: the vertical axis is Y, the surface is at y=0, and **1 world unit = 1 m**
 ### 4.1 Renderer and pipeline
 - three r0.170, WebGL2, `ACESFilmicToneMapping`, sRGB output, HalfFloat render targets throughout the composer.
 - **Render natively at 1080x1920** (no 720p lanczos upscale for this reel) with **6 sub-frames of motion blur per frame** (shutter 1/60 s; 8 in the snap and impact).
-- **GPU rendering, not SwiftShader.** SwiftShader is too slow for volumetrics plus 6 sub-frames at full resolution. Proposal: headless Chromium with `--use-gl=egl` on a RunPod GPU pod. **Owner decision needed** (claude.md rule 2: ask first). Fallback: SwiftShader at 1080x1920 with 4 sub-frames and fewer volumetric steps, rendered overnight.
+- **Rendering is local:** headless Chromium with SwiftShader (no RunPod), at native 1080x1920. A still takes about 1-3 s per sub-frame on this machine, so 720 frames with 4-6 sub-frames is a few hours on 4 workers. Scene, preview and debug scripts are in `tools/titanic-fall/` (`index.html`, `shot.js`, `dbg.js`, `stars_prep.py`).
 - Composer order: RenderPass → **water volume pass** (§4.3) → god-ray / light-cone pass → UnrealBloom (strength 0.35-0.5, threshold above the bioluminescence floor) → grade (teal-navy shadows, cream highlights, vignette) → fine grain last. Soft clamp `1-exp(-1.25c)` before bloom (playbook §3.5).
 
 ### 4.2 The hero: the bow section (procedural, licence-clean)
