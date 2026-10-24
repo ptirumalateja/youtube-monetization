@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Draft v1 (awaiting the owner's look check; pilot for the Slow Light Dark series) |
+| Status | v2 (owner review fixes: open shackle readable in shadow from frame 0, post wobble, walkers fade); pilot for the Slow Light Dark series |
 | Upload file | `chain-never-locked.mp4` (master with sound); `chain-never-locked_music-ready.mp4` (silent, reveal hit at 13.00 s) |
 | Length | 16.0 s, loops |
 | Voice | None (wordless) |
