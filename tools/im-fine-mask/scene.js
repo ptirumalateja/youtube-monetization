@@ -114,10 +114,15 @@ for(const k of [4,5]) hangLamp(groups[4],LAMPS[k]);
 const L={thigh:0.46,shin:0.46,torso:0.56,neck:0.07,head:0.13,upper:0.31,fore:0.29};
 const LIMB=0.22*2*L.head*2;                               // limb radius = 0.22 x head diameter (limb diameter = 0.44 x)
 function makeFig(color,key,rim,rimCol){
-  const mat=rimify(new THREE.MeshStandardMaterial({color,roughness:0.62,metalness:0,emissive:color,emissiveIntensity:key==='hero'?0.07:0.06}),rimCol,rim,key);
+  const mat=rimify(new THREE.MeshStandardMaterial({color,roughness:0.62,metalness:0,emissive:color,emissiveIntensity:key==='hero'?0.07:0.0}),rimCol,rim,key);
   const cyl=new THREE.CylinderGeometry(1,1,1,16,1,true), sph=new THREE.SphereGeometry(1,24,16);
   const mk=g=>{ const m=new THREE.Mesh(g,mat); m.castShadow=true; m.receiveShadow=true; m.frustumCulled=false; scene.add(m); return m; };
-  return {mat,bones:[...Array(9)].map(()=>mk(cyl)),joints:[...Array(14)].map(()=>mk(sph)),head:mk(sph)}; }
+  const F={mat,bones:[...Array(9)].map(()=>mk(cyl)),joints:[...Array(14)].map(()=>mk(sph)),head:mk(sph)};
+  F.all=F.bones.concat(F.joints,[F.head]);
+  // fade into / out of the void without pops (as in the series common rig): opacity a (0..1); shadows only when mostly solid
+  F.setAlpha=a=>{ const vis=a>0.004, fade=a<0.999; if(mat.transparent!==fade){ mat.transparent=fade; mat.needsUpdate=true; } mat.opacity=a;
+    F.all.forEach(x=>{ x.visible=vis; x.castShadow=vis&&a>0.5; }); };
+  return F; }
 function bone(m,a,b,r){ const d=b.clone().sub(a); const len=Math.max(d.length(),1e-4); m.position.copy(a).add(b).multiplyScalar(0.5); m.scale.set(r,len,r); m.quaternion.setFromUnitVectors(UPV,d.multiplyScalar(1/len)); }
 function ball(m,p,r){ m.position.copy(p); m.scale.setScalar(r); }
 function ik(S,Tg,pole){ const d=Tg.clone().sub(S); const dist=Math.min(Math.max(d.length(),0.05),L.upper+L.fore-0.003); const dn=d.normalize();
@@ -155,10 +160,9 @@ function poseFig(F,J){ const B=F.bones, r=LIMB/2;
   ball(F.head,J.head,L.head); }
 function gait(P,ph,a,A=0.32,K=0.6,arm=0.22){ const s=Math.sin(ph), c=Math.cos(ph);
   return {...P,aL:P.aL+A*a*s,aR:P.aR-A*a*s,kL:P.kL+K*a*Math.max(0,c),kR:P.kR+K*a*Math.max(0,-c),sL:P.sL-arm*a*s,sR:P.sR+arm*a*s}; }
-const figVisible=(F,v)=>F.bones.concat(F.joints,[F.head]).forEach(o=>o.visible=v);
 
 const hero=makeFig(CREAM,'hero',0.16,0xfff1d8);
-const GREYS=[0,1,2,3,4].map(i=>makeFig(SLATE,'grey'+i,0.13,0x9fb2d6));
+const GREYS=[0,1,2,3,4].map(i=>makeFig(SLATE,'grey'+i,0.08,0x9fb2d6));   // series: rim 0.08, no lift
 // a small thumb for the thumbs-up
 const thumbM=[new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,10,1,true),hero.mat),new THREE.Mesh(new THREE.SphereGeometry(1,12,8),hero.mat)];
 thumbM.forEach(m=>{ m.castShadow=true; scene.add(m); });
@@ -241,7 +245,7 @@ chair(groups[1],seatUnder(H1.root,H1.dir),yawOf(H1.dir),MATM);
 const F1={root:POOL[2].clone().add(V(0.2,0,-1.02)),dir:V(0.1,0,1)}, F2={root:POOL[2].clone().add(V(0.85,0,-0.42)),dir:V(-0.95,0,0.3)};
 stool(groups[2],seatUnder(F1.root,F1.dir),MATW); stool(groups[2],seatUnder(F2.root,F2.dir),MATW);
 // night: his chair under his lamp; the grey one's chair and table under the other lamp
-chair(groups[4],seatUnder(H4.root,H4.dir),yawOf(H4.dir),MATW);
+const heroChair=chair(groups[4],seatUnder(H4.root,H4.dir),yawOf(H4.dir),MATW);
 const G4={root:GREYP.clone().add(V(0.12,0,0.05)),dir:V(-0.9,0,0.45)};
 chair(groups[4],seatUnder(G4.root,G4.dir),yawOf(G4.dir),MATW);
 const TABLE4=GREYP.clone().add(V(-0.3,0,0.2)); roundTable(groups[4],TABLE4,0.3,0.7,MATW);
@@ -306,7 +310,7 @@ const crackAt=t=>sstep(TL.crack,TL.crack+0.22,t);
 // [pool group, figure] -> {P, root, yaw} or null
 const GSTAND={...P0,p:0.04,sL:0.06,sR:0.06,eL:0.2,eR:0.2};
 function walkOff(P,root,dir,t0,t,v=1.25){ if(t<t0) return {P,root}; const turnU=sm5(sstep(t0,t0+0.25,t)); const d=Math.max(0,t-t0-0.08)*v*sstep(t0,t0+0.35,t);
-  return {P:gait(P,d/1.3*2*Math.PI,clamp(d*4)),root:root.clone().addScaledVector(dir,d),turnU}; }
+  return {P:gait(P,d/1.3*2*Math.PI,clamp(d*4)),root:root.clone().addScaledVector(dir,d),turnU,alpha:1-sstep(t0+0.2,t0+2.0,t)}; }   // fades into the void, never pops
 function patTarget(J,t0,t){ return J.shL.clone().add(V(0,0.075+0.02*Math.max(0,Math.sin((t-t0)*2*Math.PI*4.5)),0)); }   // two small pats on his left shoulder
 function greyAt(i,t,Jh){
   if(i===0){ if(segAt(t)!==1&&!(t>=ARR[0]&&t<ARR[2])) return null;   // WORK, colleague A: stands at his right, pats, walks off into the dark
@@ -314,11 +318,11 @@ function greyAt(i,t,Jh){
     const reach=win(t,TL.pat1,TL.pat1+0.42,0.16,0.18);
     if(Jh&&reach>0){ P={...P,p:0.12*reach,tR:patTarget(Jh,TL.pat1,t),wR:reach,pR:V(0,-1,-0.5)}; }
     const w=walkOff(P,root0,V(0.75,0,-0.66),TL.pat1+0.48,t); if(w.turnU) yaw=lerp(yaw,yawOf(V(0.75,0,-0.66)),w.turnU);
-    return {P:w.P,root:w.root,yaw}; }
+    return {P:w.P,root:w.root,yaw,alpha:w.alpha}; }
   if(i===1){ if(!(t>=ARR[0]&&t<ARR[2])) return null;   // WORK, colleague B: by the desk, nods, leaves
     const root0=POOL[1].clone().add(V(0.05,0,-0.75)); let yaw=yawOf(V(-0.1,0,1)); let P=breathe({...GSTAND,tilt:0.08*Math.max(0,Math.sin((t-2.5)*7))*win(t,2.6,3.2)},t+0.6,0.6);
     const w=walkOff(P,root0,V(-0.9,0,-0.45),TL.pat1+0.15,t,1.1); if(w.turnU) yaw=lerp(yaw,yawOf(V(-0.9,0,-0.45)),w.turnU);
-    return {P:w.P,root:w.root,yaw}; }
+    return {P:w.P,root:w.root,yaw,alpha:w.alpha}; }
   if(i===2||i===3){ if(!(t>=ARR[1]&&t<ARR[3])) return null;   // FRIENDS: two seated, laughing; friend 2 gets up, pats, leaves
     const F=i===2?F1:F2; let yaw=yawOf(F.dir); const lg=win(t,TL.laugh0-0.1,TL.pat2,0.15,0.25), ph=i===2?0.3:1.1;
     const lb=Math.abs(Math.sin((t-TL.laugh0)*2*Math.PI*1.9+ph));
@@ -332,7 +336,7 @@ function greyAt(i,t,Jh){
     yaw=lerp(yaw,yawOf(via.clone().sub(F.root)),sm5(sstep(TL.pat2-0.45,TL.pat2-0.2,t)));
     const reach=win(t,TL.pat2+0.02,TL.pat2+0.4,0.12,0.15); if(Jh&&reach>0){ P={...P,tR:patTarget(Jh,TL.pat2,t),wR:reach,pR:V(0,-1,-0.5)}; }
     const exit=V(-1,0,-0.25).normalize(); const w=walkOff(P,root,exit,TL.pat2+0.45,t,1.3); if(w.turnU) yaw=lerp(yaw,yawOf(exit),w.turnU);
-    return {P:w.P,root:w.root,yaw}; }
+    return {P:w.P,root:w.root,yaw,alpha:w.alpha}; }
   // i===4: the grey one at night (seated at the table, masked; first to take it off)
   if(t<ARR[3]) return null;
   const yaw=yawOf(G4.dir); const off=sm5(sstep(TL.greyOff[0],TL.greyOff[1],t));
@@ -391,12 +395,12 @@ function lampLevel(k,t){
 
 // ---------------------------------------------------------------- camera
 // opening push-in; truck pool to pool (same framing each pool); night: push in to his mask, then pull out wide to find the other lamp
-const FR=[ {p:V(0,1.25,3.9),l:V(0,0.98,0)},   // opening (push-in to the next one)
+const FR=[ {p:V(0,1.2,4.1),l:V(0,1.32,0)},   // opening (push-in to the next one)
   {p:POOL[1].clone().add(V(0.1,1.45,4.35)),l:POOL[1].clone().add(V(0.02,0.82,-0.15))},
   {p:POOL[2].clone().add(V(0.05,1.5,4.35)),l:POOL[2].clone().add(V(0.02,0.8,-0.2))},
   {p:POOL[3].clone().add(V(0.2,1.5,4.2)),l:POOL[3].clone().add(V(0.0,0.9,0.0))},
   {p:NIGHT.clone().add(V(-0.25,1.38,3.5)),l:NIGHT.clone().add(V(0.1,0.82,0))} ];
-const OPEN1={p:V(0,1.3,3.25),l:V(0,1.05,0)};
+const OPEN1={p:V(0,1.25,3.5),l:V(0,1.3,0)};
 const WIDE={p:NIGHT.clone().add(V(-0.75,1.85,5.7)),l:NIGHT.clone().add(V(0.88,0.5,-0.35))}, WIDE2={p:NIGHT.clone().add(V(-0.62,1.75,5.15)),l:NIGHT.clone().add(V(0.86,0.52,-0.35))};
 const lerpC=(a,b,u)=>({p:a.p.clone().lerp(b.p,u),l:a.l.clone().lerp(b.l,u)});
 function holdAt(k,t){   // where the camera sits while it is at pool k (with a slow drift)
@@ -467,7 +471,7 @@ function setT(t){
     const P2={...h.P,tR:maskPt(T,0.01,-0.13,-0.03),wR:1,pR:V(0.2,-1,-0.8)}; Jh=skel(P2,h.root,h.yaw); poseFig(hero,Jh); setMask(heroMask,faceT(Jh));
     const lit=ring*(1-sstep(TL.callEnd,TL.callEnd+0.12,t)); screenM.color.setScalar(0.08+0.92*lit); phoneGlow.position.copy(maskPt(T,0,0,0.04)); phoneGlow.scale.setScalar(0.22); phoneGlow.material.opacity=0.1*lit; }
   // grey figures
-  GREYS.forEach((F,i)=>{ const g=greyAt(i,t,Jh); figVisible(F,!!g); if(g){ let Jg=skel(g.P,g.root,g.yaw);
+  GREYS.forEach((F,i)=>{ const g=greyAt(i,t,Jh); F.setAlpha(g?(g.alpha??1):0); if(g){ let Jg=skel(g.P,g.root,g.yaw);
       if(i===4){ const P=g.P; const tbl=TABLE4.clone().setY(0.735);
         const onT={...P,tL:tbl.clone().addScaledVector(Jg.side,0.1).addScaledVector(Jg.fwd,-0.06),tR:tbl.clone().addScaledVector(Jg.side,-0.12).addScaledVector(Jg.fwd,-0.04),wL:1,wR:1,pL:V(0,-1,0.8),pR:V(0,-1,-0.8)};
         Jg=skel(onT,g.root,g.yaw);
@@ -480,6 +484,9 @@ function setT(t){
         setMask(greyMask,GT); }
       poseFig(F,Jg); } });
   greyMask.m.visible=t>=ARR[3];
+  // heavy things react to force: his chair rocks a few degrees under each pull, then settles
+  const rock=(h.pull||0)*0.035+0.02*Math.exp(-Math.max(0,t-TL.creak2)/0.18)*Math.sin((t-TL.creak2)*38)*(t>TL.creak2?1:0);
+  heroChair.rotation.x=rock; heroChair.rotation.z=-0.5*rock;
   // furniture groups, lamps, beams
   groups.forEach((g,k)=>{ if(k<5) g.visible=lampLive(k,t)||(k===4&&t>=ARR[3]); });
   let si=[0,0];

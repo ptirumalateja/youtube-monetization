@@ -48,7 +48,7 @@ def blocks(t):
     # hook: on from frame 0, out as the camera leaves the first pool
     a = sstep(-0.01, 0.12, t) * (1 - sstep(1.75, 2.0, t))
     if a > 0:
-        out.append((['HE WORE IT EVERYWHERE.'], 46, 9, 262, a))
+        out.append((['HE WORE IT', 'EVERYWHERE.'], 46, 9, 262, a))
     # WORK. FRIENDS. FAMILY. -- one small line, each word arrives with its pool; all gone as he leaves the last one
     a = 1 - sstep(TL['truck'][3][0], TL['truck'][3][0] + 0.25, t)
     if t >= ARR[1] - 0.15 and a > 0:
