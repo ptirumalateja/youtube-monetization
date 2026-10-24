@@ -1,0 +1,8 @@
+{
+  "name": "slow-light-im-fine-mask",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "three": "0.170.0"
+  }
+}

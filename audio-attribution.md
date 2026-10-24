@@ -41,7 +41,7 @@ Paste the exact line into the description of any reel that uses the file.
 | 869757 Dark Suspense Accent | mikiko850 | Night Sky, Scale Ladder |
 | 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | Night Sky, Scale Ladder |
 | 822420 Riser Hit sfx 120 | AudioPapkin | Night Sky, Scale Ladder, Roberto Carlos V2 |
-| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
+| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees, I'm Fine |
 | 276871 Sword In Air | lucabia | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 768664 portal gate opening | berkup | Night Sky only |
 | 735062 Fast Warp In | GammaGool | Night Sky only |
@@ -49,7 +49,7 @@ Paste the exact line into the description of any reel that uses the file.
 | 649445 Cinematic Woosh SFX-015 | AudioPapkin | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 238375 CP_Subby_Whoosh | stewdio2003 | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 
-Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin, sleepCircle, lucabia, berkup, GammaGool, Bachsambora and stewdio2003 via Freesound." (Trim to the authors of the reel you are posting. Roberto Carlos V2 and What Andromeda Sees: qubodup, AudioPapkin, lucabia, stewdio2003 and sleepCircle.)
+Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin, sleepCircle, lucabia, berkup, GammaGool, Bachsambora and stewdio2003 via Freesound." (Trim to the authors of the reel you are posting. Roberto Carlos V2 and What Andromeda Sees: qubodup, AudioPapkin, lucabia, stewdio2003 and sleepCircle. I'm Fine: sleepCircle.)
 
 ## 3. Non-Freesound files: verify before a monetised upload
 
@@ -57,6 +57,8 @@ Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin
 |---|---|---|---|
 | Uppbeat braam bass drop / long impact / screaming echo (Tomas Herudek / The Foundation / Epic Stock Media) | Uppbeat free SFX | Scale Ladder | Credit not required for SFX per the Uppbeat help centre, but terms change: re-check the current Uppbeat licence before uploading. |
 | Circuits-hum and explosion files shared later in chat | Unknown source/licence | Experiments only | Not in the final cuts. Confirm origin and licence before using. |
+
+I'm Fine (`tools/im-fine-mask/mix.py`) uses only the CC0 wind file above (as room tone); every other sound in it (office murmur, distant laughter, phone buzz and voice, breath, footsteps, ceramic creaks and crack, porcelain clink, lamp flicker, drone, warm low chord) is synthesised in numpy and needs no credit.
 
 Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, choir pad, pings, risers, whooshes, ticks) and needs no credit.
 
