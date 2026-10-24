@@ -24,7 +24,7 @@ Pilot: **The Chain Was Never Locked** (`tools/chain-never-locked/`, branch `clau
 
 ## Figures (`createRig`)
 - Solid 3D: capsule limbs (cylinders + sphere joints), sphere head radius 0.13, **no face**. Proportions thigh 0.46, shin 0.46, torso 0.56, upper arm 0.31, forearm 0.29.
-- Limb thickness: **radius = 0.22 × head diameter** (width 0.44× head). The literal "0.22× diameter" width read wire-thin. Owner to confirm.
+- Limb thickness: **width 0.44× head diameter** (radius 0.22×). Confirmed by the owner on 24 Oct 2026.
 - Hero cream `#EDE6D6`, roughness 0.62, rim 0.16 (`#fff1d8`), self-lift emissive 0.07 so the underside never goes black.
 - Others slate `#8A8F98`, rim 0.08 (`#9fb2d6`), no lift: outside the beam they read as soft rim outlines. They **fade 1 → 0 into the void over about 2 s** (`F.setAlpha`), never pop.
 - Posture carries all the emotion. Look direction = head lean (`hy`, `tilt`) + upper-body twist (`ty`). Pose library: stand, hunch, crouch, sit (floor, knees up, `handsOnKnees`), slump. Ease everything (smoothstep / quintic), add a jolt bump for impacts, breathing on idle.
