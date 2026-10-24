@@ -102,6 +102,11 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandard
 floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
 
 // ---------------------------------------------------------------- the iron post, its ring, the ankle cuff
+// the post rocks 3-4% of its height on each snap (pivot at the base); the ring and the lock ride with it
+const POST_BASE=V(POST.x,0,POST.z); const postG=new THREE.Group(); postG.position.copy(POST_BASE); scene.add(postG);
+function postTilt(t){ let a=0; for(const [s,amp] of [[TL.snap1,0.024],[TL.snap2,0.034]]) if(t>s){ const x=t-s; a+=amp*Math.exp(-x/0.32)*Math.sin(2*Math.PI*4.2*x+0.35)/Math.sin(0.35+Math.PI/2); }
+  a+=0.006*tensionAt(t); return new THREE.Quaternion().setFromUnitVectors(UPV,UPV.clone().addScaledVector(DIRH,Math.tan(a)).normalize()); }
+const onPost=(p,t)=>p.clone().sub(POST_BASE).applyQuaternion(postTilt(t)).add(POST_BASE);
 const IRON=()=>new THREE.MeshStandardMaterial({color:0x4a4a50,roughness:0.48,metalness:0.4,map:noiseTex(128,77,128,90,20)});
 { const m=dustify(IRON(),'post');
   const post=new THREE.Mesh(new THREE.CylinderGeometry(POST_R,POST_R*1.04,POST_H,40),m); post.position.copy(POST).setY(POST_H/2);
@@ -110,17 +115,17 @@ const IRON=()=>new THREE.MeshStandardMaterial({color:0x4a4a50,roughness:0.48,met
   const base=new THREE.Mesh(new THREE.CylinderGeometry(POST_R*1.9,POST_R*2.1,0.06,40),m); base.position.copy(POST).setY(0.03);
   const band=new THREE.Mesh(new THREE.CylinderGeometry(POST_R*1.12,POST_R*1.12,0.04,40),m); band.position.copy(POST).setY(0.42);
   const plate=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.07,0.035),m); plate.position.copy(POST).addScaledVector(DR,POST_R+0.004).setY(0.42); plate.rotation.y=yawOf(DR);
-  for(const o of [post,cap,knob,base,band,plate]){ o.castShadow=o.receiveShadow=true; scene.add(o); }
+  for(const o of [post,cap,knob,base,band,plate]){ o.castShadow=o.receiveShadow=true; o.position.sub(POST_BASE); postG.add(o); }
   // bolts on the base plate
-  for(let i=0;i<4;i++){ const a=i*Math.PI/2+0.4; const b=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.02,12),m); b.position.set(POST.x+Math.cos(a)*POST_R*1.6,0.066,POST.z+Math.sin(a)*POST_R*1.6); b.castShadow=true; scene.add(b); } }
+  for(let i=0;i<4;i++){ const a=i*Math.PI/2+0.4; const b=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.02,12),m); b.position.set(Math.cos(a)*POST_R*1.6,0.066,Math.sin(a)*POST_R*1.6); b.castShadow=true; scene.add(b); b.position.add(POST_BASE); } }
 // the ring hangs in the plane of DR and up
-const ring=new THREE.Mesh(new THREE.TorusGeometry(RING_R,RING_TUBE,16,48),dustify(IRON(),'ring')); ring.position.copy(RINGC); ring.rotation.y=yawOf(DR); ring.castShadow=ring.receiveShadow=true; scene.add(ring);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(RING_R,RING_TUBE,16,48),dustify(IRON(),'ring')); ring.position.copy(RINGC); ring.rotation.y=yawOf(DR); ring.castShadow=ring.receiveShadow=true; ring.position.sub(POST_BASE); postG.add(ring);
 const cuff=new THREE.Mesh(new THREE.TorusGeometry(0.052,0.016,14,32),dustify(IRON(),'cuff')); cuff.castShadow=true; scene.add(cuff);
 
 // ---------------------------------------------------------------- the padlock (the one red object). Its shackle is OPEN: lifted out of the body and swung.
 const LOCK={bw:0.086,bh:0.096,bd:0.034,leg:0.026,lift:0.03,swing:-0.75};
 const LS=1.3; const lockG=new THREE.Group(), lockIn=new THREE.Group(); lockG.add(lockIn); lockG.scale.setScalar(LS); scene.add(lockG);
-const lockMat=dustify(new THREE.MeshStandardMaterial({color:RED,roughness:0.38,metalness:0.35,emissive:RED,emissiveIntensity:0.22}),'lock');
+const lockMat=dustify(new THREE.MeshStandardMaterial({color:RED,roughness:0.38,metalness:0.35,emissive:RED,emissiveIntensity:0.05}),'lock');
 const steel=dustify(new THREE.MeshStandardMaterial({color:0x9a9ca3,roughness:0.28,metalness:0.95}),'shackle');
 { const body=new THREE.Mesh(new RoundedBoxGeometry(LOCK.bw,LOCK.bh,LOCK.bd,5,0.013),lockMat); body.position.set(0,-0.0675-LOCK.bh/2,0); body.castShadow=body.receiveShadow=true; lockIn.add(body);
   // keyhole + a thin bevelled face plate
@@ -147,14 +152,14 @@ function glowTex(){ const c=document.createElement('canvas'); c.width=c.height=1
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
 const GLOW=glowTex();
 const sprite=(col,op)=>{ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:col,transparent:true,opacity:op,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); scene.add(s); return s; };
-const lockGlow=sprite(0xff3a2a,0.16), glint=sprite(0xffd890,0);
+const lockGlow=sprite(0xff3a2a,0.16), glint=sprite(0xffd890,0), tipLight=sprite(0xffe2b0,0);
 // pose of the lock: hangs from the ring, tilts toward the chain while it is taut, sways after
 function lockPose(t){ const T=tensionAt(t); let ax=0;
   const sway=(t0,a,tau,f)=>t>t0?a*Math.exp(-(t-t0)/tau)*Math.sin((t-t0)*f):0;
   ax+=0.55*T+sway(TL.snap1,0.12,0.25,22)+sway(TL.snap2,0.16,0.25,22)+sway(TL.release,-0.22,0.45,11)+sway(TL.creak,0.05,0.6,7);
   const axis=V(-DIRH.z,0,DIRH.x);           // horizontal, perpendicular to the pull
   const qy=new THREE.Quaternion().setFromAxisAngle(UPV,0.12), qs=new THREE.Quaternion().setFromAxisAngle(axis,ax);
-  return {p:APEX.clone(),q:qs.multiply(qy)}; }
+  return {p:onPost(APEX,t),q:postTilt(t).multiply(qs.multiply(qy))}; }
 // the chain's first link hangs on the shackle next to the ring
 const lockLinkPoint=(t)=>{ const L=lockPose(t); return V(-0.034,-0.03,-0.03).applyQuaternion(L.q).add(L.p); };   // on the long leg of the shackle
 
@@ -310,7 +315,7 @@ function drawChain(links){ links.forEach((l,k)=>{ const X=l.d.clone(); let up=UP
 // ---------------------------------------------------------------- the others: slate grey strangers walking through the beam, fading into the dark
 // [start time, x0, x1, z, speed m/s, glances back]
 const WALK=[[5.05,2.7,-2.8,-0.95,1.15,1],[6.15,-2.9,2.9,-1.9,1.55,0],[6.95,3.0,-3.0,-3.1,2.1,0],[7.6,-2.9,2.9,-1.25,2.7,0],[8.2,3.0,-3.0,-2.5,3.3,0],[8.65,-3.0,3.0,-1.6,4.0,0],[9.05,3.2,-3.2,-3.6,4.6,0],[9.35,-3.1,3.1,-1.1,5.4,0]];
-const walkers=WALK.map((w,i)=>({w,f:makeFig(SLATE,'walker'+i,0.08,0x9fb2d6)}));
+const walkers=WALK.map((w,i)=>{ const f=makeFig(SLATE,'walker'+i,0.08,0x9fb2d6); f.mat.transparent=true; return {w,f}; });
 const GL0=6.05, GL1=7.25;   // walker 1 slows and looks back at him
 function walkerAt(m,t){ const [t0,x0,x1,z,v,gl]=m.w; const dir=Math.sign(x1-x0);
   if(t<t0-0.01) return null;
@@ -318,7 +323,9 @@ function walkerAt(m,t){ const [t0,x0,x1,z,v,gl]=m.w; const dir=Math.sign(x1-x0);
   const x=x0+dir*d; if(dir*(x-x1)>0) return null;
   const b=gl?sstep(GL0,GL0+0.45,t)*(1-sstep(GL1-0.45,GL1,t)):0;
   const P=gait({...P0,p:0.08,tilt:0.05,ty:-0.55*b*dir,hy:-0.5*b*dir},d/1.3*2*Math.PI,1,0.34,0.62,0.24);
-  return {P,root:V(x,0,z),yaw:dir>0?0:Math.PI,ph:d/1.3*2*Math.PI}; }
+  const T=Math.abs(x1-x0)/v, left=Math.abs(x1-x)/v;   // fade up out of the void, then back into it (about 2 s when the walk allows)
+  const al=sstep(0,Math.min(1.6,0.4*T),tt)*sstep(0,Math.min(2.0,0.45*T),left);
+  return {P,root:V(x,0,z),yaw:dir>0?0:Math.PI,ph:d/1.3*2*Math.PI,a:al}; }
 
 const NOREFL=[];   // additive haze is not mirrored by the floor (it washed the foreground out)
 { const ob=refl.onBeforeRender; refl.onBeforeRender=function(...a){ NOREFL.forEach(o=>o.visible=false); ob.apply(this,a); NOREFL.forEach(o=>o.visible=true); }; }
@@ -384,7 +391,7 @@ function addPuff(at,t0,n,spread,vel,seed,amp=1){ const Rn=rng(seed); for(let i=0
 const WA0={p:V(0.06,0.8,5.6),l:V(-0.02,0.5,0)}, WA5={p:V(0.24,0.84,5.3),l:V(0.2,0.66,0)};
 const WB10={p:V(0.0,1.05,6.9),l:V(-0.08,0.62,-0.7)};
 const WD13={p:V(0.03,0.82,5.95),l:V(-0.02,0.5,0)};
-const LOCKC=()=>APEX.clone().add(V(0,-0.085*LS,0));
+const LOCKC=(t=0)=>onPost(APEX,t).add(V(0,-0.085*LS,0));
 const CLOSE={off:V(0.12,0.08,0.66).applyQuaternion(lockPose(12.75).q)};
 function camAt(t){
   if(t<5){ const u=t/5; return {p:WA0.p.clone().lerp(WA5.p,u),l:WA0.l.clone().lerp(WA5.l,u)}; }
@@ -420,11 +427,14 @@ function setT(t){
   const ankle=ankleOf(Jh); cuff.position.copy(ankle); cuff.quaternion.setFromUnitVectors(V(0,0,1),Jh.kR.clone().sub(Jh.fR).normalize());
   drawChain(chainAt(t,ankle));
   const L=lockPose(t); lockG.position.copy(L.p); lockG.quaternion.copy(L.q);
-  const lc=LOCKC(); lockLight.position.copy(lc).add(V(0.05,0.0,0.08)); lockGlow.position.copy(lc); lockGlow.scale.setScalar(0.32); lockGlow.material.opacity=0.12+0.04*sstep(TL.pushIn0,TL.pushIn1,t);
+  const close=t<TL.cut?sstep(TL.pushIn0+0.6,TL.pushIn1-0.3,t):0;   // 0 in the wide shots (lock half in shadow), 1 in the close-up
+  const lc=LOCKC(t); lockLight.position.copy(lc).add(V(0.05,0.0,0.08)); lockLight.intensity=lerp(0.012,0.06,close); lockMat.emissiveIntensity=lerp(0.05,0.22,close);
+  lockGlow.position.copy(lc); lockGlow.scale.setScalar(0.32); lockGlow.material.opacity=lerp(0.025,0.16,close);
   lockG.updateMatrixWorld(true);
   const gapW=V(0,-0.055,0).add(V(LOCK.leg+0.004,0,0)); const gw=lockIn.localToWorld(gapW.clone());
   const gl=sstep(TL.glint-0.2,TL.glint+0.1,t)*(1-sstep(TL.glint+0.25,TL.glint+0.9,t)); glint.position.copy(gw); glint.scale.setScalar(0.05+0.03*gl); glint.material.opacity=0.8*gl;
-  for(const m of walkers){ const w=walkerAt(m,t); const vis=!!w; m.f.bones.concat(m.f.joints,[m.f.head]).forEach(o=>o.visible=vis); if(vis) poseFig(m.f,skel(w.P,w.root,w.yaw)); }
+  shk.children[1].getWorldPosition(tipLight.position); tipLight.scale.setScalar(0.035); tipLight.material.opacity=0.32*(1-close);   // catch-light on the free tip: the rewatch hint
+  for(const m of walkers){ const w=walkerAt(m,t); const vis=!!w&&w.a>0.004; m.f.bones.concat(m.f.joints,[m.f.head]).forEach(o=>{ o.visible=vis; o.castShadow=vis&&w.a>0.5; }); if(vis){ m.f.mat.opacity=w.a; poseFig(m.f,skel(w.P,w.root,w.yaw)); } }
   const c=camAt(t); cam.position.copy(c.p); cam.lookAt(c.l); cam.updateProjectionMatrix();
   const sh=shakeAt(t); if(sh>0){ cam.rotateX(0.006*sh*Math.sin(t*131.0)); cam.rotateY(0.006*sh*Math.sin(t*97.0+1.3)); }
   const pay=t>=TL.cut?0.14*sstep(TL.look0,TL.look1,t):0;      // the gold payoff: the lamp lifts a little as he looks
