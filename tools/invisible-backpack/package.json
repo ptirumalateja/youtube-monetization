@@ -1,0 +1,9 @@
+{
+  "name": "slow-light-invisible-backpack",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "playwright-core": "1.56.1",
+    "three": "0.170.0"
+  }
+}
