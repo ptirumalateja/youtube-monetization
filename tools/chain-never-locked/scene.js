@@ -153,7 +153,7 @@ function lockPose(t){ const T=tensionAt(t); let ax=0;
   const sway=(t0,a,tau,f)=>t>t0?a*Math.exp(-(t-t0)/tau)*Math.sin((t-t0)*f):0;
   ax+=0.55*T+sway(TL.snap1,0.12,0.25,22)+sway(TL.snap2,0.16,0.25,22)+sway(TL.release,-0.22,0.45,11)+sway(TL.creak,0.05,0.6,7);
   const axis=V(-DIRH.z,0,DIRH.x);           // horizontal, perpendicular to the pull
-  const qy=new THREE.Quaternion().setFromAxisAngle(UPV,0.45), qs=new THREE.Quaternion().setFromAxisAngle(axis,ax);
+  const qy=new THREE.Quaternion().setFromAxisAngle(UPV,0.12), qs=new THREE.Quaternion().setFromAxisAngle(axis,ax);
   return {p:APEX.clone(),q:qs.multiply(qy)}; }
 // the chain's first link hangs on the shackle next to the ring
 const lockLinkPoint=(t)=>{ const L=lockPose(t); return V(-0.034,-0.03,-0.03).applyQuaternion(L.q).add(L.p); };   // on the long leg of the shackle
@@ -381,7 +381,7 @@ function addPuff(at,t0,n,spread,vel,seed,amp=1){ const Rn=rng(seed); for(let i=0
 
 // ---------------------------------------------------------------- camera
 // 0-5 slow push-in; 5-10 slow pull-out as the years pass; 10-12.75 log push-in to the padlock; cut at 13.0 to the wide; 13-16 ends where frame 0 starts
-const WA0={p:V(0.06,0.8,5.6),l:V(-0.02,0.5,0)}, WA5={p:V(0.12,0.82,5.2),l:V(0.08,0.62,0)};
+const WA0={p:V(0.06,0.8,5.6),l:V(-0.02,0.5,0)}, WA5={p:V(0.24,0.84,5.3),l:V(0.2,0.66,0)};
 const WB10={p:V(0.0,1.05,6.9),l:V(-0.08,0.62,-0.7)};
 const WD13={p:V(0.03,0.82,5.95),l:V(-0.02,0.5,0)};
 const LOCKC=()=>APEX.clone().add(V(0,-0.085*LS,0));
