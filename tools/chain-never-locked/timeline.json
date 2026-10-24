@@ -1,0 +1,22 @@
+{
+  "duration": 16.0,
+  "fps": 30,
+  "_comment": "All times in seconds. Sound sync (mix.py) and the overlay (overlay.py) read these through output/meta.json.",
+  "stand0": 2.0,
+  "grab": 2.32,
+  "snap1": 2.86,
+  "snap2": 3.56,
+  "release": 3.92,
+  "chainLand": 4.05,
+  "sitDown": 4.72,
+  "years": [5.0, 6.1, 6.8, 7.35, 7.8, 8.2, 8.55, 8.85, 9.12, 9.36, 9.58],
+  "pushIn0": 10.0,
+  "pushIn1": 12.75,
+  "creak": 11.55,
+  "glint": 11.9,
+  "cut": 13.0,
+  "look0": 13.55,
+  "look1": 14.6,
+  "endText": 13.45,
+  "reviewTimes": [0.5, 2.9, 3.6, 7.5, 9.9, 12.5, 15.5]
+}
