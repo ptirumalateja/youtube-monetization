@@ -72,3 +72,12 @@ ONLY=0,120,300 python3 compose.py /tmp/frames timing.json none /tmp/preview  # o
 ## 6. Coordination with Part 1
 
 Part 1 was built in parallel (session `session_017hQP4HA9HgeTnBvpQRwv2Z`, branch `claude/invisible-backpack-part1`) and locked its look in `storyboards/invisible-backpack/style-sheet.md`. Part 2 reuses Part 1's code rather than re-creating it: `part1/` is a verbatim copy at commit fd947c6. If Part 1's final frame changes, copy its `scene.js` and `timeline.json` into `part1/` again, run `python3 build.py`, and check frame 0 against Part 1's last frame (`node shot.js 540 960 out 8822 0`).
+
+## 7. QA (v1 render, 24 Oct 2026)
+
+- Files (scratchpad, not in git): `check-your-friends-bag_master.mp4` and `_music-ready.mp4`, 1080x1920, 30 fps, 20.0 s, H.264 CRF 18 (about 165 MB each: Part 1's film grain is expensive to encode). Share copies at CRF 30: `_master_share.mp4` (3.4 MB), `_music-ready_share.mp4` (2.7 MB). Upload the CRF 18 master.
+- Frame 0 matches Part 1's last frame (t = 17.9667 s): the same camera, hero, lamp, bag and crowd. The friend fades in as the camera turns back.
+- Contact sheet at 2 fps: every beat reads, with no white or beige frames. Labels are legible, and the X-ray labels never overlap (stacked with leader lines).
+- ROCK counter 1 to 7, asserted monotonic frame by frame in `times.js`. Typed text never uses a negative slice.
+- Audio after AAC: -14.3 LUFS integrated, true peak -1.4 dBTP. Held breath 17.75-18.3 s. One warm hit at the bridge (18.3 s). The join with Part 1 continues its wind, 110 Hz lamp hum and D major pad, then releases them.
+- Known soft spots for a v2: the friend's bag is huge in the two-shot and partly hides the hero's tap. Labels are small in the wide time-lapse. Part 1's end text is not carried into frame 0 (the hook starts on a clean frame).
