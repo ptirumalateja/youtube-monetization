@@ -58,6 +58,8 @@ Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin
 | Uppbeat braam bass drop / long impact / screaming echo (Tomas Herudek / The Foundation / Epic Stock Media) | Uppbeat free SFX | Scale Ladder | Credit not required for SFX per the Uppbeat help centre, but terms change: re-check the current Uppbeat licence before uploading. |
 | Circuits-hum and explosion files shared later in chat | Unknown source/licence | Experiments only | Not in the final cuts. Confirm origin and licence before using. |
 
+The Invisible Backpack (stickman, Part 1) uses no sound files at all: heartbeat, breathing, footsteps, x-ray shimmer, ticks, thud, clinks, hit, piano chord and wind are all synthesised in `tools/invisible-backpack/sound.py`, so it needs no credit line.
+
 Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, choir pad, pings, risers, whooshes, ticks) and needs no credit.
 
 ## 4. Not used in the final cuts

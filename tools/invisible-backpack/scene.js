@@ -374,7 +374,7 @@ const CUTS=TL.cuts.concat([1e9]); const shotOf=t=>{ let i=0; while(t>=CUTS[i+1])
 const heroX=t=>t<2.4?HX0+DH(t):HX;
 function camShot(i,t){
   switch(i){
-    case 0:{ const hx=heroX(Math.min(t,TL.flash)); const p=V(hx-2.5,0.45,3.3), l=V(hx+1.0,1.05,-0.6); p.lerp(l,0.1*sstep(2.4,4.0,t)); return {p,l,fov:40}; }   // walk, then reveal
+    case 0:{ const hx=heroX(Math.min(t,TL.flash)); const r=sstep(2.05,2.7,t); const p=V(hx-2.5-0.35*r,0.45+0.1*r,3.3+0.35*r), l=V(hx+1.0-0.6*r,1.05+0.1*r,-0.6); p.lerp(l,0.08*sstep(2.7,4.0,t)); return {p,l,fov:40}; }   // walk, then reveal (eases left so the whole bag is in frame)   // walk, then reveal
     case 1:{ const u=clamp((t-4)/3); const c=bagAt(4.0).p; const th=lerp(Math.PI-1.05,Math.PI+0.28,ease(u)); const r=lerp(2.9,2.5,u);                          // inventory orbit
       return {p:V(c.x+r*Math.cos(th),c.y+0.3-0.15*u,c.z+r*Math.sin(th)),l:c.clone(),fov:38}; }
     case 2:{ const u=clamp((t-7)/1.45); return {p:V(HX+3.4-0.3*u,0.28,0.55),l:V(HX,1.0-0.12*sstep(7.7,8.3,t),-0.3),fov:40}; }                                  // front low

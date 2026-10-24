@@ -62,8 +62,8 @@ Units are metres. Path runs along +x (he walked toward +x); the side cameras liv
 
 - Palette: charcoal/navy world, **cream text** `(240,232,214)` with a thick black stroke, **gold accent** `(240,186,92)`, teal accent, **red only for chips/markers** `(214,62,48)`.
 - Fonts: Liberation Mono Bold (hook, captions, counters, end line), DejaVu Sans Mono (small tag), Liberation Mono Bold for labels.
-- Sizes at 1080×1920: tag "SLOW LIGHT" 26 px spaced; hook 62 px; reveal title 66 px; rock labels 38 px; counter 60 px with a red "STEP n" chip; captions 58 px; end line 64 px; sign-off 40 px / 30 px. Safe zone: no text in the bottom 18% (y > 1574) or the top 150 px.
-- Part 1's final frame carries the end text: "YOUR BAGGAGE IS / YOUR FOUNDATION." (y≈330-400), "One rock a day." and "slowlighttv" below it. The clean frame (no text) is the render above; start Part 2 on the clean frame and fade Part 1's text out in the first ~0.3 s if you want a seamless join.
+- Sizes at 1080×1920: tag "SLOW LIGHT" 26 px spaced; hook 62 px; reveal title 66 px; rock labels 41 px (blurred until focus); counter 60 px with a red "STEP n" chip; captions 58 px; end line 64 px; sign-off 44 px / 30 px. Safe zone: no text in the bottom 18% (y > 1574) or the top 150 px.
+- Part 1's final frame carries the end text: "YOUR BAGGAGE IS / YOUR FOUNDATION." (64 px at y 250 / 326, second line gold), "One rock a day." (44 px, y 1440) and "slowlighttv" (DejaVu Sans Mono 30 px, y 1506) at the bottom. The clean frame (no text) is the render above; start Part 2 on the clean frame and fade Part 1's text out in the first ~0.3 s if you want a seamless join.
 
 ## Sound at the join
 
