@@ -92,13 +92,23 @@ def main(meta_path, out_path):
         place(bus['fol'], paper_slide(0.28, 70 + i, 0.9), g - 0.05, 1.0, 0.2)
         place(bus['hit'], thud(80 + i, 58, 0.2, 0.5 * big), g + 0.08, 1.0, 0.0)
         place(bus['fol'], breath(0.55, 'out', 90 + i, 0.5 + 0.12 * i), g + 0.1, 1.0, -0.45)      # he takes it a little harder every time
+    # ghost hands: a breathy whisper swell as each arm reaches out of the dark, a second softer one for the hands that miss
+    for i, it in enumerate(TL['items']):
+        place(bus['air'], bp(noise(int(0.7 * SR)), 2600, 1.2) * np.sin(np.pi * np.arange(int(0.7 * SR)) / int(0.7 * SR)) ** 1.5 * 0.35, it['grab'] - 0.75, 1.0, 0.35)
+        place(bus['air'], bp(noise(int(0.5 * SR)), 3400, 1.5) * np.sin(np.pi * np.arange(int(0.5 * SR)) / int(0.5 * SR)) * 0.18, it['grab'] - 0.5, 1.0, -0.3)
+        place(bus['air'], bp(noise(int(0.6 * SR)), 1800, 1.0) * np.sin(np.pi * np.arange(int(0.6 * SR)) / int(0.6 * SR)) ** 0.8 * 0.3, it['grab'] + 0.2, 1.0, 0.0)   # dragged away into the dark
+    # rain: hiss in the 2-9 kHz band whose level follows the scene's rain curve (down beat on day 5, and every night of the routine)
+    rn = hp(lp(noise(N), 9000), 2200) * np.interp(t, *zip(*TL['rain'])) * 0.05
+    for c in range(2): bus['air'][c] += rn * (1.0 + 0.1 * c)
     # the twist: the balance hits zero on day 5
     place(bus['hit'], sub_boom(), zero, 1.25, 0.0)
     ex = load('814046__qubodup__explosion-from-another-dimension.wav', SR * 4)     # read at 4x rate = 2 octaves down
     ex = lp(ex, 900)[:int(4.5 * SR)]; ex /= np.abs(ex).max()
     place(bus['hit'], ex * env(len(ex), 0.01, 1.3), zero, 0.35, 0.0)
-    # near silence: a long breath out, the wallet goes back in his pocket
-    place(bus['fol'], breath(1.6, 'out', 120, 0.5), 9.9, 1.0, -0.45)
+    # near silence: the wallet goes back in his pocket, he slides down to the floor in the rain, a long breath out
+    place(bus['fol'], breath(1.6, 'out', 120, 0.5), TL['floor0'] + 0.3, 1.0, -0.45)
+    place(bus['hit'], thud(125, 50, 0.2, 0.45), TL['floor0'] + 0.4, 1.0, -0.4)
+    place(bus['fol'], chair_scrape(126, 0.6), TL['floor0'], 1.0, -0.4)
     place(bus['fol'], cloth(0.5, 121, 0.6), TL['pick0'] - 0.1, 1.0, -0.2)
     place(bus['fol'], leather(0.7, 122, 0.7), TL['pick0'] + 0.1, 1.0, 0.0)
     place(bus['hit'], thud(124, 55, 0.12, 0.3), TL['pocket'], 1.0, -0.4)

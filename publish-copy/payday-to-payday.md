@@ -14,7 +14,7 @@
 
 **YouTube description:**
 > Salary day: ₹50,000 in, and he is happy.
-> Day 1 rent. Day 2 EMI. Day 3 groceries. Day 4 food. Day 5 party. By day 5 the wallet is empty.
+> Day 1 rent. Day 2 EMI. Day 3 groceries. Day 4 food. Day 5 party. By day 5 the wallet is empty and he sits on the floor in the rain.
 > Then he goes back to work. The sun sets, the sun rises, 25 days pass, and it is salary day again.
 >
 > A Slow Light story about living payday to payday. The numbers are made up for the story and add up exactly: 18,000 + 12,000 + 8,000 + 7,000 + 5,000 = 50,000.
@@ -49,6 +49,7 @@
 | Balance counter | Rises only while the five bundles land (0 → 50,000), falls only while they are taken (50,000 → 0), then stays ₹0 | Asserted frame by frame in `overlay.py check`. |
 | DAY 1 → DAY 5 → DAY 30 | One deduction per day for days 1-5; the day counter only increases and speeds up through the routine | Story pacing; asserted monotonic. The 25 days of routine are shown as a time-lapse, so the sun/moon cycles are not one per counter tick. |
 | 25 DAYS TO GO | 30-day month − 5 days = 25 | Arithmetic; the 30-square calendar shows 5 crossed, 25 open. |
+| Ghost hands, rain | Grey translucent hands take one bundle per expense; rain falls in the lamp beam on the day-5 low and on the routine's nights | Visual devices only. |
 | Sun / moon icon | The lamp is the sun: bright = day, dim = night | Visual device only. |
 
 No external statistic is claimed. If the copy is ever extended with household-debt or EMI figures, cite RBI data directly and keep this story's numbers separate from it.

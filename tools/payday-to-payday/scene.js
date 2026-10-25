@@ -54,29 +54,50 @@ const slabs={}; { let y=WTOP; for(const k of ORDER){ const it=item(k), th=it.amt
   const m=new THREE.Mesh(new THREE.BoxGeometry(0.26,th,0.17),mat); m.castShadow=true; m.receiveShadow=true; m.frustumCulled=false; scene.add(m);
   slabs[k]={m,mat,th,rest:V(TOWER_X+0.004*Math.sin(k.length*3),y+th/2,WAL.z),yaw:0.05*Math.sin(k.length*5)}; y+=th; } }
 
-// ---------------------------------------------------------------- takers (grey strangers)
-const XT={RENT:0.40,EMI:0.52,GROCERIES:0.36,FOOD:0.50,PARTY:0.44}, ZT=-0.56, WALK_Z0=-3.2;
-const takers=TL.items.map((it,i)=>({it,fig:R.makeFig(PAL.SLATE,'tk'+i,{rim:0.14,rimCol:0x9fb2d6,lift:0.05}),x:XT[it.key],side:i%2?1:-1}));
-const STRIDE=1.3;
-const hatMat=new THREE.MeshStandardMaterial({color:0xb9bdc6,roughness:0.6,transparent:true,emissive:0xb9bdc6,emissiveIntensity:0.12});
-const hat=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.2,20),hatMat); hat.castShadow=true; hat.visible=false; scene.add(hat);
-function takerState(T,t){ const g=T.it.grab, x=T.x, a0=g-1.7, a1=g-0.35, b0=g+0.6, b1=g+2.4;
-  const alpha=sstep(a0,a0+0.7,t)*(1-sstep(g+0.9,g+2.3,t));
-  let pos,yaw=-Math.PI/2,walk=0,ph=0;
-  if(t<a1){ const u=sm5(clamp((t-a0)/(a1-a0))); const sx=x+0.55*T.side, sz=WALK_Z0;
-    pos=V(lerp(sx,x,u),0,lerp(sz,ZT,u)); walk=1-sstep(0.8,1.0,u)*0.9; ph=u*(ZT-sz)/STRIDE*2*Math.PI*1.4; yaw=-Math.PI/2+(1-u)*0.35*T.side;
-  } else if(t<b0){ pos=V(x,0,ZT); ph=0; walk=0; yaw=-Math.PI/2+sm5(clamp((t-(g+0.2))/(0.55)))*Math.PI; }
-  else { const u=sm5(clamp((t-b0)/(b1-b0))); pos=V(x,0,lerp(ZT,WALK_Z0,u)); walk=1-sstep(0.9,1.0,u)*0.0; ph=u*(ZT-WALK_Z0)/STRIDE*2*Math.PI*1.2; yaw=Math.PI/2; }
-  return {alpha,pos,yaw,walk,ph}; }
-const tmpHand=[];
-function poseTaker(T,t,st){ const g=T.it.grab; const lean=sstep(g-0.6,g-0.1,t)*(1-sstep(g+0.15,g+0.55,t));
-  let P=R.gait({...R.P0,p:0.06+0.55*lean,tilt:0.05+0.1*lean},st.ph,st.walk,0.34,0.62,0.22);
-  const sl=slabs[T.it.key]; const slabTop=sl.rest.clone().add(V(0,sl.th/2,0));
-  const carry=st.pos.clone().add(rotY(V(0.30,0.98,-0.06),st.yaw));
-  const c=sstep(g-0.02,g+0.4,t); const tgt=slabTop.clone().lerp(carry,c);
-  const w=sstep(g-0.6,g-0.2,t);
-  P={...P,tR:tgt,wR:w,pR:V(0,-0.8,-0.6),eL:0.3};
-  return P; }
+// ---------------------------------------------------------------- ghost hands: grey, translucent arms reach out of the dark and take each amount
+const XT={RENT:0.40,EMI:0.52,GROCERIES:0.36,FOOD:0.50,PARTY:0.44};
+const ARM_R=R.LIMB/2*0.9, cylG=new THREE.CylinderGeometry(1,1,1,14,1,true), sphG=new THREE.SphereGeometry(1,18,12);
+function setBone(m,a,b,r){ const d=b.clone().sub(a); const len=Math.max(d.length(),1e-4); m.position.copy(a).add(b).multiplyScalar(0.5); m.scale.set(r,len,r); m.quaternion.setFromUnitVectors(SLD.UPV,d.multiplyScalar(1/len)); }
+function makeArm(key){ const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:PAL.SLATE,roughness:0.55,metalness:0,transparent:true,opacity:0.6,emissive:0x9fb2d6,emissiveIntensity:0.16,depthWrite:false}),0xbfd0f0,0.6,key);
+  const mk=g=>{ const m=new THREE.Mesh(g,mat); m.frustumCulled=false; m.visible=false; scene.add(m); return m; };
+  return {mat,bones:[mk(cylG),mk(cylG)],joints:[mk(sphG),mk(sphG),mk(sphG)]}; }
+// three arms per expense: the lead one grabs the bundle and drags it back into the dark, two more reach for it and miss
+const arms=[]; TL.items.forEach((it,i)=>{ const sl=slabs[it.key]; const tx=XT[it.key];
+  [[0,0,0,0,0],[1,0.26,0.12,0.30,-0.09],[2,-0.24,-0.10,0.22,0.07]].forEach(([role,dx,dy,delay,tz])=>{
+    arms.push({it,i,role,fig:makeArm('arm'+i+'_'+role),S0:V(tx+dx,1.12+dy,-0.46+(role?-0.08:0)),delay,off:V(role?(role===1?0.08:-0.08):0,0,tz)}); }); });
+const ghostPole=V(0.4,-0.6,-0.5);
+function armState(A,t){ const g=A.it.grab+A.delay*0.0, sl=slabs[A.it.key]; const top=sl.rest.clone().add(V(0,sl.th/2,0));
+  const tgt=top.clone().add(A.off).add(V(0,A.role?0.045:0.0,0)); const t0=A.it.grab-0.95+A.delay, tg=A.it.grab+(A.role?A.delay-0.1:0);
+  const aIn=sstep(t0,t0+0.45,t), aOut=1-sstep(tg+0.7,tg+1.5,t); const alpha=aIn*aOut;
+  const rest=A.S0.clone().add(V(0.02,-0.34,-0.12));
+  const u=sm5(clamp((t-(t0+0.1))/(tg-0.1-(t0+0.1)+0.4)));              // reach
+  let hand=rest.clone().lerp(tgt,u); hand.y+=0.07*Math.sin(Math.PI*u)*(1-u);
+  const back=sm5(clamp((t-tg)/0.55));                                  // pull back
+  const pullTo=A.S0.clone().add(V(0.02,-0.12,-0.2));
+  if(t>tg) hand=tgt.clone().lerp(pullTo,back);
+  const S=A.S0.clone().add(V(0,0.04*back,-1.5*sstep(tg+0.35,tg+1.6,t)));            // the whole arm drifts back into the dark
+  if(t>tg+0.35) hand.add(V(0,0,-1.5*sstep(tg+0.35,tg+1.6,t)));
+  return {S,hand,alpha}; }
+function poseArm(A,st){ const F=A.fig, vis=st.alpha>0.004; F.bones.forEach(m=>m.visible=vis); F.joints.forEach(m=>m.visible=vis); if(!vis) return;
+  F.mat.opacity=0.6*st.alpha; const r=R.ik(st.S,st.hand,ghostPole);
+  setBone(F.bones[0],st.S,r.E,ARM_R); setBone(F.bones[1],r.E,r.Hd,ARM_R*0.92);
+  F.joints[0].position.copy(st.S); F.joints[0].scale.setScalar(ARM_R*1.15); F.joints[1].position.copy(r.E); F.joints[1].scale.setScalar(ARM_R*1.1); F.joints[2].position.copy(r.Hd); F.joints[2].scale.setScalar(ARM_R*1.7);
+  return r; }
+
+// ---------------------------------------------------------------- rain: thin streaks that only show inside the lamp's beam
+const rainU={uT:{value:0},uRain:{value:0},uApex:{value:S.LAMP},uAxis:{value:S.beamU.uAxis.value},uTan:{value:Math.tan(S.CONE)}};
+{ const N=1100, Rn=SLD.rng(77), pos=new Float32Array(N*2*3), sd=new Float32Array(N*2), en=new Float32Array(N*2);
+  for(let i=0;i<N;i++){ const a=Rn()*6.283, r=Math.sqrt(Rn())*1.7, x=S.LAMP_T.x+Math.cos(a)*r, z=S.LAMP_T.z+Math.sin(a)*r, y=Rn()*4.6, s=Rn();
+    for(let e=0;e<2;e++){ const k=i*2+e; pos[k*3]=x; pos[k*3+1]=y; pos[k*3+2]=z; sd[k]=s; en[k]=e; } }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('seed',new THREE.BufferAttribute(sd,1)); g.setAttribute('e',new THREE.BufferAttribute(en,1));
+  const m=new THREE.LineSegments(g,new THREE.ShaderMaterial({uniforms:rainU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:`attribute float seed; attribute float e; uniform float uT,uRain,uTan; uniform vec3 uApex,uAxis; varying float vA;
+      void main(){ vec3 p=position; p.y=mod(p.y-uT*(6.0+3.0*seed),4.6)-e*0.22; p.x+=-0.04*e;
+        vec3 q=p-uApex; float ax=dot(q,uAxis); float rr=length(q-uAxis*ax), rc=max(ax,0.0)*uTan;
+        vA=smoothstep(rc*1.05,rc*0.45,rr)*uRain*(0.25+0.5*seed)*(1.0-e*0.6)*smoothstep(0.0,0.4,p.y);
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+    fragmentShader:`varying float vA; void main(){ gl_FragColor=vec4(vec3(0.82,0.86,0.95)*vA,1.0); }`}));
+  m.frustumCulled=false; scene.add(m); }
 
 // ---------------------------------------------------------------- the hero
 const SEAT_ROOT=V(-0.225,0,0);
@@ -116,16 +137,20 @@ const OUT0=V(-0.62,0,0.35), OUT1=V(-1.7,0,0.85), IN0=V(1.5,0,0.85), IN1=V(-0.58,
 function heroState(t){
   let k=-1; for(let i=0;i<CYC.length;i++) if(t>=CYC[i]) k=i;
   const base={seat:true,root:SEAT_ROOT.clone(),yaw:0,blend:0,walk:0,ph:0,vis:true};
-  if(k<0||t>=CYC[k]+2.6) return base;
+  if(k<0||t>=CYC[k]+2.4) return base;
   const dt=t-CYC[k]; const o={seat:false,root:SEAT_ROOT.clone(),yaw:0,blend:0,walk:0,ph:0,vis:true};
   if(dt<0.35) return base;
   if(dt<0.75){ const u=sm5((dt-0.35)/0.4); o.blend=u; o.root.lerp(OUT0,u); o.yaw=Math.PI*sm5(clamp((u-0.3)/0.7)); return o; }
-  if(dt<1.35){ const u=sstep(0,1,(dt-0.75)/0.6); o.blend=1; o.root=V(lerp(OUT0.x,OUT1.x,u),0,lerp(OUT0.z,OUT1.z,sstep(0,0.5,u))); o.yaw=Math.PI; o.walk=1; o.ph=u*(OUT0.x-OUT1.x)/STRIDE_H*2*Math.PI*2.2; return o; }
-  if(dt<1.55){ o.vis=false; o.blend=1; return o; }
-  if(dt<2.35){ const u=sstep(0,1,(dt-1.55)/0.8); o.blend=1; o.root=V(lerp(IN0.x,IN1.x,u),0,0.85); o.yaw=Math.PI; o.walk=1; o.ph=u*(IN0.x-IN1.x)/STRIDE_H*2*Math.PI*1.6; return o; }
-  const u=sm5((dt-2.35)/0.25); o.blend=1-u; o.root=IN1.clone().lerp(SEAT_ROOT,u); o.yaw=Math.PI*(1-sm5(clamp(u*1.4))); o.walk=1-u; o.ph=0; return o; }
+  if(dt<1.3){ const u=sstep(0,1,(dt-0.75)/0.55); o.blend=1; o.root=V(lerp(OUT0.x,OUT1.x,u),0,lerp(OUT0.z,OUT1.z,sstep(0,0.5,u))); o.yaw=Math.PI; o.walk=1; o.ph=u*(OUT0.x-OUT1.x)/STRIDE_H*2*Math.PI*2.2; return o; }
+  if(dt<1.45){ o.vis=false; o.blend=1; return o; }
+  if(dt<2.15){ const u=sstep(0,1,(dt-1.45)/0.7); o.blend=1; o.root=V(lerp(IN0.x,IN1.x,u),0,0.85); o.yaw=Math.PI; o.walk=1; o.ph=u*(IN0.x-IN1.x)/STRIDE_H*2*Math.PI*1.6; return o; }
+  const u=sm5((dt-2.15)/0.25); o.blend=1-u; o.root=IN1.clone().lerp(SEAT_ROOT,u); o.yaw=Math.PI*(1-sm5(clamp(u*1.4))); o.walk=1-u; o.ph=0; return o; }
+const FLOOR_ROOT=V(-0.62,0,0.5);
+function floorBlend(t){ return sm5(clamp((t-TL.floor0)/0.5))*(1-sm5(clamp((t-TL.floor1)/0.4))); }
 function poseHero(t){
-  const {P:A,ws}=seatPose(t); const st=heroState(t); const sl=slumpAt(t);
+  const {P:A,ws}=seatPose(t); const st=heroState(t); const sl=slumpAt(t); const fb=floorBlend(t);
+  if(fb>0.0001){ const FP=R.handsOnKnees({...R.POSES.sit,p:0.5+0.04*Math.sin(t*0.9),tilt:0.7,hy:-0.5},FLOOR_ROOT,0,0);
+    const B=R.blend(A,FP,fb); return {P:B,ws,root:SEAT_ROOT.clone().lerp(FLOOR_ROOT,fb),yaw:0,vis:true,st}; }
   if(st.blend<=0.0001) return {P:A,ws,root:SEAT_ROOT,yaw:0,vis:true,st};
   const W_=R.gait({...R.P0,p:0.1+0.28*sl,tilt:0.12+0.34*sl,eL:0.5,eR:0.5},st.ph,st.walk,0.34,0.62,0.2);
   const B=R.blend(A,W_,st.blend); B.p+=0.3*Math.sin(Math.PI*st.blend)*(st.walk<1?1:0);
@@ -134,38 +159,34 @@ function poseHero(t){
 // ---------------------------------------------------------------- camera: wide, slow drift that is periodic (loop), a short push to the slumped hero
 function camAt(t){
   const d=0.12*Math.sin(Math.PI*t/DUR); const wp=V(-0.12,1.85,4.15-d), wl=V(-0.02,1.12,0.0);
-  const push={pos:V(-0.3,1.55,3.05),look:V(-0.4,1.1,0.0)};
-  const u=sm5(clamp((t-TL.push0)/0.9))*(1-sm5(clamp((t-TL.push1)/0.8)));
+  const push={pos:V(-0.28,1.3,3.0),look:V(-0.4,0.85,0.15)};
+  const u=sm5(clamp((t-TL.push0)/0.8))*(1-sm5(clamp((t-TL.push1)/0.7)));
   return {pos:wp.lerp(push.pos,u),look:wl.lerp(push.look,u)}; }
 
 // ---------------------------------------------------------------- one frame
 function setT(t){
   const H_=poseHero(t); hero.setAlpha(H_.vis?1:0); if(H_.vis){ const Jh=R.skel(H_.P,H_.root,H_.yaw); R.poseFig(hero,Jh); }
   const ws=H_.ws; wallet.position.copy(ws.wpos); wallet.scale.setScalar(Math.max(ws.sc,0.0001)); wallet.visible=ws.sc>0.01;
-  const push=sstep(9.4,10.0,t)*(1-sstep(TL.pick0-0.2,TL.pick0+0.4,t));
-  walMat.emissiveIntensity=0.05+0.17*push; halo.material.opacity=(0.03+0.13*push)*(ws.sc>0.5?1:0); halo.position.copy(wallet.position).add(V(0,0.05,0)); redLight.position.copy(wallet.position).add(V(0,0.28,0.15)); redLight.intensity=0.5*push;
-  hat.visible=false;
-  for(const k of ORDER){ const sl=slabs[k], L=TL.land[k], Ls=L-TL.landDur, it=item(k); const T=takers.find(x=>x.it.key===k);
+  const push=Math.max(0.85*(1-sstep(3.0,4.4,t)),sstep(9.4,10.0,t)*(1-sstep(TL.pick0-0.2,TL.pick0+0.4,t))*0);
+  walMat.emissiveIntensity=0.05+0.3*push; halo.material.opacity=(0.03+0.2*push)*(ws.sc>0.5?1:0); halo.position.copy(wallet.position).add(V(0,0.05,0)); redLight.position.copy(wallet.position).add(V(0,0.28,0.15)); redLight.intensity=0.45*push;
+  const armSt=arms.map(A=>({A,st:armState(A,t)})); const leads={};
+  for(const {A,st} of armSt){ const r=poseArm(A,st); if(A.role===0) leads[A.it.key]={st,r}; }
+  for(const k of ORDER){ const sl=slabs[k], L=TL.land[k], Ls=L-TL.landDur, it=item(k);
     let pos=sl.rest.clone(), yaw=sl.yaw, pitch=0, roll=0, vis=true, op=1;
     if(t<Ls) vis=false;
     else if(t<L){ const u=(t-Ls)/TL.landDur, e=eo(u); const kk=ORDER.indexOf(k); const s0=V(-1.75-0.08*kk,2.15+0.28*kk,0.75-0.2*kk);
       pos=s0.clone().lerp(sl.rest,e); pos.y+=0.55*Math.sin(Math.PI*e)*(1-e*0.2); yaw=lerp(2.4+kk*0.4,sl.yaw,e); pitch=lerp(1.1,0,e); roll=lerp(-0.8,0,e); }
-    else if(t<it.grab+0.05){ const d=t-L; pos.y+=0.014*Math.exp(-d*14)*Math.abs(Math.cos(d*22)); }
-    const st=takerState(T,t); T.fig.setAlpha(st.alpha); T.st=st;
-    if(st.alpha>0.004){ const PT=poseTaker(T,t,st); const J=R.skel(PT,st.pos,st.yaw); R.poseFig(T.fig,J);
-      if(k==='PARTY'){ hat.visible=true; hatMat.opacity=st.alpha; hat.position.copy(J.head).add(V(0,0.2,0)); }
-      const a=sstep(it.grab-0.02,it.grab+0.18,t); if(a>0){ const hp=J.hR.clone().add(rotY(V(0.05,-0.02,0.0),st.yaw)); pos=pos.clone().lerp(hp,a); yaw=lerp(yaw,st.yaw+Math.PI/2,a); op=1-sstep(it.grab+0.9,it.grab+2.3,t); } }
+    else if(t<it.grab+0.05){ const dd=t-L; pos.y+=0.014*Math.exp(-dd*14)*Math.abs(Math.cos(dd*22)); }
+    const ld=leads[k]; if(t>=it.grab-0.02&&ld&&ld.r){ const a=sstep(it.grab-0.02,it.grab+0.1,t); const hp=ld.r.Hd.clone().add(V(0,0.0,0)); pos=pos.clone().lerp(hp,a); op=1-sstep(it.grab+0.8,it.grab+1.5,t); }
     else if(t>it.grab+1) vis=false;
     sl.m.visible=vis&&op>0.004; sl.mat.opacity=op; sl.m.position.copy(pos); sl.m.rotation.set(pitch,yaw,roll,'YXZ'); }
-  const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.look); S.tick(t);
+  const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.look); S.tick(t); rainU.uT.value=t; rainU.uRain.value=SLD.keys(TL.rain,t);
   // the lamp is the sun: it sets and rises with each day of the routine
   const Lk=lightAt(t); S.spot.intensity=S.SPOT_I*Lk; S.beamU.uI.value=Lk; S.moteU.uOp.value=Lk; }
 window.renderAt=(t,K=3)=>{ const routine=t>TL.routine0-0.4&&t<TL.salaryAgain+0.3; return S.renderAt(setT,t,routine?6:K,{t0:0,t1:DUR,shutter:routine?1/36:1/60}); };
 // foot plants (for the sound mix): the strangers and the hero's commute, sampled at the frame rate
 window.events={...TL,steps:(()=>{ const out=[]; const N=Math.round(DUR*TL.fps);
-  for(const T of takers){ let prev=null; for(let f=0;f<N;f++){ const t=f/TL.fps; const st=takerState(T,t); if(st.alpha<0.05||st.walk<0.2){ prev=null; continue; }
-    if(prev!==null&&Math.floor(st.ph/Math.PI)>Math.floor(prev/Math.PI)) out.push({t,x:st.pos.x,z:st.pos.z,a:st.alpha,who:'t'}); prev=st.ph; } }
   let prev=null; for(let f=0;f<N;f++){ const t=f/TL.fps; const st=heroState(t); if(!st.vis||st.walk<0.3){ prev=null; continue; }
     if(prev!==null&&Math.floor(st.ph/Math.PI)>Math.floor(prev/Math.PI)) out.push({t,x:st.root.x,z:st.root.z,a:1,who:'h'}); prev=st.ph; }
-  return out.sort((a,b)=>a.t-b.t); })()};
+  return out; })()};
 window.ready=true;
