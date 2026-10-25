@@ -1,0 +1,23 @@
+{
+  "duration": 18.0,
+  "fps": 30,
+  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this (the overlay and mix through output/meta.json).",
+  "hookOut": 2.75,
+  "counterIn": 2.85,
+  "age0": 3.1,
+  "age1": 12.5,
+  "leave0": 3.2,
+  "leave1": 11.6,
+  "leavePow": 0.62,
+  "counterOut": 13.2,
+  "empty": 13.4,
+  "line60": 13.55,
+  "slideGrab": 13.95,
+  "slideGo": 14.3,
+  "slideStop": 14.95,
+  "take": 15.05,
+  "raise": 15.45,
+  "clink": 16.2,
+  "endHold": 17.0,
+  "reviewTimes": [0.4, 2.0, 4.6, 7.5, 10.5, 13.0, 14.5, 16.2, 17.6]
+}
