@@ -137,73 +137,100 @@ const needle=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.3,0.012),new THREE.Mesh
 { const gm=new THREE.MeshStandardMaterial({map:gaugeTex(),emissive:0xffffff,emissiveMap:gaugeTex(),emissiveIntensity:0.45,transparent:true,roughness:0.6}); fades.push(gm); const disc=new THREE.Mesh(new THREE.CircleGeometry(0.55,48),gm); giants[5].add(disc);
   const pv=new THREE.Group(); needle.position.y=0.14; pv.add(needle); pv.position.z=0.01; pv.name='pv'; giants[5].add(pv); giants[5].position.set(2.15,1.7,-1.05); }   // 5 FUEL: gauge drains
 
-// ---------------------------------------------------------------- calendar, extra lights, dust, backpack, tie
+// ---------------------------------------------------------------- calendar, extra lights, dust, his office look (collar, tie, belt, ID lanyard, side bag, shoes)
 const calMat=new THREE.MeshStandardMaterial({map:calTex(),emissive:0xffffff,emissiveMap:calTex(),emissiveIntensity:0.5,roughness:0.8,transparent:true,opacity:0}); const cal=new THREE.Mesh(new THREE.PlaneGeometry(2.0,2.5),calMat); cal.position.set(0.8,1.8,-1.6); scene.add(cal);
 const teal=new THREE.DirectionalLight(0x4fa3a8,0); teal.position.set(-2,3,3); teal.target.position.set(0,0.8,0); scene.add(teal,teal.target);
 const dust=SLD.glowSprite(scene,0xffffff,0); dust.scale.setScalar(0.05);
-const bagMat=new THREE.MeshStandardMaterial({color:0x2c3139,roughness:0.8}); const pack=new THREE.Group(); { const b=new THREE.Mesh(new RoundedBoxGeometry(0.16,0.38,0.3,3,0.04),bagMat); b.castShadow=true; pack.add(b); const pk=new THREE.Mesh(new RoundedBoxGeometry(0.06,0.18,0.24,2,0.02),bagMat); pk.position.x=-0.09; pack.add(pk); } scene.add(pack);
-const tie=new THREE.Mesh(new THREE.BoxGeometry(0.035,0.2,0.012),new THREE.MeshStandardMaterial({color:0x6b717c,roughness:0.6})); scene.add(tie);
-const strap=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,8),new THREE.MeshStandardMaterial({color:0x2c3139,roughness:0.8})); scene.add(strap);
+const slateM=new THREE.MeshStandardMaterial({color:0x5c626d,roughness:0.65}), leatherM=new THREE.MeshStandardMaterial({color:0x2b2620,roughness:0.75}), shoeM=new THREE.MeshStandardMaterial({color:0x1d2025,roughness:0.5});
+const G={ tie:new THREE.Mesh(new THREE.BoxGeometry(0.03,0.2,0.012),slateM), knot:new THREE.Mesh(new THREE.BoxGeometry(0.04,0.035,0.02),slateM), collarA:new THREE.Mesh(new THREE.BoxGeometry(0.075,0.018,0.05),new THREE.MeshStandardMaterial({color:0xf0ead9,roughness:0.6})), collarB:new THREE.Mesh(new THREE.BoxGeometry(0.075,0.018,0.05),new THREE.MeshStandardMaterial({color:0xf0ead9,roughness:0.6})),
+  belt:new THREE.Mesh(new THREE.CylinderGeometry(0.083,0.083,0.032,18),leatherM), cord:new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,6),slateM), card:new THREE.Mesh(new THREE.BoxGeometry(0.05,0.075,0.006),new THREE.MeshStandardMaterial({color:0xcfc9b8,roughness:0.5})),
+  bag:new THREE.Mesh(new RoundedBoxGeometry(0.32,0.24,0.1,2,0.02),leatherM), flap:new THREE.Mesh(new RoundedBoxGeometry(0.33,0.1,0.108,2,0.02),leatherM), strapF:new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,6),leatherM), strapB:new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,6),leatherM),
+  shoeL:new THREE.Mesh(new RoundedBoxGeometry(0.2,0.07,0.095,2,0.025),shoeM), shoeR:new THREE.Mesh(new RoundedBoxGeometry(0.2,0.07,0.095,2,0.025),shoeM) };
+for(const k in G){ G[k].castShadow=true; G[k].visible=false; scene.add(G[k]); }
+const limb=(m,a,b,r)=>{ const d=b.clone().sub(a); m.position.copy(a).add(b).multiplyScalar(0.5); m.scale.set(r,Math.max(d.length(),1e-4),r); m.quaternion.setFromUnitVectors(V(0,1,0),d.normalize()); };
+function dressUp(J,g){ const vis=g>0.02; for(const k in G) G[k].visible=vis; if(!vis) return;
+  const up=J.neck.clone().sub(J.hip).normalize(); const fwd=V(1,0,0).addScaledVector(up,-up.x).normalize(); const side=V(0,0,1); const q=new THREE.Quaternion().setFromUnitVectors(V(0,1,0),up);
+  G.collarA.position.copy(J.neck).addScaledVector(up,-0.015).addScaledVector(side,0.035).addScaledVector(fwd,0.045); G.collarA.quaternion.copy(q); G.collarA.rotateX(0.5);
+  G.collarB.position.copy(J.neck).addScaledVector(up,-0.015).addScaledVector(side,-0.035).addScaledVector(fwd,0.045); G.collarB.quaternion.copy(q); G.collarB.rotateX(-0.5);
+  G.knot.position.copy(J.neck).addScaledVector(up,-0.05).addScaledVector(fwd,0.072); G.knot.quaternion.copy(q);
+  G.tie.position.copy(J.neck).addScaledVector(up,-0.16).addScaledVector(fwd,0.075); G.tie.quaternion.copy(q);
+  G.belt.position.copy(J.hip).addScaledVector(up,0.045); G.belt.quaternion.copy(q);
+  const c0=J.neck.clone().addScaledVector(up,-0.03).addScaledVector(fwd,0.07), c1=J.neck.clone().addScaledVector(up,-0.27).addScaledVector(fwd,0.085); limb(G.cord,c0,c1,0.004); G.card.position.copy(c1).addScaledVector(up,-0.03).addScaledVector(fwd,0.006); G.card.quaternion.copy(q);
+  const bagP=J.hip.clone().addScaledVector(side,0.115).addScaledVector(up,-0.02).addScaledVector(fwd,-0.03); G.bag.position.copy(bagP); G.bag.quaternion.copy(q); G.flap.position.copy(bagP).addScaledVector(up,0.085).addScaledVector(fwd,0.0); G.flap.quaternion.copy(q);
+  const topB=bagP.clone().addScaledVector(up,0.12); limb(G.strapF,J.shR.clone().addScaledVector(fwd,0.045).addScaledVector(up,0.01),topB.clone().addScaledVector(fwd,0.07),0.011); limb(G.strapB,J.shR.clone().addScaledVector(fwd,-0.045).addScaledVector(up,0.01),topB.clone().addScaledVector(fwd,-0.07),0.011);
+  G.shoeL.position.copy(J.fL).add(V(0.055,-0.03,0)); G.shoeR.position.copy(J.fR).add(V(0.055,-0.03,0)); [G.bag,G.flap,G.collarA,G.collarB,G.knot,G.tie,G.belt,G.card,G.strapF,G.strapB,G.shoeL,G.shoeR].forEach(m=>m.scale.multiplyScalar(1)); }
 
-// ---------------------------------------------------------------- hero
+// ---------------------------------------------------------------- hero: mood drives posture (happiness drains over days 1-6, a flat hope in the grind, happy again on the 1st)
 const STAND_ROOT=V(0.5,0,0.55), SEAT_ROOT=V(LAMPX-0.225,0,0), LIE_HIP=V(-0.58,0.56,0.15), STAND_HIP=V(STAND_ROOT.x,0.99,STAND_ROOT.z);
-const PH_LIE=V(-0.95,0.95,0.15), PH_NORMAL=V(-0.25,-0.35,0.9).normalize();
-const phoneBasis=n=>{ const z=n.clone().normalize(); const x=V(0,1,0).cross(z).normalize(); const y=z.clone().cross(x); return new THREE.Matrix4().makeBasis(x,y,z); };
+const PH_POS=V(-1.2,0.9,0.12), PH_N=V(-0.15,-1,0.06).normalize();
+const hapAt=t=>SLD.keys(TL.hap,t);
+const headLift=t=>Math.max(sstep(TL.notify[0],TL.notify[0]+0.25,t), t<TL.notify[1]?1-sstep(0.45,1.0,t):0);   // eyes widen at the buzz (same value at 20 s and 0 s)
+const doorLook=t=>Math.max(sstep(TL.knockEnd[0]-0.05,TL.knockEnd[0]+0.12,t), t<0.7?1-sstep(0.35,0.7,t):0);   // he looks toward the door at the knock
+const phoneLit=t=>t<TL.rise[0]?1:(t>=TL.notify[0]?sstep(TL.notify[0],TL.notify[0]+0.12,t):0);
+const phoneBasis=n=>{ const z=n.clone().normalize(); const x=V(0,0,1).cross(z).normalize(); const y=z.clone().cross(x); return new THREE.Matrix4().makeBasis(x,y,z); };
 function xform(J,fn){ const o={}; for(const k in J) o[k]=J[k].isVector3?fn(J[k].clone()):J[k]; return o; }
-const standPose=(hunch,extra={})=>({...R.P0,p:0.05+0.32*hunch,tilt:0.44*hunch,sL:0.12,sR:-0.05,...extra});
-const slumpAt=t=>{ if(t<2.5) return 0; let s=0; ITEMS.forEach(it=>{ s+=(0.9/ITEMS.length)*sstep(it.t,it.t+0.5,t); }); if(t>TL.morning) s=Math.max(s,0.9); if(t>TL.officeSit) s=lerp(s,1.05,sstep(TL.officeSit,TL.work1,t)); return s; };
-function lyingJoints(lie,hipFrom,phoneTarget){ const P=standPose(0,{aL:0,aR:0,kL:0,kR:0,sL:0.1,sR:0.1,eL:0.4,eR:0.4,tilt:0.45*lie,p:0});
+const moodPose=(t,extra={})=>{ const m=1-hapAt(t); return {...R.P0,p:0.03+0.4*m,tilt:-0.14*(1-m)+0.5*m,sL:0.12,sR:-0.05,...extra}; };
+function lyingJoints(lie,hipFrom,withPhone,t){ const lift=headLift(t), look=doorLook(t), m=1-hapAt(t);
+  const P={...R.P0,aL:0,aR:0,kL:0,kR:0,sL:0.1,sR:0.1,eL:0.4,eR:0.4,p:0.4*m*(1-lie),tilt:lie*(0.12+0.5*lift)+0.5*m*(1-lie),hy:lie*0.9*look};
   const J0=R.skel(P,V(0,0,0),0); const piv=J0.hip.clone(); const th=lie*Math.PI/2; const c=Math.cos(th), s=Math.sin(th); const hipPos=hipFrom.clone().lerp(LIE_HIP,lie);
   const J=xform(J0,v=>{ const d=v.sub(piv); return V(d.x*c-d.y*s+hipPos.x,d.x*s+d.y*c+hipPos.y,d.z+hipPos.z); });
-  if(phoneTarget){ const tg=phoneTarget.clone().add(V(0.02,-0.03,-0.08)); const r=R.ik(J.shL,tg,V(0.1,-1,-0.5)); J.elL=r.E; J.hL=r.Hd; const r2=R.ik(J.shR,J.hip.clone().add(V(-0.12,0.1,-0.04)),V(0,-0.4,0.9)); J.elR=r2.E; J.hR=r2.Hd; }
+  if(withPhone){ const tg=PH_POS.clone().add(V(0.03,0.07,0.0)); const r=R.ik(J.shL,tg,V(0.2,-1,-0.3)); J.elL=r.E; J.hL=r.Hd; const r2=R.ik(J.shR,J.hip.clone().add(V(-0.12,0.1,-0.04)),V(0,-0.4,0.9)); J.elR=r2.E; J.hR=r2.Hd; }
   return J; }
-function seatPoseTired(t){ const sl=Math.min(1.05,slumpAt(t)); return {...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.9,eR:0.9,p:0.04+0.42*sl+0.012*Math.sin(2*Math.PI*0.21*t),tilt:0.5*sl,tL:V(SEAT_ROOT.x+0.55,0.805,0.26),wL:1,pL:V(-0.3,-0.75,0.35),tR:V(SEAT_ROOT.x+0.5,0.805,-0.2),wR:1,pR:V(-0.3,-0.75,-0.35)}; }
+function seatPoseTired(t){ const m=1-hapAt(t); return {...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.9,eR:0.9,p:0.04+0.42*m+0.012*Math.sin(2*Math.PI*0.21*t),tilt:0.5*m,tL:V(SEAT_ROOT.x+0.55,0.805,0.26),wL:1,pL:V(-0.3,-0.75,0.35),tR:V(SEAT_ROOT.x+0.5,0.805,-0.2),wR:1,pR:V(-0.3,-0.75,-0.35)}; }
+// small happy jig: full on salary day, a little smaller every morning for six days
+const jigWindows=()=>{ const w=[{a:TL.dance[0],b:TL.dance[1],amp:1.0,f:7.5}]; TL.dayStart.forEach(d=>w.push({a:d,b:d+0.38,amp:hapAt(d),f:7.5})); return w; };
+const JIG=jigWindows();
+function jigAmp(t){ let best=null; for(const w of JIG) if(t>=w.a&&t<w.b){ const u=(t-w.a)/(w.b-w.a); best={w,env:Math.sin(Math.PI*Math.min(1,u*1.0))*(w.amp)}; } return best; }
+const glance=t=>Math.max(sstep(12.5,12.8,t)*(1-sstep(13.0,13.2,t)),sstep(14.5,14.8,t)*(1-sstep(15.0,15.2,t)),sstep(15.8,16.1,t)*(1-sstep(16.4,16.7,t)));   // he looks up toward the gold: hope
 function heroJ(t){ // {J, phone, walk, ph, sip}
   const sc=scrollAt(t); const ph=sc/1.3*2*Math.PI;
-  if(t<TL.rise[0]){ const j=0.012*Math.sin(t*11)*(t>1.3&&t<1.7?1:0); const tgt=PH_LIE.clone().add(V(j,j*0.5,0)); return {J:lyingJoints(1,LIE_HIP,tgt),phone:{pos:tgt,n:PH_NORMAL},walk:0,ph:0}; }
-  if(t<TL.rise[1]){ const u=sm5((t-TL.rise[0])/(TL.rise[1]-TL.rise[0])); return {J:lyingJoints(1-u,STAND_HIP,null),phone:null,walk:0,ph:0}; }
-  if(t>=TL.bed0){ const lie=sm5(clamp((t-TL.bed0)/(TL.bed1-TL.bed0))); if(t<TL.bed1) return {J:lyingJoints(lie,STAND_HIP,null),phone:null,walk:0,ph:0}; return {J:lyingJoints(1,LIE_HIP,PH_LIE),phone:{pos:PH_LIE,n:PH_NORMAL},walk:0,ph:0}; }
-  const hunch=Math.min(1,slumpAt(t)); let P=standPose(hunch);
-  if(t<TL.dance[1]){ const d=(t-TL.dance[0])*7.5; const w=sstep(TL.dance[0],TL.dance[0]+0.2,t)*(1-sstep(TL.dance[1]-0.2,TL.dance[1]+0.1,t));
-    P={...P,kL:0.5*w*Math.abs(Math.sin(d)),kR:0.5*w*Math.abs(Math.cos(d)),aL:0.25*w*Math.sin(d),aR:-0.25*w*Math.sin(d),dy:-0.04*w*Math.abs(Math.sin(d*2)),hy:0.6*w*Math.sin(d*0.5),p:0.02,tilt:-0.12*w};
-    const hand=ph2=>V(STAND_ROOT.x+0.1+0.05*Math.sin(d+ph2),1.55+0.12*Math.sin(d*2+ph2),STAND_ROOT.z+0.3*(ph2?-1:1)); P.tL=hand(0); P.tR=hand(Math.PI); P.wL=w; P.wR=w; P.pL=V(-0.3,-0.2,0.9); P.pR=V(-0.3,-0.2,-0.9);
-    return {J:R.skel(P,STAND_ROOT.clone().add(V(0.08*w*Math.sin(d*0.5),0,0)),0),phone:null,walk:0,ph:0}; }
-  if(t<TL.morning){ let flinch=0; ITEMS.forEach(it=>{ const d=t-it.t; if(d>0&&d<0.4) flinch+=0.08*Math.sin(Math.PI*d/0.4)*Math.exp(-d*3); });
+  if(t<TL.rise[0]||t>=TL.bed1+0.6) return {J:lyingJoints(1,LIE_HIP,true,t),phone:true,walk:0,ph:0};                  // in bed, the phone lighting his face
+  if(t<TL.rise[1]){ const u=sm5((t-TL.rise[0])/(TL.rise[1]-TL.rise[0])); return {J:lyingJoints(1-u,STAND_HIP,false,t),phone:false,walk:0,ph:0}; }
+  if(t>=TL.bed0&&t<TL.bed1+0.6){ const lie=sm5(clamp((t-TL.bed0)/(TL.bed1-TL.bed0))); return {J:lyingJoints(lie,STAND_HIP,t>=TL.bed1,t),phone:t>=TL.bed1,walk:0,ph:0}; }
+  if(t>=TL.bedDown[0]&&t<TL.stand){ // he drops onto his bed after the empty wallet, the alarm wakes him, he sits up and gets up
+    let lie=1; if(t<TL.bedDown[1]) lie=sm5((t-TL.bedDown[0])/(TL.bedDown[1]-TL.bedDown[0])); else if(t>=TL.sitUp[0]) lie=1-sm5((t-TL.sitUp[0])/(TL.sitUp[1]-TL.sitUp[0]));
+    const stir=t>TL.alarm&&t<TL.sitUp[0]?0.03*Math.sin((t-TL.alarm)*18):0; const J=lyingJoints(lie,STAND_HIP,false,t); return {J:stir?xform(J,v=>v.add(V(0,stir,0))):J,phone:false,walk:0,ph:0}; }
+  let P=moodPose(t);
+  const jg=jigAmp(t);
+  if(jg){ const d=(t-jg.w.a)*jg.w.f; const w=jg.env; P={...P,kL:0.5*w*Math.abs(Math.sin(d)),kR:0.5*w*Math.abs(Math.cos(d)),aL:0.25*w*Math.sin(d),aR:-0.25*w*Math.sin(d),dy:-0.04*w*Math.abs(Math.sin(d*2)),hy:0.5*w*Math.sin(d*0.5),p:P.p*(1-w)+0.02*w,tilt:P.tilt*(1-w)-0.14*w};
+    const hand=ph2=>V(STAND_ROOT.x+0.1+0.05*Math.sin(d+ph2),1.2+0.45*w+0.12*w*Math.sin(d*2+ph2),STAND_ROOT.z+0.3*(ph2?-1:1)); P.tL=hand(0); P.tR=hand(Math.PI); P.wL=Math.min(1,w*1.3); P.wR=Math.min(1,w*1.3); P.pL=V(-0.3,-0.2,0.9); P.pR=V(-0.3,-0.2,-0.9);
+    return {J:R.skel(P,STAND_ROOT.clone().add(V(0.08*w*Math.sin(d*0.5),0,0)),0),phone:false,walk:0,ph:0}; }
+  if(t<TL.bedDown[0]){ let flinch=0; ITEMS.forEach(it=>{ const d=t-it.t; if(d>0&&d<0.4) flinch+=0.1*Math.sin(Math.PI*d/0.4)*Math.exp(-d*3); });
     const knock=t>=TL.knock[0]&&t<ITEMS[0].t+0.5;
     P={...P,p:P.p+flinch,tilt:P.tilt+flinch*0.6,hy:(knock?0.7:0.0)};
-    const up=sstep(TL.walletUp,TL.walletUp+0.35,t)*(1-sstep(TL.alarm-0.1,TL.alarm+0.1,t)), shake=(t>TL.flip&&t<TL.dust+0.4)?0.03*Math.sin(t*34):0;
-    const wp=WAL_HELD.clone().add(V(0,0.08*sstep(TL.flip-0.2,TL.flip+0.3,t),0)); const phs=sstep(TL.alarm-0.1,TL.alarm+0.2,t);
-    if(up>0||phs>0){ P.tL=wp.clone().add(V(-0.1,shake,0)); P.wL=up; P.pL=V(-0.3,-0.75,0.35); P.tR=wp.clone().add(V(0.1,-shake,0)); P.wR=up; P.pR=V(-0.3,-0.75,-0.35);
-      if(phs>0){ P.tL=V(0.8,1.12,0.85); P.wL=Math.max(up,phs); P.tR=V(0.78,1.06,0.8); P.wR=phs*0.4; } }
-    return {J:R.skel(P,STAND_ROOT,0),phone:phs>0.1?{pos:V(0.8,1.14,0.9),n:V(-0.1,0,1)}:null,walk:0,ph:0}; }
-  const walkP=(amp,tired)=>R.gait({...R.P0,p:0.05+0.3*tired,tilt:0.04+0.4*tired,eL:0.5,eR:0.5},ph,amp,0.34,0.62,0.18);
-  if(t<TL.board){ const amp=sstep(TL.morning,TL.morning+0.5,t); return {J:R.skel(walkP(amp,0.9),STAND_ROOT,0),phone:null,walk:amp,ph}; }
-  if(t<TL.officeWalk){ const u=sm5(clamp((t-TL.board)/0.5)); const sp=seatPoseTired(t); sp.tL=V(SEAT_ROOT.x+0.3,0.62,0.12); sp.tR=V(SEAT_ROOT.x+0.28,0.6,-0.1); const B=R.blend(walkP(0.6*(1-u),0.9),sp,u); const rt=STAND_ROOT.clone().lerp(V(BASE.bus+SEAT_ROOT.x-sc,0,0),u); return {J:R.skel(B,rt,0),phone:null,walk:(1-u)*0.6,ph}; }
-  if(t<TL.officeSit){ const u=sm5(clamp((t-TL.officeWalk)/0.35)), u2=sm5(clamp((t-(TL.officeSit-0.45))/0.45)); const B=R.blend(R.blend(seatPoseTired(t),walkP(1,0.9),u),seatPoseTired(t),u2);
-    const rt=V(lerp(BASE.bus+SEAT_ROOT.x-sc,STAND_ROOT.x,u),0,lerp(0,STAND_ROOT.z,u)).lerp(SEAT_ROOT,u2); return {J:R.skel(B,rt,0),phone:null,walk:u*(1-u2),ph}; }
-  if(t<TL.home0){ const w=sstep(TL.officeSit,TL.officeSit+0.3,t)*(1-sstep(TL.work1-0.1,TL.work1+0.2,t)); const sp=seatPoseTired(t); const ty=t*14;
+    const up=sstep(TL.walletUp,TL.walletUp+0.35,t), shake=(t>TL.flip&&t<TL.dust+0.4)?0.03*Math.sin(t*34):0;
+    const wp=WAL_HELD.clone().add(V(0,0.08*sstep(TL.flip-0.2,TL.flip+0.3,t),0));
+    if(up>0){ P.tL=wp.clone().add(V(-0.1,shake,0)); P.wL=up; P.pL=V(-0.3,-0.75,0.35); P.tR=wp.clone().add(V(0.1,-shake,0)); P.wR=up; P.pR=V(-0.3,-0.75,-0.35); }
+    return {J:R.skel(P,STAND_ROOT,0),phone:false,walk:0,ph:0}; }
+  // the grind: tired, flat, not happy but not gone: a hopeful glance up now and then
+  const tiredW=0.62; const walkP=(amp)=>{ const g=glance(t); return R.gait({...R.P0,p:0.05+0.3*tiredW-0.1*g,tilt:0.04+0.4*tiredW-0.45*g,hy:0.0,eL:0.5,eR:0.5},ph,amp,0.34,0.62,0.18); };
+  const seatP=()=>{ const sp=seatPoseTired(t); const g=glance(t); sp.tilt-=0.5*g; sp.p-=0.1*g; return sp; };
+  if(t<TL.board){ const amp=sstep(TL.stand,TL.stand+0.5,t); return {J:R.skel(walkP(amp),STAND_ROOT,0),phone:false,walk:amp,ph}; }
+  if(t<TL.officeWalk){ const u=sm5(clamp((t-TL.board)/0.5)); const sp=seatP(); sp.tL=V(SEAT_ROOT.x+0.3,0.62,0.12); sp.tR=V(SEAT_ROOT.x+0.28,0.6,-0.1); const B=R.blend(walkP(0.6*(1-u)),sp,u); const rt=STAND_ROOT.clone().lerp(V(BASE.bus+SEAT_ROOT.x-sc,0,0),u); return {J:R.skel(B,rt,0),phone:false,walk:(1-u)*0.6,ph}; }
+  if(t<TL.officeSit){ const u=sm5(clamp((t-TL.officeWalk)/0.35)), u2=sm5(clamp((t-(TL.officeSit-0.45))/0.45)); const B=R.blend(R.blend(seatP(),walkP(1),u),seatP(),u2);
+    const rt=V(lerp(BASE.bus+SEAT_ROOT.x-sc,STAND_ROOT.x,u),0,lerp(0,STAND_ROOT.z,u)).lerp(SEAT_ROOT,u2); return {J:R.skel(B,rt,0),phone:false,walk:u*(1-u2),ph}; }
+  if(t<TL.home0){ const w=sstep(TL.officeSit,TL.officeSit+0.3,t)*(1-sstep(TL.work1-0.1,TL.work1+0.2,t)); const sp=seatP(); const ty=t*14;
     const kl=V(0.12+LAMPX,0.815+Math.max(0,Math.sin(ty))*0.012,0.2), kr=V(0.34+LAMPX,0.815+Math.max(0,Math.sin(ty+2.3))*0.012,0.2); sp.tL=sp.tL.clone().lerp(kl,w); sp.tR=sp.tR.clone().lerp(kr,w);
-    const sip=sstep(14.6,14.95,t)*(1-sstep(15.1,15.4,t)); if(sip>0) sp.tR=sp.tR.clone().lerp(V(SEAT_ROOT.x+0.35,1.18,0.2),sip);
-    return {J:R.skel(sp,SEAT_ROOT,0),phone:null,walk:0,ph:0,sip}; }
-  const standU=sm5(clamp((t-TL.home0)/0.35)); const B=R.blend(seatPoseTired(t),walkP(1,1.0),standU); B.p+=0.25*Math.sin(Math.PI*standU);
-  return {J:R.skel(B,SEAT_ROOT.clone().lerp(STAND_ROOT,standU),0),phone:null,walk:standU,ph}; }
+    const sip=sstep(14.3,14.6,t)*(1-sstep(14.7,15.0,t)); if(sip>0) sp.tR=sp.tR.clone().lerp(V(SEAT_ROOT.x+0.35,1.18,0.2),sip);
+    return {J:R.skel(sp,SEAT_ROOT,0),phone:false,walk:0,ph:0,sip}; }
+  const standU=sm5(clamp((t-TL.home0)/0.35)); const B=R.blend(seatP(),walkP(1),standU); B.p+=0.25*Math.sin(Math.PI*standU);
+  return {J:R.skel(B,SEAT_ROOT.clone().lerp(STAND_ROOT,standU),0),phone:false,walk:standU,ph}; }
 
 // ---------------------------------------------------------------- phone / wallet / coins / bills
-function phoneState(t,h){ let vis=false, kind='credit', vib=0, pos=V(0,0,0), n=PH_NORMAL;
-  if(h.phone){ vis=true; pos=h.phone.pos.clone(); n=h.phone.n; if(t<TL.rise[0]) vib=1-sstep(1.2,1.65,t); else if(t>=TL.bed1) vib=sstep(TL.bed1+0.05,TL.bed1+0.3,t); else { kind='alarm'; vib=sstep(TL.alarm-0.1,TL.alarm,t)*(1-sstep(TL.morning-0.3,TL.morning,t)); } }
-  return {pos,R3:phoneBasis(n),vis,kind,vib}; }
+function phoneState(t,h){ const vis=!!h.phone; const vib=t<TL.notify[1]?1-sstep(0.6,1.0,t):(t>=TL.notify[0]?sstep(TL.notify[0],TL.notify[0]+0.1,t):0); return {pos:PH_POS.clone(),R3:phoneBasis(PH_N),vis,vib,lit:phoneLit(t)}; }
 function walletState(t){ let pos=WAL.clone(), vis=true, rotX=0, rotZ=0, open=0, held=0;
-  const up=sstep(TL.walletUp,TL.walletUp+0.35,t)*(1-sstep(TL.alarm-0.1,TL.alarm+0.1,t));
+  const up=sstep(TL.walletUp,TL.walletUp+0.35,t)*(1-sstep(TL.bedDown[0]-0.15,TL.bedDown[0]+0.15,t));
   if(up>0){ held=up; pos=WAL.clone().lerp(WAL_HELD.clone().add(V(0,0.08*sstep(TL.flip-0.2,TL.flip+0.3,t),0)),up); rotX=Math.PI/2*0.9*up; open=sstep(TL.walletUp,TL.walletUp+0.4,t)*1.9; rotZ=Math.PI*sstep(TL.flip-0.1,TL.flip+0.35,t); if(t>TL.flip&&t<TL.dust+0.4) pos.x+=0.015*Math.sin(t*34); }
-  if(t>=TL.alarm+0.1) vis=false; return {pos,vis,rotX,rotZ,open,held}; }
-function coinState(k,t){ const land=1.0+k*0.02, fl=0.45; const rest=coinRest(k); const plan=coinPlan[k];
-  if(t<land-fl) return null; if(t<land){ const u=(t-(land-fl))/fl, e=eo(u); const p=PH_LIE.clone().add(V(0.0,0.05,0.05)).lerp(rest,e); p.y+=0.6*Math.sin(Math.PI*e)*(1-0.4*e); return {p,r:u*9}; }
+  if(t>=TL.bedDown[0]+0.15) vis=false; return {pos,vis,rotX,rotZ,open,held}; }
+function coinState(k,t){ const land=TL.coinsIn[0]+0.45+k*0.02, fl=0.45; const rest=coinRest(k); const plan=coinPlan[k];
+  if(t<land-fl) return null; if(t<land){ const u=(t-(land-fl))/fl, e=eo(u); const p=PH_POS.clone().add(V(0.0,0.05,0.05)).lerp(rest,e); p.y+=0.7*Math.sin(Math.PI*e)*(1-0.3*e); return {p,r:u*9}; }
   const t0=ITEMS[plan.item].t+plan.j*0.014, f=TL.coinFlight; if(t<t0) return {p:rest,r:0};
   if(t<t0+f){ const u=(t-t0)/f, e=u*u*(3-2*u); const p=rest.clone().lerp(SINK[plan.item],e); p.y+=0.45*Math.sin(Math.PI*u); return {p,r:u*12,s:1-0.5*sstep(0.7,1,u)}; } return null; }
 const dm=new THREE.Object3D();
-function applyGiants(t){ const out=1-sstep(8.4,9.2,t); fades.forEach(m=>{ m.opacity=out; });
+function applyGiants(t){ const out=1-sstep(8.0,8.7,t); fades.forEach(m=>{ m.opacity=out; });
   const door=aptG.userData.door; let sh=0; TL.knock.forEach(k=>{ const dd=t-k; if(dd>0&&dd<0.14) sh+=Math.sin(dd/0.14*Math.PI*3)*0.012; }); const dd2=t-ITEMS[0].t; if(dd2>0&&dd2<0.4) sh+=0.02*Math.exp(-dd2*8)*Math.sin(dd2*60); door.position.x=0.55+sh; door.rotation.y=sh*0.2;
-  const door2=apt2G.userData.door; let sh2=0; [19.4,19.58].forEach(k=>{ const dd=t-k; if(dd>0&&dd<0.14) sh2+=Math.sin(dd/0.14*Math.PI*3)*0.012; }); door2.position.x=0.55+sh2; door2.rotation.y=sh2*0.2;
+  const door2=apt2G.userData.door; let sh2=0; TL.knockEnd.forEach(k=>{ const dd=t-k; if(dd>0&&dd<0.14) sh2+=Math.sin(dd/0.14*Math.PI*3)*0.012; }); [TL.knockEnd[0]-20,TL.knockEnd[1]-20].forEach(k=>{ const dd=t-k; if(dd>0&&dd<0.14) sh2+=Math.sin(dd/0.14*Math.PI*3)*0.012; }); door2.position.x=0.55+sh2; door2.rotation.y=sh2*0.2;
+  const doorA=aptG.userData.door; [TL.knockEnd[0]-20,TL.knockEnd[1]-20].forEach(k=>{ const dd=t-k; if(dd>0&&dd<0.14) doorA.position.x+=Math.sin(dd/0.14*Math.PI*3)*0.012; });
   giants.forEach((g,i)=>{ const t0=ITEMS[i].t-0.05, u=clamp((t-t0)/0.5); g.visible=t>=t0&&out>0.01&&t<TL.morning+0.4; const e=eb(u);
     if(i===0) g.position.y=lerp(-4.4,0,e);
     if(i===1){ g.position.y=lerp(3.2,0,clamp(e)); g.rotation.z=0.06*(1-clamp(u)); bikeParts.forEach(w=>{ w.rotation.z=t*6; }); }
@@ -212,14 +239,11 @@ function applyGiants(t){ const out=1-sstep(8.4,9.2,t); fades.forEach(m=>{ m.opac
     if(i===4) g.children.forEach(c=>{ const k=c.userData.k; const a=sstep(t0+k*0.03,t0+k*0.03+0.1,t); c.visible=a>0.01; c.scale.setScalar(Math.max(a,0.001)); });
     if(i===5){ const pv=g.getObjectByName('pv'); pv.rotation.z=lerp(-1.1,1.1,sm5(clamp((t-t0-0.1)/0.6))); } }); }
 
-// ---------------------------------------------------------------- camera
-function phoneCam(R3,pos){ const n=V(0,0,1).applyMatrix4(R3), yv=V(0,1,0).applyMatrix4(R3); return {pos:pos.clone().addScaledVector(n,0.3),look:pos.clone(),up:yv}; }
-const CAM=[[0.9,[-0.95,1.3,2.2],[-0.6,0.85,0.12]],[2.0,[-0.55,1.5,3.4],[-0.55,0.8,0.1]],[2.5,[-0.1,1.55,4.0],[0.05,1.28,0.15]],[3.4,[0.55,1.55,3.7],[0.75,1.28,0.1]],[7.3,[0.8,1.65,4.0],[0.95,1.38,0.0]],
-  [7.9,[0.8,1.5,3.2],[0.8,1.33,0.5]],[8.5,[0.8,1.5,3.2],[0.8,1.33,0.5]],[9.3,[0.75,1.9,5.6],[0.75,1.68,0.0]],[10.4,[0.5,1.7,4.7],[0.5,1.43,0.0]],[12.2,[0.35,1.6,4.2],[0.3,1.38,0.0]],[13.0,[0.2,1.55,4.0],[0.2,1.38,0.0]],[14.3,[0.25,1.55,3.8],[0.3,1.36,0.0]],
-  [15.3,[0.3,1.5,3.9],[0.3,1.38,0.0]],[16.8,[0.2,1.45,4.4],[-0.1,1.28,0.0]],[17.6,[-0.7,1.6,4.4],[-0.75,0.85,0.1]],[18.9,[-0.8,1.4,3.4],[-0.95,0.85,0.12]],[20,[-0.8,1.4,3.4],[-0.95,0.85,0.12]]];
+// ---------------------------------------------------------------- camera (no phone close-ups: the notification is an on-screen message box)
+const CAM=[[0,[-0.5,1.5,4.9],[-0.5,0.8,0.12]],[1.4,[-0.5,1.5,4.9],[-0.5,0.8,0.12]],[2.7,[0.4,1.55,3.8],[0.6,1.28,0.1]],[7.0,[0.7,1.65,4.0],[0.95,1.38,0.0]],[7.4,[0.8,1.5,3.2],[0.8,1.33,0.5]],[8.0,[0.8,1.5,3.2],[0.8,1.33,0.5]],
+  [8.6,[0.3,1.85,5.4],[0.2,1.5,0.0]],[9.2,[-0.4,1.5,4.0],[-0.5,0.9,0.1]],[10.2,[-0.2,1.6,4.3],[0.05,1.2,0.1]],[10.9,[0.5,1.7,4.7],[0.5,1.43,0.0]],[12.2,[0.35,1.6,4.2],[0.3,1.38,0.0]],[13.0,[0.2,1.55,4.0],[0.2,1.38,0.0]],[14.3,[0.25,1.55,3.8],[0.3,1.36,0.0]],
+  [15.3,[0.3,1.5,3.9],[0.3,1.38,0.0]],[16.8,[0.2,1.45,4.4],[-0.1,1.28,0.0]],[17.6,[-0.5,1.5,4.9],[-0.5,0.8,0.12]],[20,[-0.5,1.5,4.9],[-0.5,0.8,0.12]]];
 function freeCam(t){ if(t<=CAM[0][0]) return {pos:V(...CAM[0][1]),look:V(...CAM[0][2])}; for(let i=1;i<CAM.length;i++) if(t<=CAM[i][0]){ const u=sm5((t-CAM[i-1][0])/(CAM[i][0]-CAM[i-1][0])); return {pos:V(...CAM[i-1][1]).lerp(V(...CAM[i][1]),u),look:V(...CAM[i-1][2]).lerp(V(...CAM[i][2]),u)}; } const l=CAM[CAM.length-1]; return {pos:V(...l[1]),look:V(...l[2])}; }
-function camAt(t,ps){ const f=freeCam(t); const close=(t<0.95)?1:(t<2.0?1-sm5((t-0.95)/1.05):(t>=18.9?sm5(clamp((t-18.9)/1.05)):0)); if(close<=0||!ps.vis) return {...f,up:V(0,1,0)};
-  const pc=phoneCam(ps.R3,ps.pos); return {pos:f.pos.clone().lerp(pc.pos,close),look:f.look.clone().lerp(pc.look,close),up:V(0,1,0).lerp(pc.up,close).normalize()}; }
 
 // ---------------------------------------------------------------- one frame
 function setT(t){
@@ -228,22 +252,18 @@ function setT(t){
   strips.forEach((m,i)=>{ m.position.x=((i*0.9-sc)%19.8+19.8)%19.8-8; });
   aptG.visible=sc<4.0; busG.visible=t>=TL.bus0-0.1&&t<TL.officeSit-0.2; offG.visible=sc>3.0&&sc<11.0; apt2G.visible=sc>6.5; stG.visible=sc>5.5;
   const H_=heroJ(t); const J=H_.J; R.poseFig(hero,J);
-  const gear=sstep(TL.morning,TL.morning+0.5,t)*(1-sstep(TL.bed0,TL.bed0+0.3,t)); pack.visible=tie.visible=strap.visible=gear>0.02;
-  if(gear>0.02){ const ax=J.neck.clone().sub(J.hip); const L=ax.length(); const up=ax.clone().normalize(); const fwd=V(1,0,0).addScaledVector(up,-up.x).normalize(); const mid=J.hip.clone().addScaledVector(up,L*0.62);
-    pack.position.copy(mid).addScaledVector(fwd,-0.14); pack.quaternion.setFromUnitVectors(V(0,1,0),up); pack.scale.setScalar(gear);
-    tie.position.copy(J.neck).addScaledVector(up,-0.11).addScaledVector(fwd,0.075); tie.quaternion.setFromUnitVectors(V(0,1,0),up); tie.scale.setScalar(gear);
-    const a=J.shL.clone().addScaledVector(fwd,0.02), b=pack.position.clone().addScaledVector(up,-0.12).addScaledVector(fwd,0.06); const d=b.clone().sub(a); strap.position.copy(a).add(b).multiplyScalar(0.5); strap.scale.set(0.012,d.length(),0.012); strap.quaternion.setFromUnitVectors(V(0,1,0),d.normalize()); }
-  const ps=phoneState(t,H_); phone.visible=ps.vis; scrMat.map=ps.kind==='credit'?scrCredit:scrAlarm;
-  if(ps.vis){ phone.position.copy(ps.pos); phone.quaternion.setFromRotationMatrix(ps.R3);
-    if(ps.vib>0){ const j=Math.sin(t*2*Math.PI*40); phone.position.x+=0.0011*j*ps.vib; phone.position.y+=0.0008*Math.cos(t*2*Math.PI*37)*ps.vib; phone.rotateZ(0.008*j*ps.vib); }
-    phoneLight.position.copy(ps.pos).addScaledVector(V(0,0,1).applyMatrix4(ps.R3),0.35); phoneLight.color.set(ps.kind==='credit'?0xe8b85a:0x8fc7cb); phoneLight.intensity=0.5+0.25*Math.sin(t*30)*ps.vib; } else phoneLight.intensity=0;
+  dressUp(J,sstep(TL.bag,TL.bag+0.3,t)*(1-sstep(TL.bed0,TL.bed0+0.25,t)));
+  const ps=phoneState(t,H_); phone.visible=ps.vis; scrMat.map=scrCredit;
+  if(ps.vis){ phone.position.copy(ps.pos); phone.quaternion.setFromRotationMatrix(ps.R3); scrMat.color.setScalar(0.25+0.75*ps.lit);
+    if(ps.vib>0){ const j=Math.sin(t*2*Math.PI*40); phone.position.x+=0.0022*j*ps.vib; phone.position.y+=0.0015*Math.cos(t*2*Math.PI*37)*ps.vib; phone.rotateZ(0.015*j*ps.vib); }
+    phoneLight.position.copy(ps.pos).add(V(-0.05,-0.18,0.1)); phoneLight.color.set(0xe8b85a); phoneLight.intensity=ps.lit*(1.1+0.35*Math.sin(t*30)*ps.vib); } else phoneLight.intensity=0;
   const ws=walletState(t); wallet.visible=ws.vis; wallet.position.copy(ws.pos); wallet.position.x-=sc; wallet.rotation.set(ws.rotX,0,ws.rotZ); panL.rotation.z=-(ws.open>0?ws.open*0.5:0); panR.rotation.z=(ws.open>0?ws.open*0.5:0);
-  const empty=sstep(TL.zero,TL.zero+0.3,t); const warn=empty*(1-sstep(TL.alarm,TL.alarm+0.3,t))*(0.5+0.5*Math.sin(t*7)); const credit=sstep(1.0,2.0,t)*(1-sstep(2.4,3.2,t));
+  const empty=sstep(TL.zero,TL.zero+0.3,t); const warn=empty*(1-sstep(TL.bedDown[0],TL.bedDown[0]+0.3,t))*(0.5+0.5*Math.sin(t*7)); const credit=sstep(0.9,1.9,t)*(1-sstep(2.4,3.2,t));
   walMat.emissiveIntensity=0.05+0.12*credit+0.45*warn; halo.position.copy(wallet.position).add(V(0,0.05,0)); halo.material.opacity=(0.03+0.1*credit+0.35*warn)*(ws.vis?1:0); redLight.position.copy(wallet.position).add(V(0,0.3,0.2)); redLight.intensity=0.35*credit+0.35*warn;
   applyGiants(t);
   for(let k=0;k<NC;k++){ const c=coinState(k,t); if(!c||ws.held>0.1||sc>0.05){ dm.position.set(0,-9,0); dm.scale.setScalar(0.0001); } else { dm.position.copy(c.p); dm.position.x-=sc; dm.rotation.set(c.r,c.r*0.7,0); dm.scale.setScalar(c.s||1); } dm.updateMatrix(); coins.setMatrixAt(k,dm.matrix); } coins.instanceMatrix.needsUpdate=true;
-  calMat.opacity=sstep(TL.calendar0,TL.calendar1,t)*(1-sstep(10.1,10.5,t)); cal.visible=calMat.opacity>0.01; cal.position.x=0.8-sc;
-  const du=clamp((t-TL.dust)/1.2); dust.material.opacity=du>0&&du<1?0.9*Math.sin(Math.PI*du):0; dust.position.set(WAL_HELD.x-sc+0.04*Math.sin(du*5),WAL_HELD.y+0.15-0.7*du,WAL_HELD.z);   // one mote falls out of the upturned wallet
+  calMat.opacity=sstep(TL.calendar0,TL.calendar1,t)*(1-sstep(10.0,10.4,t)); cal.visible=calMat.opacity>0.01; cal.position.x=0.8-sc;
+  const du=clamp((t-TL.dust)/1.2); dust.material.opacity=du>0&&du<1?0.9*Math.sin(Math.PI*du):0; dust.position.set(WAL_HELD.x-sc+0.04*Math.sin(du*5),WAL_HELD.y+0.15-0.7*du,WAL_HELD.z);
   cup.visible=offG.visible; const sip=H_.sip||0; cup.position.set(BASE.off+LAMPX+0.05-sc,0.84,0.2); if(sip>0.01) cup.position.copy(J.hR).add(V(0.02,0.0,0.0)); cup.rotation.z=-0.5*sip;
   cup.getObjectByName('coffee').scale.y=Math.max(0.04,1-0.96*sstep(TL.officeSit+0.2,TL.work1,t)); cup.getObjectByName('coffee').position.y=-0.04+0.04*cup.getObjectByName('coffee').scale.y;
   const night=nightAt(t); const cityOn=sstep(10.7,11.3,t)*(1-sstep(16.2,16.9,t)); cityG.visible=trafficG.visible=sky.visible=cityOn>0.01;
@@ -252,10 +272,10 @@ function setT(t){
   const boost=1+3*sstep(TL.board-0.2,TL.board+0.5,t)*(1-sstep(TL.officeWalk-0.2,TL.officeWalk+0.3,t));
   cars.forEach(c=>{ let x=c.userData.x0+c.userData.v*boost*t*0.9; x=((x+10)%20+20)%20-10; c.position.x=x; c.rotation.y=c.userData.v<0?Math.PI:0; });
   skyMat.color.copy(new THREE.Color(0x07080b).lerp(new THREE.Color(0x35404c),Math.sin(Math.PI*clamp((t-10.5)/4.0))*(1-night)*cityOn*0.9).lerp(new THREE.Color(0x3a2418),sstep(13.4,14.2,t)*(1-sstep(14.2,15.0,t))*0.8*cityOn));
-  const Lk=lightAt(t)*(1+0.14*credit+0.12*sstep(17.5,18.2,t)*(1-sstep(19.2,19.9,t))); S.spot.intensity=S.SPOT_I*Lk; S.beamU.uI.value=Lk; S.moteU.uOp.value=Lk;
+  const hope=sstep(17.4,18.8,t)*0.0; const Lk=lightAt(t)*(1+0.14*credit+0.12*phoneLit(t)*(t>10?1:0)); S.spot.intensity=S.SPOT_I*Lk; S.beamU.uI.value=Lk; S.moteU.uOp.value=Lk;
   teal.intensity=0.5*sstep(TL.zero,TL.zero+0.6,t)*(1-sstep(TL.morning,TL.morning+0.6,t))+0.28*night;
-  const c=camAt(t,ps); let shake=0; ITEMS.forEach(it=>{ const d=t-it.t-0.1; if(d>0&&d<0.35) shake+=0.012*Math.exp(-d*9)*Math.sin(d*60); });
-  S.cam.up.copy(c.up); S.cam.position.copy(c.pos).add(V(shake,shake*0.7,0)); S.cam.lookAt(c.look); S.tick(t); }
-window.renderAt=(t,K=3)=>{ const fast=(t>TL.morning-0.3&&t<TL.officeSit+0.2)||(t>TL.home0-0.2&&t<TL.bed1+0.2)||t>18.9||t<2.0||(t>TL.rise[0]-0.1&&t<TL.dance[1]+0.1); return S.renderAt(setT,t,fast?5:K,{t0:0,t1:DUR,shutter:(fast&&t>2.0&&t<18.9)?1/36:1/60}); };
+  const f=freeCam(t); let shake=0; ITEMS.forEach(it=>{ const d=t-it.t-0.1; if(d>0&&d<0.35) shake+=0.012*Math.exp(-d*9)*Math.sin(d*60); });
+  S.cam.up.set(0,1,0); S.cam.position.copy(f.pos).add(V(shake,shake*0.7,0)); S.cam.lookAt(f.look); S.tick(t); }
+window.renderAt=(t,K=3)=>{ const fast=(t>TL.stand-0.3&&t<TL.officeSit+0.2)||(t>TL.home0-0.2&&t<TL.bed1+0.2)||(t>TL.rise[0]-0.1&&t<TL.dance[1]+0.1); return S.renderAt(setT,t,fast?5:K,{t0:0,t1:DUR,shutter:fast?1/36:1/60}); };
 window.events={...TL,steps:(()=>{ const out=[]; const N=Math.round(DUR*TL.fps); let prev=null; for(let f=0;f<N;f++){ const t=f/TL.fps; const h=heroJ(t); if(h.walk<0.5){ prev=null; continue; } if(prev!==null&&Math.floor(h.ph/Math.PI)>Math.floor(prev/Math.PI)) out.push({t}); prev=h.ph; } return out; })()};
 window.ready=true;

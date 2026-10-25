@@ -70,6 +70,14 @@ def chime(dur=2.4, f0=1318.5):
     return (y * 0.5 + y2 * 0.4) * np.minimum(1, t / 0.002) * 0.35
 
 
+def bell(dur=2.6, f0=880.0):
+    """A salary-notification bell: inharmonic partials (a struck bell), a bright strike and a long tail that wraps into frame 0."""
+    n = int(dur * SR); t = np.arange(n) / SR; y = np.zeros(n)
+    for m_, a, d in [(1.0, 1.0, 1.1), (2.0, 0.6, 0.9), (2.76, 0.5, 0.7), (4.07, 0.3, 0.45), (5.4, 0.2, 0.3)]: y += a * np.sin(2 * np.pi * f0 * m_ * t) * np.exp(-t / d)
+    y += hp(noise(n), 4000) * np.exp(-t / 0.01) * 0.25
+    return y * np.minimum(1, t / 0.0015) * 0.3
+
+
 def buzz(dur, rate=40.0, f=150.0):
     n = int(dur * SR); t = np.arange(n) / SR; carrier = np.tanh(3 * np.sin(2 * np.pi * f * t)) * 0.6 + hp(noise(n), 2500) * 0.08
     return carrier * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * rate * t))) * 0.5
@@ -111,12 +119,12 @@ def main(meta_path, out_path):
     bed(bus, room_g, drone_g, duck)
 
     # ---- 0-2: the notification. Chime + buzz run across the loop seam (wrap), coins pour into the wallet
-    for k in range(50): place(bus['air'], coin_ting(k, 0.8 + 0.2 * (k / 50)), 1.0 + k * 0.02 + 0.02, 0.5, -0.4 + 0.8 * ((k % 5) / 4))
-    place(bus['fol'], breath(0.6, 'in', 1, 0.45), 1.2, 1.0, -0.4)                                                              # he wakes up to it
-    bz = buzz(1.6); bz *= np.linspace(1, 0, len(bz)) ** 0.8; place(bus['fol'], bz, 0.0, 0.5, 0.2)                              # buzz at the start fades as he picks up on it
+    for k in range(50): place(bus['air'], coin_ting(k, 0.8 + 0.2 * (k / 50)), TL['coinsIn'][0] + 0.45 + k * 0.02 + 0.02, 0.5, -0.4 + 0.8 * ((k % 5) / 4))
+    place(bus['fol'], breath(0.6, 'in', 1, 0.45), 0.4, 1.0, -0.4)                                                              # he wakes up to it
+    bz = buzz(1.0); bz *= np.linspace(1, 0, len(bz)) ** 0.8; place(bus['fol'], bz, 0.0, 0.5, 0.2)                              # buzz at the start fades as he picks up on it
     # ---- 18.75-20: the buzz of the next salary (wraps into frame 0, where the buzz above starts at full level)
-    bz2 = buzz(D - 17.45); bz2 *= np.minimum(1, np.linspace(0, 1, len(bz2)) * 6); place(bus['fol'], bz2, 17.45, 0.5, 0.2)
-    place_wrap(bus['air'], chime(), 18.3, 1.0, 0.0)
+    bz2 = buzz(D - TL['notify'][0]); bz2 *= np.minimum(1, np.linspace(0, 1, len(bz2)) * 8); place(bus['fol'], bz2, TL['notify'][0], 0.5, 0.2)
+    place_wrap(bus['air'], bell(), TL['notify'][0], 1.0, 0.0)
     # ---- 2-6.4: six bills, faster and faster; gold shimmer + coin pull for each, one heavy object each
     foley = [lambda s: rumble(0.8, s, 90) * 0.9 + bp(noise(int(0.8 * SR)), 300, 1.0) * np.sin(np.pi * np.arange(int(0.8 * SR)) / int(0.8 * SR)) * 0.4,        # RENT: a building rising, stone grind
              lambda s: creak(s, 0.7) * 0.8 + clank(1.0, s, 0.6)[:int(0.7 * SR)] * 0.7,                                                                                            # EMI: a car lowered, metal groan, clank
@@ -170,14 +178,16 @@ def main(meta_path, out_path):
     for k, kt in enumerate(np.arange(TL['dance'][0], TL['dance'][1], 0.27)): place(bus['hit'], thud(610 + k, 75, 0.08, 0.35), kt, 1.0, -0.1 + 0.05 * k)    # tiny dance: happy stomps
     place(bus['fol'], breath(0.5, 'in', 620, 0.4), TL['rise'][0] - 0.1, 1.0, -0.4)
     for k, kt in enumerate(TL['knock']): place(bus['hit'], knock(630 + k, 0.8), kt, 1.0, -0.2)                                              # the landlord knocks
-    for k, kt in enumerate([19.4, 19.58]): place_wrap(bus['hit'], knock(640 + k, 0.7), kt, 1.0, -0.2)                                       # ...and again before he can get up
+    for k, kt in enumerate(TL['knockEnd']): place_wrap(bus['hit'], knock(640 + k, 0.7), kt, 1.0, -0.2)                                       # ...and again before he can get up
     n_ = int(0.9 * SR); tt = np.arange(n_) / SR; place(bus['hit'], np.tanh(2 * np.sin(2 * np.pi * np.cumsum(70 + 160 * np.minimum(tt / 0.6, 1)) / SR)) * 0.35 * np.exp(-tt / 0.7), items[1]['t'], 0.7, 0.2)   # the bike's engine revs
     place(bus['air'], lp(noise(int(2.0 * SR)), 450) * np.minimum(1, np.arange(int(2.0 * SR)) / (0.8 * SR)) * 0.5, items[3]['t'], 0.6, 0.0)       # the fan spins up
     for k in range(14): place(bus['fol'], tick(650 + k, 2600), items[3]['t'] + 0.1 + k * 0.05, 0.3, 0.4)                                        # the meter whirrs
     place(bus['air'], hp(noise(int(0.8 * SR)), 3000) * env(int(0.8 * SR), 0.01, 0.3) * 0.25, TL['bus0'], 1.0, 0.3)                           # the bus air brake
     place(bus['drone'], np.tanh(2 * np.sin(2 * np.pi * 52 * np.arange(int(1.6 * SR)) / SR)) * 0.12 * np.sin(np.pi * np.arange(int(1.6 * SR)) / int(1.6 * SR)), TL['bus0'], 1.0, 0.0)   # idling diesel
     for k in range(6): place(bus['air'], bp(noise(int(0.7 * SR)), 700 + 150 * k, 0.8) * np.sin(np.pi * np.arange(int(0.7 * SR)) / int(0.7 * SR)) * 0.2, TL['board'] + k * 0.15, 1.0, -0.7 + 0.28 * k)   # traffic
-    place(bus['hit'], thud(660, 52, 0.2, 0.55), TL['bed1'] - 0.15, 1.0, -0.3)                                                                  # he drops onto the bed, exhausted
+    place(bus['hit'], thud(660, 52, 0.2, 0.55), TL['bed1'] - 0.15, 1.0, -0.3)
+    place(bus['hit'], thud(662, 54, 0.2, 0.45), TL['bedDown'][1] - 0.1, 1.0, -0.3)                                                       # ...and onto the bed after the empty wallet
+    place(bus['fol'], breath(0.8, 'in', 663, 0.45), TL['sitUp'][0], 1.0, -0.4)                                                                  # he drops onto the bed, exhausted
     place(bus['fol'], breath(1.0, 'out', 661, 0.5), TL['bed1'] - 0.1, 1.0, -0.4)
     write_wav(finish(bus, duck), out_path); print('wrote', out_path)
 
