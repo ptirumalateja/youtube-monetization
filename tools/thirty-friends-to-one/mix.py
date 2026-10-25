@@ -167,9 +167,9 @@ def toast(seed):
     for f, a, d in [(1180, 0.9, 0.55), (1930, 0.7, 0.8), (2870, 0.55, 1.1), (3460, 0.4, 0.9), (4710, 0.3, 0.6), (6120, 0.15, 0.4)]:
         for det in (1.0, 1.004 + 0.003 * r.random()):   # two glasses, slightly detuned: a beating ring
             y += a * np.sin(2 * np.pi * f * det * t + r.random() * 6) * np.exp(-t / d) * 0.5
-    body = np.sin(2 * np.pi * (150 + 80 * np.exp(-t / 0.01)) * t) * env(n, 0.0005, 0.05) * 0.9
-    crack = hp(noise(n), 3000) * env(n, 0.0002, 0.004) * 0.9
-    return y * 0.5 + body + crack
+    body = np.sin(2 * np.pi * (150 + 80 * np.exp(-t / 0.01)) * t) * env(n, 0.002, 0.05) * 0.9
+    crack = lp(hp(noise(n), 2500), 7000) * env(n, 0.0015, 0.006) * 0.5   # soft-edged: a 0.2 ms crack read +3.5 dBTP after AAC
+    return (y * 0.5 + body + crack) * np.minimum(1, t / 0.0015)
 
 def warm_tone(dur=4.2):
     """The soft low warm tone under the toast: D2 / A2 / D3 / F#3, slow bloom, gently saturated."""

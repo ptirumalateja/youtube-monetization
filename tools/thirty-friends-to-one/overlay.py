@@ -39,7 +39,7 @@ def labels(img, m):
     base = img.convert('RGBA'); layer = Image.new('RGBA', base.size, (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
     f = font(24, 'Medium')
     for l in m['labels']:
-        x = min(max(l['x'], 90), 990); y = min(max(l['y'], 470), 1500)
+        x = min(max(l['x'], 90), 990); y = min(max(l['y'], 450), 1500)
         tracked(d, l['text'], f, x, y - 11, 6, (8, 9, 12, int(180 * l['a'])))   # faint dark underlay for the beam
         tracked(d, l['text'], f, x, y - 12, 6, CREAM + (int(215 * l['a']),))
     base.alpha_composite(layer)

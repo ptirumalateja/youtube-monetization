@@ -94,10 +94,13 @@ for(const f of F){ let t=-1.5+Rn()*1.2; while(t<DUR){ f.laughs.push([t,0.7+Rn()*
 
 // departure order: 29 friends leave, faster and faster, roughly from the far end toward the two (the camera pushes in
 // with them, so every exit stays in frame). B0, the seat across from the best friend, is the last to go.
+const PIN=[[2,8],[8,6],[15,4],[22,2]], PINLABEL={2:'MOVED',8:'MARRIED',15:'BUSY',22:'DRIFTED',28:'GONE'};
 const order=[]; { const sc=[]; for(let id=1;id<30;id++) if(id!==15) sc.push([F[id].i+Rn()*3.2,id]);
-  sc.sort((x,y)=>y[0]-x[0]); sc.forEach(x=>order.push(x[1])); order.push(15); }
+  sc.sort((x,y)=>y[0]-x[0]); sc.forEach(x=>order.push(x[1])); order.push(15);
+  // the labelled exits are pinned to lit seats on side A (the far end is dark at 20, side B sits at the frame edge)
+  for(const [k,id] of PIN){ order.splice(order.indexOf(id),1); order.splice(k,0,id); } }
 const DEP=order.map((id,k)=>{ const s=k/28; const td=TL.leave0+(TL.leave1-TL.leave0)*Math.pow(s,TL.leavePow);
-  const sp=lerp(1.0,1.5,s); return {k,id,td,sp,label:null}; });
+  const sp=lerp(1.0,1.5,s); return {k,id,td,sp,label:PINLABEL[k]||null}; });
 DEP.forEach(d=>{ F[d.id].dep=d; });
 const ageAt=t=>20+40*clamp((t-TL.age0)/(TL.age1-TL.age0));
 const agedK=t=>sstep(TL.age0,TL.age1+0.4,t);                 // 0 at 20, 1 at 60 (heroes' stoop)
@@ -258,20 +261,17 @@ const heroG=makeGlass();
 // ---------------------------------------------------------------- overlay / sound data
 const v3=new THREE.Vector3();
 window.metaAt=t=>{ setT(t); S.cam.updateMatrixWorld(); const labels=[];
-  for(const d of DEP){ if(!d.label) continue; const tt=(t-d.td)*d.sp; if(tt<0.3||tt>2.4) continue;
+  for(const d of DEP){ if(!d.label) continue; const tt=(t-d.td)*d.sp; if(tt<0.45||tt>2.4) continue;
     v3.copy(labelAt(d)).project(S.cam);
-    labels.push({text:d.label,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a:sstep(0.3,0.6,tt)*(1-sstep(1.8,2.4,tt))}); }
+    labels.push({text:d.label,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a:sstep(0.45,0.75,tt)*(1-sstep(1.8,2.4,tt))}); }
   return {age:Math.floor(ageAt(t)+1e-6),count:countAt(t),labels}; };
 // reason labels: five exits spread through the years, each on a walker that stays in frame (checked through the real camera)
 // the label is pinned over the spot where he stands up (it reads as the reason he is leaving), not dragged along the walk
-const labelAt=d=>W2(F[d.id].u,F[d.id].s*1.0,2.1);
+const labelAt=d=>W2(F[d.id].u,F[d.id].s*1.0,1.98);
 function onScreen(d){ let n=0, m=0; for(let tt=0.4;tt<=2.0;tt+=0.2){ const t=d.td+tt/d.sp; const c=camAt(t);
     S.cam.position.copy(c.pos); S.cam.lookAt(c.tg); S.cam.updateMatrixWorld(); const p=labelAt(d).project(S.cam);
-    m++; if(Math.abs(p.x)<0.72&&p.y<0.52&&p.y>-0.4) n++; } return n/m; }
-{ const want=[['MOVED',0.06],['MARRIED',0.24],['BUSY',0.45],['DRIFTED',0.68]], used=new Set();
-  for(const [txt,q] of want){ let best=null, bs=-1; for(const d of DEP.slice(0,28)){ if(used.has(d.k)||F[d.id].i>9) continue; const v=onScreen(d); if(v<0.9) continue; const sc=-Math.abs(d.k/28-q); if(best===null||sc>bs){ best=d; bs=sc; } }
-    if(best){ best.label=txt; used.add(best.k); } }
-  DEP[28].label="GONE"; }
+    m++; if(Math.abs(p.x)<0.8&&p.y<0.55&&p.y>-0.4) n++; } return n/m; }
+window.labelVis=()=>DEP.filter(d=>d.label).map(d=>[d.k,d.id,d.label,+onScreen(d).toFixed(2)]);
 function depPan(d){ const f=F[d.id], c=camAt(d.td); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg); S.cam.updateMatrixWorld(); return clamp(W2(f.u,f.s).project(S.cam).x,-1,1); }
 window.events={deps:DEP.map(d=>({k:d.k,id:d.id,td:d.td,sp:d.sp,label:d.label,side:F[d.id].s,seat:F[d.id].i,pan:depPan(d)})),...TL};
 window.renderAt=(t,K=3)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
