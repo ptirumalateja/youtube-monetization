@@ -65,14 +65,15 @@ rockMat.onBeforeCompile=s=>{ Object.assign(s.uniforms,rockU);
       if(uN>0.0005){
         vec3 q=p+0.22*vec3(n3(p*2.7),n3(p*2.7+7.3),n3(p*2.7+13.1))-0.11;
         float jit=0.45*(n3(p*3.3+4.0)-0.5);
-        float R1=2.35*pow(uN,0.7), R2=2.2*pow(uN,0.9)-0.06, R3=2.0*pow(uN,1.15)-0.12;
+        float uV=pow(uN,0.6);   // spread runs ahead of the heat so the first hits already show a crack
+        float R1=2.35*pow(uV,0.7), R2=2.2*pow(uV,0.9)-0.06, R3=2.0*pow(uV,1.15)-0.12;
         float m1=smoothstep(R1+0.02,R1-0.22,gD+jit), m2=smoothstep(R2+0.02,R2-0.2,gD+jit*1.3), m3=smoothstep(R3+0.02,R3-0.18,gD+jit*1.6);
         float e1=vEdge(q*2.1), e2=vEdge(q*4.8+3.1), e3=m3>0.0?vEdge(q*10.5+9.7):1.0;
         float w1=0.035+0.08*uN, w2=0.022+0.04*uN, w3=0.014+0.018*uN;
         float l1=1.0-smoothstep(w1*0.3,w1,e1), l2=1.0-smoothstep(w2*0.3,w2,e2), l3=1.0-smoothstep(w3*0.3,w3,e3);
         // only some cell edges are cracks: more of them open as the hits add up (reads as branching, not a honeycomb)
-        float o1=smoothstep(0.66-0.42*uN,0.74-0.42*uN,n3(q*3.4+1.0)), o2=smoothstep(0.7-0.4*uN,0.78-0.4*uN,n3(q*6.1+5.0)), o3=smoothstep(0.72-0.35*uN,0.8-0.35*uN,n3(q*9.0+2.0));
-        float near=1.0-smoothstep(0.0,0.5,gD); o1=max(o1,near); o2=max(o2,near*0.8);
+        float o1=smoothstep(0.66-0.42*uV,0.74-0.42*uV,n3(q*3.4+1.0)), o2=smoothstep(0.7-0.4*uV,0.78-0.4*uV,n3(q*6.1+5.0)), o3=smoothstep(0.72-0.35*uV,0.8-0.35*uV,n3(q*9.0+2.0));
+        float near=1.0-smoothstep(0.0,0.9,gD); o1=max(o1,near); o2=max(o2,near*0.8);
         l1*=o1; l2*=o2*max(o1,0.35); l3*=o3;
         gCr=max(l1*m1,max(0.8*l2*m2,0.55*l3*m3));
         float imp=1.0-smoothstep(0.0,0.06+0.16*uN,gD+0.04*jit); gCr=max(gCr,imp*0.85);
@@ -80,7 +81,7 @@ rockMat.onBeforeCompile=s=>{ Object.assign(s.uniforms,rockU);
       }
       diffuseColor.rgb*=1.0-0.88*gCr; }`)
    .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-    { float I=uHeat*(0.55+0.9*pow(uN,1.2))*(1.0+0.6*uPulse)*(0.45+0.55*exp(-gD*1.3));
+    { float I=uHeat*(0.85+0.75*pow(uN,1.2))*(1.0+0.6*uPulse)*(0.45+0.55*exp(-gD*1.3));
       vec3 hot=mix(uRed,vec3(1.0,0.3,0.09),clamp(gCr*gCr*gCr*uN,0.0,0.45));
       totalEmissiveRadiance+=(hot*gCr+uRed*gHalo*0.16)*I*(1.0-uCool);
       totalEmissiveRadiance+=uRed*gCr*uFin*(1.0-smoothstep(0.2,0.6,gD))*1.1; }`); };
@@ -281,7 +282,7 @@ function setT(t,half){
   // camera + shake
   const c=camAt(t,half); cam.position.copy(c.p); cam.lookAt(c.l);
   // both halves: shift the frame window down (same angle) so the stage sits clear of the divider text and the platform caption area
-  cam.setViewOffset(W,HH,0,Math.round((half===1?0.165:0.07)*HH),W,HH);   // bottom a little higher: the watermark sits on the floor reflection, not the boulder
+  cam.setViewOffset(W,HH,0,Math.round((half===1?0.13:-0.01)*HH),W,HH);   // bottom a little higher: the watermark sits on the floor reflection, not the boulder
   const sh=shakeAt(t,half); if(sh>0){ cam.rotateX(0.0035*sh*Math.sin(t*151.0+half)); cam.rotateY(0.0035*sh*Math.sin(t*113.0+1.3)); cam.position.y+=0.004*sh*Math.sin(t*97.0); }
   const pay=burst?0.14*sstep(0,0.6,tau):0;
   S.tick(t,pay);

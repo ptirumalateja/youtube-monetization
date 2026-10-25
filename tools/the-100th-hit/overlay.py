@@ -16,7 +16,7 @@ from sld_text import font, tracked, sstep, CREAM, W, H
 TL = json.load(open(os.path.join(HERE, 'timeline.json')))
 GOLD = (232, 184, 90)
 MID = H // 2
-Y_TOP, Y_BOT = 196, MID + 86          # counter / label rows (top of each half; clear of the platform UI)
+Y_TOP, Y_BOT = 160, MID + 52          # counter / label rows (top of each half; clear of the platform UI)
 HT = None                             # hit times, set from meta.json (load_meta)
 
 
@@ -45,7 +45,7 @@ def text_rows(t):
             out.append((['QUITS AT 99' if half == 0 else 'HITS 100'], 50, 12, y + 4, la))
     a = sstep(TL['endText'], TL['endText'] + 0.4, t)
     if a > 0:
-        out.append((['YOU NEVER KNOW', 'WHICH HIT IS THE LAST.'], 40, 8, MID - 52, a))
+        out.append((['YOU NEVER KNOW', 'WHICH HIT IS THE LAST.'], 40, 8, MID - 132, a))   # just above the divider, clear of HITS 100
     return out
 
 

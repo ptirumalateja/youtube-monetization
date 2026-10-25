@@ -88,7 +88,7 @@ place(A['air'], emb, 0, 1.0, -0.3); place(A['air'], embers(N, 4) * heat * 0.5, 0
 for k in range(1, 100):
     D = HT[k] - HT[k - 1] if k > 1 else 0.9
     w = 0.8 + 0.5 * k / 99
-    g = 0.95 * max(0.32, (D / 0.9) ** 0.45)
+    g = 0.95 * max(0.3, (D / 0.9) ** 0.45) * (0.7 + 0.6 * (k / 99) ** 2)   # the rumble keeps swelling to 99
     place(A['hit'], stone_hit(100 + k, w), HT[k], g, -0.25)
     # hammer wind-up whoosh on the slow swings only
     if D > 0.25:
@@ -108,10 +108,10 @@ place(B['fol'], clank(0.7, 43, bright=0.6) * 0.18, E['land'] + 0.15, 1.0, 0.0)
 for i, ts in enumerate(np.arange(E['walk'] + 0.15, E['fade1'], 0.62)):
     place(B['fol'], thud(300 + i, f=85, dec=0.07, gain=0.22 * (1 - (ts - E['walk']) / (E['fade1'] - E['walk']))), ts, 1.0, 0.35)
 # the other one breathes: two heavy exhales, then a long strained inhale on the lift
-place(B['fol'], breath(0.9, 'out', 51, 0.6), T99 + 0.25, 1.0, 0.1)
-place(B['fol'], breath(0.8, 'in', 52, 0.35), E['breath'] - 0.1, 1.0, 0.1)
-place(B['fol'], breath(0.9, 'out', 53, 0.55), E['breath'] + 0.55, 1.0, 0.1)
-place(B['fol'], breath(E['lift1'] - E['lift0'], 'in', 54, 0.55), E['lift0'], 1.0, 0.1)
+place(B['fol'], breath(0.9, 'out', 51, 0.3), T99 + 0.6, 1.0, 0.1)
+place(B['fol'], breath(0.8, 'in', 52, 0.18), E['breath'] - 0.05, 1.0, 0.1)
+place(B['fol'], breath(0.9, 'out', 53, 0.28), E['breath'] + 0.6, 1.0, 0.1)
+place(B['fol'], breath(E['lift1'] - E['lift0'], 'in', 54, 0.3), E['lift0'], 1.0, 0.1)
 # the hammer leaving the floor for the last lift
 place(B['fol'], clank(0.4, 55, bright=0.5) * 0.12, E['lift0'] + 0.05, 1.0, 0.0)
 # a faint drone creeps back under the lift, then the held breath (nothing at all) before 100
@@ -154,7 +154,7 @@ def bus_mix(bus, hit_reverb=0.3):
 mixA = bus_mix(A, 0.22)
 gate = curve(N, [(0, 1), (T99 + 0.1, 1), (T99 + 0.32, 0), (DUR, 0)])   # hard stop after 99, tails included
 mixB = bus_mix(B, 0.35)
-mix = mixA * gate[None] + mixB
+mix = mixA * gate[None] * 0.55 + mixB   # the build sits well under the hit-100 boom (biggest hit of the series)
 mix = np.tanh(mix / np.abs(mix).max() * 1.4) / np.tanh(1.4)
 fz = int(0.004 * SR); mix[:, :fz] *= np.linspace(0, 1, fz); mix[:, -fz:] *= np.linspace(1, 0, fz)
 write_wav(mix, sys.argv[2])
