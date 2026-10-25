@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v1 (first full render, waiting for owner review) |
+| Status | v1 rendered (-15.1 LUFS, -3.1 dBTP after AAC), waiting for owner review |
 | Upload file | `thirty-friends-to-one.mp4` (master with sound); `thirty-friends-to-one_music-ready.mp4` (silent, toast clink at 16.20 s) |
 | Length | 18.0 s, ends on a 1.8 s hold on the two friends (the cut back to the full table works as a loop) |
 | Voice | None (wordless) |
