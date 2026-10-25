@@ -449,7 +449,7 @@ const pmrem=new THREE.PMREMGenerator(renderer); let envRT=null;
 const envMatU={cT:{value:new THREE.Color()},cH:{value:new THREE.Color()},cB:{value:new THREE.Color()}};
 const envScene=new THREE.Scene(); envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:envMatU,vertexShader:`varying vec3 vD; void main(){vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`varying vec3 vD; uniform vec3 cT,cH,cB; void main(){ float h=vD.y; vec3 c=h>0.?mix(cH,cT,pow(h,0.45)):mix(cH,cB,pow(-h,0.4)); gl_FragColor=vec4(c,1.);}`})));
-function setEnv(top,hor,bot,intensity=1){ envMatU.cT.value.setRGB(...top); envMatU.cH.value.setRGB(...hor); envMatU.cB.value.setRGB(...bot); if(envRT) envRT.dispose(); envRT=pmrem.fromScene(envScene,0.02); scene.environment=envRT.texture; scene.environmentIntensity=intensity; }
+let _envKey=''; function setEnv(top,hor,bot,intensity=1){ const key=[...top,...hor,...bot,intensity].map(v=>v.toPrecision(2)).join(','); if(key===_envKey&&envRT) return; _envKey=key; envMatU.cT.value.setRGB(...top); envMatU.cH.value.setRGB(...hor); envMatU.cB.value.setRGB(...bot); if(envRT) envRT.dispose(); envRT=pmrem.fromScene(envScene,0.02); scene.environment=envRT.texture; scene.environmentIntensity=intensity; }
 const quadCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
 const quad=(frag,uniforms)=>{const m=new THREE.ShaderMaterial({uniforms,vertexShader:`varying vec2 vUv; void main(){vUv=uv; gl_Position=vec4(position.xy,0.,1.);}`,fragmentShader:frag,depthTest:false,depthWrite:false});
   const s=new THREE.Scene(); s.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),m)); return {s,m};};
@@ -505,14 +505,14 @@ const aoQ=quad(`varying vec2 vUv; uniform sampler2D tCol,tDep; uniform float uNe
       occ+=smoothstep(0.03*d*0.01,0.25,df)*(1.0-smoothstep(uRad*0.8,uRad*2.2,df)); }
     float ao=1.0-clamp(occ/20.0*1.9,0.0,0.8)*uAmt; gl_FragColor=vec4(col*ao,1.); }`,AU);
 const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.42,0.6,0.55);
-const GU={tCol:{value:rtWater.texture},uTime:U.uTime,uGrain:{value:0.022},uVig:{value:0.7},uSat:{value:0.72},uExpo:{value:1.0},uLift:{value:new THREE.Vector3(0.004,0.008,0.014)},uFlash:{value:0}};
-const grade=quad(`varying vec2 vUv; uniform sampler2D tCol; uniform float uTime,uGrain,uVig,uExpo,uFlash,uSat; uniform vec3 uLift; ${NOISE}
+const GU={tCol:{value:rtWater.texture},uTime:U.uTime,uGrain:{value:0.022},uVig:{value:0.7},uVeil:{value:0},uSat:{value:0.72},uExpo:{value:1.0},uLift:{value:new THREE.Vector3(0.004,0.008,0.014)},uFlash:{value:0}};
+const grade=quad(`varying vec2 vUv; uniform sampler2D tCol; uniform float uTime,uGrain,uVig,uExpo,uFlash,uSat,uVeil; uniform vec3 uLift; ${NOISE}
   vec3 aces(vec3 x){ const float a=2.51,b=0.03,c=2.43,d=0.59,e=0.14; return clamp((x*(a*x+b))/(x*(c*x+d)+e),0.,1.); }
   vec3 toSRGB(vec3 c){ return mix(c*12.92,1.055*pow(c,vec3(1./2.4))-0.055,step(0.0031308,c)); }
   void main(){ vec3 c=texture2D(tCol,vUv).rgb*uExpo; c=1.0-exp(-1.25*c*1.0)*1.0+ (c-c); c=aces(c*1.6);
     c=c+uLift*(1.0-c); // teal-navy lift in the shadows
     float lum=dot(c,vec3(0.299,0.587,0.114)); c=mix(vec3(lum),c,uSat); c=mix(c,c*vec3(0.92,1.04,1.0),0.6); c=mix(c,c*vec3(1.03,1.0,0.96),smoothstep(0.4,0.9,lum)); // desat + teal, cream highlights
-    vec2 v=vUv-0.5; v.x*=0.75; c*=1.0-uVig*smoothstep(0.25,0.85,length(v)); c+=uFlash;
+    vec2 v=vUv-0.5; v.x*=0.75; c*=1.0-uVig*smoothstep(0.25,0.85,length(v)); c+=uFlash; c=mix(c,vec3(0.62,0.80,0.88)*0.55,uVeil);
     c=toSRGB(c); c+=(h21(vUv*vec2(1311.,1717.)+fract(uTime*7.3))-0.5)*uGrain; gl_FragColor=vec4(c,1.); }`,GU);
 const accQ=quad(`varying vec2 vUv; uniform sampler2D t; uniform float w; void main(){ gl_FragColor=vec4(texture2D(t,vUv).rgb*w,1.); }`,{t:{value:null},w:{value:1}});
 accQ.m.blending=THREE.AdditiveBlending; accQ.m.transparent=true;
@@ -605,6 +605,57 @@ function renderOnce(){
 window.renderLook=(id,t,sub)=>{ sub=sub||1; renderer.setRenderTarget(rtAcc); renderer.setClearColor(0,1); renderer.clear();
   for(let k=0;k<sub;k++){ lookPreset(id,t+(k/sub-0.5)/60); if(window.HOOK) window.HOOK(); renderOnce(); renderer.setRenderTarget(rtAcc); accQ.m.uniforms.t.value=rtOut.texture; accQ.m.uniforms.w.value=1/sub; renderer.autoClear=false; renderer.render(accQ.s,quadCam); renderer.autoClear=true; }
   renderer.setRenderTarget(null); renderer.render(showQ.s,quadCam); return renderer.domElement.toDataURL('image/jpeg',0.93); };
-window.D={spot,sunL,hemi,scene,renderer,camRel,placeBow,underwaterLook,bow,stern,sternM,sea,stars,starsM,milky,snow,bubbles,bio,plume,WU,PU,GU,U,cam};
+// ------------------------------------------------------------------ opening 0-5.6 s: hook -> snap -> sunlight zone (one continuous move)
+function pchip(K,t){ const n=K.length; if(t<=K[0][0]) return K[0][1]; if(t>=K[n-1][0]) return K[n-1][1]; let i=0; while(t>K[i+1][0]) i++;
+  const h=[],d=[]; for(let j=0;j<n-1;j++){ h[j]=K[j+1][0]-K[j][0]; d[j]=(K[j+1][1]-K[j][1])/h[j]; } const m=new Array(n); m[0]=d[0]; m[n-1]=d[n-2]; for(let j=1;j<n-1;j++) m[j]=(d[j-1]*d[j]<=0)?0:(d[j-1]+d[j])/2;
+  const u=(t-K[i][0])/h[i], u2=u*u, u3=u2*u; return (2*u3-3*u2+1)*K[i][1]+(u3-2*u2+u)*h[i]*m[i]+(-2*u3+3*u2)*K[i+1][1]+(u3-u2)*h[i]*m[i+1]; }
+const pv=(K,t)=>new THREE.Vector3(pchip(K.map(k=>[k[0],k[1]]),t),pchip(K.map(k=>[k[0],k[2]]),t),pchip(K.map(k=>[k[0],k[3]]),t));
+const BD_K=[[1.9,78],[2.55,98],[3.9,145],[5.6,205]];
+const CAMW_K=[[0,-109,5,54.5],[1.9,-87.6,4,43.8],[2.0,-85,0,43],[2.25,-80,-11,39],[2.55,-70,-28,34]];
+const D_K=[[2.55,-70,70,34],[3.2,-10,32,66],[3.9,62,-4,78],[5.6,118,5,56]];
+const T_K=[[2.55,0,0,0],[3.2,8,-4,-2],[3.9,26,-8,-6],[5.6,40,-14,-8]];
+const _m4=new THREE.Matrix4(), _up=new THREE.Vector3(0,1,0);
+const lookQ=(pos,tg)=>new THREE.Quaternion().setFromRotationMatrix(_m4.lookAt(pos,tg,_up));
+function bowAt(t){ const BD=pchip(BD_K,t); return {pos:new THREE.Vector3(0,-BD,0),pitch:0.62+0.05*sstep(2,5.6,t),roll:0.06+0.05*Math.sin(t*1.3),yaw:0.30+0.03*(t-2)}; }
+function camAt(t){ const b=bowAt(t); let pos; if(t<2.55) pos=pv(CAMW_K,t); else pos=b.pos.clone().add(pv(D_K,t));
+  const k=sstep(0,1.9,t), top=lerp(46,-6,k), hookT=new THREE.Vector3(6.7,Math.max(top*0.55,3.5),13.4);
+  const bowT=b.pos.clone().add(t<2.55?new THREE.Vector3():pv(T_K,t)); const hz=new THREE.Vector3(-pos.x,0,-pos.z).normalize(); const a55=0.96;
+  const upT=pos.clone().add(new THREE.Vector3(hz.x*Math.cos(a55),Math.sin(a55),hz.z*Math.cos(a55)).multiplyScalar(60));
+  let q; const qH=lookQ(pos,hookT), qU=lookQ(pos,upT), qB=lookQ(pos,bowT);
+  if(t<2.0) q=qH; else if(t<2.3) q=qH.clone().slerp(qU,sstep(2.0,2.3,t)); else if(t<2.45) q=qU; else if(t<2.65) q=qU.clone().slerp(qB,sstep(2.45,2.65,t)); else q=qB;
+  if(t>2.7){ q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),0.014*Math.sin(t*1.9))); }
+  return {pos,q,b,top,depth:Math.max(0,-pos.y)}; }
+// bubble burst where the camera breaks the surface
+const BURST_O=new THREE.Vector3(-85,0,43);
+const burstMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:Object.assign({uAge:{value:0},uOrigin:{value:BURST_O.clone()}},PU),
+  vertexShader:`attribute float aPh; attribute float aSize; attribute vec3 aDir; uniform float uAge,uK; uniform vec3 uOrigin,uSig; varying vec3 vc;
+    void main(){ float age=uAge-aPh*0.12; if(age<0.0){ gl_Position=vec4(2.,2.,2.,1.); gl_PointSize=0.; vc=vec3(0.); return; }
+      float sp=3.0+aPh*16.0; vec3 p=uOrigin+aDir*sp*(1.0-exp(-age*2.2))/2.2; p.y+=age*(1.5+aPh*5.0)+0.5*age*age*2.0; p.x+=sin(age*8.0+aPh*40.0)*0.4*age;
+      vec4 mv=viewMatrix*vec4(p,1.0); float d=max(-mv.z,0.3); float fade=smoothstep(0.0,0.08,age)*(1.0-smoothstep(1.2,2.4,age));
+      gl_PointSize=clamp(aSize*uK/d*(0.7+age*0.4),1.5,34.0); vc=vec3(0.55,0.78,0.86)*fade*exp(-uSig*d)*1.6; gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`varying vec3 vc; void main(){ vec2 c=gl_PointCoord-0.5; float r=length(c)*2.; float a=0.35*smoothstep(0.6,0.9,r)*smoothstep(1.0,0.9,r)+0.2*smoothstep(1.,0.,r)+0.9*exp(-pow(length(c-vec2(-0.12,0.12))*6.,2.)); gl_FragColor=vec4(vc*a,1.); }`});
+burstMat.customProgramCacheKey=()=>'burst';
+const burst=(()=>{ const n=7000, r=rnd(808); const pos=new Float32Array(n*3), ph=new Float32Array(n), sz=new Float32Array(n), dr=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ ph[i]=r(); sz[i]=0.04+r()*r()*0.22; let x=r()*2-1,y=-Math.abs(r()*2-1)*0.7-0.1,z=r()*2-1; const l=Math.hypot(x,y,z)||1; dr.set([x/l,y/l,z/l],i*3); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('aPh',new THREE.BufferAttribute(ph,1)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1)); g.setAttribute('aDir',new THREE.BufferAttribute(dr,3));
+  const p=new THREE.Points(g,burstMat); p.frustumCulled=false; fx.add(p); return p; })();
+function applyState(t){
+  U.uTime.value=t; const c=camAt(t); cam.position.copy(c.pos); cam.quaternion.copy(c.q); cam.updateMatrixWorld(true);
+  window.LAMP_POS=null; window.LAMP_DIR=null; puffMat.uniforms.uAlpha.value=0; plumeMat.uniforms.uPlume.value=0; bed.visible=false; WU.uWindow.value=1; GU.uVeil.value=0.5*Math.exp(-Math.pow((t-2.03)/0.03,2));
+  // stern (hook): sinks 46 -> -6 m and is gone by 1.9 s
+  const sk=sstep(0,1.9,t); stern.visible=sternM.visible=t<1.9; stern.position.set(0,lerp(46,-6,sk),0); stern.rotation.set(0,-0.95,0); sternM.position.copy(stern.position); sternM.rotation.copy(stern.rotation);
+  const b=c.b; bow.visible=t>=2.0; if(bow.visible) placeBow(b.pos.y,b.pitch,b.roll,b.yaw); bow.userData.mast.rotation.z=-0.04;
+  burstMat.uniforms.uAge.value=Math.max(0,t-2.0); burst.visible=t>=2.0&&t<4.4; FOCUS=cam.position.distanceTo(b.pos);
+  if(cam.position.y>0.05){ // above the sea
+    stars.visible=starsM.visible=milky.visible=true; sea.visible=true; seaMat.uniforms.uRing.value=0.25+t*0.5; seaMat.uniforms.uAbove.value=1; U.uCaust.value=0; WU.uUnder.value=0; GU.uExpo.value=2.6; GU.uSat.value=0.72;
+    sunL.intensity=0; spot.intensity=0; U.uRimCol.value.setRGB(0.050,0.072,0.125); hemi.color.setRGB(0.07,0.10,0.18); hemi.groundColor.setRGB(0.004,0.006,0.012); hemi.intensity=0.9;
+    starLight.color.setRGB(0.55,0.68,0.95); starLight.intensity=1.1; starLight.position.set(300,160,-120); setEnv([0.012,0.020,0.045],[0.060,0.082,0.140],[0.004,0.006,0.012],1.4); }
+  else { const d=c.depth; underwaterLook(d,{rays:1,caust:1,bubbles:1}); U.uCaust.value=Math.exp(-(-b.pos.y)/60); sunL.intensity=6.0*(1-sstep(200,1000,d)); GU.uExpo.value=lerp(1.5,2.6,sstep(10,150,d)); }
+  return c; }
+function renderAnimFrame(t,sub,shutter){ renderer.setRenderTarget(rtAcc); renderer.setClearColor(0,1); renderer.clear();
+  for(let k=0;k<sub;k++){ const tt=t+((k+0.5)/sub-0.5)*shutter; applyState(tt); renderOnce(); renderer.setRenderTarget(rtAcc); accQ.m.uniforms.t.value=rtOut.texture; accQ.m.uniforms.w.value=1/sub; renderer.autoClear=false; renderer.render(accQ.s,quadCam); renderer.autoClear=true; }
+  renderer.setRenderTarget(null); renderer.render(showQ.s,quadCam); const depth=camAt(t).depth; return {img:renderer.domElement.toDataURL('image/jpeg',0.95),depth}; }
+window.renderOnceX=renderOnce; window.applyStateX=applyState; window.renderAnim=renderAnimFrame; window.camAt=camAt;
+window.D={AU,aoQ,rtOcc,fx,snow,burst,bubbles,bio,puffs,spot,sunL,hemi,scene,renderer,camRel,placeBow,underwaterLook,bow,stern,sternM,sea,stars,starsM,milky,snow,bubbles,bio,plume,WU,PU,GU,U,cam};
 window.ready=true;
 </script></body></html>

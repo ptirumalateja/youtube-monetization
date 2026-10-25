@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{const W=+process.argv[2],H=+process.argv[3];
+const br=await chromium.launch({args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--use-gl=angle']});
+const p=await br.newPage({viewport:{width:W,height:H}}); p.on('pageerror',e=>console.log('[err]',e.message.slice(0,300)));
+await p.goto(`http://localhost:8771/index.html?w=${W}&h=${H}`); await p.waitForFunction('window.ready===true',{timeout:240000});
+const res=await p.evaluate(()=>{ const out={}; const run=(name,pre,post)=>{ pre&&pre(); renderAnim(3.9,1,1/60); const t0=performance.now(); renderAnim(3.9,1,1/60); renderAnim(3.9,1,1/60); out[name]=((performance.now()-t0)/2000).toFixed(2); post&&post(); };
+  run('baseline'); run('no shadow',()=>{D.sunL.castShadow=false;},()=>{D.sunL.castShadow=true;}); 
+  run('no snow',()=>{const o=D.snow.map(s=>s.material);},null);
+  return out; });
+console.log(JSON.stringify(res)); await br.close();})();
