@@ -3,7 +3,8 @@
 Bed = CC0 wind room tone + the lamp's 120 Hz hum + a 55 Hz drone. Foley with a visible cause for every sound (all synthesised in
 numpy): leather wallet, paper whooshes and slaps as the bundles land, footsteps of the strangers, cloth, breath, a paper slide
 and a small thud for every bundle taken. A held-breath silence just before the balance hits zero, then the only big hit
-(sub_boom + the CC0 qubodup explosion read two octaves down). Then near silence until the wallet goes back in his pocket.
+(sub_boom + the CC0 qubodup explosion read two octaves down). Then near silence, then the routine: the lamp is the sun, so the room tone
+swells at night and thins by day, one low knock per day, his footsteps to work and back. Salary day comes round again at the loop point.
 
   python3 mix.py META.json OUT.wav        (META.json from `node render.cjs meta`)
 """
@@ -48,14 +49,22 @@ def cloth(dur, seed, gain=1.0):
     return lp(x, 1500) * np.sin(np.pi * t) ** 1.2 * gain * 0.5
 
 
+def chair_scrape(seed, gain=1.0):
+    n = int(0.45 * SR); x = np.random.default_rng(seed).standard_normal(n); t = np.arange(n) / n
+    return (bp(x, 600, 1.0) * 0.6 + bp(x, 1700, 1.8) * 0.3) * np.sin(np.pi * t) ** 0.8 * gain
+
+
 def main(meta_path, out_path):
+    import overlay
     M = json.load(open(meta_path)); D = TL['duration']; N = int(D * SR); t = np.arange(N) / SR
-    bus = new_buses(N)
-    zero = TL['zero']
-    # silence as a beat: the last bundle is taken at 8.10, everything drops away 8.15-8.45 and the boom lands as the counter hits 0
+    bus = new_buses(N); zero = TL['zero']
+    light = np.interp(t, *zip(*TL['light']))                       # the lamp is the sun
+    # silence as a beat: the last bundle is taken at 8.80, everything drops away and the boom lands as the counter hits 0
     duck = curve(N, [(0, 1), (zero - 0.32, 1), (zero - 0.26, 0.0), (zero - 0.01, 0.0), (zero, 0.6), (zero + 1.2, 1), (D, 1)])
-    room_g = curve(N, [(0, 0.11), (3, 0.12), (zero - 0.3, 0.14), (zero + 0.3, 0.0), (zero + 2.0, 0.025), (TL['push1'], 0.03), (TL['pocket'] - 0.3, 0.05), (TL['pocket'] + 0.6, 0.1), (D, 0.11)]) * duck
-    drone_g = curve(N, [(0, 0.2), (3, 0.3), (zero - 0.3, 0.7), (zero - 0.25, 0.0), (zero, 0.0), (zero + 1.5, 0.35), (TL['push1'], 0.55), (TL['pocket'], 0.35), (D, 0.2)])
+    quiet = curve(N, [(0, 1), (zero + 0.3, 1), (zero + 0.4, 0.2), (TL['routine0'], 0.2), (TL['routine0'] + 0.8, 1), (D, 1)])   # near silence after the boom
+    night = 1 - light
+    room_g = curve(N, [(0, 0.11), (3, 0.12), (zero - 0.3, 0.14), (D, 0.11)]) * duck * (quiet * 0.55 + 0.45) * (1 + 0.8 * night * (t > TL['routine0']))
+    drone_g = curve(N, [(0, 0.2), (3, 0.3), (zero - 0.3, 0.7), (zero - 0.25, 0.0), (zero, 0.0), (zero + 1.5, 0.35), (D, 0.2)]) * (1 + 0.5 * night * (t > TL['routine0']))
     bed(bus, room_g, drone_g, duck)
 
     # frame 0: he draws the wallet from his pocket and lays it on the table
@@ -63,37 +72,53 @@ def main(meta_path, out_path):
     place(bus['fol'], leather(0.6, 2, 0.5), 0.1, 1.0, -0.1)
     place(bus['hit'], thud(3, 62, 0.14, 0.55), 0.62, 1.0, -0.1)
     place(bus['fol'], paper_slap(4, 0.25), 0.62, 1.0, -0.1)
-    # the salary: five bundles whoosh in from the dark and land in the wallet, each heavier than the last
-    for k, key in enumerate(['FRIENDS', 'MOM', 'FOOD', 'EMI', 'RENT']):
+    # salary day: five bundles whoosh in from the dark and land in the wallet, each heavier than the last; he cheers
+    for k, key in enumerate(ORDER_LAND := ['PARTY', 'FOOD', 'GROCERIES', 'EMI', 'RENT']):
         L = TL['land'][key]
         place(bus['air'], whoosh(0.75, 500, 3800, 10 + k, 0.8), L - 0.75, 1.0, -0.6 + 0.12 * k)
         place(bus['hit'], thud(20 + k, 70 - 3 * k, 0.12 + 0.02 * k, 0.45 + 0.1 * k), L, 1.0, 0.2)
         place(bus['fol'], paper_slap(30 + k, 0.5 + 0.12 * k), L, 1.0, 0.2)
-    place(bus['fol'], breath(0.6, 'in', 40, 0.4), 1.9, 1.0, -0.5)                  # a small relieved breath
+    place(bus['fol'], breath(0.6, 'in', 40, 0.45), 0.95, 1.0, -0.5)                  # happy intake as the fists go up
+    place(bus['fol'], cloth(0.6, 41, 0.6), 1.0, 1.0, -0.4)
+    place(bus['fol'], breath(0.6, 'out', 42, 0.35), 2.55, 1.0, -0.5)
     # strangers: footsteps from the scene's foot plants, cloth on the reach, a paper slide and a thud per bundle taken
     for s in M['steps']:
+        if s['who'] != 't': continue
         g = 0.05 + 0.06 * min(1.0, max(0.0, (s['z'] + 3.2) / 2.6)) * s['a']
         place(bus['fol'], lp(thud(int(s['t'] * 977), 85, 0.07, 1.0), 1100), s['t'], g, float(np.clip((s['x'] - 0.1) / 1.4, -0.6, 0.6)))
     for i, it in enumerate(TL['items']):
-        g = it['grab']; big = 0.6 + 0.12 * i
+        g = it['grab']; big = 0.6 + 0.1 * i
         place(bus['fol'], cloth(0.5, 60 + i, 0.7), g - 0.5, 1.0, 0.3)
         place(bus['fol'], paper_slide(0.28, 70 + i, 0.9), g - 0.05, 1.0, 0.2)
         place(bus['hit'], thud(80 + i, 58, 0.2, 0.5 * big), g + 0.08, 1.0, 0.0)
-        place(bus['fol'], breath(0.55, 'out', 90 + i, 0.55 + 0.12 * i), g + 0.1, 1.0, -0.45)      # he takes it a little harder every time
-        if i < 4: place(bus['fol'], lp(clank(0.3, 100 + i, 0.2), 1400), g + 0.3, 0.05, 0.1)
-    # the twist: the balance hits zero
+        place(bus['fol'], breath(0.55, 'out', 90 + i, 0.5 + 0.12 * i), g + 0.1, 1.0, -0.45)      # he takes it a little harder every time
+    # the twist: the balance hits zero on day 5
     place(bus['hit'], sub_boom(), zero, 1.25, 0.0)
     ex = load('814046__qubodup__explosion-from-another-dimension.wav', SR * 4)     # read at 4x rate = 2 octaves down
     ex = lp(ex, 900)[:int(4.5 * SR)]; ex /= np.abs(ex).max()
     place(bus['hit'], ex * env(len(ex), 0.01, 1.3), zero, 0.35, 0.0)
-    # near silence: one long slow breath out as the camera pushes in, then the wallet goes back in his pocket
-    place(bus['fol'], breath(1.6, 'out', 120, 0.5), 10.6, 1.0, -0.45)
+    # near silence: a long breath out, the wallet goes back in his pocket
+    place(bus['fol'], breath(1.6, 'out', 120, 0.5), 9.9, 1.0, -0.45)
     place(bus['fol'], cloth(0.5, 121, 0.6), TL['pick0'] - 0.1, 1.0, -0.2)
     place(bus['fol'], leather(0.7, 122, 0.7), TL['pick0'] + 0.1, 1.0, 0.0)
-    place(bus['fol'], leather(0.55, 123, 0.7), TL['pick0'] + 0.7, 1.0, -0.2)
     place(bus['hit'], thud(124, 55, 0.12, 0.3), TL['pocket'], 1.0, -0.4)
-    place(bus['fol'], breath(0.7, 'in', 125, 0.5), TL['pocket'] + 0.35, 1.0, -0.4)               # he sits up: the month starts again
-    place(bus['fol'], cloth(0.8, 126, 0.6), TL['pocket'] + 0.4, 1.0, -0.4)
+    # the routine: one low knock per day (they come faster and faster), the chair scrapes, his steps to work and back
+    prev = 5
+    for f in range(round(TL['routine0'] * TL['fps']), round(D * TL['fps'])):
+        tt = f / TL['fps']; d = overlay.day_at(tt)
+        if d > prev:
+            place(bus['hit'], thud(300 + d, 52 + d * 0.4, 0.1, 0.22), tt, 1.0, 0.0); prev = d
+    for k, c in enumerate(TL['cycles']):
+        place(bus['fol'], breath(0.5, 'in', 400 + k, 0.35), c + 0.2, 1.0, -0.4)
+        place(bus['fol'], chair_scrape(410 + k, 0.7), c + 0.35, 1.0, -0.4)
+        place(bus['hit'], thud(420 + k, 60, 0.12, 0.3), c + 2.45, 1.0, -0.4)                       # drops into the chair, tired
+        place(bus['fol'], breath(0.7, 'out', 430 + k, 0.5), c + 2.5, 1.0, -0.4)
+    for s in M['steps']:
+        if s['who'] != 'h': continue
+        place(bus['fol'], lp(thud(int(s['t'] * 733), 95, 0.07, 1.0), 1200), s['t'], 0.2, float(np.clip((s['x'] - 0.0) / 1.2, -0.7, 0.7)))
+    # the loop: he sits up, a rising breath into frame 0
+    place(bus['fol'], breath(0.8, 'in', 500, 0.5), TL['salaryAgain'] + 0.2, 1.0, -0.4)
+    place(bus['air'], whoosh(1.2, 300, 2400, 501, 0.4), D - 1.3, 1.0, 0.0)
 
     write_wav(finish(bus, duck), out_path); print('wrote', out_path)
 

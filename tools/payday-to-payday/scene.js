@@ -1,7 +1,7 @@
-// Payday to Payday (Slow Light Dark). A cream stickman sits at a table under the gold lamp with a red wallet. A grey stack of
-// bundled bills flies in and lands in the wallet (balance counter: 50,000). Grey strangers walk in from the dark one by one and
-// take a bundle each: RENT, EMI, FOOD, MOM, FRIENDS. By DAY 3 the wallet is empty and 27 days are still to go. He sits in
-// silence, pockets the empty wallet, sits up, and the month starts again.
+// Payday to Payday (Slow Light Dark). SALARY DAY: a happy cream stickman at a table under the gold lamp, a red wallet, a grey stack of
+// bundled bills flies in (balance 50,000). Over DAY 1..5 grey strangers walk in and take a bundle a day: RENT, EMI, GROCERIES, FOOD,
+// PARTY. By day 5 the wallet is empty, he is down. Then the routine: he gets up and goes to work, the lamp (the sun) sets and rises,
+// the days run on (DAY 6..30), he comes home in the dark and sits, again and again. Day 30 is SALARY DAY again and the loop closes.
 // renderAt(t) is pure (no state between frames). Units are metres, floor y = 0, camera on +z. Hero faces +x (side-on to camera).
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -47,7 +47,7 @@ function billTex(){ const c=document.createElement('canvas'); c.width=256; c.hei
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; }
 const BT=billTex();
 // stack order bottom to top = landing order; thickness is proportional to the amount
-const ORDER=['FRIENDS','MOM','FOOD','EMI','RENT'];
+const ORDER=['PARTY','FOOD','GROCERIES','EMI','RENT'];
 const item=k=>TL.items.find(i=>i.key===k);
 const slabs={}; { let y=WTOP; for(const k of ORDER){ const it=item(k), th=it.amt/1000*0.0035;
   const mat=new THREE.MeshStandardMaterial({color:0xffffff,map:BT,roughness:0.85,metalness:0,transparent:true,opacity:1,emissive:0xffffff,emissiveMap:BT,emissiveIntensity:0.32});
@@ -55,9 +55,11 @@ const slabs={}; { let y=WTOP; for(const k of ORDER){ const it=item(k), th=it.amt
   slabs[k]={m,mat,th,rest:V(TOWER_X+0.004*Math.sin(k.length*3),y+th/2,WAL.z),yaw:0.05*Math.sin(k.length*5)}; y+=th; } }
 
 // ---------------------------------------------------------------- takers (grey strangers)
-const XT={RENT:0.40,EMI:0.52,FOOD:0.36,MOM:0.50,FRIENDS:0.44}, ZT=-0.56, WALK_Z0=-3.2;
+const XT={RENT:0.40,EMI:0.52,GROCERIES:0.36,FOOD:0.50,PARTY:0.44}, ZT=-0.56, WALK_Z0=-3.2;
 const takers=TL.items.map((it,i)=>({it,fig:R.makeFig(PAL.SLATE,'tk'+i,{rim:0.14,rimCol:0x9fb2d6,lift:0.05}),x:XT[it.key],side:i%2?1:-1}));
 const STRIDE=1.3;
+const hatMat=new THREE.MeshStandardMaterial({color:0xb9bdc6,roughness:0.6,transparent:true,emissive:0xb9bdc6,emissiveIntensity:0.12});
+const hat=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.2,20),hatMat); hat.castShadow=true; hat.visible=false; scene.add(hat);
 function takerState(T,t){ const g=T.it.grab, x=T.x, a0=g-1.7, a1=g-0.35, b0=g+0.6, b1=g+2.4;
   const alpha=sstep(a0,a0+0.7,t)*(1-sstep(g+0.9,g+2.3,t));
   let pos,yaw=-Math.PI/2,walk=0,ph=0;
@@ -77,70 +79,93 @@ function poseTaker(T,t,st){ const g=T.it.grab; const lean=sstep(g-0.6,g-0.1,t)*(
   return P; }
 
 // ---------------------------------------------------------------- the hero
-const SEAT_ROOT=V(-0.225,0,0), HYAW=0;
+const SEAT_ROOT=V(-0.225,0,0);
 const PK=V(-0.44,0.60,0.16);              // his hip pocket
 const OFFW=V(0.13,-0.045,0.0);            // wallet centre relative to the carrying hand
 const REST_L=V(0.02,0.805,0.26), REST_R=V(0.0,0.805,-0.2);
-const slumpAt=t=>{ let s=0; for(const it of TL.items) s+=0.2*sstep(it.grab,it.grab+0.6,t);
-  s*=1-sstep(TL.pocket,TL.pull1-0.1,t); return s; };
-function wallState(t){ // returns {pos, scale, hand:Vector3|null, w}
-  const P0=PK.clone().add(V(0.0,0,0)), tabRest=REST_L;
-  const place=WAL.clone(); const hx=place.clone().sub(OFFW);              // hand position when the wallet is on the table
-  let hand=tabRest.clone(), wpos=WAL.clone(), sc=1;
-  if(t<0.75){ const u=sm5(clamp(t/0.75)); hand=P0.clone().lerp(hx,u); hand.y+=0.12*Math.sin(Math.PI*u); wpos=hand.clone().add(OFFW); sc=0.2+0.8*sstep(0,0.12,t);
-    if(u>0.9){ } }
-  else if(t<1.5){ const u=sm5(clamp((t-0.75)/0.75)); hand=hx.clone().lerp(tabRest,u); hand.y=lerp(hx.y,tabRest.y,u)+0.0; wpos=WAL.clone(); }
-  else if(t<TL.pick0){ hand=tabRest.clone(); }
-  else if(t<TL.pick0+0.55){ const u=sm5((t-TL.pick0)/0.55); hand=tabRest.clone().lerp(hx,u); wpos=WAL.clone(); }
-  else if(t<TL.pocket){ const u=sm5((t-TL.pick0-0.55)/(TL.pocket-TL.pick0-0.55)); hand=hx.clone().lerp(PK,u); hand.y+=0.1*Math.sin(Math.PI*u); wpos=hand.clone().add(OFFW.clone().multiplyScalar(1-0.6*u)); sc=1-0.9*sstep(0.8,1.0,u); }
-  else { hand=PK.clone(); wpos=PK.clone(); sc=0.0; }
+const JOY_L=V(-0.22,1.36,0.30), JOY_R=V(-0.22,1.36,-0.30);
+const CYC=TL.cycles, LIGHT=TL.light;
+const lightAt=t=>SLD.keys(LIGHT,t);
+// slump: one fifth per deduction; he stays down through the routine and straightens up for the next salary day
+const slumpAt=t=>{ let s=0; for(const it of TL.items) s+=0.2*sstep(it.grab,it.grab+0.6,t); return s*(1-sstep(TL.salaryAgain,TL.salaryAgain+0.9,t)); };
+function wallState(t){ // wallet: drawn from the pocket and laid down at the start, back in the pocket once it is empty
+  const hx=WAL.clone().sub(OFFW); let hand=REST_L.clone(), wpos=WAL.clone(), sc=1;
+  if(t<0.75){ const u=sm5(clamp(t/0.75)); hand=PK.clone().lerp(hx,u); hand.y+=0.12*Math.sin(Math.PI*u); wpos=hand.clone().add(OFFW); sc=sstep(0,0.15,t); }
+  else if(t<1.5){ const u=sm5(clamp((t-0.75)/0.75)); hand=hx.clone().lerp(REST_L,u); }
+  else if(t<TL.pick0){ }
+  else if(t<TL.pick0+0.5){ const u=sm5((t-TL.pick0)/0.5); hand=REST_L.clone().lerp(hx,u); }
+  else if(t<TL.pocket){ const u=sm5((t-TL.pick0-0.5)/(TL.pocket-TL.pick0-0.5)); hand=hx.clone().lerp(PK,u); hand.y+=0.1*Math.sin(Math.PI*u); wpos=hand.clone().add(OFFW.clone().multiplyScalar(1-0.6*u)); sc=1-0.9*sstep(0.8,1.0,u); }
+  else { hand=PK.clone(); wpos=PK.clone(); sc=0; }
+  // end of the loop: his hand drifts back to the pocket so frame 0 (drawing the wallet) follows on
+  if(t>TL.salaryAgain+0.3){ const u=sm5(clamp((t-TL.salaryAgain-0.3)/0.9)); hand=REST_L.clone().lerp(PK,u); sc=0; }
   return {hand,wpos,sc}; }
-function poseHero(t){
-  const sl=slumpAt(t); const lift=sstep(0.55,1.5,t)*(1-sstep(2.6,3.5,t));
+function seatPose(t){
+  const sl=slumpAt(t); const lift=sstep(TL.salaryAgain,TL.salaryAgain+0.9,t);
+  const joy=sstep(0.95,1.35,t)*(1-sstep(2.5,3.0,t)); const bob=joy*0.012*Math.abs(Math.sin(t*9));
   const breathe=0.012*Math.sin(2*Math.PI*0.21*t);
   let flinch=0; for(const it of TL.items){ const d=t-it.grab; if(d>0&&d<0.5) flinch+=0.06*Math.sin(Math.PI*d/0.5)*Math.exp(-d*3); }
-  const stare=sstep(9.2,11.0,t)*(1-sstep(15.0,15.6,t));
-  const P={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.9,eR:0.9,
-    p:0.07+0.34*sl-0.035*lift+breathe+flinch, tilt:0.02+0.5*sl-0.12*lift+0.1*stare+flinch*0.5, hy:-0.04*Math.sin(t*0.4)};
+  const stare=sstep(9.2,10.0,t);
+  const P={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.9,eR:0.9,dy:bob,
+    p:0.04+0.38*sl-0.03*joy+0.02*lift+breathe+flinch, tilt:-0.06*(1-sl)-0.12*joy+0.52*sl+0.1*stare*(1-lift)+flinch*0.5, hy:-0.04*Math.sin(t*0.4)};
   const ws=wallState(t);
-  const bobL=0.004*Math.sin(t*1.3);
-  P.tL=ws.hand.clone().add(V(0,bobL,0)); P.wL=1; P.pL=V(-0.3,-0.75,0.35);
-  P.tR=REST_R.clone().add(V(0.02*sl,0,0)); P.wR=1; P.pR=V(-0.3,-0.75,-0.35);
+  P.tL=ws.hand.clone().lerp(JOY_L,joy).add(V(0,0.004*Math.sin(t*1.3),0)); P.wL=1; P.pL=V(-0.3,-0.75,0.35);
+  P.tR=REST_R.clone().lerp(JOY_R,joy).add(V(0.02*sl,0,0)); P.wR=1; P.pR=V(-0.3,-0.75,-0.35);
   return {P,ws}; }
+// routine: each cycle he stands, walks out left to work, is gone, comes back in from the right in the dark and sits again
+const OUT0=V(-0.62,0,0.35), OUT1=V(-1.7,0,0.85), IN0=V(1.5,0,0.85), IN1=V(-0.58,0,0.85), STRIDE_H=1.3;
+function heroState(t){
+  let k=-1; for(let i=0;i<CYC.length;i++) if(t>=CYC[i]) k=i;
+  const base={seat:true,root:SEAT_ROOT.clone(),yaw:0,blend:0,walk:0,ph:0,vis:true};
+  if(k<0||t>=CYC[k]+2.6) return base;
+  const dt=t-CYC[k]; const o={seat:false,root:SEAT_ROOT.clone(),yaw:0,blend:0,walk:0,ph:0,vis:true};
+  if(dt<0.35) return base;
+  if(dt<0.75){ const u=sm5((dt-0.35)/0.4); o.blend=u; o.root.lerp(OUT0,u); o.yaw=Math.PI*sm5(clamp((u-0.3)/0.7)); return o; }
+  if(dt<1.35){ const u=sstep(0,1,(dt-0.75)/0.6); o.blend=1; o.root=V(lerp(OUT0.x,OUT1.x,u),0,lerp(OUT0.z,OUT1.z,sstep(0,0.5,u))); o.yaw=Math.PI; o.walk=1; o.ph=u*(OUT0.x-OUT1.x)/STRIDE_H*2*Math.PI*2.2; return o; }
+  if(dt<1.55){ o.vis=false; o.blend=1; return o; }
+  if(dt<2.35){ const u=sstep(0,1,(dt-1.55)/0.8); o.blend=1; o.root=V(lerp(IN0.x,IN1.x,u),0,0.85); o.yaw=Math.PI; o.walk=1; o.ph=u*(IN0.x-IN1.x)/STRIDE_H*2*Math.PI*1.6; return o; }
+  const u=sm5((dt-2.35)/0.25); o.blend=1-u; o.root=IN1.clone().lerp(SEAT_ROOT,u); o.yaw=Math.PI*(1-sm5(clamp(u*1.4))); o.walk=1-u; o.ph=0; return o; }
+function poseHero(t){
+  const {P:A,ws}=seatPose(t); const st=heroState(t); const sl=slumpAt(t);
+  if(st.blend<=0.0001) return {P:A,ws,root:SEAT_ROOT,yaw:0,vis:true,st};
+  const W_=R.gait({...R.P0,p:0.1+0.28*sl,tilt:0.12+0.34*sl,eL:0.5,eR:0.5},st.ph,st.walk,0.34,0.62,0.2);
+  const B=R.blend(A,W_,st.blend); B.p+=0.3*Math.sin(Math.PI*st.blend)*(st.walk<1?1:0);
+  return {P:B,ws,root:st.root,yaw:st.yaw,vis:st.vis,st}; }
 
-// ---------------------------------------------------------------- camera
-function camAt(t){ const wide=(tt)=>({pos:V(0.12,1.85,4.15-0.15*tt/9.4),look:V(0.18,1.12,0.0)}); const a=wide(clamp(t,0,9.4)), push={pos:V(0.22,1.5,2.7),look:V(0.2,1.3,0.05)};
-  const u1=sm5(clamp((t-TL.push0)/(TL.push1-TL.push0))), u2=sm5(clamp((t-TL.pocket)/(TL.pull1-TL.pocket)));
-  const w0=wide(0); const from=a; // at t<push0 follows the slow drift
-  let pos=from.pos.clone().lerp(push.pos,u1), look=from.look.clone().lerp(push.look,u1);
-  pos.lerp(w0.pos,u2); look.lerp(w0.look,u2); return {pos,look}; }
+// ---------------------------------------------------------------- camera: wide, slow drift that is periodic (loop), a short push to the slumped hero
+function camAt(t){
+  const d=0.12*Math.sin(Math.PI*t/DUR); const wp=V(-0.12,1.85,4.15-d), wl=V(-0.02,1.12,0.0);
+  const push={pos:V(-0.3,1.55,3.05),look:V(-0.4,1.1,0.0)};
+  const u=sm5(clamp((t-TL.push0)/0.9))*(1-sm5(clamp((t-TL.push1)/0.8)));
+  return {pos:wp.lerp(push.pos,u),look:wl.lerp(push.look,u)}; }
 
 // ---------------------------------------------------------------- one frame
-const CARRY_Y=[];
 function setT(t){
-  // hero
-  const {P,ws}=poseHero(t); const Jh=R.skel(P,SEAT_ROOT,HYAW); R.poseFig(hero,Jh);
-  // wallet follows the hand (or sits on the table)
-  wallet.position.copy(ws.wpos); wallet.scale.setScalar(Math.max(ws.sc,0.0001)); wallet.visible=ws.sc>0.01;
-  const push=sstep(TL.push0+0.6,TL.push1-0.4,t)*(1-sstep(TL.pick0-0.2,TL.pick0+0.5,t));
+  const H_=poseHero(t); hero.setAlpha(H_.vis?1:0); if(H_.vis){ const Jh=R.skel(H_.P,H_.root,H_.yaw); R.poseFig(hero,Jh); }
+  const ws=H_.ws; wallet.position.copy(ws.wpos); wallet.scale.setScalar(Math.max(ws.sc,0.0001)); wallet.visible=ws.sc>0.01;
+  const push=sstep(9.4,10.0,t)*(1-sstep(TL.pick0-0.2,TL.pick0+0.4,t));
   walMat.emissiveIntensity=0.05+0.17*push; halo.material.opacity=(0.03+0.13*push)*(ws.sc>0.5?1:0); halo.position.copy(wallet.position).add(V(0,0.05,0)); redLight.position.copy(wallet.position).add(V(0,0.28,0.15)); redLight.intensity=0.5*push;
-  // bundles: fly in, rest in the tower, then follow a taker
+  hat.visible=false;
   for(const k of ORDER){ const sl=slabs[k], L=TL.land[k], Ls=L-TL.landDur, it=item(k); const T=takers.find(x=>x.it.key===k);
     let pos=sl.rest.clone(), yaw=sl.yaw, pitch=0, roll=0, vis=true, op=1;
     if(t<Ls) vis=false;
     else if(t<L){ const u=(t-Ls)/TL.landDur, e=eo(u); const kk=ORDER.indexOf(k); const s0=V(-1.75-0.08*kk,2.15+0.28*kk,0.75-0.2*kk);
       pos=s0.clone().lerp(sl.rest,e); pos.y+=0.55*Math.sin(Math.PI*e)*(1-e*0.2); yaw=lerp(2.4+kk*0.4,sl.yaw,e); pitch=lerp(1.1,0,e); roll=lerp(-0.8,0,e); }
     else if(t<it.grab+0.05){ const d=t-L; pos.y+=0.014*Math.exp(-d*14)*Math.abs(Math.cos(d*22)); }
-    // taker
     const st=takerState(T,t); T.fig.setAlpha(st.alpha); T.st=st;
     if(st.alpha>0.004){ const PT=poseTaker(T,t,st); const J=R.skel(PT,st.pos,st.yaw); R.poseFig(T.fig,J);
+      if(k==='PARTY'){ hat.visible=true; hatMat.opacity=st.alpha; hat.position.copy(J.head).add(V(0,0.2,0)); }
       const a=sstep(it.grab-0.02,it.grab+0.18,t); if(a>0){ const hp=J.hR.clone().add(rotY(V(0.05,-0.02,0.0),st.yaw)); pos=pos.clone().lerp(hp,a); yaw=lerp(yaw,st.yaw+Math.PI/2,a); op=1-sstep(it.grab+0.9,it.grab+2.3,t); } }
     else if(t>it.grab+1) vis=false;
     sl.m.visible=vis&&op>0.004; sl.mat.opacity=op; sl.m.position.copy(pos); sl.m.rotation.set(pitch,yaw,roll,'YXZ'); }
-  // camera
-  const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.look); S.tick(t); }
-window.renderAt=(t,K=3)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
-// foot plants of the strangers (for the sound mix): sample the gait phase at the frame rate
-window.events={...TL,steps:(()=>{ const out=[]; for(const T of takers){ let prev=null; for(let f=0;f<Math.round(DUR*TL.fps);f++){ const t=f/TL.fps; const st=takerState(T,t); if(st.alpha<0.05||st.walk<0.2){ prev=null; continue; }
-  if(prev!==null&&Math.floor(st.ph/Math.PI)>Math.floor(prev/Math.PI)) out.push({t,x:st.pos.x,z:st.pos.z,a:st.alpha}); prev=st.ph; } } return out.sort((a,b)=>a.t-b.t); })()};
+  const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.look); S.tick(t);
+  // the lamp is the sun: it sets and rises with each day of the routine
+  const Lk=lightAt(t); S.spot.intensity=S.SPOT_I*Lk; S.beamU.uI.value=Lk; S.moteU.uOp.value=Lk; }
+window.renderAt=(t,K=3)=>{ const routine=t>TL.routine0-0.4&&t<TL.salaryAgain+0.3; return S.renderAt(setT,t,routine?6:K,{t0:0,t1:DUR,shutter:routine?1/36:1/60}); };
+// foot plants (for the sound mix): the strangers and the hero's commute, sampled at the frame rate
+window.events={...TL,steps:(()=>{ const out=[]; const N=Math.round(DUR*TL.fps);
+  for(const T of takers){ let prev=null; for(let f=0;f<N;f++){ const t=f/TL.fps; const st=takerState(T,t); if(st.alpha<0.05||st.walk<0.2){ prev=null; continue; }
+    if(prev!==null&&Math.floor(st.ph/Math.PI)>Math.floor(prev/Math.PI)) out.push({t,x:st.pos.x,z:st.pos.z,a:st.alpha,who:'t'}); prev=st.ph; } }
+  let prev=null; for(let f=0;f<N;f++){ const t=f/TL.fps; const st=heroState(t); if(!st.vis||st.walk<0.3){ prev=null; continue; }
+    if(prev!==null&&Math.floor(st.ph/Math.PI)>Math.floor(prev/Math.PI)) out.push({t,x:st.root.x,z:st.root.z,a:1,who:'h'}); prev=st.ph; }
+  return out.sort((a,b)=>a.t-b.t); })()};
 window.ready=true;

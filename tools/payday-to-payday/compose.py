@@ -4,7 +4,7 @@
 
 RENDER_DIR holds frames/f00000.jpg.. (render.cjs frames) and mix.wav (mix.py). Writes to OUT_DIR:
   payday-to-payday.mp4               master, 1080x1920 30 fps, -15 LUFS, true peak checked after AAC
-  payday-to-payday_music-ready.mp4   same picture, silent (the sub-boom hit is at 8.45 s)
+  payday-to-payday_music-ready.mp4   same picture, silent (the sub-boom hit is at 9.15 s)
 """
 import glob, os, subprocess, sys
 from PIL import Image
