@@ -1,0 +1,47 @@
+{
+  "duration": 16.0,
+  "fps": 30,
+  "_comment": "All times in seconds. Scene (scene.js), text (overlay.py) and sound (mix.py) all read this file; meta.json (render.cjs meta) adds per-frame data.",
+  "heaves": [
+    0.0,
+    1.05,
+    2.2,
+    3.35,
+    4.3,
+    6.05,
+    6.9
+  ],
+  "yanks": [
+    0.55,
+    1.6,
+    2.75,
+    5.15
+  ],
+  "hookOut": 2.75,
+  "camOblique0": 3.0,
+  "camOblique1": 4.4,
+  "pan0": 7.0,
+  "pan1": 10.0,
+  "lamp2On0": 8.7,
+  "lamp2On1": 10.0,
+  "reveal": 10.0,
+  "revealText": 10.2,
+  "revealTextOut": 12.45,
+  "cut": 12.6,
+  "letGo": 13.25,
+  "ropeLand": 13.75,
+  "stumble": 13.45,
+  "twinDrop": 13.7,
+  "settle": 14.9,
+  "endText": 14.35,
+  "reviewTimes": [
+    0.4,
+    2.0,
+    5.2,
+    8.4,
+    10.3,
+    12.9,
+    13.8,
+    15.6
+  ]
+}

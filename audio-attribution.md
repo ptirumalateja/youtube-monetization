@@ -71,3 +71,7 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+## 6. Slow Light Dark: Tug of War (`tools/tug-of-war/mix.py`)
+
+Uses two CC0 files from section 2 (no credit required): 22331 wind.ogg by sleepCircle (room tone, low-passed) and 814046 Explosion From Another Dimension by qubodup (read two octaves down under the sub-boom). Every other sound (rope groan and fibre stretch, foot skids, breath and grunts, thuds, lamp hum, drone, sub-boom) is synthesised in numpy and needs no credit. Optional courtesy line: "CC0 sounds by sleepCircle and qubodup via Freesound." No CC BY file is used.
