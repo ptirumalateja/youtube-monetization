@@ -32,7 +32,7 @@ bus = new_buses(N)
 bus['crowd'] = np.zeros((2, N))
 
 
-# ---------------------------------------------------------------- voices: 30 friends talking and laughing (memory-muffled)
+# ---------------------------------------------------------------- voices: 30 friends + the hero talking and laughing (memory-muffled)
 VOW = {'a': [(750, 4), (1250, 5), (2600, 6)], 'e': [(450, 4), (1850, 6), (2550, 6)], 'o': [(500, 4), (900, 5), (2400, 6)]}
 
 def formant(x, fs, scale):
@@ -74,15 +74,15 @@ def voice(seed, f0, t_end, energy):
     fade = 1 - sst(t_end - 0.3, t_end + 0.5, t)
     return y * fade
 
-energy = lambda t: float(np.interp(t, [0, 2.5, 10.5, 13], [0.95, 0.85, 0.35, 0.2]))
-for i in range(30):
-    t_end = left_at.get(i, 13.0) if i != 0 else 12.6   # the best friend goes quiet with age (no talking at 60)
+energy = lambda t: float(np.interp(t, [0, 2.5, 8.5, 10], [0.95, 0.85, 0.35, 0.2]))
+for i in range(31):   # 30 friends + the hero (30); from 35 to 60 only the two of them still talk, quietly
+    t_end = left_at.get(i, 13.0) if i not in (0, 30) else 12.6
     f0 = 95 + 90 * R.random()
     y = voice(100 + i, f0, t_end, energy)
     pan = float(np.clip(R.uniform(-0.8, 0.8), -1, 1))
     place(bus['crowd'], y / (np.abs(y).max() + 1e-9), 0.0, 0.17, pan)
 # the room swallows them as it empties: crowd low-passed harder over the years
-crowd_g = np.interp(T, [0, 2.8, 8, 12.5, 13.4], [1.0, 0.95, 0.6, 0.35, 0.0])
+crowd_g = np.interp(T, [0, 2.8, 6, 9, 12.5, 13.4], [1.0, 0.95, 0.7, 0.5, 0.4, 0.0])
 for c in range(2):
     x = bus['crowd'][c]; bright, dull = lp(hp(x, 140), 3200), lp(hp(x, 140), 1100)
     k = np.interp(T, [0, 4, 11], [0, 0.3, 1.0]); bus['crowd'][c] = (bright * (1 - k) + dull * k) * crowd_g

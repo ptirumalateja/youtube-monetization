@@ -5,9 +5,13 @@
   "hookOut": 2.75,
   "counterIn": 2.85,
   "age0": 3.1,
-  "age1": 12.5,
+  "age35": 9.05,
+  "hold35": 0.6,
+  "age1": 12.6,
+  "lampNarrow": 10.2,
+  "together": [9.9, 11.5],
   "leave0": 3.2,
-  "leave1": 11.6,
+  "leave1": 8.6,
   "leavePow": 0.62,
   "counterOut": 13.2,
   "empty": 13.4,
@@ -19,5 +23,5 @@
   "raise": 15.45,
   "clink": 16.2,
   "endHold": 17.0,
-  "reviewTimes": [0.4, 2.0, 4.6, 7.5, 10.5, 13.0, 14.5, 16.2, 17.6]
+  "reviewTimes": [0.4, 2.0, 4.6, 6.5, 8.5, 10.0, 11.6, 13.0, 16.2]
 }

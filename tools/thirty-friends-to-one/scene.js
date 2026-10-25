@@ -102,9 +102,11 @@ const order=[]; { const sc=[]; for(let id=1;id<30;id++) if(id!==15) sc.push([F[i
 const DEP=order.map((id,k)=>{ const s=k/28; const td=TL.leave0+(TL.leave1-TL.leave0)*Math.pow(s,TL.leavePow);
   const sp=lerp(1.0,1.5,s); return {k,id,td,sp,label:PINLABEL[k]||null}; });
 DEP.forEach(d=>{ F[d.id].dep=d; });
-const ageAt=t=>20+40*clamp((t-TL.age0)/(TL.age1-TL.age0));
-const agedK=t=>sstep(TL.age0,TL.age1+0.4,t);                 // 0 at 20, 1 at 60 (heroes' stoop)
-const energy=t=>lerp(1,0.35,sstep(2.5,10.5,t));
+// AGE 20 -> 35 while the table empties (the last friend leaves at 35), then 35 -> 60 with only the two of them left
+const A35=TL.age35+TL.hold35;   // hold "AGE 35 / 1 FRIEND" long enough to read
+const ageAt=t=>t<TL.age35?20+15*clamp((t-TL.age0)/(TL.age35-TL.age0)):35+25*clamp((t-A35)/(TL.age1-A35));
+const agedK=t=>{ const a=clamp((ageAt(t)-20)/40); return a*a*(3-2*a); };   // 0 at 20, 1 at 60 (heroes' stoop)
+const energy=t=>lerp(1,0.35,sstep(2.5,8.5,t));
 const leftAt=d=>d.td+0.62/d.sp;                               // the moment a friend counts as gone (stood and turned away)
 const countAt=t=>30-DEP.filter(d=>t>=leftAt(d)).length;
 
@@ -176,7 +178,9 @@ function heroesAt(t){
   const ag=agedK(t), E=energy(t), young=1-sstep(2.6,6.5,t);
   // --- hero
   const L=Math.max(bump(t,-0.7,1.6),bump(t,1.3,1.4)*0.8,bump(t,3.6,1.2)*0.5)*young;
-  let P={...CHAIRP}; P.p+=-0.14*L+0.05*L*Math.sin(t*29); P.tilt+=-0.4*L; P.hy=0.25*young*Math.sin(t*0.9+0.6)-0.22*(1-young)*sstep(4,9,t);
+  // 35 to 60: just the two of them, still laughing together now and then (slower, smaller every decade)
+  const LT=Math.max(bump(t,TL.together[0],1.3)*0.55,bump(t,TL.together[1],1.2)*0.35);
+  let P={...CHAIRP}; P.p+=-0.14*L+0.05*L*Math.sin(t*29)-0.08*LT+0.02*LT*Math.sin(t*17); P.tilt+=-0.4*L-0.22*LT; P.hy=0.25*young*Math.sin(t*0.9+0.6)-0.22*(1-young)*sstep(4,9,t);
   oldPose(P,ag,t);
   let hL=W2(0.1,-0.24,TOP+0.03).add(V(0,0.25*L+0.08*young*Math.max(0,Math.sin(t*3.3)),0));   // slaps the table laughing
   let hR=W2(0.12,0.22,TOP+0.03).add(V(0,0.2*L,0)); let hg=null;
@@ -198,7 +202,7 @@ function heroesAt(t){
   const up=W2(BF.u+0.08,0.12,1.2), mouth=W2(BF.u+0.05,0.5,1.24);
   let bg=BF_G.clone().lerp(up,sm5(clamp(raise))).lerp(mouth,sm5(clamp(sip)));
   const L2=Math.max(bump(t,-0.4,1.5),bump(t,1.6,1.3)*0.7)*young;
-  let Q={...CHAIRP}; Q.p+=-0.12*L2+0.045*L2*Math.sin(t*27); Q.tilt+=-0.35*L2; Q.hy=-0.3*sstep(3,6,t)*(1-sstep(TL.empty,TL.empty+0.6,t))-0.35*sstep(TL.empty,TL.empty+0.6,t);
+  let Q={...CHAIRP}; Q.p+=-0.12*L2+0.045*L2*Math.sin(t*27)-0.08*LT+0.02*LT*Math.sin(t*15); Q.tilt+=-0.35*L2-0.22*LT; Q.hy=-0.3*sstep(3,6,t)*(1-sstep(TL.empty,TL.empty+0.6,t))-0.35*sstep(TL.empty,TL.empty+0.6,t);
   Q.ty=-0.12*sstep(TL.empty,TL.empty+0.6,t); oldPose(Q,ag,t);
   let rHand=bg.clone().add(V(0,0.03,0)).addScaledVector(RT,0.1), lHand=W2(BF.u-0.16,0.33,TOP+0.03);
   let slid=null;
@@ -218,7 +222,7 @@ function heroesAt(t){
 // ---------------------------------------------------------------- camera (side three-quarter): position from target + (dist, azimuth off the table axis, elevation)
 function camAt(t){
   // near-static wide while the table is full, the push-in carries the second half, then a slow creep in on the two
-  const u=t<3?0.03*t/3:t<13.2?0.03+0.83*Math.pow(sstep(3,13.2,t),1.9):0.86+0.14*sstep(13.2,18.6,t);
+  const u=t<3?0.03*t/3:t<11.6?0.03+0.83*Math.pow(sstep(3,11.6,t),1.6):0.86+0.14*sstep(11.6,18.6,t);
   const tg=W2(lerp(2.9,0.02,u),lerp(0.3,0.3,u),lerp(2.0,1.12,u));
   const dist=lerp(12.5,4.4,u), az=lerp(0.36,1.75,u), el=lerp(0.62,0.17,u);
   const back=U.clone().multiplyScalar(-Math.cos(az)).addScaledVector(RT,-Math.sin(az));
@@ -250,7 +254,7 @@ function setT(t){
   const push=sstep(10,15,t); candleM.emissiveIntensity=lerp(0.05,0.2,push); candleHalo.material.opacity=lerp(0.025,0.12,push);
   candleHalo.position.copy(CANDLE_AT).setY(tipY-0.03); candleHalo.scale.setScalar(0.28);
   // lamp narrows onto the two; warms at the clink
-  const la=sstep(TL.age0,TL.empty,t); aim(AIM0.clone().lerp(AIM1,la),lerp(CONE0,CONE1,la));
+  const la=sstep(TL.age0,TL.lampNarrow,t); aim(AIM0.clone().lerp(AIM1,la),lerp(CONE0,CONE1,la));
   const pay=0.16*sstep(TL.clink,TL.clink+0.9,t);
   // camera
   const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);
@@ -261,9 +265,9 @@ const heroG=makeGlass();
 // ---------------------------------------------------------------- overlay / sound data
 const v3=new THREE.Vector3();
 window.metaAt=t=>{ setT(t); S.cam.updateMatrixWorld(); const labels=[];
-  for(const d of DEP){ if(!d.label) continue; const tt=(t-d.td)*d.sp; if(tt<0.45||tt>2.4) continue;
+  for(const d of DEP){ if(!d.label) continue; const tt=(t-d.td)*d.sp; if(tt<0.45||tt>2.0) continue;
     v3.copy(labelAt(d)).project(S.cam);
-    labels.push({text:d.label,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a:sstep(0.45,0.75,tt)*(1-sstep(1.8,2.4,tt))}); }
+    labels.push({text:d.label,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a:sstep(0.45,0.75,tt)*(1-sstep(1.5,2.0,tt))}); }
   return {age:Math.floor(ageAt(t)+1e-6),count:countAt(t),labels}; };
 // reason labels: five exits spread through the years, each on a walker that stays in frame (checked through the real camera)
 // the label is pinned over the spot where he stands up (it reads as the reason he is leaving), not dragged along the walk

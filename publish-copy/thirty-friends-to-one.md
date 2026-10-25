@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v1 rendered (-15.1 LUFS, -3.1 dBTP after AAC), waiting for owner review |
+| Status | v2: the table is empty by 35 (owner change); the one who stays sits with you from 35 to 60. Waiting for owner review |
 | Upload file | `thirty-friends-to-one.mp4` (master with sound); `thirty-friends-to-one_music-ready.mp4` (silent, toast clink at 16.20 s) |
 | Length | 18.0 s, ends on a 1.8 s hold on the two friends (the cut back to the full table works as a loop) |
 | Voice | None (wordless) |
@@ -14,8 +14,9 @@
 
 **YouTube description:**
 > At 20 the table is full: thirty friends, thirty glasses, everyone laughing at once.
-> Then they leave one by one. Moved. Married. Busy. Drifted. Gone. Nobody storms out. They just push their chair in.
-> At 60 there's one left, in the same seat as at 20. He slides you a glass.
+> Then they leave one by one, faster and faster. Moved. Married. Busy. Drifted. Gone. Nobody storms out. They just push their chair in.
+> By 35 there's one left. He stays. Twenty-five years at the same table, in the same seat as at 20.
+> At 60 he slides you a glass.
 >
 > Phone records from millions of people suggest our circle of contacts is widest in our mid-20s and slowly shrinks after that (Bhattacharya et al., 2016). Robin Dunbar's research puts the innermost circle, the people you would call in a crisis, at about five. The 30 and the 1 in this reel are a story, not a statistic.
 >
@@ -29,7 +30,10 @@
 >
 > Then one moves. One marries. One gets busy.
 > One drifts. One is gone.
-> Nobody leaves angry. They just push their chair in.
+> By 35, there's one left.
+>
+> He stays.
+> Twenty-five years at the same table.
 >
 > At 60, the table is long and quiet.
 > But the seat beside you is still taken.
@@ -46,7 +50,7 @@
 
 ## Facts and sources
 
-The reel is a parable and puts no numbers on screen beyond its own story (AGE 20 to 60, 30 friends to 1). The caption's two science lines:
+The reel is a parable and puts no numbers on screen beyond its own story (AGE 20 to 35 while 30 friends become 1, then 35 to 60 with that one). The caption's two science lines:
 
 | Claim in the copy | Source | How to phrase it (do not overclaim) |
 |---|---|---|
