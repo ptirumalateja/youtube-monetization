@@ -1,0 +1,25 @@
+{
+  "duration": 18.0,
+  "fps": 30,
+  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this file. Money in rupees; the story is hypothetical (see publish-copy/payday-to-payday.md).",
+  "salary": 50000,
+  "landDur": 0.75,
+  "land": {"FRIENDS": 1.15, "MOM": 1.40, "FOOD": 1.65, "EMI": 1.90, "RENT": 2.15},
+  "items": [
+    {"key": "RENT",    "amt": 18000, "grab": 3.5, "day": 1},
+    {"key": "EMI",     "amt": 12000, "grab": 4.7, "day": 1},
+    {"key": "FOOD",    "amt": 9000,  "grab": 5.9, "day": 2},
+    {"key": "MOM",     "amt": 6000,  "grab": 7.0, "day": 2},
+    {"key": "FRIENDS", "amt": 5000,  "grab": 8.1, "day": 3}
+  ],
+  "countDur": 0.35,
+  "dayStart": [3.0, 5.5, 7.6],
+  "hookOut": 2.9,
+  "zero": 8.45,
+  "zeroText": 9.6,
+  "daysText": 12.0,
+  "endFade": 17.55,
+  "push0": 9.4, "push1": 14.2,
+  "pick0": 15.4, "pocket": 16.8, "pull1": 18.0,
+  "reviewTimes": [0.4, 1.9, 2.8, 5.0, 8.7, 12.5, 16.2]
+}

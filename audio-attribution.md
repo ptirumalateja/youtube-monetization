@@ -49,7 +49,7 @@ Paste the exact line into the description of any reel that uses the file.
 | 649445 Cinematic Woosh SFX-015 | AudioPapkin | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 238375 CP_Subby_Whoosh | stewdio2003 | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 
-Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin, sleepCircle, lucabia, berkup, GammaGool, Bachsambora and stewdio2003 via Freesound." (Trim to the authors of the reel you are posting. Roberto Carlos V2 and What Andromeda Sees: qubodup, AudioPapkin, lucabia, stewdio2003 and sleepCircle. The Chain Was Never Locked: sleepCircle and qubodup.)
+Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin, sleepCircle, lucabia, berkup, GammaGool, Bachsambora and stewdio2003 via Freesound." (Trim to the authors of the reel you are posting. Roberto Carlos V2 and What Andromeda Sees: qubodup, AudioPapkin, lucabia, stewdio2003 and sleepCircle. The Chain Was Never Locked and Payday to Payday: sleepCircle and qubodup.)
 
 ## 3. Non-Freesound files: verify before a monetised upload
 
@@ -59,6 +59,8 @@ Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin
 | Circuits-hum and explosion files shared later in chat | Unknown source/licence | Experiments only | Not in the final cuts. Confirm origin and licence before using. |
 
 The Chain Was Never Locked (`tools/chain-never-locked/mix.py`) uses only the two CC0 files above; every other sound in it (iron clanks, chain rattle and scrape, breath, footsteps, lamp hum, drone, sub-boom) is synthesised in numpy and needs no credit.
+
+Payday to Payday (`tools/payday-to-payday/mix.py`) also uses only those two CC0 files (sleepCircle wind as room tone; qubodup explosion pitched down two octaves under the 8.45 s boom). Its foley (leather wallet, paper whooshes and slaps, footsteps, cloth, breath, lamp hum, drone, sub-boom) is synthesised in numpy and needs no credit.
 
 Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, choir pad, pings, risers, whooshes, ticks) and needs no credit.
 
