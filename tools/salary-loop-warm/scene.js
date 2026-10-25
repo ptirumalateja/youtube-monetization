@@ -48,7 +48,7 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
     const lift=sc.id==='bed1'?(1-sstep(0.5,1.0,t)):sstep(TL.notify[0],TL.notify[0]+0.3,t); const phoneUp=1; const prop=proppedPose(); const root=V(0.3,0.34,-1.0);
     if(sc.id==='bed1'&&t>=TL.rise[0]){ const u=sm5(clamp((t-TL.rise[0])/(TL.rise[1]-TL.rise[0]))); const stand_={...R.P0,p:0.05,tilt:-0.1}; const B_=R.blend(prop,stand_,u); const rt=root.clone().lerp(V(0.4,0,0.45),u); const dn=t>=TL.dance[0]; let P=B_;
       if(dn){ const d=(t-TL.dance[0])*7.5, w=Math.sin(Math.PI*clamp((t-TL.dance[0])/(TL.dance[1]-TL.dance[0])))*0.0+1; P={...stand_,kL:0.5*w*Math.abs(Math.sin(d)),kR:0.5*w*Math.abs(Math.cos(d)),aL:0.25*w*Math.sin(d),aR:-0.25*w*Math.sin(d),dy:-0.04*w*Math.abs(Math.sin(d*2)),tilt:-0.2,
-        tL:V(rt.x+0.12+0.05*Math.sin(d),1.5+0.1*Math.sin(d*2),rt.z+0.45),wL:1,pL:V(-0.3,-0.2,0.9),tR:V(rt.x+0.12+0.05*Math.cos(d),1.5+0.1*Math.cos(d*2),rt.z-0.4),wR:1,pR:V(-0.3,-0.2,-0.9)}; }
+        tL:V(rt.x+0.25+0.1*Math.sin(d),1.7+0.12*Math.sin(d*2),rt.z+0.5),wL:1,pL:V(0,-1,0.4),tR:V(rt.x+0.25+0.1*Math.cos(d),1.7+0.12*Math.cos(d*2),rt.z-0.45),wR:1,pR:V(0,-1,-0.4)}; }
       J=R.skel(P,rt,SLD.yawOf(V(0.5,0,0.85))); face={mood:Math.max(m,0.9),blink:0,open:dn?0.8:0.3,fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
     // propped on the pillow, the phone in his hands lighting his face; the buzz makes his head lift and his eyes widen (a happy flinch)
     const P=prop; const j=0.01*Math.sin(t*40)*(t<0.9?1-sstep(0.5,0.9,t):0)*(sc.id==='bed1'?1:0)+0.01*Math.sin(t*40)*(sc.id==='bed3'?sstep(TL.notify[0],TL.notify[0]+0.1,t):0);
@@ -76,7 +76,7 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
     const rest=sstep(15.6,16.0,t)*(1-sstep(16.9,17.1,t)); if(rest>0){ P.tR=V(0.3,1.1,-0.7).lerp(P.tR,1-rest); } J=R.skel(P,V(0.1,0,-0.2),SLD.yawOf(V(0.25,0,0.97))); face={mood:Math.max(m,0.2+0.28*g),blink:blinkAt(t),fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
   face={mood:m,blink:blinkAt(t),fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
 // ---------------------------------------------------------------- lights per scene
-const LIGHTS={ bed:{key:[-1.8,2.4,1.2,0.2,0.6,-0.6,26],a:[-1.95,0.95,-1.3,0xffa24a,3.2],b:[1.7,1.7,-1.3,0xffb870,2.0],fill:[2.5,1.6,3,0x78a6ff,0.9],hemi:[0xffd9b0,0x3a2a22,0.5],bg:0x201512},
+const LIGHTS={ bed:{key:[-1.8,2.4,1.2,0.2,0.6,-0.6,20],a:[-1.95,0.95,-1.3,0xffa24a,1.8],b:[1.7,1.7,-1.3,0xffb870,2.0],fill:[2.5,1.6,3,0x78a6ff,0.9],hemi:[0xffd9b0,0x3a2a22,0.5],bg:0x201512},
   rent:{key:[-2.5,3,2.5,-0.2,1,0,20],a:[1.6,1.6,-1.4,0xffd890,3.5],b:[-0.5,2.4,-1,0xffa860,2],fill:[2.5,1.6,3,0x78a6ff,0.8],hemi:[0xffd9b0,0x2a2a2e,0.45],bg:0x1a1614},
   bank:{key:[-1,3.2,2.5,0.2,0.8,-0.5,24],a:[0.3,2.6,-0.5,0xfff0c8,3],b:[-1.5,2.4,0.5,0xffe0a8,1.5],fill:[2.5,1.6,3,0x88b0ff,0.9],hemi:[0xe8e0d0,0x2a2a2e,0.5],bg:0x161a1c},
   market:{key:[-1.5,2.8,2.5,0.2,0.9,-0.8,22],a:[0.2,2.2,-0.6,0xffb860,3.4],b:[-1.3,2.2,-0.5,0xffb860,2.6],fill:[2.5,1.6,3,0x8070c0,0.8],hemi:[0xffc890,0x2a2230,0.45],bg:0x120d16},
@@ -97,10 +97,12 @@ function setT(t){ const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; order.
   applyLights(sc.set,ox,t);
   const hp=heroPose(t,sc); hero.setVisible(true); hero.pose(hp.J,hp.face,hp.dress);
   extras.forEach(e=>{ const on=e.setId===sc.set; e.f.setVisible(on); if(!on) return; const sit=e.pose.sit; const P={...R.P0,...e.pose}; delete P.sit; P.p=(P.p||0)+idle(t,e.seed); const root=e.root.clone().add(V(ox,sit?0:0,0)); const J=R.skel(P,root,e.yaw); J.fwd=J.fwd||V(1,0,0); e.f.pose(J,{mood:e.mood,blink:blinkAt(t+e.seed),fwd:J.fwd},{tie:e.setId==='bank'||e.setId==='office'?1:0,collar:1,belt:1}); });
-  phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); phone.quaternion.setFromUnitVectors(V(0,0,1),hp.phoneN); const lit=sc.id==='bed1'?(t<TL.rise[0]?1:0):sstep(TL.notify[0],TL.notify[0]+0.12,t); phoneLight.position.copy(hp.phonePos).add(V(0.0,0.2,0.1)); phoneLight.intensity=0.7*lit; } else phoneLight.intensity=0;
+  phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); phone.quaternion.setFromUnitVectors(V(0,0,1),hp.phoneN); const lit=sc.id==='bed1'?(t<TL.rise[0]?1:0):sstep(TL.notify[0],TL.notify[0]+0.12,t); phoneLight.position.copy(hp.phonePos).add(V(0.0,0.2,0.1)); phoneLight.intensity=0.3*lit; } else phoneLight.intensity=0;
   wallet.visible=!!hp.wallet; if(hp.wallet){ wallet.position.copy(hp.wallet.pos); wallet.rotation.set(Math.PI/2*0.9,0,Math.PI*hp.wallet.flip); const op=0.9*sstep(8.6,8.9,t); panL.rotation.z=-op*0.4; panR.rotation.z=op*0.4; }
   payNotes(t);
-  const cm=CAMS[sc.id]; const u=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0))); const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
+  let cm=CAMS[sc.id]; let u=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0)));
+  if(sc.id==='bed1'){ cm=[CAMS.bed1[0],CAMS.bed1[1],[0.45,1.45,3.7],[0.4,1.05,0.2]]; u=sm5(clamp((t-1.35)/0.85)); }   // frame the bed, then follow him up and into his dance
+  const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
   ST.cam.position.set(ox+pos.x,pos.y,pos.z); ST.cam.lookAt(ox+look.x,look.y,look.z);
   // transitions: a short warm flash at every cut
   let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
