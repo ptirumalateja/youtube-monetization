@@ -1,0 +1,25 @@
+{
+  "duration": 20.0,
+  "fps": 30,
+  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this file. Money in rupees (6 expenses sum to the 50,000 salary, one coin = 1,000).",
+  "salary": 50000,
+  "credit": [0.95, 2.0],
+  "items": [
+    {"key": "RENT",      "label": "RENT",                       "amt": 18000, "t": 2.0, "day": 1, "coins": 18},
+    {"key": "EMI",       "label": "EMI",                        "amt": 12000, "t": 3.0, "day": 2, "coins": 12},
+    {"key": "GROCERIES", "label": "GROCERIES",                  "amt": 7000,  "t": 3.9, "day": 3, "coins": 7},
+    {"key": "UTILITIES", "label": "ELECTRICITY, WATER, WI-FI",  "amt": 4000,  "t": 4.7, "day": 4, "coins": 4},
+    {"key": "FOOD",      "label": "FOOD",                       "amt": 4000,  "t": 5.4, "day": 5, "coins": 4},
+    {"key": "FUEL",      "label": "FUEL",                       "amt": 5000,  "t": 6.0, "day": 6, "coins": 5}
+  ],
+  "countDur": 0.3,
+  "coinFlight": 0.38,
+  "zero": 6.4,
+  "walletOpen": 7.1, "dust": 7.6, "pullBack0": 8.2, "pullBack1": 9.4, "alarm": 9.3,
+  "grind0": 10.0, "stand": 10.0, "officeSit": 11.9, "work0": 12.4, "work1": 15.3, "corridor0": 15.6, "stop": 19.0,
+  "dayFrom": 6, "dayTo": 30,
+  "scroll": [[0,0],[10.2,0],[11.9,4.2],[15.5,4.2],[19.0,11.4],[20,11.4]],
+  "light": [[0,0.5],[0.9,0.5],[1.6,0.85],[2.0,0.85],[6.0,0.4],[6.5,0.3],[7.5,0.3],[9.8,0.3],[10.4,0.55],[12.0,1.0],[13.4,1.0],[14.4,0.6],[15.4,0.32],[18.0,0.32],[19.2,0.5],[20,0.5]],
+  "night": [[0,0],[9.8,0],[10.0,0.0],[12.0,0],[13.4,0.1],[14.4,0.6],[15.4,1],[19.5,1],[20,0]],
+  "reviewTimes": [0.3, 1.5, 3.0, 4.6, 6.6, 7.8, 9.0, 11.0, 13.5, 17.0, 19.0, 19.9]
+}
