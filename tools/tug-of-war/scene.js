@@ -38,7 +38,7 @@ const doubtMat=new THREE.MeshStandardMaterial({color:0x0c0c0e,roughness:0.95,tra
 const doubtHi=new THREE.MeshStandardMaterial({color:0x9a8e7a,roughness:0.6,transparent:true,opacity:0,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
 { const tl=new THREE.TextureLoader(); const tx=tl.load('doubt.png'), th=tl.load('doubt_hi.png'); doubtMat.alphaMap=tx; doubtHi.alphaMap=th; doubtMat.needsUpdate=doubtHi.needsUpdate=true;
   // stretched in depth so it reads from the low camera; text "up" points away from the camera (-z)
-  for(const m of [doubtMat,doubtHi]){ const d=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.62),m); d.rotation.x=-Math.PI/2; d.position.set(LX-0.05,0.0015,0.1); d.renderOrder=2; scene.add(d); } }
+  for(const m of [doubtMat,doubtHi]){ const d=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.62),m); d.rotation.x=-Math.PI/2; d.position.set(LX-0.05,0.0015,0.62); d.renderOrder=2; scene.add(d); } }
 
 // ---------------------------------------------------------------- figures
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
@@ -190,7 +190,7 @@ const feetAt=(f,t)=>{ const s=f===hero?heroAt(t):twinAt(t); const J=skel(s.P,s.r
 // 7-10 lateral pan along the rope across the pit; 10 lands on the twin in the mirror of the opening framing; cut 12.6 to a
 // wide from behind his shoulder (both lamps, the pit, the ribbon), slow push-in to the end.
 const K=(px,py,pz,lx,ly,lz)=>({p:V(px,py,pz),l:V(lx,ly,lz)});
-const C0=K(-1.35,1.14,4.0,-1.5,0.88,0), C1=K(-1.4,1.1,3.6,-1.52,0.88,0);
+const C0=K(-1.35,0.98,4.8,-1.5,0.7,0), C1=K(-1.4,0.95,4.3,-1.52,0.7,0);   // head clears the hook text (top 22%), floor and DOUBT stay above the watermark (80%)
 const T0=K(-C0.p.x,C0.p.y,C0.p.z,-C0.l.x,C0.l.y,C0.l.z), T1=K(-C1.p.x,C1.p.y,C1.p.z,-C1.l.x,C1.l.y,C1.l.z);   // the twin's shot: the exact mirror of frame 0
 const C2=K(-2.85,1.3,3.15,-0.78,0.6,0), C3=K(-2.7,1.25,2.95,-0.72,0.6,0);
 const CM=K(-0.05,1.04,3.05,0.0,0.56,0), C4=T0, C5=T1;
