@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Draft, pending the owner's OK on the render |
+| Status | Rendered, pending the owner's OK |
 | Upload file | `payday-to-payday.mp4` (silent cut for your own music: `payday-to-payday_music-ready.mp4`, hit at 8.45 s) |
 | Length | 18.0 s, 1080x1920, 30 fps, loops |
 | Voice | None (wordless; plain on-screen text) |

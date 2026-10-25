@@ -78,7 +78,7 @@ def blocks(t):
 def calendar(img, t):
     """30 day squares (10 x 3). Day n is crossed out when it starts; the 27 left pulse once the month is clearly lost."""
     if t < TL['dayStart'][0] - 0.1: return img
-    a_all = sstep(TL['dayStart'][0] - 0.1, TL['dayStart'][0] + 0.25, t)
+    a_all = sstep(TL['dayStart'][0] - 0.1, TL['dayStart'][0] + 0.25, t) * (1 - sstep(TL['endFade'], DUR - 0.02, t))
     cw, gap, cols = 50, 10, 10
     x0 = (W - (cols * cw + (cols - 1) * gap)) / 2; y0 = 506
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
