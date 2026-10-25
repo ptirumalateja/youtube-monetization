@@ -1,4 +1,4 @@
-"""Sound for The Chain Was Never Locked: minimal but heavy.
+"""Sound for The Chain Was Never Locked v2: minimal but heavy. The reveal hit (chain hits the floor) is at chainOff (12.45 s).
 
 Everything is synthesised here in numpy (iron clanks, chain rattle and scrape, breath, footsteps, the lamp hum,
 the drone, the sub-boom), plus two CC0 Freesound files from ../sfxlib/ (sleepCircle "wind.ogg" as room tone,
@@ -13,7 +13,7 @@ import numpy as np
 
 SR = 48000
 HERE = os.path.dirname(os.path.abspath(__file__))
-LIB = os.path.join(HERE, '..', 'sfxlib')
+LIB = os.path.join(HERE, '..', '..', 'sfxlib')
 rng = np.random.default_rng(7)
 
 
@@ -162,9 +162,11 @@ def main(meta_path, out_path):
     def curve(K):
         xs, ys = zip(*K); return np.interp(t, xs, ys)
     # silence as a beat: everything drops out 12.75-13.0, the boom lands on the cut
-    duck = curve([(0, 1), (12.7, 1), (12.78, 0.0), (13.0, 0.0), (13.02, 0.6), (14.5, 1), (D, 1)])
-    room_g = curve([(0, 0.11), (5, 0.11), (10, 0.16), (12.6, 0.06), (13.0, 0.0), (14.2, 0.1), (D, 0.11)]) * duck
-    drone_g = curve([(0, 0.25), (5, 0.25), (10, 0.55), (12.7, 1.0), (12.75, 0.0), (13.0, 0.0), (14.5, 0.3), (15.4, 0.25), (D, 0.25)])
+    # silence as a beat: the bed ducks out while the loop slides down his shin, the chain hit lands into near silence
+    co = E['chainOff']
+    duck = curve([(0, 1), (co - 0.55, 1), (co - 0.4, 0.0), (co, 0.0), (co + 0.03, 0.6), (co + 1.8, 1), (D, 1)])
+    room_g = curve([(0, 0.11), (5, 0.11), (10, 0.16), (co - 0.6, 0.08), (co, 0.0), (co + 1.6, 0.1), (D, 0.12)]) * duck
+    drone_g = curve([(0, 0.25), (5, 0.25), (10, 0.55), (co - 0.45, 1.0), (co - 0.4, 0.0), (co, 0.0), (co + 2.0, 0.3), (D - 1.5, 0.28), (D, 0.25)])
     for c, (a, b) in enumerate([(room, room2), (room2, room)]):
         bus['bed'][c] += a * room_g + hum * duck
         bus['drone'][c] += dr * drone_g * (1 + 0.04 * np.sin(2 * np.pi * (0.13 + 0.02 * c) * t))
@@ -210,17 +212,38 @@ def main(meta_path, out_path):
                 dist = np.hypot(x, z - 5.6); g = 0.5 / (dist ** 1.4) * 6
                 place(bus['fol'], lp(thud(1000 + wi * 50 + f, 90, 0.07, 1.0), 1200), f / fps, g * 0.35, float(np.clip(x / 3, -0.9, 0.9)))
             prev = ph
-    # the push-in: the chain shifts, a link creaks; a tiny gold glint on the open shackle
-    place(bus['fol'], creak(200, 0.8), E['creak'] - 0.1, 0.22, -0.1)
-    place(bus['fol'], rattle(0.18, 18, 201, 1300, 0.45), E['creak'] + 0.05, 1.0, -0.1)
+    # he checks the lock: hand on iron, the lift, the shackle swinging open, the loop sliding off, the chain hitting the floor
+    lk = -0.05
+    place(bus['fol'], breath(0.6, 'in', 300, 0.4), E['reach0'], 1.0, pl + 0.25)
+    place(bus['fol'], lp(clank(0.35, 301, 0.35), 2200), E['grabLock'], 0.22, lk)                  # hand closes on the lock
+    place(bus['fol'], rattle(0.5, 16, 302, 1500, 0.55), E['grabLock'] + 0.1, 1.0, lk)            # the chain lifts with it
+    place(bus['fol'], creak(303, 0.6), E['grabLock'] + 0.15, 0.12, lk)
+    place(bus['fol'], chink(304, 1900) * 2.2, E['swing'], 1.0, lk)                                 # shackle swings open
+    place(bus['fol'], lp(clank(0.25, 305, 0.6), 4000), E['swing'] + 0.03, 0.18, lk)
     gl = int(1.6 * SR); tg = np.arange(gl) / SR
     ting = sum(np.sin(2 * np.pi * f * tg) * np.exp(-tg / d) for f, d in [(2637, 0.9), (3951, 0.6), (5274, 0.4)]) * 0.012
-    place(bus['air'], ting, E['glint'], 1.0, -0.05)
-    # the reveal: sub-boom on the cut + the CC0 explosion pitched down two octaves underneath
-    place(bus['hit'], sub_boom(), E['cut'], 1.25, 0.0)
+    place(bus['air'], ting, E['swing'] + 0.02, 1.0, lk)                                            # the gold glint
+    place(bus['fol'], scrape(E['chainOff'] - E['loopOff'], 306, 0.55), E['loopOff'], 1.0, pl)    # the loop slides down his shin
+    place(bus['fol'], rattle(E['chainOff'] - E['loopOff'], 26, 307, 1700, 0.8), E['loopOff'], 1.0, pl)
+    # the reveal: the chain hits the floor = heavy clank + sub-boom + the CC0 explosion two octaves down
+    place(bus['hit'], clank(1.4, 308, 0.9), E['chainOff'], 0.6, -0.2)
+    place(bus['fol'], rattle(0.3, 50, 309, 2200, 1.0), E['chainOff'], 1.0, -0.1)
+    place(bus['hit'], sub_boom(), E['chainOff'], 1.25, 0.0)
     ex = load('814046__qubodup__explosion-from-another-dimension.wav', SR * 4)   # read at 4x rate = 2 octaves down
     ex = lp(ex, 900)[:int(4.5 * SR)]; ex /= np.abs(ex).max()
-    place(bus['hit'], ex * env(len(ex), 0.01, 1.3), E['cut'], 0.35, 0.0)
+    place(bus['hit'], ex * env(len(ex), 0.01, 1.3), E['chainOff'], 0.35, 0.0)
+    place(bus['fol'], breath(1.2, 'out', 310, 0.8), E['chainOff'] + 0.35, 1.0, pl + 0.25)        # the breath he has held for 12 years
+    # he lets the lock fall, stands, walks out of the light
+    place(bus['fol'], clank(0.8, 311, 0.7), E['dropLand'], 0.4, 0.15)
+    place(bus['fol'], lp(noise(int(0.6 * SR)), 1600) * env(int(0.6 * SR), 0.08, 0.2) * 0.12, E['rise0'], 1.0, pl + 0.2)
+    prev = None
+    for f, fr in enumerate(frames):
+        ph = fr.get('heroWalk')
+        if ph is None: prev = None; continue
+        if prev is not None and int(ph // np.pi) > int(prev // np.pi):
+            x, z = fr['heroRoot']; dist = np.hypot(x - 0.3, z - 6.0)
+            place(bus['fol'], lp(thud(2000 + f, 85, 0.09, 1.0), 1500), f / fps, 1.6 / dist ** 1.3, float(np.clip(x / 2, -0.9, 0.9)))
+        prev = ph
 
     # bus processing
     for k in bus: bus[k] = np.nan_to_num(bus[k])
