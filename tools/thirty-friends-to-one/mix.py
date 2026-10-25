@@ -171,11 +171,11 @@ def toast(seed):
     crack = lp(hp(noise(n), 2500), 7000) * env(n, 0.0015, 0.006) * 0.5   # soft-edged: a 0.2 ms crack read +3.5 dBTP after AAC
     return (y * 0.5 + body + crack) * np.minimum(1, t / 0.0015)
 
-def warm_tone(dur=4.2):
+def warm_tone(dur=5.6):
     """The soft low warm tone under the toast: D2 / A2 / D3 / F#3, slow bloom, gently saturated."""
     n = int(dur * SR); t = np.arange(n) / SR
     y = sum(a * np.sin(2 * np.pi * f * t + 0.3 * np.sin(2 * np.pi * 0.2 * t)) for f, a in [(73.4, 1.0), (110.0, 0.55), (146.8, 0.5), (185.0, 0.22), (220.0, 0.12)])
-    e = (1 - np.exp(-t / 0.35)) * np.exp(-t / 1.9)
+    e = (1 - np.exp(-t / 0.35)) * np.exp(-t / 2.6) * np.minimum(1, (dur - t) / 0.8)   # rings through the final hold
     return np.tanh(1.5 * y * e) * 0.7
 
 place(bus['hit'], toast(1700), CLINK, 0.55, 0.05)
@@ -184,7 +184,7 @@ place(bus['hit'], lp(sub_boom(3.0), 160), CLINK, 0.07, 0.0)    # weight under th
 
 
 # ---------------------------------------------------------------- bed, the held breath, master
-room_g = np.interp(T, [0, 3, 13, 15.8, 16.2, 18], [0.32, 0.34, 0.4, 0.35, 0.3, 0.3])
+room_g = np.interp(T, [0, 3, 13, 15.8, 16.2, 18, 20], [0.32, 0.34, 0.4, 0.35, 0.3, 0.3, 0.26])
 drone_g = np.interp(T, [0, 3, 12.8, 13.4, 15.8, 16.2, 18], [0.12, 0.18, 0.45, 0.25, 0.22, 0.0, 0.0])
 duck = 1 - 0.96 * ((T > 15.85) & (T < CLINK)) ; duck = lp(duck, 30)
 bed(bus, room_g, drone_g, duck)

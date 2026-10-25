@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | v2: the table is empty by 35 (owner change); the one who stays sits with you from 35 to 60. Rendered (-15.1 LUFS, -2.7 dBTP after AAC), waiting for owner review |
+| Status | v3 (owner notes: bigger hook, 30 -> 14 in four visible waves with the light closing in, longer final hold), waiting for owner review |
 | Upload file | `thirty-friends-to-one.mp4` (master with sound); `thirty-friends-to-one_music-ready.mp4` (silent, toast clink at 16.20 s) |
-| Length | 18.0 s, ends on a 1.8 s hold on the two friends (the cut back to the full table works as a loop) |
+| Length | 20.0 s; "AT 60, YOU NEED ONE." holds from 13.55 s to the end (about 3.8 s after the clink), then the cut back to the full table loops |
 | Voice | None (wordless) |
 | Build | `tools/thirty-friends-to-one/` (three.js scene on the shared Slow Light Dark kit, PIL text, numpy mix) |
 

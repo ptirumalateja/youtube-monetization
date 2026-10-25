@@ -19,7 +19,7 @@ const NSIDE=15, PITCH=0.52, U0=0.45, TOP=0.74, HALF=0.52, LT=U0*2+PITCH*(NSIDE-1
 const seatU=i=>U0+PITCH*i;
 
 // ---------------------------------------------------------------- stage: the lamp hangs over the head end; wide and aimed down the table at 20, narrow on the two at 60
-const LAMP=W2(0.75,0.1,5.2), AIM0=W2(2.3,0,0), AIM1=W2(0.16,0.22,0), CONE0=0.64, CONE1=0.29;
+const LAMP=W2(0.75,0.1,5.2), AIM0=W2(2.8,0,0), AIM1=W2(0.16,0.22,0), CONE0=0.7, CONE1=0.29;
 const S=SLD.createStage({W,H,lamp:LAMP,lampTarget:AIM0,cone:CONE0,spot:66,beam:0.12,motes:2600});
 const R=SLD.createRig(S.scene);
 S.spot.shadow.camera.far=15;
@@ -92,15 +92,20 @@ for(let id=0;id<30;id++){ const s=id<15?1:-1, i=id%15, u=seatU(i);
 for(const f of F){ let t=-1.5+Rn()*1.2; while(t<DUR){ f.laughs.push([t,0.7+Rn()*0.7,0.6+Rn()*0.5]); t+=0.9+Rn()*2.4; }
   t=2.2+Rn()*3; while(t<DUR){ f.sips.push(t); t+=3+Rn()*4; } }
 
-// departure order: 29 friends leave, faster and faster, roughly from the far end toward the two (the camera pushes in
-// with them, so every exit stays in frame). B0, the seat across from the best friend, is the last to go.
-const PIN=[[2,8],[8,6],[15,4],[22,2]], PINLABEL={2:'MOVED',8:'MARRIED',15:'BUSY',22:'DRIFTED',28:'GONE'};
-const order=[]; { const sc=[]; for(let id=1;id<30;id++) if(id!==15) sc.push([F[id].i+Rn()*3.2,id]);
-  sc.sort((x,y)=>y[0]-x[0]); sc.forEach(x=>order.push(x[1])); order.push(15);
-  // the labelled exits are pinned to lit seats on side A (the far end is dark at 20, side B sits at the frame edge)
-  for(const [k,id] of PIN){ order.splice(order.indexOf(id),1); order.splice(k,0,id); } }
-const DEP=order.map((id,k)=>{ const s=k/28; const td=TL.leave0+(TL.leave1-TL.leave0)*Math.pow(s,TL.leavePow);
-  const sp=lerp(1.0,1.5,s); return {k,id,td,sp,label:PINLABEL[k]||null}; });
+// departures: 30 -> 14 in four waves (several chairs scrape back at once, all over the lit table, while the camera is
+// still wide), then the last 13 one at a time, nearest the two, five of them with a reason label. B0, the seat across
+// from the best friend, is the last to go.
+const PINS=[8,6,4,2], LBL={8:'MOVED',6:'MARRIED',4:'BUSY',2:'DRIFTED',15:'GONE'};
+const order=[], tds=[], sps=[];
+{ const rest=[]; for(let id=1;id<30;id++) if(id!==15&&!PINS.includes(id)) rest.push([F[id].i+Rn()*2.5,id]);
+  rest.sort((x,y)=>y[0]-x[0]);                                   // far -> near
+  // waves take seats from all over the lit table (gaps open everywhere at once); the nearest seats are kept for the solo exits
+  const nW=TL.waves.reduce((a,w)=>a+w[1],0), nNear=rest.length-nW, near=rest.slice(-nNear), wave=rest.slice(0,-nNear).map(x=>x[1]);
+  for(let j=wave.length-1;j>0;j--){ const k=Math.floor(Rn()*(j+1)); [wave[j],wave[k]]=[wave[k],wave[j]]; }   // each wave spans the table
+  let p=0; for(const [t0,n] of TL.waves) for(let j=0;j<n;j++){ order.push(wave[p++]); tds.push(t0+j*0.085+Rn()*0.04); sps.push(1.15); }
+  const singles=near.concat(PINS.map(id=>[F[id].i,id])).sort((x,y)=>y[0]-x[0]).map(x=>x[1]); singles.push(15);
+  const [s0,s1]=TL.singles; singles.forEach((id,j)=>{ order.push(id); tds.push(s0+(s1-s0)*j/(singles.length-1)); sps.push(lerp(1.15,1.45,j/(singles.length-1))); }); }
+const DEP=order.map((id,k)=>({k,id,td:tds[k],sp:sps[k],label:LBL[id]||null}));
 DEP.forEach(d=>{ F[d.id].dep=d; });
 // AGE 20 -> 35 while the table empties (the last friend leaves at 35), then 35 -> 60 with only the two of them left
 const A35=TL.age35+TL.hold35;   // hold "AGE 35 / 1 FRIEND" long enough to read
@@ -222,7 +227,7 @@ function heroesAt(t){
 // ---------------------------------------------------------------- camera (side three-quarter): position from target + (dist, azimuth off the table axis, elevation)
 function camAt(t){
   // near-static wide while the table is full, the push-in carries the second half, then a slow creep in on the two
-  const u=t<3?0.03*t/3:t<11.6?0.03+0.83*Math.pow(sstep(3,11.6,t),1.6):0.86+0.14*sstep(11.6,18.6,t);
+  const u=t<3?0.03*t/3:t<11.6?0.03+0.83*Math.pow(sstep(3,11.6,t),1.6):0.86+0.14*sstep(11.6,DUR+0.6,t);
   const tg=W2(lerp(2.9,0.02,u),lerp(0.3,0.3,u),lerp(2.0,1.12,u));
   const dist=lerp(12.5,4.4,u), az=lerp(0.36,1.75,u), el=lerp(0.62,0.17,u);
   const back=U.clone().multiplyScalar(-Math.cos(az)).addScaledVector(RT,-Math.sin(az));
@@ -254,7 +259,8 @@ function setT(t){
   const push=sstep(10,15,t); candleM.emissiveIntensity=lerp(0.05,0.2,push); candleHalo.material.opacity=lerp(0.025,0.12,push);
   candleHalo.position.copy(CANDLE_AT).setY(tipY-0.03); candleHalo.scale.setScalar(0.28);
   // lamp narrows onto the two; warms at the clink
-  const la=sstep(TL.age0,TL.lampNarrow,t); aim(AIM0.clone().lerp(AIM1,la),lerp(CONE0,CONE1,la));
+  // the lamp closes in a step with every exit: the light shrinks with the table
+  let gone=0; for(const d of DEP) gone+=sstep(d.td+0.1/d.sp,d.td+1.3/d.sp,t); const la=sm5(gone/29); aim(AIM0.clone().lerp(AIM1,la),lerp(CONE0,CONE1,la));
   const pay=0.16*sstep(TL.clink,TL.clink+0.9,t);
   // camera
   const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);
@@ -265,9 +271,9 @@ const heroG=makeGlass();
 // ---------------------------------------------------------------- overlay / sound data
 const v3=new THREE.Vector3();
 window.metaAt=t=>{ setT(t); S.cam.updateMatrixWorld(); const labels=[];
-  for(const d of DEP){ if(!d.label) continue; const tt=(t-d.td)*d.sp; if(tt<0.45||tt>2.0) continue;
+  for(const d of DEP){ if(!d.label) continue; const tt=(t-d.td)*d.sp; if(tt<0.45||tt>1.75) continue;
     v3.copy(labelAt(d)).project(S.cam);
-    labels.push({text:d.label,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a:sstep(0.45,0.75,tt)*(1-sstep(1.5,2.0,tt))}); }
+    labels.push({text:d.label,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a:sstep(0.45,0.7,tt)*(1-sstep(1.35,1.75,tt))}); }
   return {age:Math.floor(ageAt(t)+1e-6),count:countAt(t),labels}; };
 // reason labels: five exits spread through the years, each on a walker that stays in frame (checked through the real camera)
 // the label is pinned over the spot where he stands up (it reads as the reason he is leaving), not dragged along the walk

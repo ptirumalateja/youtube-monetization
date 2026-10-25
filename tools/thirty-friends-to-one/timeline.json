@@ -1,18 +1,18 @@
 {
-  "duration": 18.0,
+  "duration": 20.0,
   "fps": 30,
-  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this (the overlay and mix through output/meta.json).",
+  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this (the overlay and mix through output/meta.json). waves: [start, how many leave together]; singles: first and last solo exit.",
   "hookOut": 2.75,
   "counterIn": 2.85,
   "age0": 3.1,
-  "age35": 9.05,
+  "age35": 9.2,
   "hold35": 0.6,
   "age1": 12.6,
   "lampNarrow": 10.2,
-  "together": [9.9, 11.5],
-  "leave0": 3.2,
-  "leave1": 8.6,
-  "leavePow": 0.62,
+  "together": [
+    9.9,
+    11.5
+  ],
   "counterOut": 13.2,
   "empty": 13.4,
   "line60": 13.55,
@@ -23,5 +23,38 @@
   "raise": 15.45,
   "clink": 16.2,
   "endHold": 17.0,
-  "reviewTimes": [0.4, 2.0, 4.6, 6.5, 8.5, 10.0, 11.6, 13.0, 16.2]
+  "reviewTimes": [
+    0.0,
+    3.6,
+    4.3,
+    4.9,
+    5.5,
+    7.0,
+    9.5,
+    13.8,
+    16.2,
+    19.5
+  ],
+  "waves": [
+    [
+      3.3,
+      3
+    ],
+    [
+      3.95,
+      4
+    ],
+    [
+      4.6,
+      4
+    ],
+    [
+      5.2,
+      5
+    ]
+  ],
+  "singles": [
+    5.9,
+    8.75
+  ]
 }

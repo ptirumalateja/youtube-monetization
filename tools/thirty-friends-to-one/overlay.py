@@ -20,8 +20,9 @@ FPS = TL['fps']
 
 def blocks(t, m):
     out = []
-    a = sstep(-0.01, 0.1, t) * (1 - sstep(TL['hookOut'] - 0.25, TL['hookOut'], t))
-    out.append((['AT 20, YOU HAVE', '30 FRIENDS.'], 46, 9, 262, a))
+    # the hook is bigger than the series default (owner: readable instantly) and fully on from frame 0
+    a = 1 - sstep(TL['hookOut'] - 0.25, TL['hookOut'], t)
+    out.append((['AT 20, YOU HAVE', '30 FRIENDS.'], 68, 10, 250, a))
     a = sstep(TL['counterIn'], TL['counterIn'] + 0.3, t) * (1 - sstep(TL['counterOut'] - 0.3, TL['counterOut'], t))
     if a > 0:
         n = m['count']
