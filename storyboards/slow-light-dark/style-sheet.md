@@ -4,6 +4,12 @@ Pilot: **The Chain Was Never Locked** (`tools/chain-never-locked/`, branch `clau
 
 **Source of truth is the code:** `tools/slow-light-dark-common/` (`sld.js` stage + rig, `sld_text.py`, `sld_sound.py`, `render.cjs`, `demo.js` starter). If this sheet and the code disagree, the code wins. Change a look value only with the owner's OK, and tell the other reel sessions.
 
+## The 3-second test (series rule, added 25 Oct 2026 after viewer feedback on the pilot)
+With the sound off, a stranger must be able to say in one sentence what is happening by second 3.
+- The on-screen text tells the story literally (pilot v2: "HE TRIED TO BREAK FREE ONCE." / "THEN HE STOPPED TRYING." / "12 YEARS LATER, HE CHECKED THE LOCK." / "IT WAS NEVER LOCKED."). The visuals carry the emotion.
+- Objects that carry the meaning are big, bright and clearly framed from frame 1 (pilot v2: the padlock is 2x scale, lit, standing beside his foot). A rewatch hint may stay subtle, but the twist itself must be shown by an action that reads without text (he lifts the lock, the shackle swings open, the chain slides off his ankle).
+- Check it on a contact sheet before the full render: stills at about 0.5 s, 2.5 s, the middle, the twist and the ending.
+
 ## Format
 - 1080x1920, 30 fps, 12-20 s. Seamless loop (last frame = frame 0's framing) or a clean 1 s end hold.
 - Wordless, no voiceover. Short on-screen text only. One device per reel, the story lives in the caption.
