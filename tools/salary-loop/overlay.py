@@ -47,8 +47,8 @@ def balance(t):
 def day_at(t):
     """DAY 1..6 for the six bills (one per day), then the grind runs 6 -> 30 and speeds up."""
     if t < ITEMS[0]['t']: return 0
-    if t < TL['grind0']: return sum(1 for it in ITEMS if t >= it['t'])
-    u = min(1.0, max(0.0, (t - TL['grind0']) / (16.0 - TL['grind0'])))
+    if t < TL['morning']: return sum(1 for it in ITEMS if t >= it['t'])
+    u = min(1.0, max(0.0, (t - TL['morning'] - 0.4) / (16.6 - TL['morning'] - 0.4)))
     return min(30, 6 + int(24.99 * u ** 1.7))
 
 
@@ -64,27 +64,27 @@ def cross_time(i):
 
 def blocks(t):
     out = []
-    a = (1 - sstep(2.2, 2.5, t)) + sstep(18.95, 19.15, t)
+    a = (1 - sstep(2.3, 2.6, t)) + sstep(18.25, 18.5, t)
     if a > 0: out.append((['SALARY CREDITED', f'+{money(TL["salary"])}'], 46, 9, 262, min(1.0, a)))
     d = day_at(t)
-    if d and 2.5 <= t < 6.45: out.append(([f'DAY {d}'], 60, 14, 262, sstep(2.5, 2.8, t)))
-    z = sstep(6.5, 6.8, t) * (1 - sstep(7.6, 7.9, t))
+    if d and 3.2 <= t < TL['zero'] + 0.05: out.append(([f'DAY {d}'], 60, 14, 262, sstep(3.2, 3.5, t)))
+    z = sstep(TL['zero'] + 0.1, TL['zero'] + 0.4, t) * (1 - sstep(8.3, 8.6, t))
     if z > 0: out.append(([f'DAY 6: {money(0)} LEFT.'], 50, 9, 262, z))
-    w = sstep(8.5, 8.8, t) * (1 - sstep(9.2, 9.35, t))
+    w = sstep(8.9, 9.2, t) * (1 - sstep(9.7, 9.85, t))
     if w > 0: out.append((['TODAY: 6TH'], 56, 12, 262, w))
-    al = sstep(9.35, 9.55, t) * (1 - sstep(9.95, 10.2, t))
+    al = sstep(9.9, 10.1, t) * (1 - sstep(10.4, 10.6, t))
     if al > 0: out.append((['07:00 AM', 'OFFICE'], 56, 12, 262, al))
-    g = sstep(10.4, 10.7, t) * (1 - sstep(12.4, 12.7, t))
+    g = sstep(10.7, 11.0, t) * (1 - sstep(12.6, 12.9, t))
     if g > 0: out.append((["BUT THE WORK", "DOESN'T STOP."], 46, 9, 262, g))
-    l1 = sstep(12.7, 13.0, t) * (1 - sstep(16.2, 16.5, t)); l2 = sstep(14.2, 14.5, t) * (1 - sstep(16.2, 16.5, t))
-    if l1 > 0: out.append((['6 DAYS TO SPEND IT.'], 46, 9, 262, l1))
-    if l2 > 0: out.append((['THE REST TO EARN IT AGAIN.'], 46, 9, 329, l2))
-    n = sstep(16.8, 17.1, t) * (1 - sstep(18.7, 18.95, t))
+    l1 = sstep(13.0, 13.3, t) * (1 - sstep(16.4, 16.7, t)); l2 = sstep(14.4, 14.7, t) * (1 - sstep(16.4, 16.7, t))
+    if l1 > 0: out.append((['SALARY LASTED 6 DAYS.'], 46, 9, 262, l1))
+    if l2 > 0: out.append((['WORK LASTS ALL 30.'], 46, 9, 329, l2))
+    n = sstep(17.0, 17.25, t) * (1 - sstep(18.0, 18.25, t))
     if n > 0: out.append((['1ST OF NEXT MONTH'], 56, 12, 262, n))
-    bal = sstep(1.5, 1.8, t) * (1 - sstep(18.7, 18.95, t))
+    bal = sstep(1.5, 1.8, t) * (1 - sstep(16.8, 17.1, t))
     if bal > 0:
         out.append((['BALANCE'], 26, 10, 396, 0.75 * bal)); out.append(([money(balance(t))], 96, 8, 426, bal))
-    if 10.4 <= t < 16.6 and d: out.append(([f'DAY {d}'], 44, 10, 548, sstep(10.4, 10.7, t) * (1 - sstep(16.2, 16.6, t))))
+    if 10.9 <= t < 16.8 and d: out.append(([f'DAY {d}'], 44, 10, 548, sstep(10.9, 11.2, t) * (1 - sstep(16.4, 16.8, t))))
     for it in ITEMS:
         u = t - it['t']
         if -0.05 <= u <= 0.95:
@@ -94,7 +94,7 @@ def blocks(t):
 
 
 def calendar(img, t):
-    on = sstep(2.5, 2.8, t) * (1 - sstep(7.6, 7.9, t)) + sstep(10.3, 10.6, t) * (1 - sstep(16.2, 16.6, t))
+    on = sstep(3.2, 3.5, t) * (1 - sstep(TL['zero'] + 0.3, TL['zero'] + 0.6, t)) + sstep(10.9, 11.2, t) * (1 - sstep(16.4, 16.8, t))
     if on <= 0: return img
     cw, gap, cols = 50, 10, 10; x0 = (W - (cols * cw + (cols - 1) * gap)) / 2; y0 = 604
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
@@ -123,7 +123,7 @@ def check():
             ph = 'down'; assert t >= 2.0, f'balance fell while the salary was still landing at {t:.2f}'
         assert (b >= prev) if ph == 'up' else (b <= prev), f'balance not monotonic ({ph}) at frame {f}'
         prev = b
-    assert round(balance(2.05)) == TL['salary'] and round(balance(6.9)) == 0 and round(balance(DUR)) == 0
+    assert round(balance(2.05)) == TL['salary'] and round(balance(7.3)) == 0 and round(balance(DUR)) == 0
     assert sum(i['amt'] for i in ITEMS) == TL['salary'] == 1000 * sum(i['coins'] for i in ITEMS)
     run = TL['salary']; exp = [32000, 20000, 13000, 9000, 5000, 0]
     for it, e in zip(ITEMS, exp): run -= it['amt']; assert run == e, (it['key'], run, e)

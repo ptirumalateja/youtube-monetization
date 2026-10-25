@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | Rendered, pending the owner's OK |
+| Status | v2 (lived-in) rendered, pending the owner's OK |
 | Upload file | `salary-loop.mp4` (silent cut for your own music: `salary-loop_music-ready.mp4`, hit at 6.40 s) |
-| Length | 20.0 s, 1080x1920, 30 fps, loops by a match cut on the phone screen (the last second rushes into the notification that opens the video) |
+| Length | 20.0 s, 1080x1920, 30 fps, a true loop: he ends on his bed with the phone in his hand, exactly where he starts, and the last second rushes into the notification that opens the video |
 | Voice | None (wordless; plain on-screen text) |
 | Build | `tools/salary-loop/` (three.js, PIL, numpy, ffmpeg) |
 
@@ -13,11 +13,11 @@
 **YouTube Shorts title:** ₹50,000 Credited. ₹0 by Day 6. The Month Isn't Over. #shorts
 
 **YouTube description:**
-> Salary credited: ₹50,000.
-> Day 1 rent. Day 2 EMI. Day 3 groceries. Day 4 electricity, water and Wi-Fi. Day 5 food. Day 6 fuel. Balance: ₹0.
-> Then the alarm rings at 7:00 and he walks to the office for the other 24 days, until the 1st comes round and the phone buzzes again.
+> Salary credited: ₹50,000. He springs off the bed and does a tiny dance.
+> Then the landlord knocks. Day 1 rent. Day 2 bike EMI. Day 3 groceries. Day 4 electricity, water and Wi-Fi. Day 5 food. Day 6 fuel. Balance: ₹0. He turns the wallet upside down. Nothing falls out.
+> The alarm rings at 7:00. Backpack, bus, traffic, office, the walk home in the dark, and the other 24 days, until the 1st comes round and the phone buzzes again. Somebody is already knocking.
 >
-> 6 days to spend it. The rest to earn it again.
+> SALARY LASTED 6 DAYS. WORK LASTS ALL 30.
 >
 > A Slow Light story about living payday to payday. The numbers are made up for the story and add up exactly: 18,000 + 12,000 + 7,000 + 4,000 + 4,000 + 5,000 = 50,000.
 > Made entirely in code (three.js, rendered frame by frame). Sound is synthesised, plus two CC0 Freesound files (sleepCircle, qubodup).
@@ -26,10 +26,10 @@
 
 **Instagram / Facebook caption:**
 > Salary credited. ₹50,000. 📲
-> Rent. EMI. Groceries. Bills. Food. Fuel.
-> Day 6. Balance ₹0.
+> The landlord knocks. The bike EMI. Groceries. The light bill. Food. Fuel.
+> Day 6. Wallet upside down. Nothing falls out.
 > And the alarm still rings at 7:00.
-> 6 days to spend it. The rest to earn it again.
+> SALARY LASTED 6 DAYS. WORK LASTS ALL 30.
 > Which day does your salary actually run out? Tag the friend who is on day 6 right now. 👇
 > #salaryday #emi #middleclass #stickman #reels
 
@@ -50,6 +50,7 @@
 | Balance counter | 0 → 50,000 as the coins land, then 32,000 → 20,000 → 13,000 → 9,000 → 5,000 → 0, then ₹0 through the grind | Asserted monotonic within each direction, frame by frame. |
 | DAY 1 → DAY 6 → DAY 30 | One bill per day for days 1-6; the day counter then runs 6 → 30 and only increases | Story pacing; asserted monotonic. Days 7-30 are a time-lapse (no number is claimed beyond "the rest of the month"). |
 | TODAY: 6TH, 07:00 AM, 1ST OF NEXT MONTH | The calendar and the alarm | Story props. |
-| "6 DAYS TO SPEND IT. THE REST TO EARN IT AGAIN." | 6 days of spending, 24 of earning in a 30-day month | Arithmetic (30 − 6 = 24). |
+| Landlord knock, bike, bags, fan and meter, plates, fuel gauge | One visible thing per bill (door shakes, motorbike drops in, bags drop on the table, ceiling fan and electric meter spin, plate tower, gauge needle falls to E) | Visual devices for the six bills; the amounts are the same story figures. |
+| "SALARY LASTED 6 DAYS. WORK LASTS ALL 30." | The money lasted 6 days; he works every day of the 30-day month, 24 of them with ₹0 | Arithmetic (30 − 6 = 24). |
 
 No external statistic is claimed. If the copy is ever extended with household-debt or EMI figures, cite RBI data directly and keep this story's numbers separate from it.
