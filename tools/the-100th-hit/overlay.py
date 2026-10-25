@@ -39,8 +39,8 @@ def text_rows(t):
     for half, y in ((0, Y_TOP), (1, Y_BOT)):
         n = hits(t, half)
         lab_t = TL['quitText'] if half == 0 else TL['hitText']
-        la = sstep(lab_t, lab_t + 0.3, t)
-        out.append(([str(n)], 60, 14, y, 1 - la))
+        la = sstep(lab_t + 0.14, lab_t + 0.42, t)              # number out first, then the label in (no overlap)
+        out.append(([str(n)], 60, 14, y, 1 - sstep(lab_t, lab_t + 0.14, t)))
         if la > 0:
             out.append((['QUITS AT 99' if half == 0 else 'HITS 100'], 50, 12, y + 4, la))
     a = sstep(TL['endText'], TL['endText'] + 0.4, t)
