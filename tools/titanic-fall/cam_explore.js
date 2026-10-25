@@ -1,0 +1,9 @@
+// node cam_explore.js <w> <h> <outdir> <t> <keyIndex> "name:dx,dy,dz:tx,ty,tz[:lampI[:lampAngle[:expo]]]" ...
+const {chromium}=require('playwright'); const fs=require('fs'); const http=require('http'); const path=require('path');
+const MIME={'.html':'text/html','.js':'text/javascript','.json':'application/json','.jpg':'image/jpeg','.png':'image/png'};
+const srv=http.createServer((rq,rs)=>{ const f=path.join(__dirname,decodeURIComponent(rq.url.split('?')[0]).replace(/^\/+/,'')||'index.html'); fs.readFile(f,(e,d)=>{ if(e){rs.statusCode=404;rs.end();return;} rs.setHeader('Content-Type',MIME[path.extname(f)]||'application/octet-stream'); rs.end(d); }); });
+srv.listen(0,async()=>{ const port=srv.address().port; const [W,H,out,t,ki]=[+process.argv[2],+process.argv[3],process.argv[4],+process.argv[5],+process.argv[6]]; const ex=process.argv.slice(7); fs.mkdirSync(out,{recursive:true});
+  const br=await chromium.launch({args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--use-gl=angle']}); const p=await br.newPage({viewport:{width:W,height:H}}); p.on('pageerror',e=>console.log('[err]',e.message.slice(0,300)));
+  await p.goto(`http://localhost:${port}/index.html?w=${W}&h=${H}`); await p.waitForFunction('window.ready===true',{timeout:240000});
+  for(const e of ex){ const [name,d,tg,li,la,xp]=e.split(':'); const r=await p.evaluate(([t,ki,d,tg,li,la,xp])=>{ const dd=d.split(',').map(Number), tt=tg.split(',').map(Number); D.D_B[ki][1]=dd[0];D.D_B[ki][2]=dd[1];D.D_B[ki][3]=dd[2]; D.T_B[ki][1]=tt[0];D.T_B[ki][2]=tt[1];D.T_B[ki][3]=tt[2]; window.LAMPI=li?+li:3500; setLamp(la?+la:0.30); window.POST=xp?()=>{D.GU.uExpo.value=+xp;}:null; return window.renderAnim(t,1,1/60); },[t,ki,d,tg,li,la,xp]); fs.writeFileSync(`${out}/${name}.jpg`,Buffer.from(r.img.split(',')[1],'base64')); console.log(name); }
+  await br.close(); srv.close(); });

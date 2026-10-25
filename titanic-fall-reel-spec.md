@@ -140,3 +140,19 @@ Not on screen, for the pinned comment: pressure at the wreck is about 380 times 
 5. Publish copy goes in `publish-copy/titanic-it-fell.md` with the sources table above and the sound credits.
 
 Scripts live in `tools/titanic-fall/` (scene, render, overlay, mix), as with the other reels. Renders stay out of git.
+
+---
+
+## Build notes: what was actually built (review cut, 720×1280, 24 s)
+
+Differences from the table above, decided while building:
+- **Snell's window does not shrink.** Physically its angular size is fixed at ~97° at any depth; the snap shows it for ~0.4 s, then whips down to the bow.
+- **The bow is seen large, not as a small target.** It is 146 m long; at the snap the camera is 70 m above it.
+- **Camera lamp and fixture.** The lamp is on the camera from 7.6 s; for the impact and pull-up it swings out to a separate fixture. The fixture's glow is hidden when it sits within 8 m of the camera (it washed the whole frame out).
+- **Marine snow is camera-locked after 5.6 s** with a virtual fall speed, so the time-compressed depth rate (up to ~960 m/s) does not strobe the particles.
+- **Ruler:** 14 line-art outlines, nose down, 3 parallel copies each (so they read from any angle); the camera swings to a side-on orbit while it climbs.
+- **Loop:** the last 8 frames dissolve into frame 0 (the stern standing, not yet sunk).
+- **Sound is a synthesized placeholder** (no samples, no licences). The real "iron and pressure" mix is still to do.
+- **Textures:** CC0 PBR sets from ambientCG (Metal021, Metal022, Metal055B, Ground054, Planks037A), fetched by `tools/titanic-fall/fetch_textures.sh`; no credit required, noted here anyway.
+
+Cost: one sub-frame is ~2.0 s at 540p, ~3.1 s at 720p, ~7.2 s at 1080p on the 4-core CPU renderer; parallel workers do not help. Whole reel at 720p: ~2.5 h. At 1080p: roughly 6 h.

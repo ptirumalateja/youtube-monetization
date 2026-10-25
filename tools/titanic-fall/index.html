@@ -5,6 +5,9 @@
 import * as THREE from 'three';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {LineSegments2} from 'three/addons/lines/LineSegments2.js';
+import {LineSegmentsGeometry} from 'three/addons/lines/LineSegmentsGeometry.js';
+import {LineMaterial} from 'three/addons/lines/LineMaterial.js';
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960; const SC=H/1920;
 const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true}); renderer.setPixelRatio(1); renderer.setSize(W,H);
 renderer.toneMapping=THREE.NoToneMapping; renderer.outputColorSpace=THREE.LinearSRGBColorSpace; document.body.appendChild(renderer.domElement);
@@ -165,7 +168,7 @@ function buildDeckAndBottom(){
   const strip=(yOf,flip,y0)=>{ const v=[],ix=[]; for(let i=0;i<=N;i++){ const xs=Math.min(LB-2.5,i/N*LB); const y=yOf(xs); const hb=halfBreadth(xs,y0===undefined?y:y0)*0.995; v.push(LB/2-xs,y,-hb, LB/2-xs,y,hb); }
     for(let i=0;i<N;i++){ const a=i*2; if(flip) ix.push(a,a+1,a+2, a+1,a+3,a+2); else ix.push(a,a+2,a+1, a+1,a+2,a+3);} const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setIndex(ix); g.computeVertexNormals(); return g; };
   const deck=strip(xs=> (xs>34&&xs<56)? sheer(xs)-2.6 : sheer(xs), false);
-  const bottom=strip(()=>0.02,true,0.0);
+  const bottom=strip(()=>0.02,true,0.0); { const n=bottom.attributes.position.count, uv=new Float32Array(n*2); for(let i=0;i<n;i++){ const xs=LB/2-bottom.attributes.position.getX(i); uv[i*2]=xs/LB; uv[i*2+1]=0.03; } bottom.setAttribute('uv',new THREE.BufferAttribute(uv,2)); }
   return {deck,bottom};}
 const hullMats=[texS,texP].map(t=>waterize(new THREE.MeshStandardMaterial({map:t,bumpMap:texB,bumpScale:0.45,roughness:0.46,metalness:0.22,envMapIntensity:1.0,side:THREE.DoubleSide}),{grime:1.0,rust:0.5,rim:1.0,kind:'hull'}));
 const deckMat=waterize(new THREE.MeshStandardMaterial({map:deckTex,roughness:0.9,metalness:0.0,side:THREE.DoubleSide}),{grime:1.0,kind:'deck'});
@@ -361,10 +364,10 @@ const PARTICLE_COMMON=`uniform sampler2D uDepthTex; uniform vec2 uRes; uniform f
 function snowLayer(n,box,size,seed){ const r=rnd(seed); const pos=new Float32Array(n*3), ph=new Float32Array(n), sz=new Float32Array(n);
   for(let i=0;i<n;i++){ pos.set([r()*box,r()*box,r()*box],i*3); ph[i]=r(); sz[i]=size*(0.4+r()*r()*1.6); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('aPh',new THREE.BufferAttribute(ph,1)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
-  const mat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:Object.assign({uBox:{value:box},uFocus:{value:60}},PU),
-    vertexShader:`attribute float aPh; attribute float aSize; uniform float uBox,uTime,uK,uSpotCos,uSpotOn,uFocus; uniform vec3 uCamPos,uSig,uAmb,uSpotDir,uLampPos; varying vec3 vc; varying float vZ;
+  const mat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:Object.assign({uBox:{value:box},uFocus:{value:60},uLock:{value:0},uFall:{value:0}},PU),
+    vertexShader:`attribute float aPh; attribute float aSize; uniform float uBox,uTime,uK,uSpotCos,uSpotOn,uFocus,uLock,uFall; uniform vec3 uCamPos,uSig,uAmb,uSpotDir,uLampPos; varying vec3 vc; varying float vZ;
       void main(){ vec3 p=position; p.y-=uTime*0.15; p.x+=sin(uTime*0.3+aPh*30.)*0.6;      // slow sinking + drift (world fixed)
-        p=mod(p-uCamPos+uBox*0.5,uBox)+uCamPos-uBox*0.5;
+        if(uLock>0.5){ vec3 q=p+vec3(0.,uFall,0.); q=mod(q+uBox*0.5,vec3(uBox))-uBox*0.5; p=uCamPos+q; } else { p=mod(p-uCamPos+uBox*0.5,uBox)+uCamPos-uBox*0.5; }
         vec4 mv=viewMatrix*vec4(p,1.); float d=max(-mv.z,0.3); vZ=d;
         float edge=smoothstep(uBox*0.5,uBox*0.3,length(p-uCamPos));
         vec3 att=exp(-uSig*d);
@@ -422,27 +425,27 @@ plumeMat.customProgramCacheKey=()=>'plume';
 const plume=new THREE.Points(plumeG,plumeMat); plume.frustumCulled=false; fx.add(plume);
 
 // sediment cloud: lumpy lit puffs (instanced billboards, CPU-sorted), rolling outward from the impact line
-const NP=3400; const puffBase=(()=>{ const r=rnd(404); const a=[]; for(let i=0;i<NP;i++) a.push({th:r()*6.2832,rr:r(),hh:r(),sz:r(),sd:r(),low:r()<0.4}); return a; })();
+const NP=1000; const puffBase=(()=>{ const r=rnd(404); const a=[]; for(let i=0;i<NP;i++) a.push({th:r()*6.2832,rr:r(),hh:r(),sz:r(),sd:r(),low:r()<0.4}); return a; })();
 const puffGeo=new THREE.InstancedBufferGeometry(); { const pq=new THREE.PlaneGeometry(1,1); puffGeo.index=pq.index; puffGeo.setAttribute('position',pq.attributes.position); puffGeo.setAttribute('uv',pq.attributes.uv); }
 const iPos=new THREE.InstancedBufferAttribute(new Float32Array(NP*3),3); iPos.setUsage(THREE.DynamicDrawUsage); const iSz=new THREE.InstancedBufferAttribute(new Float32Array(NP*2),2); iSz.setUsage(THREE.DynamicDrawUsage);
 puffGeo.setAttribute('iPos',iPos); puffGeo.setAttribute('iSz',iSz); puffGeo.instanceCount=NP;
-const puffMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:Object.assign({uAlpha:{value:0},uAmbP:{value:new THREE.Vector3(0.012,0.017,0.024)}},PU),
+const puffMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,uniforms:Object.assign({uAlpha:{value:0},uAmbP:{value:new THREE.Vector3(0.020,0.026,0.034)}},PU),
  vertexShader:`attribute vec3 iPos; attribute vec2 iSz; varying vec2 vUv; varying vec3 vPosV; varying vec3 vLampV; varying float vSeed,vSize,vCone,vD; uniform vec3 uLampPos,uSpotDir; uniform float uSpotCos;
   void main(){ vUv=uv; vSeed=iSz.y; vSize=iSz.x; vec4 pv=viewMatrix*vec4(iPos,1.); vPosV=pv.xyz; vLampV=(viewMatrix*vec4(uLampPos,1.)).xyz;
     vec3 lv=iPos-uLampPos; float ll=length(lv); vCone=smoothstep(uSpotCos-0.035,uSpotCos+0.045,dot(lv/ll,uSpotDir))/(1.0+ll*0.010); vD=-pv.z; pv.xy+=position.xy*iSz.x; gl_Position=projectionMatrix*pv; }`,
  fragmentShader:PARTICLE_COMMON+`varying vec2 vUv; varying vec3 vPosV; varying vec3 vLampV; varying float vSeed,vSize,vCone,vD; uniform float uAlpha; uniform vec3 uAmbP,uSig;
   float hh(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); } float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y); }
   void main(){ vec2 pc=vUv-0.5; float r=length(pc)*2.0; if(r>1.0) discard; float nz=0.55+0.45*(vn(pc*6.0+vSeed*50.0)*0.6+vn(pc*15.0+vSeed*13.0)*0.4);
-    float a=smoothstep(0.18,0.62,nz*pow(1.0-r*r,0.55))*uAlpha; vec3 N=normalize(vec3(pc.x*2.0,pc.y*2.0,sqrt(max(0.02,1.0-r*r)))); vec3 pS=vPosV+N*vSize*0.5; vec3 L=normalize(vLampV-pS); float lam=clamp(dot(N,L)*0.55+0.45,0.0,1.0);
-    float sc=pow(clamp(dot(normalize(-vPosV),L),0.0,1.0),3.0)*0.6; vec3 col=vec3(0.80,0.72,0.58)*(lam+sc)*vCone*0.9*(0.65+0.7*nz)+uAmbP*(0.7+0.3*N.y);
+    float a=smoothstep(0.34,0.52,nz*pow(1.0-r*r,0.5))*uAlpha; vec3 N=normalize(vec3(pc.x*2.0,pc.y*2.0,sqrt(max(0.02,1.0-r*r)))); vec3 pS=vPosV+N*vSize*0.5; vec3 L=normalize(vLampV-pS); float lam=clamp(dot(N,L)*0.55+0.45,0.0,1.0);
+    float sc=pow(clamp(dot(normalize(-vPosV),L),0.0,1.0),3.0)*0.6; float lamS=pow(clamp(dot(N,L),0.0,1.0),1.4); vec3 col=vec3(0.62,0.54,0.42)*(lamS*1.1+sc*0.4)*vCone*0.30*(0.55+0.9*nz)+uAmbP*(0.5+0.4*N.y)*(0.4+0.7*nz)*0.6;
     col*=exp(-uSig*0.10*vD); float soft=clamp((linDepth(gl_FragCoord.xy/uRes)-vD)/(vSize*0.5)+0.3,0.0,1.0); gl_FragColor=vec4(col,a*soft); }`});
 puffMat.customProgramCacheKey=()=>'puff'; const puffs=new THREE.Mesh(puffGeo,puffMat); puffs.frustumCulled=false; fx.add(puffs);
-function updatePuffs(u,imp,rotY,cp){ const Rm=75*(1-Math.exp(-u*1.5)), Hm=13*(1-Math.exp(-u*1.0)); const c=Math.cos(rotY), sn=Math.sin(rotY); const arr=[];
-  for(const b of puffBase){ const rho=Math.min(Rm,38*(1-Math.exp(-u*2)))+b.rr*Math.max(0,Rm-38*(1-Math.exp(-u*2))); const x=Math.cos(b.th)*rho*1.55, z=Math.sin(b.th)*rho*0.95; const rn=rho/Math.max(Rm,1e-3);
+function updatePuffs(u,imp,rotY,cp){ const Rm=58*(1-Math.exp(-u*1.5)), Hm=7.5*(1-Math.exp(-u*1.0)); const c=Math.cos(rotY), sn=Math.sin(rotY); const arr=[];
+  for(const b of puffBase){ const rho=Math.min(Rm,30*(1-Math.exp(-u*2)))+b.rr*Math.max(0,Rm-30*(1-Math.exp(-u*2))); const x=Math.cos(b.th)*rho*1.55, z=Math.sin(b.th)*rho*0.95; const rn=rho/Math.max(Rm,1e-3);
     let h=b.low?(0.5+b.hh*6):((0.08+0.92*b.hh*b.hh)*Hm*(0.3+0.7*rn)); h+=Math.sin(b.th*5+u*2)*1.4*Math.min(1,u);
-    const size=(3.2+b.sz*b.sz*13)*(0.55+0.8*Math.min(u,1.3)); const wx=imp.x+c*x-sn*z, wz=imp.z+sn*x+c*z; arr.push([wx,imp.y+h+size*0.2,wz,size,b.sd,(wx-cp.x)**2+(h+imp.y-cp.y)**2+(wz-cp.z)**2]); }
+    const size=(4+b.sz*b.sz*13)*(0.5+0.8*Math.min(u,1.3)); const wx=imp.x+c*x-sn*z, wz=imp.z+sn*x+c*z; arr.push([wx,imp.y+h+size*0.2,wz,size,b.sd,(wx-cp.x)**2+(h+imp.y-cp.y)**2+(wz-cp.z)**2]); }
   arr.sort((p,q)=>q[5]-p[5]); for(let i=0;i<NP;i++){ iPos.array.set([arr[i][0],arr[i][1],arr[i][2]],i*3); iSz.array[i*2]=arr[i][3]; iSz.array[i*2+1]=arr[i][4]; } iPos.needsUpdate=true; iSz.needsUpdate=true;
-  puffMat.uniforms.uAlpha.value=0.13*Math.min(1,u/0.18); }
+  puffMat.uniforms.uAlpha.value=0.55*Math.min(1,u/0.18); }
 // ------------------------------------------------------------------ fullscreen passes: water volume, grade
 const rtAO=new THREE.WebGLRenderTarget(W,H,{type:THREE.HalfFloatType});
 const pmrem=new THREE.PMREMGenerator(renderer); let envRT=null;
@@ -544,15 +547,15 @@ function setScene(t,look){
 function placeBow(depth,pitch,roll,yaw){ bow.position.set(0,depth,0); bow.rotation.set(0,0,0); bow.rotateY(yaw||0); bow.rotateZ(-(pitch??0.66)); bow.rotateX(roll??0.05); bow.updateMatrixWorld(true); }
 // light reaching a given depth (compressed so the zones read: colour gone by ~200 m, everything by ~1000 m)
 function zoneLight(d){ return new THREE.Vector3(Math.exp(-d/40),Math.exp(-d/85),Math.exp(-d/420)); }
-const LAMP=0.30;
+let LAMP=0.45; window.setLamp=v=>{LAMP=v;};
 function underwaterLook(depth,{spotOn=0,rays=0,bio=0,bubbles=1,caust=0,clarity=1}={}){
-  const down=zoneLight(depth); const fade=1-sstep(200,1000,depth); WU.uRelOn.value=spotOn>0?0:1; U.uRimCol.value.setRGB(down.x*0.015*fade+0.0004,down.y*0.035*fade+0.0008,down.z*0.06*fade+0.0015);
+  const down=zoneLight(depth); const fade=0.10+0.90*(1-sstep(200,1000,depth)); WU.uRelOn.value=spotOn>0?0:1; U.uRimCol.value.setRGB(down.x*0.015*fade+0.0004,down.y*0.035*fade+0.0008,down.z*0.06*fade+0.0015);
   sunL.color.setRGB(down.x,down.y,down.z); sunL.intensity=6.0*fade; hemi.color.setRGB(down.x*0.4,down.y*0.7,down.z); hemi.intensity=1.0*fade+0.012; hemi.groundColor.setRGB(0,0.002,0.006);
   SIG.set(0.07,0.011,0.0055).multiplyScalar(clarity);
   WU.uDown.value.copy(down).multiplyScalar(fade); WU.uScat.value.set(0.0015,0.016,0.034); WU.uRays.value=rays*fade; WU.uSpotOn.value=spotOn; U.uCaust.value=caust*Math.exp(-depth/60);
   PU.uAmb.value.set(down.x*0.05,down.y*0.08,down.z*0.11).multiplyScalar(fade+0.03); PU.uSpotOn.value=spotOn;
   bioMat.uniforms.uBio.value=bio; bubMat.uniforms.uRate.value=bubbles;
-  spot.color.setRGB(1.0,0.93,0.80); spot.intensity=spotOn*13000; spot.distance=0; spot.decay=1.5; spot.angle=LAMP; spot.penumbra=1.0;
+  spot.color.setRGB(1.0,0.93,0.80); spot.intensity=spotOn*(window.LAMPI||7000); spot.distance=0; spot.decay=1.5; spot.angle=LAMP; spot.penumbra=1.0;
   GU.uSat.value=lerp(0.82,0.42,sstep(100,800,depth)); WU.uSpotCos.value=Math.cos(LAMP); PU.uSpotCos.value=Math.cos(LAMP);
   setEnv([down.x*0.9*fade+0.002,down.y*1.0*fade+0.005,down.z*1.3*fade+0.012],[down.x*0.10*fade+0.0006,down.y*0.16*fade+0.002,down.z*0.30*fade+0.006],[0,0.0008,0.003],1.6);
   stars.visible=starsM.visible=milky.visible=false; sea.visible=false; WU.uUnder.value=1; starLight.intensity=0;
@@ -585,7 +588,7 @@ function renderOnce(){
   const cp=cam.position; seaMat.uniforms.uCam.value.copy(cp);
   const fwd=new THREE.Vector3(); cam.getWorldDirection(fwd);
   let lp=window.LAMP_POS?window.LAMP_POS.clone():cp.clone().add(new THREE.Vector3(-1.6,1.2,0).applyQuaternion(cam.quaternion)); let ld=window.LAMP_DIR?window.LAMP_DIR.clone().normalize():fwd.clone();
-  spot.position.copy(lp); spot.target.position.copy(lp).add(ld.clone().multiplyScalar(50)); spot.target.updateMatrixWorld(); lampMesh.visible=!!window.LAMP_POS&&WU.uSpotOn.value>0; if(lampMesh.visible){ lampMesh.position.copy(lp); lampMesh.lookAt(lp.clone().add(ld)); }
+  spot.position.copy(lp); spot.target.position.copy(lp).add(ld.clone().multiplyScalar(50)); spot.target.updateMatrixWorld(); lampMesh.visible=!!window.LAMP_POS&&WU.uSpotOn.value>0&&lp.distanceTo(cp)>8; if(lampMesh.visible){ lampMesh.position.copy(lp); lampMesh.lookAt(lp.clone().add(ld)); }
   WU.uLampPos.value.copy(lp); PU.uLampPos.value.copy(lp); WU.uSpotDir.value.copy(ld); PU.uSpotDir.value.copy(ld);
   WU.uInvProj.value.copy(cam.projectionMatrixInverse); WU.uCamW.value.copy(cam.matrixWorld); WU.uCamPos.value.copy(cp);
   PU.uCamPos.value.copy(cp); plumeMat.uniforms.uSpotPos.value.copy(lp);
@@ -605,26 +608,51 @@ function renderOnce(){
 window.renderLook=(id,t,sub)=>{ sub=sub||1; renderer.setRenderTarget(rtAcc); renderer.setClearColor(0,1); renderer.clear();
   for(let k=0;k<sub;k++){ lookPreset(id,t+(k/sub-0.5)/60); if(window.HOOK) window.HOOK(); renderOnce(); renderer.setRenderTarget(rtAcc); accQ.m.uniforms.t.value=rtOut.texture; accQ.m.uniforms.w.value=1/sub; renderer.autoClear=false; renderer.render(accQ.s,quadCam); renderer.autoClear=true; }
   renderer.setRenderTarget(null); renderer.render(showQ.s,quadCam); return renderer.domElement.toDataURL('image/jpeg',0.93); };
-// ------------------------------------------------------------------ opening 0-5.6 s: hook -> snap -> sunlight zone (one continuous move)
+// ------------------------------------------------------------------ full reel timeline, 0-24 s (0-5.6 s identical to the first review cut)
 function pchip(K,t){ const n=K.length; if(t<=K[0][0]) return K[0][1]; if(t>=K[n-1][0]) return K[n-1][1]; let i=0; while(t>K[i+1][0]) i++;
   const h=[],d=[]; for(let j=0;j<n-1;j++){ h[j]=K[j+1][0]-K[j][0]; d[j]=(K[j+1][1]-K[j][1])/h[j]; } const m=new Array(n); m[0]=d[0]; m[n-1]=d[n-2]; for(let j=1;j<n-1;j++) m[j]=(d[j-1]*d[j]<=0)?0:(d[j-1]+d[j])/2;
   const u=(t-K[i][0])/h[i], u2=u*u, u3=u2*u; return (2*u3-3*u2+1)*K[i][1]+(u3-2*u2+u)*h[i]*m[i]+(-2*u3+3*u2)*K[i+1][1]+(u3-u2)*h[i]*m[i+1]; }
 const pv=(K,t)=>new THREE.Vector3(pchip(K.map(k=>[k[0],k[1]]),t),pchip(K.map(k=>[k[0],k[2]]),t),pchip(K.map(k=>[k[0],k[3]]),t));
-const BD_K=[[1.9,78],[2.55,98],[3.9,145],[5.6,205]];
-const CAMW_K=[[0,-109,5,54.5],[1.9,-87.6,4,43.8],[2.0,-85,0,43],[2.25,-80,-11,39],[2.55,-70,-28,34]];
-const D_K=[[2.55,-70,70,34],[3.2,-10,32,66],[3.9,62,-4,78],[5.6,118,5,56]];
-const T_K=[[2.55,0,0,0],[3.2,8,-4,-2],[3.9,26,-8,-6],[5.6,40,-14,-8]];
 const _m4=new THREE.Matrix4(), _up=new THREE.Vector3(0,1,0);
 const lookQ=(pos,tg)=>new THREE.Quaternion().setFromRotationMatrix(_m4.lookAt(pos,tg,_up));
-function bowAt(t){ const BD=pchip(BD_K,t); return {pos:new THREE.Vector3(0,-BD,0),pitch:0.62+0.05*sstep(2,5.6,t),roll:0.06+0.05*Math.sin(t*1.3),yaw:0.30+0.03*(t-2)}; }
-function camAt(t){ const b=bowAt(t); let pos; if(t<2.55) pos=pv(CAMW_K,t); else pos=b.pos.clone().add(pv(D_K,t));
-  const k=sstep(0,1.9,t), top=lerp(46,-6,k), hookT=new THREE.Vector3(6.7,Math.max(top*0.55,3.5),13.4);
-  const bowT=b.pos.clone().add(t<2.55?new THREE.Vector3():pv(T_K,t)); const hz=new THREE.Vector3(-pos.x,0,-pos.z).normalize(); const a55=0.96;
-  const upT=pos.clone().add(new THREE.Vector3(hz.x*Math.cos(a55),Math.sin(a55),hz.z*Math.cos(a55)).multiplyScalar(60));
-  let q; const qH=lookQ(pos,hookT), qU=lookQ(pos,upT), qB=lookQ(pos,bowT);
-  if(t<2.0) q=qH; else if(t<2.3) q=qH.clone().slerp(qU,sstep(2.0,2.3,t)); else if(t<2.45) q=qU; else if(t<2.65) q=qU.clone().slerp(qB,sstep(2.45,2.65,t)); else q=qB;
-  if(t>2.7){ q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),0.014*Math.sin(t*1.9))); }
+// bow: centre depth, attitude
+const BD_A=[[1.9,78],[2.55,98],[3.9,145],[5.6,205]];
+const BD_B=[[5.6,205],[6.4,245],[8.4,1000],[9.8,2350],[11.2,3700],[11.9,3775],[12.6,3796],[24,3796]];
+const PITCH_B=[[5.6,0.67],[11.0,0.67],[11.9,0.52],[12.6,0.22],[24,0.22]];
+function bowAt(t){ const BD=t<5.6?pchip(BD_A,t):pchip(BD_B,t); let pitch,roll,yaw;
+  if(t<5.6){ pitch=0.62+0.05*sstep(2,5.6,t); roll=0.06+0.05*Math.sin(t*1.3); yaw=0.30+0.03*(t-2); }
+  else { pitch=pchip(PITCH_B,t); const st=sstep(11.2,12.8,t); roll=lerp(0.06+0.05*Math.sin(t*1.3),0.03,st); yaw=lerp(0.30+0.03*(t-2),0.25,st); }
+  return {pos:new THREE.Vector3(0,-BD,0),pitch,roll,yaw}; }
+function mastZ(t){ if(t<12.0) return -0.04; const u=Math.min(1,(t-12.0)/0.9); return -0.04+1.36*(1-Math.exp(-5*u)*Math.cos(9*u)*(1-u)); }
+// camera
+const CAMW_K=[[0,-109,5,54.5],[1.9,-87.6,4,43.8],[2.0,-85,0,43],[2.25,-80,-11,39],[2.55,-70,-28,34]];
+const D_A=[[2.55,-70,70,34],[3.2,-10,32,66],[3.9,62,-4,78],[5.6,118,5,56]];
+const T_A=[[2.55,0,0,0],[3.2,8,-4,-2],[3.9,26,-8,-6],[5.6,40,-14,-8]];
+const D_B=[[5.6,118,5,56],[7.0,92,-8,70],[8.4,76,-18,52],[9.4,70,-30,46],[10.6,60,-52,60],[11.2,92,-18,44],[11.9,118,-14,60],[12.6,112,24,70],[13.4,120,30,92],[14.2,150,30,120]];
+const T_B=[[5.6,40,-14,-8],[7.0,42,-12,-6],[8.4,46,-8,-4],[9.4,40,-6,0],[10.6,42,-14,0],[11.2,56,-12,-6],[11.9,44,-6,-4],[12.6,46,-6,-8],[13.4,26,0,-4],[14.2,0,6,0]];
+const KY=[[14.2,-3766],[14.7,-3700],[15.4,-3350],[16.4,-2400],[17.4,-1200],[18.2,-380],[18.6,-40],[19.6,-26],[20.6,-14],[21.6,-5],[22.2,0],[22.6,3.5],[24,5]];
+const R0=Math.hypot(150,120), TH0=Math.atan2(120,150), TH1=1.52+0.16;
+function rulerPos(t){ const y=pchip(KY,t); const rr=lerp(R0,330,sstep(14.2,15.6,t)); const th=lerp(TH0,1.52,sstep(14.2,16.2,t))+0.16*sstep(16.2,18.6,t); let x=rr*Math.cos(th), z=rr*Math.sin(th);
+  if(t>18.6){ const m=sstep(18.6,23.2,t); x=lerp(330*Math.cos(TH1),-109,m); z=lerp(330*Math.sin(TH1),54.5,m); } return new THREE.Vector3(x,y,z); }
+function camAt(t){ const b=bowAt(t); let pos,q; const k=sstep(0,1.9,t), top=lerp(46,-6,k);
+  if(t<14.2){
+    pos=t<2.55?pv(CAMW_K,t):b.pos.clone().add(t<5.6?pv(D_A,t):pv(D_B,t));
+    const hookT=new THREE.Vector3(6.7,Math.max(top*0.55,3.5),13.4); const bowT=b.pos.clone().add(t<2.55?new THREE.Vector3():(t<5.6?pv(T_A,t):pv(T_B,t)));
+    const hz=new THREE.Vector3(-pos.x,0,-pos.z).normalize(); const a55=0.96; const upT=pos.clone().add(new THREE.Vector3(hz.x*Math.cos(a55),Math.sin(a55),hz.z*Math.cos(a55)).multiplyScalar(60));
+    const qH=lookQ(pos,hookT), qU=lookQ(pos,upT), qB=lookQ(pos,bowT);
+    if(t<2.0) q=qH; else if(t<2.3) q=qH.clone().slerp(qU,sstep(2.0,2.3,t)); else if(t<2.45) q=qU; else if(t<2.65) q=qU.clone().slerp(qB,sstep(2.45,2.65,t)); else q=qB;
+    if(t>2.7){ q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),0.014*Math.sin(t*1.9))); }
+  } else {
+    pos=rulerPos(t); const tgtY=lerp(-3790,pos.y-20,sstep(14.2,15.3,t)); const qR=lookQ(pos,new THREE.Vector3(0,tgtY,0));
+    const hz=new THREE.Vector3(-pos.x,0,-pos.z).normalize(); const a=0.85; const qU=lookQ(pos,pos.clone().add(new THREE.Vector3(hz.x*Math.cos(a),Math.sin(a),hz.z*Math.cos(a)).multiplyScalar(60)));
+    const qH=lookQ(pos,new THREE.Vector3(6.7,25.3,13.4));
+    if(t<18.2) q=qR; else if(t<18.8) q=qR.clone().slerp(qU,sstep(18.2,18.8,t)); else if(t<22.0) q=qU; else if(t<23.3) q=qU.clone().slerp(qH,sstep(22.0,23.3,t)); else q=qH;
+    if(t<22.0){ q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),0.012*Math.sin(t*1.7))); } }
   return {pos,q,b,top,depth:Math.max(0,-pos.y)}; }
+// virtual scroll of the marine snow (camera-locked field): perceived fall speed, independent of the true (time-compressed) depth rate
+const VF_K=[[5.6,28],[8.4,45],[10.8,75],[11.4,6],[11.9,0],[14.2,0],[14.5,-70],[18.4,-110],[18.6,-14],[22.2,-6],[24,-6]];
+const FALL_TAB=(()=>{ const a=[0]; const dt=0.01; for(let i=1;i<=2400;i++){ const t=i*dt; a.push(a[i-1]+(t<5.6?0:pchip(VF_K,t)*dt)); } return a; })();
+const fallAt=t=>{ const x=Math.min(2399.99,Math.max(0,t*100)), i=Math.floor(x); return lerp(FALL_TAB[i],FALL_TAB[i+1],x-i); };
 // bubble burst where the camera breaks the surface
 const BURST_O=new THREE.Vector3(-85,0,43);
 const burstMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:Object.assign({uAge:{value:0},uOrigin:{value:BURST_O.clone()}},PU),
@@ -639,23 +667,51 @@ const burst=(()=>{ const n=7000, r=rnd(808); const pos=new Float32Array(n*3), ph
   for(let i=0;i<n;i++){ ph[i]=r(); sz[i]=0.04+r()*r()*0.22; let x=r()*2-1,y=-Math.abs(r()*2-1)*0.7-0.1,z=r()*2-1; const l=Math.hypot(x,y,z)||1; dr.set([x/l,y/l,z/l],i*3); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('aPh',new THREE.BufferAttribute(ph,1)); g.setAttribute('aSize',new THREE.BufferAttribute(sz,1)); g.setAttribute('aDir',new THREE.BufferAttribute(dr,3));
   const p=new THREE.Points(g,burstMat); p.frustumCulled=false; fx.add(p); return p; })();
+// the wreck's final pose (bow ploughed into the silt) and the seabed around it
+const bedH=(x,z)=>Math.sin(x*0.21+Math.sin(z*0.05)*2.0)*0.35+Math.sin(x*0.05+z*0.03)*1.6+(Math.sin(x*0.013)*Math.cos(z*0.011))*6;
+const FIN=bowAt(24); placeBow(FIN.pos.y,FIN.pitch,FIN.roll,FIN.yaw); bow.updateMatrixWorld(true);
+const STEM=new THREE.Vector3(73,2,0).applyMatrix4(bow.matrixWorld), AXD=new THREE.Vector3(1,0,0).transformDirection(bow.matrixWorld); const AXH=new THREE.Vector2(AXD.x,AXD.z).normalize();
+function bedFeat(x,z){ const dx=x-STEM.x, dz=z-STEM.z; const s=dx*AXH.x+dz*AXH.y, w=-dx*AXH.y+dz*AXH.x; let h=0; h+=5.5*Math.exp(-(((s-4)/15)**2+(w/16)**2)); h+=2.4*Math.exp(-(((s-24)/10)**2+(w/20)**2));
+  if(s<0&&s>-70){ const f=Math.min(1,-s/8)*(1-Math.min(1,(-s-50)/20)); h-=2.6*f*Math.exp(-((w/4.2)**2)); h+=1.1*f*Math.exp(-(((Math.abs(w)-8)/2.6)**2)); } return h; }
+{ const g=new THREE.PlaneGeometry(300,300,300,300); g.rotateX(-Math.PI/2); const p=g.attributes.position; for(let k=0;k<p.count;k++){ const x=p.getX(k)+STEM.x*0.5, z=p.getZ(k)+STEM.z*0.5; p.setX(k,x); p.setZ(k,z); p.setY(k,bedH(x,z)+bedFeat(x,z)+0.04+Math.sin(x*1.7)*Math.sin(z*1.3)*0.08); }
+  g.computeVertexNormals(); const inner=new THREE.Mesh(g,bed.material); inner.position.y=-3800; scene.add(inner); window.bedInner=inner; inner.visible=false; }
+// ruler: 14 hull outlines, nose down, stacked from the wreck to the surface
+const GH=[]; { const PROF=[ [[0,21],[3,16],[9,9],[18,3.5],[34,0.6],[60,0],[209,0],[232,0.8],[250,4],[262,11],[269,20]], [[0,21],[30,19.6],[90,18.4],[150,18.2],[210,18.8],[250,20],[269,20]],
+    [[62,18.4],[62,27.5],[213,27.5],[213,18.8]], [[62,23],[213,23]], [[66,27.5],[66,30],[205,30],[205,27.5]], [[70,30],[70,34],[82,34],[82,30]], [[232,18.6],[232,23],[262,23],[262,19.6]],
+    ...[96,126,156,186].map(c=>[[c-4,30],[c-4,52.5],[c+4,52.5],[c+4,30]]), [[48,18.6],[48,62]], [[222,19],[222,56]], [[45,60],[51,60]], [[219,54],[225,54]] ];
+  const segs=[]; const poly=(pts,z)=>{ for(let i=0;i<pts.length-1;i++) segs.push(pts[i][0],pts[i][1],z,pts[i+1][0],pts[i+1][1],z); };
+  for(const z of [-13,0,13]) for(const pl of PROF) poly(pl,z); for(const x of [0,70,134,200,269]) segs.push(x,19.5,-13,x,19.5,13);
+  for(let i=0;i<14;i++){ const arr=[]; for(let k=0;k<segs.length;k+=6){ for(const o of [0,3]) arr.push(-segs[k+o+1]-8,-3800+i*269+segs[k+o],segs[k+o+2]); }
+    const g=new LineSegmentsGeometry(); g.setPositions(arr); const m=new LineMaterial({color:0xf2e8d0,linewidth:2.4*(H/1280),transparent:true,opacity:0,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending}); m.resolution.set(W,H);
+    const l=new LineSegments2(g,m); l.frustumCulled=false; l.visible=false; fx.add(l); GH.push({l,m,cy:-3800+i*269+134}); } }
 function applyState(t){
   U.uTime.value=t; const c=camAt(t); cam.position.copy(c.pos); cam.quaternion.copy(c.q); cam.updateMatrixWorld(true);
-  window.LAMP_POS=null; window.LAMP_DIR=null; puffMat.uniforms.uAlpha.value=0; plumeMat.uniforms.uPlume.value=0; bed.visible=false; WU.uWindow.value=1; GU.uVeil.value=0.5*Math.exp(-Math.pow((t-2.03)/0.03,2));
-  // stern (hook): sinks 46 -> -6 m and is gone by 1.9 s
+  window.LAMP_POS=null; window.LAMP_DIR=null; puffMat.uniforms.uAlpha.value=0; plumeMat.uniforms.uPlume.value=0; WU.uWindow.value=1;
+  GU.uVeil.value=0.5*Math.exp(-Math.pow((t-2.03)/0.03,2))+0.5*Math.exp(-Math.pow((t-22.25)/0.03,2));
   const sk=sstep(0,1.9,t); stern.visible=sternM.visible=t<1.9; stern.position.set(0,lerp(46,-6,sk),0); stern.rotation.set(0,-0.95,0); sternM.position.copy(stern.position); sternM.rotation.copy(stern.rotation);
-  const b=c.b; bow.visible=t>=2.0; if(bow.visible) placeBow(b.pos.y,b.pitch,b.roll,b.yaw); bow.userData.mast.rotation.z=-0.04;
-  burstMat.uniforms.uAge.value=Math.max(0,t-2.0); burst.visible=t>=2.0&&t<4.4; FOCUS=cam.position.distanceTo(b.pos);
-  if(cam.position.y>0.05){ // above the sea
-    stars.visible=starsM.visible=milky.visible=true; sea.visible=true; seaMat.uniforms.uRing.value=0.25+t*0.5; seaMat.uniforms.uAbove.value=1; U.uCaust.value=0; WU.uUnder.value=0; GU.uExpo.value=2.6; GU.uSat.value=0.72;
+  const b=c.b; bow.visible=t>=2.0&&t<17.4; if(bow.visible) placeBow(b.pos.y,b.pitch,b.roll,b.yaw); bow.userData.mast.rotation.z=mastZ(t);
+  bed.visible=t>=10.9&&t<19.0; if(window.bedInner) window.bedInner.visible=bed.visible;
+  burstMat.uniforms.uAge.value=Math.max(0,t-2.0); burst.visible=t>=2.0&&t<4.4; FOCUS=t<17?cam.position.distanceTo(b.pos):150;
+  const lock=t>=5.6?1:0; snow.forEach(s=>{ s.material.uniforms.uLock.value=lock; s.material.uniforms.uFall.value=fallAt(t); });
+  const ga=sstep(14.2,14.7,t)*(1-sstep(18.7,19.2,t)); GH.forEach(o=>{ o.l.visible=ga>0.01; if(ga>0.01){ const g=0.20+0.75*Math.exp(-Math.pow((c.pos.y-o.cy)/120,2)); o.m.color.setRGB(0.95*g,0.91*g,0.80*g); o.m.opacity=ga; } });
+  const lampK=sstep(7.6,8.1,t)*(1-sstep(16.0,16.8,t)); const aboveWater=cam.position.y>0.05;
+  if(aboveWater){
+    stars.visible=starsM.visible=milky.visible=true; sea.visible=true; seaMat.uniforms.uRing.value=0.25+Math.max(0,t-22.25)*0.4+(t<2?t*0.5:0); seaMat.uniforms.uAbove.value=1; U.uCaust.value=0; WU.uUnder.value=0; GU.uExpo.value=2.6; GU.uSat.value=0.72; GU.uLift.value.set(0.004,0.008,0.014);
     sunL.intensity=0; spot.intensity=0; U.uRimCol.value.setRGB(0.050,0.072,0.125); hemi.color.setRGB(0.07,0.10,0.18); hemi.groundColor.setRGB(0.004,0.006,0.012); hemi.intensity=0.9;
     starLight.color.setRGB(0.55,0.68,0.95); starLight.intensity=1.1; starLight.position.set(300,160,-120); setEnv([0.012,0.020,0.045],[0.060,0.082,0.140],[0.004,0.006,0.012],1.4); }
-  else { const d=c.depth; underwaterLook(d,{rays:1,caust:1,bubbles:1}); U.uCaust.value=Math.exp(-(-b.pos.y)/60); sunL.intensity=6.0*(1-sstep(200,1000,d)); GU.uExpo.value=lerp(1.5,2.6,sstep(10,150,d)); }
+  else { const d=c.depth; underwaterLook(d,{rays:d<350?(t>=17.5?0.25:1):0,caust:1,bubbles:clamp(1-(d-200)/800,0,1),bio:sstep(5.6,6.4,t)*(t<18.6?1:0.4),spotOn:lampK,clarity:lampK>0.01?0.22:1}); U.uCaust.value=Math.exp(-(-b.pos.y)/60)*(t<5.6?1:0);
+    if(t>=11.0&&t<16.5){ const fl=sstep(11.0,11.8,t)*(1-sstep(15.2,16.4,t)); hemi.color.setRGB(0.42,0.52,0.60); hemi.intensity+=0.55*fl; sunL.intensity+=0.0; scene.environmentIntensity+=0.8*fl; }
+    if(t>=5.6){ const ex0=d<150?lerp(1.5,2.6,sstep(10,150,d)):lerp(2.6,5.0,sstep(150,800,d)); GU.uExpo.value=lerp(ex0,t<14?1.15:1.2,lampK); GU.uLift.value.set(0.004,0.008,0.014).multiplyScalar(1+2*sstep(300,1000,d)); if(t>=17.5) GU.uExpo.value=lerp(GU.uExpo.value,0.62,sstep(17.5,18.8,t)); }
+    else { GU.uExpo.value=lerp(1.5,2.6,sstep(10,150,d)); GU.uLift.value.set(0.004,0.008,0.014); }
+    if(lampK>0.001){ const R=new THREE.Vector3(1,0,0).applyQuaternion(cam.quaternion), Uv=new THREE.Vector3(0,1,0).applyQuaternion(cam.quaternion), Fw=new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion);
+      const w=sstep(11.7,12.4,t); const base=cam.position.clone().addScaledVector(R,-1.6).addScaledVector(Uv,1.2); const rig=cam.position.clone().addScaledVector(R,30).addScaledVector(Uv,22).addScaledVector(Fw,8);
+      window.LAMP_POS=base.lerp(rig,w); const aim=t<14.2?new THREE.Vector3(0,-3796,0).lerp(STEM,0.6):new THREE.Vector3(0,-3790,0); window.LAMP_DIR=Fw.clone().lerp(aim.sub(window.LAMP_POS).normalize(),w).normalize(); }
+    if(t>=11.95&&t<16.6){ const u=t-11.95; updatePuffs(u,{x:STEM.x,y:-3800+bedH(STEM.x,STEM.z),z:STEM.z},FIN.yaw,cam.position); puffMat.uniforms.uAlpha.value*=1-sstep(14.2,15.8,t); } }
   return c; }
 function renderAnimFrame(t,sub,shutter){ renderer.setRenderTarget(rtAcc); renderer.setClearColor(0,1); renderer.clear();
-  for(let k=0;k<sub;k++){ const tt=t+((k+0.5)/sub-0.5)*shutter; applyState(tt); renderOnce(); renderer.setRenderTarget(rtAcc); accQ.m.uniforms.t.value=rtOut.texture; accQ.m.uniforms.w.value=1/sub; renderer.autoClear=false; renderer.render(accQ.s,quadCam); renderer.autoClear=true; }
+  for(let k=0;k<sub;k++){ const tt=t+((k+0.5)/sub-0.5)*shutter; applyState(tt); if(window.POST) window.POST(); renderOnce(); renderer.setRenderTarget(rtAcc); accQ.m.uniforms.t.value=rtOut.texture; accQ.m.uniforms.w.value=1/sub; renderer.autoClear=false; renderer.render(accQ.s,quadCam); renderer.autoClear=true; }
   renderer.setRenderTarget(null); renderer.render(showQ.s,quadCam); const depth=camAt(t).depth; return {img:renderer.domElement.toDataURL('image/jpeg',0.95),depth}; }
 window.renderOnceX=renderOnce; window.applyStateX=applyState; window.renderAnim=renderAnimFrame; window.camAt=camAt;
-window.D={AU,aoQ,rtOcc,fx,snow,burst,bubbles,bio,puffs,spot,sunL,hemi,scene,renderer,camRel,placeBow,underwaterLook,bow,stern,sternM,sea,stars,starsM,milky,snow,bubbles,bio,plume,WU,PU,GU,U,cam};
+window.D={D_B,T_B,KY,AU,aoQ,rtOcc,fx,snow,burst,bubbles,bio,puffs,spot,sunL,hemi,scene,renderer,camRel,placeBow,underwaterLook,bow,stern,sternM,sea,stars,starsM,milky,snow,bubbles,bio,plume,WU,PU,GU,U,cam};
 window.ready=true;
 </script></body></html>
