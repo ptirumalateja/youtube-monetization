@@ -1,0 +1,88 @@
+{
+  "duration": 19.0,
+  "fps": 30,
+  "_comment": "19 s gold cut. All times in seconds; scene.js, overlay.py and mix.py read this (overlay and mix through output/meta.json). calls: in = Mom calls him, out = he calls them; ans 1 = picked up. Ages: son 8 -> 28, parents = son + 30.",
+  "slug": "parents-aging",
+  "hookOut": 2.7,
+  "counterIn": 2.85,
+  "counterOut": 13.25,
+  "ageKeys": [
+    [0, 8],
+    [3.0, 8],
+    [5.4, 18],
+    [7.6, 18],
+    [12.9, 28]
+  ],
+  "parentGap": 30,
+  "take": [0.15, 0.75],
+  "hug": [1.05, 1.6],
+  "grow": [3.0, 5.4],
+  "dadUp": [3.6, 4.6],
+  "release": [5.45, 5.9],
+  "walk": [5.9, 7.0],
+  "cut": 7.0,
+  "lampOn": 7.08,
+  "calls": [
+    {
+      "t": 7.55,
+      "dur": 1.15,
+      "dir": "in",
+      "ans": 1,
+      "label": "DAILY"
+    },
+    {
+      "t": 8.85,
+      "dur": 0.95,
+      "dir": "in",
+      "ans": 1,
+      "label": null
+    },
+    {
+      "t": 9.95,
+      "dur": 1.0,
+      "dir": "in",
+      "ans": 0,
+      "label": "LATER",
+      "flip": 1
+    },
+    {
+      "t": 11.05,
+      "dur": 0.9,
+      "dir": "in",
+      "ans": 0,
+      "label": "BUSY"
+    },
+    {
+      "t": 12.1,
+      "dur": 1.05,
+      "dir": "out",
+      "ans": 1,
+      "label": "ONCE A WEEK"
+    }
+  ],
+  "stick": 10.6,
+  "push": [13.2, 16.7],
+  "line": 13.45,
+  "lineOut": 16.75,
+  "narrow": [16.3, 17.5],
+  "ring": 17.2,
+  "callNow": 17.25,
+  "silence": 18.0,
+  "lines": {
+    "hook": ["YOUR PARENTS", "CALLED YOU", "10 TIMES A DAY."],
+    "payoff": ["NOW YOU CALL", "ONCE A WEEK."],
+    "sub": null,
+    "end": ["CALL NOW."]
+  },
+  "cams": [
+    [0.0, [0.45, 1.3, 4.3], [0.32, 0.92, 0.3]],
+    [3.0, [0.48, 1.34, 4.4], [0.34, 0.95, 0.25]],
+    [5.4, [0.62, 1.45, 4.6], [0.42, 1.05, 0.2]],
+    [7.0, [1.25, 1.5, 4.4], [1.4, 1.0, -0.2]],
+    [7.0, [-2.0, 3.6, 5.2], [0.9, 0.8, -2.5]],
+    [13.2, [-1.75, 3.3, 4.7], [0.8, 0.8, -2.3]],
+    [16.7, [0.0, 2.05, 4.0], [-0.02, 0.9, -0.3]],
+    [19.0, [0.0, 1.9, 3.45], [-0.03, 0.86, -0.2]]
+  ],
+  "reviewTimes": [0.0, 1.4, 4.2, 5.6, 6.6, 7.3, 8.2, 10.4, 12.6, 14.5, 16.5, 17.4, 18.9]
+}

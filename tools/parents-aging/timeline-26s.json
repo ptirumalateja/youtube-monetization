@@ -1,0 +1,104 @@
+{
+  "duration": 26.0,
+  "fps": 30,
+  "_comment": "26 s FB cut of the same scene (render with TL=timeline-26s.json). Longer breaths per age, one more call at 30 (he calls when he needs help), and the 'they waited' line under the payoff. Ages: son 8 -> 30, parents = son + 30.",
+  "slug": "parents-aging-26s",
+  "hookOut": 3.1,
+  "counterIn": 3.25,
+  "counterOut": 18.5,
+  "ageKeys": [
+    [0, 8],
+    [3.4, 8],
+    [6.6, 18],
+    [9.0, 18],
+    [18.3, 30]
+  ],
+  "parentGap": 30,
+  "take": [0.2, 0.9],
+  "hug": [1.25, 1.85],
+  "grow": [3.4, 6.6],
+  "dadUp": [4.3, 5.4],
+  "release": [6.75, 7.25],
+  "walk": [7.25, 8.6],
+  "cut": 8.6,
+  "lampOn": 8.7,
+  "calls": [
+    {
+      "t": 9.15,
+      "dur": 1.35,
+      "dir": "in",
+      "ans": 1,
+      "label": "DAILY"
+    },
+    {
+      "t": 10.75,
+      "dur": 1.15,
+      "dir": "in",
+      "ans": 1,
+      "label": null
+    },
+    {
+      "t": 12.1,
+      "dur": 1.2,
+      "dir": "in",
+      "ans": 0,
+      "label": "LATER",
+      "flip": 1
+    },
+    {
+      "t": 13.5,
+      "dur": 1.05,
+      "dir": "in",
+      "ans": 0,
+      "label": "BUSY"
+    },
+    {
+      "t": 14.75,
+      "dur": 1.0,
+      "dir": "in",
+      "ans": 0,
+      "label": null
+    },
+    {
+      "t": 15.95,
+      "dur": 1.15,
+      "dir": "out",
+      "ans": 1,
+      "label": "ONCE A WEEK"
+    },
+    {
+      "t": 17.3,
+      "dur": 1.15,
+      "dir": "out",
+      "ans": 1,
+      "label": "WHEN YOU NEED HELP"
+    }
+  ],
+  "stick": 13.2,
+  "push": [18.6, 22.8],
+  "line": 18.85,
+  "lineOut": 22.9,
+  "narrow": [22.4, 23.7],
+  "ring": 23.4,
+  "callNow": 23.45,
+  "silence": 24.8,
+  "lines": {
+    "hook": ["YOUR PARENTS", "CALLED YOU", "10 TIMES A DAY."],
+    "payoff": ["NOW YOU CALL", "ONCE A WEEK."],
+    "sub": ["THEY WAITED 20 YEARS", "FOR YOU TO GROW UP."],
+    "end": ["CALL NOW."]
+  },
+  "cams": [
+    [0.0, [0.45, 1.3, 4.3], [0.32, 0.92, 0.3]],
+    [3.4, [0.48, 1.34, 4.4], [0.34, 0.95, 0.25]],
+    [6.6, [0.62, 1.45, 4.6], [0.42, 1.05, 0.2]],
+    [8.6, [1.25, 1.5, 4.4], [1.4, 1.0, -0.2]],
+    [8.6, [-2.0, 3.6, 5.2], [0.9, 0.8, -2.5]],
+    [18.6, [-1.75, 3.3, 4.7], [0.8, 0.8, -2.3]],
+    [22.8, [0.0, 2.05, 4.0], [-0.02, 0.9, -0.3]],
+    [26.0, [0.0, 1.9, 3.45], [-0.03, 0.86, -0.2]]
+  ],
+  "reviewTimes": [0, 5, 8, 9.6, 12.6, 16.4, 17.8, 20.5, 23.6, 25.9],
+  "subIn": 20.4,
+  "pianoBar": 2.1
+}
