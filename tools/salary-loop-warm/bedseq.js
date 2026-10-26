@@ -85,7 +85,7 @@ export function createBedSeq(R){
   // camera: start on the bed, then follow him up and out
   function cam(s,J){ const u=sst(2.2,3.4,s), w=sst(3.4,4.5,s);
     const hc=J.hip.clone().lerp(J.neck,0.5);
-    const p0=V(0.25,1.3,2.0), l0=V(-0.5,0.72,-1.1);
+    const p0=V(0.1,1.3,2.55), l0=V(-0.42,0.72,-1.1);
     const p1=V(0.55,1.4,3.5), l1=V(0.05,hc.y*0.9+0.2,-0.4);
     const p2=V(hc.x+0.5,1.4,3.6), l2=V(hc.x+0.4,1.0,-0.4);
     const pos=p0.clone().lerp(p1,u).lerp(p2,w), look=l0.clone().lerp(l1,u).lerp(l2,w);

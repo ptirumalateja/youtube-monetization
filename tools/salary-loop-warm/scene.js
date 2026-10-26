@@ -85,6 +85,20 @@ const CAMS={ bed1:[[0.55,1.2,3.3],[-0.45,0.95,-0.9],[0.55,1.25,3.2],[-0.3,1.0,-0
   street:[[0.0,1.5,5.0],[0.0,1.1,-1.0],[0.0,1.45,4.0],[0.0,1.1,-1.0]], office:[[0.35,1.45,3.8],[0.2,1.15,-0.8],[0.3,1.4,3.4],[0.2,1.15,-0.8]], bed3:[[0.55,1.25,3.2],[-0.3,1.0,-0.7],[0.55,1.2,3.3],[-0.45,0.95,-0.9]] };
 // ---------------------------------------------------------------- the money: cash notes fly from his hand to the counterpart
 function payNotes(t){ let used=0; if(sceneAt(t).id==='bed1') { for(const n of notes) n.position.set(0,-9,0); return; } ITEMS.forEach((it,i)=>{ const u=(t-it.t)/0.5; if(u>0&&u<1){ for(let k=0;k<4;k++){ const n=notes[used++]; const uu=clamp(u*1.0-k*0.07); if(uu<=0||uu>=1){ n.position.set(0,-9,0); continue; } const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; const a=V(-0.4,1.05,0.4), b=[V(0.3,1.1,0.2),V(0.5,1.2,-0.7),V(0.6,1.1,-1.6),V(0.4,0.9,-0.9),V(0.2,0.9,-0.5),V(1.2,0.9,-0.9)][i]; tmp.copy(a).lerp(b,uu*uu*(3-2*uu)); tmp.y+=0.3*Math.sin(Math.PI*uu); n.position.set(ox+tmp.x,tmp.y,tmp.z); n.rotation.set(uu*6,uu*5,0); } } }); for(let k=used;k<notes.length;k++) notes[k].position.set(0,-9,0); }
+
+// ---------------------------------------------------------------- the blanket: a thin cloth draped over his body (height field from his limbs), tucked at the back, hanging over the front edge
+const BL={nx:84,nw:52,x0:-0.64,x1:0.93}; const blGeo=new THREE.PlaneGeometry(1,1,BL.nx,BL.nw); const blMesh=new THREE.Mesh(blGeo,new THREE.MeshStandardMaterial({map:SETS.plaidTex(),roughness:0.95,side:THREE.DoubleSide})); blMesh.castShadow=true; blMesh.receiveShadow=true; blMesh.frustumCulled=false; sets.bed.add(blMesh); sets.bed.userData.quilt.visible=false;
+{ const uv=blGeo.attributes.uv; for(let j=0;j<=BL.nw;j++) for(let i=0;i<=BL.nx;i++){ const k=j*(BL.nx+1)+i; uv.setXY(k,i/BL.nx*1.6,j/BL.nw*1.2); } }
+function updateBlanket(J,qt){ const pos=blGeo.attributes.position; const segs=[]; if(J&&qt<0.98){ const add=(a,b,r)=>segs.push([a,b,r]); add(J.hip,J.neck,0.14); add(J.hipL,J.kL,0.085); add(J.hipR,J.kR,0.085); add(J.kL,J.fL,0.065); add(J.kR,J.fR,0.065); add(J.shL,J.elL,0.055); add(J.shR,J.elR,0.055); add(J.elL,J.hL,0.05); add(J.elR,J.hR,0.05); }
+  const xa=lerp(BL.x0,0.5,qt), xb=BL.x1; const topY=0.545, zb=-1.8, zf=-0.6;
+  for(let j=0;j<=BL.nw;j++){ const w=j/BL.nw; for(let i=0;i<=BL.nx;i++){ const x=lerp(xa,xb,i/BL.nx); let z,y; const sp=0.84;
+      const zz=w<sp?lerp(zb,zf,w/sp):zf; let h=topY+0.006*Math.sin(x*23+zz*9)+0.004*Math.sin(x*41-zz*13); let wt=1-qt;
+      if(segs.length){ for(const [a,b,r] of segs){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz+1e-6; let u=((x-a.x)*dx+(zz-a.z)*dz)/L2; u=clamp(u); const px=a.x+dx*u, pz=a.z+dz*u, py=a.y+(b.y-a.y)*u; const d=Math.hypot(x-px,zz-pz); const top=py+(r+0.025)*Math.exp(-Math.pow(d/(r*1.55),2)); if(top>h) h=top; } if(x<-0.5) h=lerp(topY+0.03,h,clamp((x+0.64)/0.14)); }
+      h=lerp(topY,h,wt); // bunched at the foot once he pushes it off
+      h+=qt*0.15*(0.5+0.5*Math.sin(x*26+1))*Math.exp(-Math.pow((x-0.72)/0.3,2))*(0.6+0.4*Math.sin(zz*7));
+      if(w<=sp){ z=zz; y=h; } else { const jj=(w-sp)/(1-sp); z=zf+0.06*Math.sin(jj*Math.PI/2)*(1-0.5*qt); y=h-0.3*jj*(1-qt*0.6)+0.0; if(qt>0.6) y=Math.max(y,0.535); }
+      const k=j*(BL.nx+1)+i; pos.setXYZ(k,x,y,z); } }
+  pos.needsUpdate=true; blGeo.computeVertexNormals(); }
 // ---------------------------------------------------------------- one frame
 function setT(t){ const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; order.forEach(k=>{ sets[k].visible=(k===sc.set); });
   applyLights(sc.set,ox,t);
@@ -102,7 +116,7 @@ function setT(t){ const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; order.
   let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
   // office: the day passes through the window (sun to dusk), the coffee goes, the clock hand spins
   if(sc.set==='office'){ const o=sets.office; const dd=sstep(14.0,18.0,t); o.userData.sky.color.setRGB(lerp(1.0,0.35,dd),lerp(0.85,0.2,dd),lerp(0.62,0.35,dd)); o.userData.coffee.position.y=0.03-0.036*sstep(14.5,17.5,t); o.userData.clockHand.rotation.z=-t*6; const cal=o.userData.cal; const x=Math.floor(7+23*Math.min(1,Math.pow((t-14.0)/3.4,1.6))); if(cal.userData.x!==x){ cal.userData.x=x; cal.material.map.dispose(); cal.material.map=SETS.calendarTex(0,x,'JANUARY'); cal.material.needsUpdate=true; } }
-  if(sc.set==='bed'){ const qt=hp.bp?hp.bp.quilt:1; const qm=sets.bed.userData.quilt; qm.position.set(lerp(0.42,0.88,qt),0.66,lerp(0,-0.2,qt)); qm.scale.set(lerp(1,0.5,qt),lerp(1,0.8,qt),lerp(1,0.85,qt)); const b=sets.bed; const x=sc.id==='bed2'?6:5; b.userData.note.visible=(sc.id==='bed3'||sc.id==='bed1'); }
+  if(sc.set==='bed'){ const qt=hp.bp?hp.bp.quilt:1; blMesh.visible=true; updateBlanket(hp.bp?hp.bp.J:null,qt); const b=sets.bed; const x=sc.id==='bed2'?6:5; b.userData.note.visible=(sc.id==='bed3'||sc.id==='bed1'); }
 }
 window.renderAt=(t,K=3)=>{ const fast=t>11.9&&t<14.1; return ST.renderAt(setT,t,fast?5:K,{t0:0,t1:DUR,shutter:fast?1/36:1/60}); };
 window.events={...TL}; window.ready=true;
