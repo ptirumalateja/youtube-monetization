@@ -6,6 +6,6 @@ A 19 s, 24 fps, 1080x1920 reel, one file for FB, IG and YT. It is built on Teja'
 - `scene.js`: the three.js scene on the Slow Light Dark kit (`sld.js`, with `setScale` for the growing kid).
 - `render.cjs`: headless render (`stills`, `meta`, `frames WORKER N`).
 - `overlay.py`: text, calendar tag and phone pills (PIL). `mix.py`: synthesised sound, one ring at 15 s, silence from 16 s.
-- `compose.py OUT DELIVER`: writes `parents-19s-v2.mp4` (-15 LUFS) and `parents-19s-v2_music-ready.mp4`.
+- `compose.py OUT DELIVER`: writes `<slug>.mp4` (-15 LUFS) and `<slug>_music-ready.mp4`; the slug is parents-19s-v3 (V2 plus the "10 times a day" hook over 0-2.3 s).
 
 Render: `npm i`, then `node render.cjs meta OUT`, 4x `node render.cjs frames OUT W 4`, `python3 mix.py OUT`, `python3 compose.py OUT OUT/deliver`. That is about 25 minutes on 4 CPUs.

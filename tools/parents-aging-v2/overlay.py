@@ -38,7 +38,7 @@ def draw(img, t, m=None):
     # wall-calendar tag, top right (scenes 1-3)
     if t < TL['scenes'][3]:
         cal = [c for c in TL['calendar'] if c[0] <= t][-1]
-        a = 1 - sstep(TL['scenes'][3] - 0.2, TL['scenes'][3], t)
+        a = (1 - sstep(TL['scenes'][3] - 0.2, TL['scenes'][3], t)) * sstep(TL['hookOut'], TL['hookOut'] + 0.25, t)  # hidden under the hook
         k = sstep(cal[0], cal[0] + 0.25, t) if cal[0] > 0 else 1
         f = font(26, 'Medium'); txt = f"{cal[1]}  |  PARENTS {cal[2]}"
         x1 = W - 70; tw = sum(d.textlength(c, font=f) for c in txt) + 3 * (len(txt) - 1)
