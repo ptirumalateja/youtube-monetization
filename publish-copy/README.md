@@ -35,7 +35,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [The Voice in Your Head (anendophasia)](the-voice-in-your-head.md) | V2 final (reach cut, scribble style), awaiting Teja's review; V1 kept; wordless | `final-reels/the-voice-in-your-head-v2.mp4` (silent: `_v2_silent.mp4`) |
 | [Three Answers to One Fall (gravity)](three-answers-to-one-fall.md) | Final (v2) | `final-reels/three-answers-to-one-fall.mp4` |
 | [What Andromeda Sees (alien perspective)](what-andromeda-sees.md) | Final (v1), awaiting Teja's review; mammoth claim corrected to early ancestors | `final-reels/what-andromeda-sees.mp4` (silent: `_music-ready.mp4`, drop on 8.6 s) |
-| [Your Parents Are Aging While You Are Busy (wooden figures)](parents-aging.md) | v1 (19 s master + 26 s FB cut), awaiting Teja's review; trilogy closer after Friends and Salary | `final-reels/parents-aging.mp4` (silent: `_music-ready.mp4`, ring at 17.2 s; FB: `parents-aging-26s.mp4`) |
+| [Your Parents Are Aging While You Are Busy (wooden figures)](parents-aging.md) | V2 (one table, three ages, Teja's brief), awaiting Teja's review; trilogy closer after Friends and Salary; V1 superseded | `final-reels/parents-19s-v2.mp4` (silent: `_music-ready.mp4`, ring at 15.0 s) |
 
 ## Pending
 
