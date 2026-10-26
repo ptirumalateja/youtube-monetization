@@ -6,11 +6,12 @@ import {createWarmStage,V,clamp,sstep,lerp} from './stage.js';
 import * as SLD from './sld.js';
 import {createFigure} from './figure.js';
 import * as SETS from './sets.js';
+import {createBedSeq} from './bedseq.js';
 const {M,B,C,S: SPH,P: PLN}=SETS;
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
 const TL=await (await fetch('timeline.json')).json(); const DUR=TL.duration, ITEMS=TL.items;
 const ST=createWarmStage({W,H}); const R=SLD.createRig(ST.scene); const scene=ST.scene; const sm5=SLD.sm5, keys=SLD.keys;
-const SP=16;
+const SP=16; const BS=createBedSeq(R);
 // ---------------------------------------------------------------- sets
 const sets={}; const order=['bed','rent','bank','market','bills','food','pump','street','office'];
 const builders={bed:SETS.buildBedroom,rent:SETS.buildRent,bank:SETS.buildBank,market:SETS.buildMarket,bills:SETS.buildBills,food:SETS.buildRestaurant,pump:SETS.buildPump,street:SETS.buildStreet,office:SETS.buildOffice};
@@ -30,7 +31,7 @@ extra('food',V(2.0,0,-1.2),Math.PI-0.4,{aL:1.5,aR:1.5,kL:1.5,kR:1.5,sit:1,p:0.15
 extra('pump',V(0.6,0,-0.3),Math.PI+0.4,{p:0.05,tilt:0.0},0.5,{skin:0xd9b48a,shirt:0xe8e1d4,pants:0x3a3a40});                                                       // the attendant
 for(const [x,s] of [[-1.9,0.4],[2.2,-0.4]]) extra('office',V(x,0,-1.0),s>0?-0.8:Math.PI+0.5,{aL:1.5,aR:1.5,kL:1.5,kR:1.5,sit:1,p:0.2,tilt:0.2},0.4,{skin:0xd9b48a,shirt:s>0?0x7a98b8:0xb89a7a});
 // ---------------------------------------------------------------- props: phone, wallet, cash notes
-const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({color:0xc9a860}),0,0,0.006,{cast:false}); } scene.add(phone); const phoneLight=new THREE.PointLight(0xffd890,0,2.4,2); scene.add(phoneLight);
+const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({color:0xc9a860}),0,0,0.006,{cast:false}); } phone.scale.setScalar(1.3); scene.add(phone); const phoneLight=new THREE.PointLight(0xffd890,0,2.4,2); scene.add(phoneLight);
 const wallet=new THREE.Group(); const panL=new THREE.Group(), panR=new THREE.Group(); wallet.add(panL,panR); { const wm=M(0x8a3a28,{r:0.55}), im=M(0xd9c8a8,{r:0.8}); for(const [par,sx] of [[panL,-1],[panR,1]]){ B(par,0.11,0.012,0.15,wm,sx*0.055,0,0,{round:0.005}); B(par,0.1,0.004,0.14,im,sx*0.055,0.008,0,{cast:false}); } } scene.add(wallet);
 const notes=[]; for(let i=0;i<16;i++){ const n=B(scene,0.12,0.005,0.06,M(0xcfe3b5,{r:0.8,e:0x9fd08a,ei:0.5}),0,-9,0); notes.push(n); }
 const tmp=new THREE.Vector3();
@@ -44,17 +45,9 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
   const o=(J)=>{ for(const k in J) if(J[k].isVector3&&k!=='fwd') J[k].x+=ox; return J; };
   let J,face={mood:m,blink:blinkAt(t)},dress={};
   const hold=(P,hand,tgtL)=>{ P.tL=tgtL; P.wL=hand; P.pL=V(-0.3,-0.7,0.35); };
-  if(sc.id==='bed1'||sc.id==='bed3'){ const tt=sc.id==='bed3'?t-20+TL.duration*0:t; // the loop: bed3 ends exactly where bed1 starts
-    const lift=sc.id==='bed1'?(1-sstep(0.5,1.0,t)):sstep(TL.notify[0],TL.notify[0]+0.3,t); const phoneUp=1; const prop=proppedPose(); const root=V(0.3,0.34,-1.0);
-    if(sc.id==='bed1'&&t>=TL.rise[0]){ const u=sm5(clamp((t-TL.rise[0])/(TL.rise[1]-TL.rise[0]))); const stand_={...R.P0,p:0.05,tilt:-0.1}; const B_=R.blend(prop,stand_,u); const rt=root.clone().lerp(V(0.4,0,0.45),u); const dn=t>=TL.dance[0]; let P=B_;
-      if(dn){ const d=(t-TL.dance[0])*7.5, w=Math.sin(Math.PI*clamp((t-TL.dance[0])/(TL.dance[1]-TL.dance[0])))*0.0+1; P={...stand_,kL:0.5*w*Math.abs(Math.sin(d)),kR:0.5*w*Math.abs(Math.cos(d)),aL:0.25*w*Math.sin(d),aR:-0.25*w*Math.sin(d),dy:-0.04*w*Math.abs(Math.sin(d*2)),tilt:-0.2,
-        tL:V(rt.x+0.25+0.1*Math.sin(d),1.7+0.12*Math.sin(d*2),rt.z+0.5),wL:1,pL:V(0,-1,0.4),tR:V(rt.x+0.25+0.1*Math.cos(d),1.7+0.12*Math.cos(d*2),rt.z-0.45),wR:1,pR:V(0,-1,-0.4)}; }
-      J=R.skel(P,rt,SLD.yawOf(V(0.5,0,0.85))); face={mood:Math.max(m,0.9),blink:0,open:dn?0.8:0.3,fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
-    // propped on the pillow, the phone in his hands lighting his face; the buzz makes his head lift and his eyes widen (a happy flinch)
-    const P=prop; const j=0.01*Math.sin(t*40)*(t<0.9?1-sstep(0.5,0.9,t):0)*(sc.id==='bed1'?1:0)+0.01*Math.sin(t*40)*(sc.id==='bed3'?sstep(TL.notify[0],TL.notify[0]+0.1,t):0);
-    P.tilt=1.25-0.35*lift; const J0=R.skel(P,root,0); const ph=J0.head.clone().add(V(0.28,-0.24,0.04)); P.tL=ph.clone().add(V(-0.03,-0.04,0.05)); P.wL=1; P.pL=V(0,-0.9,0.6); P.tR=ph.clone().add(V(0.04,-0.05,-0.04)); P.wR=1; P.pR=V(0,-0.9,-0.6);
-    J=R.skel(P,root,0); J.fwd=V(0.86,0.0,0.5).normalize(); const f=J.fwd; face={mood:sc.id==='bed1'?Math.max(m,0.8):m,blink:lift>0.5?0:blinkAt(t),open:0.1+0.6*lift,fwd:f}; face.fwd=V(0.9,-0.2,0.45).normalize();
-    return {J:o(J),face,dress,phone:true,phonePos:ph.clone().add(V(ox+j,0.0,0.0)),phoneN:V(-0.15,0.6,-0.6).normalize()}; }
+  if(sc.id==='bed1'||sc.id==='bed3'){ const s=sc.id==='bed3'?t-20:t; const bp=BS.pose(s); const fc=BS.face(s); const lying=s<2.4;
+    face={roll:bp.roll||0,mood:fc.mood,brow:fc.brow,wide:fc.wide,open:fc.open,blink:(s>-1.1&&s<1.3)?0:blinkAt(t),fwd:bp.J.fwd};
+    return {J:o(bp.J),face,dress:{},phone:!!bp.phone,phonePos:bp.phone.pos.clone().add(V(ox,0,0)),phoneN:bp.phone.n,phoneLit:bp.phoneLight,bp}; }
   if(sc.id==='bed2'){ // reality: on the bed edge, the empty wallet turned upside down; the alarm; he gets up and puts the bag on
     const sit={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.8,eR:0.8,p:0.3,tilt:0.35}; const st={...R.P0,p:0.2,tilt:0.35}; const wk=sm5(clamp((t-TL.wake[0])/(TL.wake[1]-TL.wake[0]))); const rt=V(0.25,0,-0.3).lerp(V(0.5,0,0.5),wk);
     const P=R.blend(sit,st,wk); const flip=sstep(9.0,9.5,t), shake=(t>9.1&&t<10.2)?0.02*Math.sin(t*34):0; const wp=V(rt.x+0.12,0.74+0.22*flip+shake,rt.z+0.38);
@@ -91,24 +84,25 @@ const CAMS={ bed1:[[0.55,1.2,3.3],[-0.45,0.95,-0.9],[0.55,1.25,3.2],[-0.3,1.0,-0
   bills:[[0.05,1.4,3.6],[-0.1,1.05,-0.4],[0.05,1.35,3.2],[-0.1,1.05,-0.4]], food:[[0.1,1.35,3.6],[0.0,1.0,-0.4],[0.1,1.3,3.2],[0.0,1.0,-0.4]], pump:[[0.0,1.45,4.2],[-0.05,1.1,-0.2],[0.0,1.45,3.8],[-0.05,1.1,-0.2]], bed2:[[0.8,1.35,3.9],[0.3,0.95,-0.3],[0.7,1.3,3.5],[0.35,0.95,-0.2]],
   street:[[0.0,1.5,5.0],[0.0,1.1,-1.0],[0.0,1.45,4.0],[0.0,1.1,-1.0]], office:[[0.35,1.45,3.8],[0.2,1.15,-0.8],[0.3,1.4,3.4],[0.2,1.15,-0.8]], bed3:[[0.55,1.25,3.2],[-0.3,1.0,-0.7],[0.55,1.2,3.3],[-0.45,0.95,-0.9]] };
 // ---------------------------------------------------------------- the money: cash notes fly from his hand to the counterpart
-function payNotes(t){ let used=0; ITEMS.forEach((it,i)=>{ const u=(t-it.t)/0.5; if(u>0&&u<1){ for(let k=0;k<4;k++){ const n=notes[used++]; const uu=clamp(u*1.0-k*0.07); if(uu<=0||uu>=1){ n.position.set(0,-9,0); continue; } const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; const a=V(-0.4,1.05,0.4), b=[V(0.3,1.1,0.2),V(0.5,1.2,-0.7),V(0.6,1.1,-1.6),V(0.4,0.9,-0.9),V(0.2,0.9,-0.5),V(1.2,0.9,-0.9)][i]; tmp.copy(a).lerp(b,uu*uu*(3-2*uu)); tmp.y+=0.3*Math.sin(Math.PI*uu); n.position.set(ox+tmp.x,tmp.y,tmp.z); n.rotation.set(uu*6,uu*5,0); } } }); for(let k=used;k<notes.length;k++) notes[k].position.set(0,-9,0); }
+function payNotes(t){ let used=0; if(sceneAt(t).id==='bed1') { for(const n of notes) n.position.set(0,-9,0); return; } ITEMS.forEach((it,i)=>{ const u=(t-it.t)/0.5; if(u>0&&u<1){ for(let k=0;k<4;k++){ const n=notes[used++]; const uu=clamp(u*1.0-k*0.07); if(uu<=0||uu>=1){ n.position.set(0,-9,0); continue; } const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; const a=V(-0.4,1.05,0.4), b=[V(0.3,1.1,0.2),V(0.5,1.2,-0.7),V(0.6,1.1,-1.6),V(0.4,0.9,-0.9),V(0.2,0.9,-0.5),V(1.2,0.9,-0.9)][i]; tmp.copy(a).lerp(b,uu*uu*(3-2*uu)); tmp.y+=0.3*Math.sin(Math.PI*uu); n.position.set(ox+tmp.x,tmp.y,tmp.z); n.rotation.set(uu*6,uu*5,0); } } }); for(let k=used;k<notes.length;k++) notes[k].position.set(0,-9,0); }
 // ---------------------------------------------------------------- one frame
 function setT(t){ const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; order.forEach(k=>{ sets[k].visible=(k===sc.set); });
   applyLights(sc.set,ox,t);
   const hp=heroPose(t,sc); hero.setVisible(true); hero.pose(hp.J,hp.face,hp.dress);
   extras.forEach(e=>{ const on=e.setId===sc.set; e.f.setVisible(on); if(!on) return; const sit=e.pose.sit; const P={...R.P0,...e.pose}; delete P.sit; P.p=(P.p||0)+idle(t,e.seed); const root=e.root.clone().add(V(ox,sit?0:0,0)); const J=R.skel(P,root,e.yaw); J.fwd=J.fwd||V(1,0,0); e.f.pose(J,{mood:e.mood,blink:blinkAt(t+e.seed),fwd:J.fwd},{tie:e.setId==='bank'||e.setId==='office'?1:0,collar:1,belt:1}); });
-  phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); phone.quaternion.setFromUnitVectors(V(0,0,1),hp.phoneN); const lit=sc.id==='bed1'?(t<TL.rise[0]?1:0):sstep(TL.notify[0],TL.notify[0]+0.12,t); phoneLight.position.copy(hp.phonePos).add(V(0.0,0.2,0.1)); phoneLight.intensity=0.3*lit; } else phoneLight.intensity=0;
+  phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); { const zA=hp.phoneN.clone(); const yA=V(1,0,0).addScaledVector(zA,-zA.x).normalize(); const xA=yA.clone().cross(zA); phone.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xA,yA,zA)); } const lit=hp.phoneLit; phoneLight.position.copy(hp.phonePos).addScaledVector(hp.phoneN,0.18); phoneLight.intensity=0.3*lit; } else phoneLight.intensity=0;
   wallet.visible=!!hp.wallet; if(hp.wallet){ wallet.position.copy(hp.wallet.pos); wallet.rotation.set(Math.PI/2*0.9,0,Math.PI*hp.wallet.flip); const op=0.9*sstep(8.6,8.9,t); panL.rotation.z=-op*0.4; panR.rotation.z=op*0.4; }
   payNotes(t);
   let cm=CAMS[sc.id]; let u=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0)));
-  if(sc.id==='bed1'){ cm=[CAMS.bed1[0],CAMS.bed1[1],[0.45,1.45,3.7],[0.4,1.05,0.2]]; u=sm5(clamp((t-1.35)/0.85)); }   // frame the bed, then follow him up and into his dance
-  const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
+  let pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
+  if(hp.bp){ pos=hp.bp.cam.pos.clone(); look=hp.bp.cam.look.clone(); }
+  if(window.DBG){ pos=V(...window.DBG.pos); look=V(...window.DBG.look); }
   ST.cam.position.set(ox+pos.x,pos.y,pos.z); ST.cam.lookAt(ox+look.x,look.y,look.z);
   // transitions: a short warm flash at every cut
   let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
   // office: the day passes through the window (sun to dusk), the coffee goes, the clock hand spins
   if(sc.set==='office'){ const o=sets.office; const dd=sstep(14.0,18.0,t); o.userData.sky.color.setRGB(lerp(1.0,0.35,dd),lerp(0.85,0.2,dd),lerp(0.62,0.35,dd)); o.userData.coffee.position.y=0.03-0.036*sstep(14.5,17.5,t); o.userData.clockHand.rotation.z=-t*6; const cal=o.userData.cal; const x=Math.floor(7+23*Math.min(1,Math.pow((t-14.0)/3.4,1.6))); if(cal.userData.x!==x){ cal.userData.x=x; cal.material.map.dispose(); cal.material.map=SETS.calendarTex(0,x,'JANUARY'); cal.material.needsUpdate=true; } }
-  if(sc.set==='bed'){ const b=sets.bed; const x=sc.id==='bed2'?6:5; b.userData.note.visible=(sc.id==='bed3'||sc.id==='bed1'); }
+  if(sc.set==='bed'){ const qt=hp.bp?hp.bp.quilt:1; const qm=sets.bed.userData.quilt; qm.position.set(lerp(0.42,0.88,qt),0.66,lerp(0,-0.2,qt)); qm.scale.set(lerp(1,0.5,qt),lerp(1,0.8,qt),lerp(1,0.85,qt)); const b=sets.bed; const x=sc.id==='bed2'?6:5; b.userData.note.visible=(sc.id==='bed3'||sc.id==='bed1'); }
 }
 window.renderAt=(t,K=3)=>{ const fast=t>11.9&&t<14.1; return ST.renderAt(setT,t,fast?5:K,{t0:0,t1:DUR,shutter:fast?1/36:1/60}); };
 window.events={...TL}; window.ready=true;

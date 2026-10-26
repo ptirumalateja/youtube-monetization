@@ -21,6 +21,7 @@ const server = http.createServer((req, res) => {
     page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text()); });
     await page.goto(`http://127.0.0.1:${server.address().port}/?w=${W}&h=${H}`);
     await page.waitForFunction(() => window.ready === true, null, { timeout: 180000 });
+    if (process.env.DBG) await page.evaluate(d => { window.DBG = JSON.parse(d); }, process.env.DBG);
     const shot = async (t, file) => { const b64 = await page.evaluate(([t, k]) => window.renderAt(t, k), [t, SUB]); fs.writeFileSync(file, Buffer.from(b64.split(',')[1], 'base64')); };
     if (mode === 'meta') { fs.writeFileSync(path.join(out, 'meta.json'), JSON.stringify(await page.evaluate(() => window.events))); console.log('meta ok'); }
     else if (mode === 'stills') {

@@ -5,17 +5,17 @@ const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)); const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t)}; const lerp=(a,b,t)=>a+(b-a)*t;
 const UP=V(0,1,0);
 function limb(m,a,b,r){ const d=b.clone().sub(a); const len=Math.max(d.length(),1e-4); m.position.copy(a).add(b).multiplyScalar(0.5); m.scale.set(r,len,r); m.quaternion.setFromUnitVectors(UP,d.multiplyScalar(1/len)); }
-function drawFace(g,W,H,m,blink,open){ g.clearRect(0,0,W,H); const cx=W/2, cy=H/2+8, dark='#2b1a12';
+function drawFace(g,W,H,m,blink,open,brow=0,wide=0){ g.clearRect(0,0,W,H); const cx=W/2, cy=H/2+8, dark='#2b1a12';
   const happy=sstep(0.7,0.92,m), glad=sstep(0.45,0.7,m), sad=1-sstep(0.12,0.5,m);
   if(happy>0){ g.fillStyle=`rgba(255,120,110,${0.4*happy})`; for(const sx of [-1,1]){ g.beginPath(); g.ellipse(cx+sx*128,cy+34,38,22,0,0,7); g.fill(); } }
   const ex=82, ey=cy-34; g.lineCap='round'; g.lineJoin='round';
   for(const sx of [-1,1]){ const x=cx+sx*ex;
     if(blink>0.5){ g.strokeStyle=dark; g.lineWidth=9; g.beginPath(); g.moveTo(x-22,ey+4); g.lineTo(x+22,ey+4); g.stroke(); }
     else if(happy>0.5){ g.strokeStyle=dark; g.lineWidth=12; g.beginPath(); g.arc(x,ey+16,26,Math.PI*1.12,Math.PI*1.88); g.stroke(); }
-    else { g.fillStyle=dark; g.beginPath(); g.ellipse(x,ey,13+3*glad,17+4*glad-6*sad,0,0,7); g.fill(); g.fillStyle='rgba(255,255,255,0.85)'; g.beginPath(); g.arc(x+4,ey-6,4.5,0,7); g.fill();
+    else { g.fillStyle=dark; g.beginPath(); g.ellipse(x,ey,(13+3*glad)*(1+0.18*wide),(17+4*glad-6*sad)*(1+0.3*wide),0,0,7); g.fill(); g.fillStyle='rgba(255,255,255,0.85)'; g.beginPath(); g.arc(x+4,ey-6,4.5,0,7); g.fill();
       if(sad>0.3){ g.fillStyle='rgba(236,222,196,1)'; g.beginPath(); g.moveTo(x-sx*(-20),ey-24); g.lineTo(x+sx*(-26),ey-24); g.lineTo(x+sx*(-26),ey-24+ (10+12*sad)); g.closePath(); } }
     // brows: happy = high and arched, neutral = flat, sad = inner end up
-    const by=ey-40-8*happy-4*glad+4*sad, slope=(0.5-m)*30; g.strokeStyle=dark; g.lineWidth=8; g.beginPath(); g.moveTo(x-sx*22*0-24,by+(sx>0?1:-1)*0+slope*(sx>0?1:-1)*-0.0); g.moveTo(x-24,by+(sx<0? -slope:slope)*0.35); g.lineTo(x+24,by+(sx<0? slope:-slope)*0.35); g.stroke(); }
+    const by=ey-40-8*happy-4*glad+4*sad-22*brow, slope=(0.5-m)*30; g.strokeStyle=dark; g.lineWidth=8; g.beginPath(); g.moveTo(x-sx*22*0-24,by+(sx>0?1:-1)*0+slope*(sx>0?1:-1)*-0.0); g.moveTo(x-24,by+(sx<0? -slope:slope)*0.35); g.lineTo(x+24,by+(sx<0? slope:-slope)*0.35); g.stroke(); }
   // mouth
   const my=cy+66, w=44+30*happy, c=lerp(-26,26,m); g.strokeStyle=dark; g.lineWidth=9;
   if(open>0.15||happy>0.6){ const o=Math.max(open,happy*0.8); g.fillStyle='#4a1a14'; g.beginPath(); g.moveTo(cx-w,my-6); g.quadraticCurveTo(cx,my+4,cx+w,my-6); g.quadraticCurveTo(cx,my+8+60*o,cx-w,my-6); g.fill(); g.fillStyle='#ff8a85'; g.beginPath(); g.ellipse(cx,my+22+16*o,w*0.42,10+8*o,0,0,7); g.fill(); g.stroke(); }
@@ -39,11 +39,11 @@ export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,
   F.setVisible=v=>{ g.visible=v; };
   // pose: J joints (world), face {mood 0..1, blink, open, look(rad about head up), fwd Vector3}, dress {tie, lanyard, bag, belt} 0..1, hide: array of part names
   F.pose=(J,face={},dress={})=>{ const s=scale; const m=face.mood??0.5, blink=face.blink||0, open=face.open||0;
-    if(Math.abs(m-F.faceMood)>0.01||blink!==F.faceBlink||Math.abs(open-F.faceOpen)>0.02){ drawFace(cg,512,384,m,blink,open); ft.needsUpdate=true; F.faceMood=m; F.faceBlink=blink; F.faceOpen=open; }
+    const brow=face.brow||0, wide=face.wide||0; if(Math.abs(m-F.faceMood)>0.01||blink!==F.faceBlink||Math.abs(open-F.faceOpen)>0.02||Math.abs(brow-(F.faceBrow||0))>0.02||Math.abs(wide-(F.faceWide||0))>0.02){ drawFace(cg,512,384,m,blink,open,brow,wide); ft.needsUpdate=true; F.faceMood=m; F.faceBlink=blink; F.faceOpen=open; F.faceBrow=brow; F.faceWide=wide; }
     const up=J.neck.clone().sub(J.hip).normalize(); const hdir=J.head.clone().sub(J.neck).normalize(); const fwd0=(face.fwd||J.fwd||V(1,0,0)).clone();
     let f=fwd0.clone().addScaledVector(hdir,-fwd0.dot(hdir)).normalize(); if(face.look){ f.applyAxisAngle(hdir,face.look); }
     const hc=J.head.clone(); P.head.position.copy(hc); P.head.scale.setScalar(headR); cap.position.copy(hc);
-    cap.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hdir.clone().cross(f).normalize(),hdir,f));
+    const hf=face.roll?hdir.clone().applyAxisAngle(f,face.roll):hdir; cap.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hf.clone().cross(f).normalize(),hf,f));
     limb(P.neck,J.neck.clone().addScaledVector(up,-0.02),hc.clone().addScaledVector(hdir,-headR*0.8),0.04);
     limb(P.torso,J.hip,J.neck.clone().addScaledVector(up,-0.04),0.088); P.chest.position.copy(J.neck).addScaledVector(up,-0.1); P.chest.scale.set(0.105,0.09,0.1); P.pelvis.position.copy(J.hip); P.pelvis.scale.setScalar(0.1);
     limb(P.thighL,J.hipL,J.kL,0.057); limb(P.thighR,J.hipR,J.kR,0.057); limb(P.shinL,J.kL,J.fL,0.047); limb(P.shinR,J.kR,J.fR,0.047); P.kneeL.position.copy(J.kL); P.kneeL.scale.setScalar(0.054); P.kneeR.position.copy(J.kR); P.kneeR.scale.setScalar(0.054);
