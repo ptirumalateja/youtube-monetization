@@ -136,7 +136,7 @@ function setT(t,k=0,K=1){ const sc=pickScene(t,k,K); const ox=sets[sc.set].userD
   if(window.DBG){ pos=V(...window.DBG.pos); look=V(...window.DBG.look); }
   ST.cam.position.set(ox+pos.x,pos.y,pos.z); ST.cam.lookAt(ox+look.x,look.y,look.z);
   ST.grade.uniforms.uFlash.value=0; ST.grade.uniforms.uT.value=t;
-  let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
+  let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); if(XF<=0) fl=0;   // hard cuts: no warm flash either ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
   if(sc.set==='office'){ const o=sets.office; const uo=clamp((t-TL.office[0])/(TL.office[1]-TL.office[0])); const dn=0.5+0.5*Math.cos(2*Math.PI*2.4*uo); // 1 = bright day, 0 = night; ends in the evening
     o.userData.sky.color.setRGB(lerp(0.05,0.8,dn)+0.18*Math.sin(Math.PI*dn),lerp(0.07,0.68,dn)+0.05*Math.sin(Math.PI*dn),lerp(0.18,0.5,dn)-0.05*Math.sin(Math.PI*dn)); ST.hemi.intensity*=0.35+0.65*dn; ST.key.intensity*=0.3+0.7*dn; ST.lampA.intensity*=0.3+0.7*dn; scene.background.setRGB(lerp(0.02,0.09,dn),lerp(0.03,0.1,dn),lerp(0.06,0.11,dn));
     { const dw=sstep(0.78,0.95,uo); if(dw>0){ const sk=o.userData.sky.color; sk.r=lerp(sk.r,1.0,dw); sk.g=lerp(sk.g,0.78,dw); sk.b=lerp(sk.b,0.45,dw); ST.hemi.intensity*=1+0.8*dw; ST.key.intensity*=1+0.5*dw; ST.hemi.color.setHex(0xffd9a0); scene.background.setRGB(0.25*dw,0.18*dw,0.1*dw); } o.userData.glow=dw; }

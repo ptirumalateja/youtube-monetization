@@ -57,7 +57,7 @@ def spine(d, t, ts):
     """DAY n huge, the balance right under it: the only counter on screen during the bills."""
     a = sstep(T_RENT, T_RENT + 0.12, t) * (1 - sstep(T_ZERO - 0.02, T_ZERO + 0.05, t))
     if a <= 0: return
-    tracked(d, f'DAY {V1.day_at(ts)}', 120, W / 2 + 3, 145, 14, (0, 0, 0, int(170 * a))); tracked(d, f'DAY {V1.day_at(ts)}', 120, W / 2, 140, 14, CREAM + (int(255 * a),))
+    tracked(d, f'DAY {max(1, V1.day_at(ts))}', 120, W / 2 + 3, 145, 14, (0, 0, 0, int(170 * a))); tracked(d, f'DAY {max(1, V1.day_at(ts))}', 120, W / 2, 140, 14, CREAM + (int(255 * a),))
     b = V1.balance(ts); w = 660; x0 = (W - w) / 2; y = 310
     rr(d, [x0, y, x0 + w, y + 120], 60, (20, 14, 12, int(215 * a)), (255, 255, 255, int(70 * a)), 2)
     tracked(d, 'BALANCE', 28, x0 + 44, y + 46, 8, (230, 215, 190, int(220 * a)), 'Medium', anchor='l')

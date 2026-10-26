@@ -21,6 +21,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [Photon Rain (200 MP vs 24 MP)](photon-rain.md) | v2 final; a v3 storyboard is waiting on Teja's hook pick | `final-reels/photon-rain-v2.mp4` |
 | [Proton Laps: One Minute](proton-laps-one-minute.md) | Final (v3) | `final-reels/proton-laps-one-minute.mp4` |
 | [That's Going Wide... (Roberto Carlos free kick, 1997)](roberto-carlos-free-kick.md) | Final (v2, goal-first edit), awaiting Teja's review; 3D recreation, no footage | `final-reels/roberto-carlos-free-kick_v2.mp4` (silent: `_v2_music-ready.mp4`) |
+| [The Salary Loop (payday to payday)](salary-loop.md) | V2 (30 Friends formula re-edit), awaiting Teja's OK; FB Monday evening 26 Oct | `final-reels/salary-loop-v2.mp4` (silent: `salary-loop-v2_music-ready.mp4`) |
 | [Sleep Paralysis: The Thing in Your Room](sleep-paralysis.md) | Final (v4, Conjuring cut) | `final-reels/sleep-paralysis.mp4` |
 | [Someone Knew 4 Days Early (PHP2Shell attacks)](php2shell-who-knew.md) | Final (v1), awaiting Teja's review; time-sensitive news reel | `final-reels/php2shell-who-knew_master.mp4` (share: `php2shell-who-knew.mp4`; silent: `_music-ready.mp4`) |
 | [The Deepest Hole (Kola)](the-deepest-hole.md) | Final (v2 of reel #16) | `final-reels/the-deepest-hole.mp4` |
