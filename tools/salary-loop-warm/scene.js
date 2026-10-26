@@ -16,7 +16,7 @@ const SP=16; const BS=createBedSeq(R);
 const sets={}; const order=['bed','rent','bank','market','bills','food','pump','street','office'];
 const builders={bed:SETS.buildBedroom,rent:SETS.buildRent,bank:SETS.buildBank,market:SETS.buildMarket,bills:SETS.buildBills,food:SETS.buildRestaurant,pump:SETS.buildPump,street:SETS.buildStreet,office:SETS.buildOffice};
 order.forEach((k,i)=>{ const g=builders[k](); g.position.x=i*SP; g.visible=false; scene.add(g); sets[k]=g; g.userData.ox=i*SP; });
-{ const o=sets.office; o.userData.piles=[[-0.35,-1.05],[1.12,-0.98],[0.55,-1.12]].map(([x,z])=>B(o,0.34,0.1,0.24,M(0xf1ece0,{r:0.9}),x,0.86,z,{ry:0.2})); o.userData.cups=[[1.2,-0.85],[0.05,-1.0],[-0.1,-0.8]].map(([x,z])=>{ const c=new THREE.Group(); C(c,0.05,0.042,0.09,M(0xf2ede4,{r:0.4}),0,0,0); c.position.set(x,0.865,z); c.visible=false; o.add(c); return c; }); }
+{ const o=sets.office; o.userData.piles=[[-0.35,-1.05],[1.12,-0.98],[0.55,-1.12]].map(([x,z])=>B(o,0.24,0.1,0.17,M(0xf1ece0,{r:0.9}),x,0.86,z,{ry:0.2})); o.userData.cups=[[1.2,-0.85],[0.05,-1.0],[-0.1,-0.8]].map(([x,z])=>{ const c=new THREE.Group(); C(c,0.05,0.042,0.09,M(0xf2ede4,{r:0.4}),0,0,0); c.position.set(x,0.865,z); c.visible=false; o.add(c); return c; }); }
 const SCENES=TL.scenes.map(s=>({...s,set:{bed1:'bed',bed2:'bed',bed3:'bed',rent:'rent',bank:'bank',market:'market',pump:'pump',bills:'bills',food:'food',street:'street',office:'office'}[s.id]}));
 const sceneAt=t=>SCENES.find(s=>t>=s.t0&&t<s.t1)||SCENES[SCENES.length-1];
 // ---------------------------------------------------------------- people
@@ -73,17 +73,17 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
     const O0=TL.office[0], O1=TL.office[1]; const u=clamp((t-O0)/(O1-O0));
     const slump=sstep(0.55,0.88,u), hope=sstep(0.93,0.985,u), rub=sstep(0.47,0.52,u)*(1-sstep(0.6,0.65,u));
     const P={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,p:0.25+0.3*slump*(1-hope)+0.03*Math.sin(t*1.3),tilt:0.45+0.25*slump-0.7*hope,eL:1.0,eR:1.0};
-    const root=V(0.1,0,-0.2), yaw=SLD.yawOf(V(0.25,0,0.97)); const J0=R.skel(P,root,yaw); const hd=J0.head, fw=J0.fwd.clone();
+    const root=V(0.6,0,-0.5), yaw=SLD.yawOf(V(0,0,-1)); const J0=R.skel(P,root,yaw); const hd=J0.head, fw=J0.fwd.clone();
     const ty=t*13; const tying=1-rub;
-    const kL=V(0.32,0.86+Math.max(0,Math.sin(ty))*0.012*tying,-0.7), kR=V(0.58,0.86+Math.max(0,Math.sin(ty+2))*0.012*tying,-0.7);
-    const cupBase=V(0.9,0.93,-1.0), mouth=hd.clone().addScaledVector(fw,0.17).add(V(0,-0.1,0.0));
+    const kL=V(0.72,0.86+Math.max(0,Math.sin(ty))*0.012*tying,-1.0), kR=V(0.48,0.86+Math.max(0,Math.sin(ty+2))*0.012*tying,-1.0);
+    const cupBase=V(1.0,0.93,-1.0), mouth=hd.clone().addScaledVector(fw,0.17).add(V(0,-0.1,0.0));
     const c1=sstep(0.19,0.225,u), c2=sstep(0.225,0.26,u), c3=sstep(0.30,0.335,u), c4=sstep(0.335,0.37,u);
     let tR=kR.clone().lerp(cupBase,c1).lerp(mouth,c2).lerp(cupBase,c3).lerp(kR,c4); let tL=kL.clone();
-    const eyeR=hd.clone().addScaledVector(fw,0.15).add(V(0,-0.02,-0.06)), eyeL=hd.clone().addScaledVector(fw,0.15).add(V(0,-0.02,0.06));
+    const eyeR=hd.clone().addScaledVector(fw,0.15).add(V(-0.06,-0.02,0)), eyeL=hd.clone().addScaledVector(fw,0.15).add(V(0.06,-0.02,0));
     tR=tR.lerp(eyeR,rub); tL=tL.lerp(eyeL,rub);
-    P.tL=tL; P.wL=1; P.pL=V(-0.3,-0.7,0.4); P.tR=tR; P.wR=1; P.pR=V(-0.3,-0.7,-0.4);
+    P.tL=tL; P.wL=1; P.pL=V(-0.3,-0.7,0.5); P.tR=tR; P.wR=1; P.pR=V(-0.3,-0.7,-0.5);
     J=R.skel(P,root,yaw);
-    const grabbed=(u>0.225&&u<0.335); const cupPos=grabbed?J.hR.clone().add(V(0,0.0,0)):V(0.9,0.86,-1.0);
+    const grabbed=(u>0.225&&u<0.335); const cupPos=grabbed?J.hR.clone().add(V(0,0.0,0)):V(1.0,0.86,-1.0);
     face={mood:Math.max(0.06,m*0.6+0.3*hope),blink:rub>0.5?1:blinkAt(t),fwd:J.fwd,brow:0.2*hope};
     return {J:o(J),face,dress,phone:false,cupPos,u,eyeRub:rub}; }
   face={mood:m,blink:blinkAt(t),fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
@@ -124,14 +124,14 @@ function pickScene(t,k,K){ for(let i=1;i<SCENES.length;i++){ const s0=SCENES[i].
 function setT(t,k=0,K=1){ const sc=pickScene(t,k,K); const ox=sets[sc.set].userData.ox; order.forEach(k=>{ sets[k].visible=(k===sc.set); });
   applyLights(sc.set,ox,t); { const pj=(sc.id==='bed1'||sc.id==='bed3'||(sc.id==='bed2'&&t<TL.wake[0]+0.25)); if(hero.pj!==pj){ hero.pj=pj; hero.setColors(pj?{shirt:0x8aa0bc,pants:0x56648a}:{shirt:0xf6f2ea,pants:0x2b2c33}); } }
   const hp=heroPose(t,sc); hero.setVisible(true); hero.pose(hp.J,hp.face,hp.dress);
-  extras.forEach(e=>{ const on=e.setId===sc.set; e.f.setVisible(on); if(!on) return; const sit=e.pose.sit; const P={...R.P0,...e.pose}; delete P.sit; P.p=(P.p||0)+idle(t,e.seed); const root=e.root.clone().add(V(ox,sit?0:0,0)); const J=R.skel(P,root,e.yaw); J.fwd=J.fwd||V(1,0,0); e.f.pose(J,{mood:e.mood,blink:blinkAt(t+e.seed),fwd:J.fwd},{tie:e.setId==='bank'||e.setId==='office'?1:0,collar:1,belt:1}); });
+  extras.forEach(e=>{ const on=e.setId===sc.set&&!(e.setId==='office'&&e.root.x>1); e.f.setVisible(on); if(!on) return; const sit=e.pose.sit; const P={...R.P0,...e.pose}; delete P.sit; P.p=(P.p||0)+idle(t,e.seed); const root=e.root.clone().add(V(ox,sit?0:0,0)); const J=R.skel(P,root,e.yaw); J.fwd=J.fwd||V(1,0,0); e.f.pose(J,{mood:e.mood,blink:blinkAt(t+e.seed),fwd:J.fwd},{tie:e.setId==='bank'||e.setId==='office'?1:0,collar:1,belt:1}); });
   phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); { const zA=hp.phoneN.clone(); const yA=V(1,0,0).addScaledVector(zA,-zA.x).normalize(); const xA=yA.clone().cross(zA); phone.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xA,yA,zA)); } const lit=hp.phoneLit; phoneLight.position.copy(hp.phonePos).addScaledVector(hp.phoneN,0.3); phoneLight.intensity=0.09*lit; } else phoneLight.intensity=0;
   wallet.visible=!!hp.wallet; if(hp.wallet){ wallet.position.copy(hp.wallet.pos); wallet.rotation.set(Math.PI/2*0.9,0,Math.PI*hp.wallet.flip); const op=0.9*sstep(sc.t0,sc.t0+0.3,t); panL.rotation.z=-op*0.4; panR.rotation.z=op*0.4; }
   payNotes(t);
   let cm=CAMS[sc.id]; let u=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0)));
   let pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
   if(hp.bp){ pos=hp.bp.cam.pos.clone(); look=hp.bp.cam.look.clone(); }
-  if(sc.id==='office'){ const e=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0))); pos=V(lerp(-0.4,0.9,e),1.25,3.1); look=V(lerp(0.1,0.5,e),0.98,-0.7); }
+  if(sc.id==='office'){ const e=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0))); pos=V(lerp(3.1,2.7,e),1.45,lerp(2.2,1.0,e)); look=V(0.45,0.98,lerp(-0.6,-0.9,e)); }
   if(window.DBG){ pos=V(...window.DBG.pos); look=V(...window.DBG.look); }
   ST.cam.position.set(ox+pos.x,pos.y,pos.z); ST.cam.lookAt(ox+look.x,look.y,look.z);
   ST.grade.uniforms.uFlash.value=0; ST.grade.uniforms.uT.value=t;

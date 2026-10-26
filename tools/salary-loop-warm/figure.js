@@ -56,7 +56,7 @@ export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,
     for(const [sd,sh,el,hd] of [['L',J.shL,J.elL,J.hL],['R',J.shR,J.elR,J.hR]]){ limb(P['up'+sd],sh,el,0.043); P['sh'+sd].position.copy(sh); P['sh'+sd].scale.setScalar(0.052); P['el'+sd].position.copy(el); P['el'+sd].scale.setScalar(0.04);
       const cut=el.clone().lerp(hd,0.45); limb(P['sleeve'+sd],el,cut,0.04); limb(P['fore'+sd],cut,hd,0.032); P['hand'+sd].position.copy(hd); P['hand'+sd].scale.setScalar(0.052); }
     for(const [sd,ft_] of [['L',J.fL],['R',J.fR]]){ const sh=P['shoe'+sd]; sh.position.copy(ft_).add(V(0.05,-0.03,0)); sh.scale.set(0.22,0.075,0.1); }
-    const side=V(0,0,1); const q=new THREE.Quaternion().setFromUnitVectors(UP,up);
+    const side=J.hipL.clone().sub(J.hipR); side.y=0; side.length()>1e-4?side.normalize():side.set(0,0,1); const q=new THREE.Quaternion().setFromUnitVectors(UP,up);
     const tieA=dress.tie||0; for(const k of ['tie','knot','collarA','collarB']) P[k].visible=tieA>0.02||k.startsWith('collar')&&(dress.collar||0)>0.02;
     const fw=V(1,0,0).addScaledVector(up,-up.x).normalize(); if(Math.abs(fw.length()-1)>0.01||isNaN(fw.x)) fw.set(1,0,0); const fwdB=(J.fwd||fw).clone();
     P.collarA.position.copy(J.neck).addScaledVector(up,-0.02).addScaledVector(side,0.045).addScaledVector(fwdB,0.05); P.collarA.quaternion.copy(q); P.collarA.scale.set(0.07,0.02,0.05); P.collarA.rotateX(0.5);
