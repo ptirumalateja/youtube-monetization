@@ -33,5 +33,5 @@ export function createWarmStage({W,H}){
   const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
   return {W,H,renderer,scene,cam,hemi,key,lampA,lampB,fill,rim,bloom,grade,composer,
     renderAt(setT,t,Ksub=3,{t0=0,t1=1e9,shutter=1/60}={}){ actx.globalAlpha=1; actx.clearRect(0,0,W,H);
-      for(let k=0;k<Ksub;k++){ const tt=clamp(t+(Ksub>1?(k/(Ksub-1)-0.5)*shutter:0),t0,t1-1e-4); setT(tt); renderer.shadowMap.needsUpdate=true; composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(renderer.domElement,0,0); }
+      for(let k=0;k<Ksub;k++){ const tt=clamp(t+(Ksub>1?(k/(Ksub-1)-0.5)*shutter:0),t0,t1-1e-4); setT(tt,k,Ksub); renderer.shadowMap.needsUpdate=true; composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(renderer.domElement,0,0); }
       return acc.toDataURL('image/jpeg',0.95); }}; }

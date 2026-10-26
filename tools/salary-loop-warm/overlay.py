@@ -47,10 +47,11 @@ def balance(t):
 
 
 def day_at(t):
-    """DAY 1..6 as the six bills hit, then the work days run 7 -> 30 and speed up."""
+    """DAY 1..6 as the six bills hit; then DAY 6 -> 30 along the office time-lapse (the same number the wall calendar shows)."""
     d = sum(1 for it in ITEMS if t >= it['t'] - 0.25)
-    if t < 12.0: return d
-    u = min(1.0, max(0.0, (t - 12.0) / (17.7 - 12.0))); return min(30, 6 + int(24.99 * u ** 1.5))
+    o0, o1 = TL['office']
+    if t < o0: return d
+    u = min(1.0, max(0.0, (t - o0) / (o1 - o0))); return min(30, 6 + int(24.99 * u))
 
 
 def card_alpha(t):
@@ -110,21 +111,36 @@ def hud(layer, t):
         tracked(d, 'BALANCE', 26, x0 + 40, y + 38, 8, (230, 215, 190, int(220 * bal)), 'Medium', anchor='l'); tracked(d, money(b), 60, x0 + w - 40 - 310, y + 22, 3, ((255, 120, 100) if b < 1 else (255, 255, 255)) + (int(255 * bal),), anchor='l')
 
 
+def strike_strip(layer, t):
+    """Days 1-6 of the month in a row: each bill strikes its day through, like a calendar."""
+    a = sstep(TL['scenes'][1]['t0'] - 0.05, TL['scenes'][1]['t0'] + 0.2, t) * (1 - sstep(TL['alarm'] - 0.25, TL['alarm'] - 0.05, t))
+    if a <= 0: return
+    d = ImageDraw.Draw(layer); bw, gap = 92, 14; x0 = (W - (6 * bw + 5 * gap)) / 2; y = 452
+    rr(d, [x0 - 24, y - 16, W - x0 + 24, y + bw + 16], 30, (20, 14, 12, int(170 * a)))
+    for i, it in enumerate(ITEMS):
+        x = x0 + i * (bw + gap); rr(d, [x, y, x + bw, y + bw], 18, (250, 240, 222, int(240 * a)), None)
+        tracked(d, str(i + 1), 46, x + bw / 2, y + 22, 0, INK + (int(255 * a),))
+        k = sstep(it['t'] + 0.05, it['t'] + 0.3, t)
+        if k > 0:
+            d.line([(x + 10, y + 10), (x + 10 + (bw - 20) * k, y + 10 + (bw - 20) * k)], fill=RED + (int(255 * a),), width=9)
+            d.line([(x + bw - 10, y + 10), (x + bw - 10 - (bw - 20) * k, y + 10 + (bw - 20) * k)], fill=RED + (int(255 * a),), width=9)
+
+
 def top_text(layer, t):
     d = ImageDraw.Draw(layer); sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sd = ImageDraw.Draw(sh); items = []
     dd = day_at(t)
     if dd and TL['scenes'][1]['t0'] + 0.3 <= t < TL['zero'] + 0.1: items.append((f'DAY {dd}', 64, 14, 250, sstep(2.7, 3.0, t)))
-    z = sstep(TL['zero'] + 0.15, TL['zero'] + 0.45, t) * (1 - sstep(10.4, 10.7, t))
+    z = sstep(TL['zero'] + 0.1, TL['zero'] + 0.4, t) * (1 - sstep(TL['alarm'] - 0.25, TL['alarm'] - 0.05, t))
     if z > 0: items.append((f'DAY 6: {money(0)} LEFT.', 52, 9, 250, z))
     al = sstep(9.05, 9.3, t) * (1 - sstep(10.3, 10.5, t))
     if al > 0: items.append(('TODAY: 6TH', 56, 12, 175, al * 0))
-    g = sstep(12.0, 12.3, t) * (1 - sstep(13.8, 14.0, t))
+    g = sstep(12.3, 12.55, t) * (1 - sstep(13.0, 13.2, t))
     if g > 0: items.append(("BUT THE WORK DOESN'T STOP.", 44, 8, 250, g))
-    if t >= 14.0 and t < 18.0:
-        a1 = sstep(14.2, 14.5, t) * (1 - sstep(17.6, 17.9, t)); a2 = sstep(15.6, 15.9, t) * (1 - sstep(17.6, 17.9, t))
+    if t >= 13.2 and t < 18.2:
+        a1 = sstep(13.5, 13.8, t) * (1 - sstep(17.8, 18.1, t)); a2 = sstep(14.9, 15.2, t) * (1 - sstep(17.8, 18.1, t))
         items.append(('SALARY LASTED 6 DAYS.', 44, 8, 200, a1)); items.append(('WORK LASTS ALL 30.', 44, 8, 262, a2))
-        items.append((f'DAY {dd}', 50, 12, 556, sstep(14.1, 14.4, t) * (1 - sstep(17.6, 17.9, t))))
-    n = sstep(17.9, 18.15, t) * (1 - sstep(18.7, 18.9, t))
+        items.append((f'DAY {dd}', 50, 12, 556, sstep(13.5, 13.8, t) * (1 - sstep(17.8, 18.1, t))))
+    n = sstep(18.35, 18.6, t) * (1 - sstep(19.2, 19.5, t))
     if n > 0: items.append(('1ST OF NEXT MONTH', 56, 12, 250, n))
     for text, size, tr, y, a in items:
         if a <= 0: continue
@@ -134,14 +150,14 @@ def top_text(layer, t):
     for text, size, tr, y, a in items:
         if a > 0: tracked(d2, text, size, W / 2, y, tr, (255, 244, 224, int(255 * a)))
     # a gold NEXT SALARY chip while he works: the hope
-    h = sstep(14.4, 14.8, t) * (1 - sstep(17.9, 18.15, t)) + 0
+    h = sstep(13.7, 14.0, t) * (1 - sstep(17.9, 18.2, t))
     if h > 0:
         pul = 0.6 + 0.4 * math.sin(t * 5); rr(d2, [W / 2 - 260, 610, W / 2 + 260, 686], 38, (255, 196, 70, int(70 * h * pul)), (255, 196, 70, int(255 * h)), 3); tracked(d2, 'NEXT SALARY: 1ST', 34, W / 2, 630, 6, (255, 214, 120, int(255 * h)))
 
 
 def draw(img, t):
     if img.size != (W, H): img = img.resize((W, H), Image.LANCZOS)
-    layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); hud(layer, t); bill_cards(layer, t); top_text(layer, t); notification(layer, t); alarm(layer, t)
+    layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); hud(layer, t); bill_cards(layer, t); strike_strip(layer, t); top_text(layer, t); notification(layer, t); alarm(layer, t)
     wm = ImageDraw.Draw(layer); tracked(wm, 'SLOW LIGHT', 24, W / 2, 1548, 10, (255, 244, 224, int(255 * 0.35)), 'Medium')
     base = img.convert('RGBA'); base.alpha_composite(layer); return base.convert('RGB')
 
@@ -153,7 +169,7 @@ def check():
         if ph == 'up' and b < prev: ph = 'down'
         assert (b >= prev) if ph == 'up' else (b <= prev), f'balance not monotonic ({ph}) at frame {f}'
         prev = b
-    assert round(balance(1.0)) == TL['salary'] and round(balance(8.9)) == 0 and round(balance(DUR)) == 0
+    assert round(balance(1.0)) == TL['salary'] and round(balance(10.4)) == 0 and round(balance(DUR)) == 0
     assert sum(i['amt'] for i in ITEMS) == TL['salary']
     run = TL['salary']; exp = [32000, 20000, 13000, 8000, 4000, 0]
     for it, e in zip(ITEMS, exp): run -= it['amt']; assert run == e, (it['key'], run, e)
