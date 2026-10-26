@@ -16,10 +16,10 @@ const SP=16; const BS=createBedSeq(R);
 const sets={}; const order=['bed','rent','bank','market','bills','food','pump','street','office'];
 const builders={bed:SETS.buildBedroom,rent:SETS.buildRent,bank:SETS.buildBank,market:SETS.buildMarket,bills:SETS.buildBills,food:SETS.buildRestaurant,pump:SETS.buildPump,street:SETS.buildStreet,office:SETS.buildOffice};
 order.forEach((k,i)=>{ const g=builders[k](); g.position.x=i*SP; g.visible=false; scene.add(g); sets[k]=g; g.userData.ox=i*SP; });
-const SCENES=TL.scenes.map(s=>({...s,set:{bed1:'bed',bed2:'bed',bed3:'bed',rent:'rent',bank:'bank',market:'market',bills:'bills',food:'food',pump:'pump',street:'street',office:'office'}[s.id]}));
+const SCENES=TL.scenes.map(s=>({...s,set:{bed1:'bed',bed2:'bed',bed3:'bed',rent:'rent',bank:'bank',market:'market',pump:'pump',bills:'bills',food:'food',street:'street',office:'office'}[s.id]}));
 const sceneAt=t=>SCENES.find(s=>t>=s.t0&&t<s.t1)||SCENES[SCENES.length-1];
 // ---------------------------------------------------------------- people
-const hero=createFigure(scene,{skin:0xf2e2c6,shirt:0xf6f2ea,pants:0x2b2c33});
+const hero=createFigure(scene,{skin:0xf2e2c6,shirt:0xf6f2ea,pants:0x2b2c33,headR:0.152,hair:0x2a1c14});
 const extras=[]; function extra(setId,root,yaw,pose,mood,cols={}){ const f=createFigure(scene,{skin:cols.skin??0xe2c39a,shirt:cols.shirt??0x6a7a8a,pants:cols.pants??0x35343a,tie:cols.tie??0x7a3f3a,headR:0.165}); const e={f,setId,root,yaw,pose,mood,seed:extras.length*1.7,look:cols.look||0}; extras.push(e); return e; }
 const idle=(t,s)=>0.012*Math.sin(t*1.9+s);
 const stand=(root,yaw,o={})=>({root,yaw,P:{...R.P0,...o}});
@@ -31,7 +31,7 @@ extra('food',V(2.0,0,-1.2),Math.PI-0.4,{aL:1.5,aR:1.5,kL:1.5,kR:1.5,sit:1,p:0.15
 extra('pump',V(0.6,0,-0.3),Math.PI+0.4,{p:0.05,tilt:0.0},0.5,{skin:0xd9b48a,shirt:0xe8e1d4,pants:0x3a3a40});                                                       // the attendant
 for(const [x,s] of [[-1.9,0.4],[2.2,-0.4]]) extra('office',V(x,0,-1.0),s>0?-0.8:Math.PI+0.5,{aL:1.5,aR:1.5,kL:1.5,kR:1.5,sit:1,p:0.2,tilt:0.2},0.4,{skin:0xd9b48a,shirt:s>0?0x7a98b8:0xb89a7a});
 // ---------------------------------------------------------------- props: phone, wallet, cash notes
-const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({color:0xc9a860}),0,0,0.006,{cast:false}); } phone.scale.setScalar(1.3); scene.add(phone); const phoneLight=new THREE.PointLight(0xffd890,0,2.4,2); scene.add(phoneLight);
+const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({color:0xc9a860}),0,0,0.006,{cast:false}); } phone.scale.setScalar(1.6); scene.add(phone); const phoneLight=new THREE.PointLight(0xffd890,0,2.4,2); scene.add(phoneLight);
 const wallet=new THREE.Group(); const panL=new THREE.Group(), panR=new THREE.Group(); wallet.add(panL,panR); { const wm=M(0x8a3a28,{r:0.55}), im=M(0xd9c8a8,{r:0.8}); for(const [par,sx] of [[panL,-1],[panR,1]]){ B(par,0.11,0.012,0.15,wm,sx*0.055,0,0,{round:0.005}); B(par,0.1,0.004,0.14,im,sx*0.055,0.008,0,{cast:false}); } } scene.add(wallet);
 const notes=[]; for(let i=0;i<16;i++){ const n=B(scene,0.12,0.005,0.06,M(0xcfe3b5,{r:0.8,e:0x9fd08a,ei:0.5}),0,-9,0); notes.push(n); }
 const tmp=new THREE.Vector3();
@@ -46,7 +46,7 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
   let J,face={mood:m,blink:blinkAt(t)},dress={};
   const hold=(P,hand,tgtL)=>{ P.tL=tgtL; P.wL=hand; P.pL=V(-0.3,-0.7,0.35); };
   if(sc.id==='bed1'||sc.id==='bed3'){ const s=sc.id==='bed3'?t-20:t; const bp=BS.pose(s); const fc=BS.face(s); const lying=s<2.4;
-    face={roll:bp.roll||0,mood:fc.mood,brow:fc.brow,wide:fc.wide,open:fc.open,blink:(s>-1.1&&s<1.3)?0:blinkAt(t),fwd:bp.J.fwd};
+    face={roll:bp.roll||0,mood:fc.mood,brow:fc.brow,wide:fc.wide,open:fc.open,blink:fc.sleep?1:(s<1.2?0:blinkAt(t)),fwd:bp.faceFwd};
     return {J:o(bp.J),face,dress:{},phone:!!bp.phone,phonePos:bp.phone.pos.clone().add(V(ox,0,0)),phoneN:bp.phone.n,phoneLit:bp.phoneLight,bp}; }
   if(sc.id==='bed2'){ // reality: on the bed edge, the empty wallet turned upside down; the alarm; he gets up and puts the bag on
     const sit={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.8,eR:0.8,p:0.3,tilt:0.35}; const st={...R.P0,p:0.2,tilt:0.35}; const wk=sm5(clamp((t-TL.wake[0])/(TL.wake[1]-TL.wake[0]))); const rt=V(0.25,0,-0.3).lerp(V(0.5,0,0.5),wk);
@@ -84,16 +84,16 @@ const CAMS={ bed1:[[0.55,1.2,3.3],[-0.45,0.95,-0.9],[0.55,1.25,3.2],[-0.3,1.0,-0
   bills:[[0.05,1.4,3.6],[-0.1,1.05,-0.4],[0.05,1.35,3.2],[-0.1,1.05,-0.4]], food:[[0.1,1.35,3.6],[0.0,1.0,-0.4],[0.1,1.3,3.2],[0.0,1.0,-0.4]], pump:[[0.0,1.45,4.2],[-0.05,1.1,-0.2],[0.0,1.45,3.8],[-0.05,1.1,-0.2]], bed2:[[0.8,1.35,3.9],[0.3,0.95,-0.3],[0.7,1.3,3.5],[0.35,0.95,-0.2]],
   street:[[0.0,1.5,5.0],[0.0,1.1,-1.0],[0.0,1.45,4.0],[0.0,1.1,-1.0]], office:[[0.35,1.45,3.8],[0.2,1.15,-0.8],[0.3,1.4,3.4],[0.2,1.15,-0.8]], bed3:[[0.55,1.25,3.2],[-0.3,1.0,-0.7],[0.55,1.2,3.3],[-0.45,0.95,-0.9]] };
 // ---------------------------------------------------------------- the money: cash notes fly from his hand to the counterpart
-function payNotes(t){ let used=0; if(sceneAt(t).id==='bed1') { for(const n of notes) n.position.set(0,-9,0); return; } ITEMS.forEach((it,i)=>{ const u=(t-it.t)/0.5; if(u>0&&u<1){ for(let k=0;k<4;k++){ const n=notes[used++]; const uu=clamp(u*1.0-k*0.07); if(uu<=0||uu>=1){ n.position.set(0,-9,0); continue; } const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; const a=V(-0.4,1.05,0.4), b=[V(0.3,1.1,0.2),V(0.5,1.2,-0.7),V(0.6,1.1,-1.6),V(0.4,0.9,-0.9),V(0.2,0.9,-0.5),V(1.2,0.9,-0.9)][i]; tmp.copy(a).lerp(b,uu*uu*(3-2*uu)); tmp.y+=0.3*Math.sin(Math.PI*uu); n.position.set(ox+tmp.x,tmp.y,tmp.z); n.rotation.set(uu*6,uu*5,0); } } }); for(let k=used;k<notes.length;k++) notes[k].position.set(0,-9,0); }
+function payNotes(t){ let used=0; if(sceneAt(t).id==='bed1') { for(const n of notes) n.position.set(0,-9,0); return; } ITEMS.forEach((it,i)=>{ const u=(t-it.t)/0.5; if(u>0&&u<1){ for(let k=0;k<4;k++){ const n=notes[used++]; const uu=clamp(u*1.0-k*0.07); if(uu<=0||uu>=1){ n.position.set(0,-9,0); continue; } const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; const a=V(-0.4,1.05,0.4), b=[V(0.3,1.1,0.2),V(0.5,1.2,-0.7),V(0.6,1.1,-1.6),V(1.2,0.9,-0.9),V(0.4,0.9,-0.9),V(0.2,0.9,-0.5)][i]; tmp.copy(a).lerp(b,uu*uu*(3-2*uu)); tmp.y+=0.3*Math.sin(Math.PI*uu); n.position.set(ox+tmp.x,tmp.y,tmp.z); n.rotation.set(uu*6,uu*5,0); } } }); for(let k=used;k<notes.length;k++) notes[k].position.set(0,-9,0); }
 
 // ---------------------------------------------------------------- the blanket: a thin cloth draped over his body (height field from his limbs), tucked at the back, hanging over the front edge
-const BL={nx:130,nw:84,x0:-0.78,x1:1.12}; const blGeo=new THREE.PlaneGeometry(1,1,BL.nx,BL.nw); const blMesh=new THREE.Mesh(blGeo,new THREE.MeshStandardMaterial({map:SETS.plaidTex(),roughness:0.95,side:THREE.DoubleSide})); blMesh.castShadow=true; blMesh.receiveShadow=true; blMesh.frustumCulled=false; sets.bed.add(blMesh); sets.bed.userData.quilt.visible=false;
+const BL={nx:130,nw:84,x0:-0.56,x1:1.12}; const blGeo=new THREE.PlaneGeometry(1,1,BL.nx,BL.nw); const blMesh=new THREE.Mesh(blGeo,new THREE.MeshStandardMaterial({map:SETS.plaidTex(),roughness:0.95,side:THREE.DoubleSide})); blMesh.castShadow=true; blMesh.receiveShadow=true; blMesh.frustumCulled=false; sets.bed.add(blMesh); sets.bed.userData.quilt.visible=false;
 { const uv=blGeo.attributes.uv; for(let j=0;j<=BL.nw;j++) for(let i=0;i<=BL.nx;i++){ const k=j*(BL.nx+1)+i; uv.setXY(k,i/BL.nx*1.6,j/BL.nw*1.2); } }
 function updateBlanket(J,qt){ const pos=blGeo.attributes.position; const segs=[]; if(J&&qt<0.98){ const add=(a,b,r)=>segs.push([a,b,r]); add(J.hip,J.neck,0.14); add(J.hipL,J.kL,0.085); add(J.hipR,J.kR,0.085); add(J.kL,J.fL,0.065); add(J.kR,J.fR,0.065); add(J.shL,J.elL,0.055); add(J.shR,J.elR,0.055); add(J.elL,J.hL,0.05); add(J.elR,J.hR,0.05); }
   const xa=lerp(BL.x0,0.5,qt), xb=BL.x1; const topY=0.545, zb=-1.8, zf=-0.6;
   for(let j=0;j<=BL.nw;j++){ const w=j/BL.nw; for(let i=0;i<=BL.nx;i++){ const x=lerp(xa,xb,i/BL.nx); let z,y; const sp=0.84;
       const zz=w<sp?lerp(zb,zf,w/sp):zf; let h=topY+0.004*Math.sin(x*23+zz*9); let wt=1-qt; let nd=1;
-      if(segs.length){ for(const [a,b,r] of segs){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz+1e-6; let u=((x-a.x)*dx+(zz-a.z)*dz)/L2; u=clamp(u); const px=a.x+dx*u, pz=a.z+dz*u, py=a.y+(b.y-a.y)*u; const d=Math.hypot(x-px,zz-pz); const top=py+(r+0.008)*Math.exp(-Math.pow(d/(r*1.25),2)); if(top>h) h=top; nd=Math.min(nd,d-r); } if(x<-0.62) h=lerp(topY+0.02,h,clamp((x+0.78)/0.16)); }
+      if(segs.length){ for(const [a,b,r] of segs){ const dx=b.x-a.x, dz=b.z-a.z, L2=dx*dx+dz*dz+1e-6; let u=((x-a.x)*dx+(zz-a.z)*dz)/L2; u=clamp(u); const px=a.x+dx*u, pz=a.z+dz*u, py=a.y+(b.y-a.y)*u; const d=Math.hypot(x-px,zz-pz); const top=py+(r+0.008)*Math.exp(-Math.pow(d/(r*1.25),2)); if(top>h) h=top; nd=Math.min(nd,d-r); } if(x<-0.42) h=lerp(topY+0.02,h,clamp((x+0.56)/0.14)); }
       { const near=Math.exp(-Math.max(0,nd)/0.2); const amp=(0.004+0.013*near)*(1+2.0*Math.sin(Math.PI*clamp(qt))); h+=amp*(0.9*Math.sin(x*27+1.7*Math.sin(zz*5.3)+zz*2.1)+0.7*Math.sin(zz*19-x*13+Math.sin(x*7)*2)+0.5*Math.sin((x+zz)*43+Math.sin(zz*11)*1.5)); }
       h=lerp(topY,h,wt); // bunched at the foot once he pushes it off
       h+=qt*0.15*(0.5+0.5*Math.sin(x*26+1))*Math.exp(-Math.pow((x-0.72)/0.3,2))*(0.6+0.4*Math.sin(zz*7));
@@ -102,10 +102,10 @@ function updateBlanket(J,qt){ const pos=blGeo.attributes.position; const segs=[]
   pos.needsUpdate=true; blGeo.computeVertexNormals(); }
 // ---------------------------------------------------------------- one frame
 function setT(t){ const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; order.forEach(k=>{ sets[k].visible=(k===sc.set); });
-  applyLights(sc.set,ox,t);
+  applyLights(sc.set,ox,t); { const pj=(sc.id==='bed1'||sc.id==='bed3'); if(hero.pj!==pj){ hero.pj=pj; hero.setColors(pj?{shirt:0x8aa0bc,pants:0x56648a}:{shirt:0xf6f2ea,pants:0x2b2c33}); } }
   const hp=heroPose(t,sc); hero.setVisible(true); hero.pose(hp.J,hp.face,hp.dress);
   extras.forEach(e=>{ const on=e.setId===sc.set; e.f.setVisible(on); if(!on) return; const sit=e.pose.sit; const P={...R.P0,...e.pose}; delete P.sit; P.p=(P.p||0)+idle(t,e.seed); const root=e.root.clone().add(V(ox,sit?0:0,0)); const J=R.skel(P,root,e.yaw); J.fwd=J.fwd||V(1,0,0); e.f.pose(J,{mood:e.mood,blink:blinkAt(t+e.seed),fwd:J.fwd},{tie:e.setId==='bank'||e.setId==='office'?1:0,collar:1,belt:1}); });
-  phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); { const zA=hp.phoneN.clone(); const yA=V(1,0,0).addScaledVector(zA,-zA.x).normalize(); const xA=yA.clone().cross(zA); phone.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xA,yA,zA)); } const lit=hp.phoneLit; phoneLight.position.copy(hp.phonePos).addScaledVector(hp.phoneN,0.18); phoneLight.intensity=0.3*lit; } else phoneLight.intensity=0;
+  phone.visible=!!hp.phone; if(hp.phone){ phone.position.copy(hp.phonePos); { const zA=hp.phoneN.clone(); const yA=V(1,0,0).addScaledVector(zA,-zA.x).normalize(); const xA=yA.clone().cross(zA); phone.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xA,yA,zA)); } const lit=hp.phoneLit; phoneLight.position.copy(hp.phonePos).addScaledVector(hp.phoneN,0.3); phoneLight.intensity=0.09*lit; } else phoneLight.intensity=0;
   wallet.visible=!!hp.wallet; if(hp.wallet){ wallet.position.copy(hp.wallet.pos); wallet.rotation.set(Math.PI/2*0.9,0,Math.PI*hp.wallet.flip); const op=0.9*sstep(8.6,8.9,t); panL.rotation.z=-op*0.4; panR.rotation.z=op*0.4; }
   payNotes(t);
   let cm=CAMS[sc.id]; let u=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0)));
@@ -117,7 +117,7 @@ function setT(t){ const sc=sceneAt(t); const ox=sets[sc.set].userData.ox; order.
   let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
   // office: the day passes through the window (sun to dusk), the coffee goes, the clock hand spins
   if(sc.set==='office'){ const o=sets.office; const dd=sstep(14.0,18.0,t); o.userData.sky.color.setRGB(lerp(1.0,0.35,dd),lerp(0.85,0.2,dd),lerp(0.62,0.35,dd)); o.userData.coffee.position.y=0.03-0.036*sstep(14.5,17.5,t); o.userData.clockHand.rotation.z=-t*6; const cal=o.userData.cal; const x=Math.floor(7+23*Math.min(1,Math.pow((t-14.0)/3.4,1.6))); if(cal.userData.x!==x){ cal.userData.x=x; cal.material.map.dispose(); cal.material.map=SETS.calendarTex(0,x,'JANUARY'); cal.material.needsUpdate=true; } }
-  if(sc.set==='bed'){ const qt=hp.bp?hp.bp.quilt:1; blMesh.visible=true; updateBlanket(hp.bp?hp.bp.J:null,qt); const b=sets.bed; const x=sc.id==='bed2'?6:5; b.userData.note.visible=(sc.id==='bed3'||sc.id==='bed1'); }
+  if(sc.set==='bed'){ const qt=hp.bp?hp.bp.quilt:1; blMesh.visible=true; updateBlanket(hp.bp?hp.bp.J:null,qt); const b=sets.bed; { const key=sc.id==='bed2'?'6/5':'1/0'; const cal=b.userData.cal; if(cal.userData.k!==key){ cal.userData.k=key; cal.material.map.dispose(); cal.material.map=sc.id==='bed2'?SETS.calendarTex(6,5,'JANUARY'):SETS.calendarTex(1,0,'JANUARY'); cal.material.needsUpdate=true; } } const x=sc.id==='bed2'?6:5; b.userData.note.visible=(sc.id==='bed3'||sc.id==='bed1'); }
 }
 window.renderAt=(t,K=3)=>{ const fast=t>11.9&&t<14.1; return ST.renderAt(setT,t,fast?5:K,{t0:0,t1:DUR,shutter:fast?1/36:1/60}); };
 window.events={...TL}; window.ready=true;

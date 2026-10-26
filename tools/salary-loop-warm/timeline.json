@@ -1,37 +1,234 @@
 {
-  "duration": 20.0,
-  "fps": 30,
-  "_comment": "Warm rebuild. All times in seconds. scene.js, overlay.py and mix.py read this file. Six bills sum to the 50,000 salary. hap = how happy he looks (face + posture + bar).",
-  "salary": 50000,
-  "notify": [18.95, 1.0],
-  "scenes": [
-    {"id": "bed1",   "t0": 0.0,  "t1": 4.7},
-    {"id": "rent",   "t0": 4.7,  "t1": 4.05},
-    {"id": "bank",   "t0": 4.05, "t1": 5.05},
-    {"id": "market", "t0": 5.05, "t1": 6.0},
-    {"id": "bills",  "t0": 6.0,  "t1": 6.9},
-    {"id": "food",   "t0": 6.9,  "t1": 7.75},
-    {"id": "pump",   "t0": 7.75, "t1": 8.7},
-    {"id": "bed2",   "t0": 8.7,  "t1": 12.0},
-    {"id": "street", "t0": 12.0, "t1": 14.0},
-    {"id": "office", "t0": 14.0, "t1": 18.0},
-    {"id": "bed3",   "t0": 18.0, "t1": 20.0}
+ "duration": 20.0,
+ "fps": 30,
+ "_comment": "Warm rebuild. All times in seconds. scene.js, overlay.py and mix.py read this file. Six bills sum to the 50,000 salary. hap = how happy he looks (face + posture + bar).",
+ "salary": 50000,
+ "notify": [
+  1.0,
+  3.3
+ ],
+ "scenes": [
+  {
+   "id": "bed1",
+   "t0": 0,
+   "t1": 4.8
+  },
+  {
+   "id": "rent",
+   "t0": 4.8,
+   "t1": 5.3
+  },
+  {
+   "id": "bank",
+   "t0": 5.3,
+   "t1": 5.8
+  },
+  {
+   "id": "market",
+   "t0": 5.8,
+   "t1": 6.3
+  },
+  {
+   "id": "pump",
+   "t0": 6.3,
+   "t1": 6.8
+  },
+  {
+   "id": "bills",
+   "t0": 6.8,
+   "t1": 7.3
+  },
+  {
+   "id": "food",
+   "t0": 7.3,
+   "t1": 7.8
+  },
+  {
+   "id": "bed2",
+   "t0": 7.8,
+   "t1": 12.0
+  },
+  {
+   "id": "street",
+   "t0": 12.0,
+   "t1": 14.0
+  },
+  {
+   "id": "office",
+   "t0": 14.0,
+   "t1": 18.0
+  },
+  {
+   "id": "bed3",
+   "t0": 18.0,
+   "t1": 20.0
+  }
+ ],
+ "items": [
+  {
+   "key": "RENT",
+   "label": "RENT",
+   "amt": 18000,
+   "t": 3.35,
+   "day": 1
+  },
+  {
+   "key": "EMI",
+   "label": "BIKE EMI",
+   "amt": 12000,
+   "t": 4.4,
+   "day": 2
+  },
+  {
+   "key": "GROCERIES",
+   "label": "GROCERIES",
+   "amt": 7000,
+   "t": 5.35,
+   "day": 3
+  },
+  {
+   "key": "FUEL",
+   "label": "FUEL",
+   "amt": 5000,
+   "t": 6.25,
+   "day": 4
+  },
+  {
+   "key": "UTILITIES",
+   "label": "ELECTRICITY, WATER, WI-FI",
+   "amt": 4000,
+   "t": 7.1,
+   "day": 5
+  },
+  {
+   "key": "FOOD",
+   "label": "FOOD & PARTY",
+   "amt": 4000,
+   "t": 8.0,
+   "day": 6
+  }
+ ],
+ "countDur": 0.3,
+ "zero": 8.35,
+ "rise": [
+  1.45,
+  2.05
+ ],
+ "dance": [
+  2.05,
+  3.0
+ ],
+ "alarm": 10.6,
+ "wake": [
+  10.9,
+  11.5
+ ],
+ "knockEnd": [
+  19.5,
+  19.65
+ ],
+ "hap": [
+  [
+   0,
+   0.8
   ],
-  "items": [
-    {"key": "RENT",      "label": "RENT",                       "amt": 18000, "t": 3.35, "day": 1},
-    {"key": "EMI",       "label": "BIKE EMI",                   "amt": 12000, "t": 4.4,  "day": 2},
-    {"key": "GROCERIES", "label": "GROCERIES",                  "amt": 7000,  "t": 5.35, "day": 3},
-    {"key": "UTILITIES", "label": "ELECTRICITY, WATER, WI-FI",  "amt": 4000,  "t": 6.25, "day": 4},
-    {"key": "FOOD",      "label": "FOOD",                       "amt": 4000,  "t": 7.1,  "day": 5},
-    {"key": "FUEL",      "label": "FUEL",                       "amt": 5000,  "t": 8.0,  "day": 6}
+  [
+   0.9,
+   0.85
   ],
-  "countDur": 0.3,
-  "zero": 8.35,
-  "rise": [1.45, 2.05], "dance": [2.05, 3.0],
-  "alarm": 10.6, "wake": [10.9, 11.5],
-  "knockEnd": [19.5, 19.65],
-  "hap": [[0,0.8],[0.9,0.85],[1.6,1.0],[3.0,1.0],[3.5,0.85],[4.4,0.7],[5.4,0.52],[6.3,0.36],[7.15,0.2],[8.05,0.08],[8.4,0.0],[11.0,0.0],[12.0,0.12],[16.0,0.22],[17.8,0.3],[18.95,0.4],[19.3,0.8],[20,0.8]],
-  "light": [[0,1],[20,1]],
-  "dayFrom": 6, "dayTo": 30,
-  "reviewTimes": [0.3, 1.2, 2.5, 3.5, 4.5, 5.5, 6.4, 7.3, 8.2, 9.6, 11.2, 12.8, 15.0, 17.0, 19.0, 19.9]
+  [
+   1.6,
+   1.0
+  ],
+  [
+   3.0,
+   1.0
+  ],
+  [
+   3.5,
+   0.85
+  ],
+  [
+   4.4,
+   0.7
+  ],
+  [
+   5.4,
+   0.52
+  ],
+  [
+   6.3,
+   0.36
+  ],
+  [
+   7.15,
+   0.2
+  ],
+  [
+   8.05,
+   0.08
+  ],
+  [
+   8.4,
+   0.0
+  ],
+  [
+   11.0,
+   0.0
+  ],
+  [
+   12.0,
+   0.12
+  ],
+  [
+   16.0,
+   0.22
+  ],
+  [
+   17.8,
+   0.3
+  ],
+  [
+   18.95,
+   0.4
+  ],
+  [
+   19.3,
+   0.8
+  ],
+  [
+   20,
+   0.8
+  ]
+ ],
+ "light": [
+  [
+   0,
+   1
+  ],
+  [
+   20,
+   1
+  ]
+ ],
+ "dayFrom": 6,
+ "dayTo": 30,
+ "reviewTimes": [
+  0.3,
+  1.2,
+  2.5,
+  3.5,
+  4.5,
+  5.5,
+  6.4,
+  7.3,
+  8.2,
+  9.6,
+  11.2,
+  12.8,
+  15.0,
+  17.0,
+  19.0,
+  19.9
+ ]
 }

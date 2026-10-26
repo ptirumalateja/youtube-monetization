@@ -54,8 +54,7 @@ def day_at(t):
 
 
 def card_alpha(t):
-    a = sstep(TL['notify'][0], TL['notify'][0] + 0.25, t) + (1 - sstep(0.8, 1.0, t)) * (1 if t < TL['notify'][1] else 0)
-    return min(1.0, a)
+    return sstep(TL['notify'][0], TL['notify'][0] + 0.25, t) * (1 - sstep(TL['notify'][1], TL['notify'][1] + 0.3, t))
 
 
 def rr(d, box, r, fill, outline=None, width=0): d.rounded_rectangle(box, radius=r, fill=fill, outline=outline, width=width)
@@ -68,7 +67,7 @@ def bell(d, cx, cy, s, col):
 def notification(layer, t):
     a = card_alpha(t)
     if a <= 0: return
-    d = ImageDraw.Draw(layer); slide = sstep(TL['notify'][0], TL['notify'][0] + 0.25, t) if t > 5 else 1.0; y = int(160 - 300 * (1 - slide)); x0, x1, h = 110, W - 110, 250
+    d = ImageDraw.Draw(layer); slide = sstep(TL['notify'][0], TL['notify'][0] + 0.25, t); y = int(160 - 300 * (1 - slide)); x0, x1, h = 110, W - 110, 250
     sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(sh).rounded_rectangle([x0 + 6, y + 14, x1 + 6, y + h + 14], radius=40, fill=(0, 0, 0, int(110 * a))); layer.alpha_composite(sh.filter(ImageFilter.GaussianBlur(16)))
     rr(d, [x0, y, x1, y + h], 40, (255, 252, 244, int(246 * a)), (232, 170, 60, int(255 * a)), 4)
     rr(d, [x0 + 28, y + 30, x0 + 108, y + 110], 22, (255, 190, 60, int(255 * a))); bell(d, x0 + 68, y + 66, 18, (255, 255, 255, int(255 * a)))
@@ -88,6 +87,7 @@ def alarm(layer, t):
 
 def bill_cards(layer, t):
     d = ImageDraw.Draw(layer)
+    if t < TL['scenes'][1]['t0']: return
     for i, it in enumerate(ITEMS):
         u = t - it['t']
         if -0.15 <= u <= 0.95:
@@ -103,24 +103,17 @@ def bill_cards(layer, t):
 def hud(layer, t):
     d = ImageDraw.Draw(layer)
     # balance pill
-    bal = sstep(0.4, 0.8, t) * (1 - sstep(18.4, 18.8, t)) + 0.0
-    if bal > 0 and not (t > TL['notify'][0] - 0.3 and t < 20):
+    bal = sstep(ITEMS[0]['t'] - 0.7, ITEMS[0]['t'] - 0.4, t) * (1 - sstep(18.4, 18.8, t))
+    if bal > 0 and t > TL['scenes'][1]['t0']:
         b = balance(t); w = 600; x0 = (W - w) / 2; y = 330
         rr(d, [x0, y, x0 + w, y + 104], 52, (20, 14, 12, int(210 * bal)), (255, 255, 255, int(70 * bal)), 2)
         tracked(d, 'BALANCE', 26, x0 + 40, y + 38, 8, (230, 215, 190, int(220 * bal)), 'Medium', anchor='l'); tracked(d, money(b), 60, x0 + w - 40 - 310, y + 22, 3, ((255, 120, 100) if b < 1 else (255, 255, 255)) + (int(255 * bal),), anchor='l')
-    # happiness bar (a smile that drains)
-    show = sstep(0.0, 0.01, t) * (1 - sstep(17.6, 17.9, t)) + sstep(18.95, 19.3, t); show = min(1.0, show); h = hap_at(t)
-    if show > 0:
-        bw, bh, bx, by = 460, 20, (W - 460) / 2, 510
-        tracked(d, 'HAPPINESS', 24, W / 2, by - 36, 8, (255, 240, 215, int(235 * show)), 'Medium')
-        rr(d, [bx, by, bx + bw, by + bh], 10, (20, 14, 12, int(170 * show)), (255, 240, 215, int(200 * show)), 2)
-        if h > 0.01: rr(d, [bx + 3, by + 3, bx + 3 + (bw - 6) * h, by + bh - 3], 7, ((255, 196, 70) if h > 0.5 else (255, 120, 100)) + (int(245 * show),))
 
 
 def top_text(layer, t):
     d = ImageDraw.Draw(layer); sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sd = ImageDraw.Draw(sh); items = []
     dd = day_at(t)
-    if dd and TL['scenes'][1]['t0'] - 0.2 <= t < TL['zero'] + 0.1: items.append((f'DAY {dd}', 64, 14, 250, sstep(2.7, 3.0, t)))
+    if dd and TL['scenes'][1]['t0'] + 0.3 <= t < TL['zero'] + 0.1: items.append((f'DAY {dd}', 64, 14, 250, sstep(2.7, 3.0, t)))
     z = sstep(TL['zero'] + 0.15, TL['zero'] + 0.45, t) * (1 - sstep(10.4, 10.7, t))
     if z > 0: items.append((f'DAY 6: {money(0)} LEFT.', 52, 9, 250, z))
     al = sstep(9.05, 9.3, t) * (1 - sstep(10.3, 10.5, t))
@@ -162,14 +155,11 @@ def check():
         prev = b
     assert round(balance(1.0)) == TL['salary'] and round(balance(8.9)) == 0 and round(balance(DUR)) == 0
     assert sum(i['amt'] for i in ITEMS) == TL['salary']
-    run = TL['salary']; exp = [32000, 20000, 13000, 9000, 5000, 0]
+    run = TL['salary']; exp = [32000, 20000, 13000, 8000, 4000, 0]
     for it, e in zip(ITEMS, exp): run -= it['amt']; assert run == e, (it['key'], run, e)
     days = [day_at(f / FPS) for f in range(round(DUR * FPS))]
     assert days == sorted(days) and max(days) == 30 and days[0] == 0 and [days.index(k) for k in range(1, 7)] == sorted(days.index(k) for k in range(1, 7))
-    assert abs(card_alpha(0) - card_alpha(DUR - 1 / FPS)) < 0.01 and card_alpha(0) > 0.99, 'message box does not wrap'
-    assert abs(hap_at(0) - hap_at(DUR)) < 1e-6
-    hs = [hap_at(t / FPS) for t in range(int(1.6 * FPS), int(8.4 * FPS))]; assert all(b <= a + 1e-9 for a, b in zip(hs, hs[1:])), 'happiness must only drain over days 1-6'
-    print('counters ok: 50,000 in, six bills, balance 0 at', TL['zero'], 's, DAY max', max(days), '| happiness drains 1.0 ->', round(hap_at(8.4), 2), 'then back to', round(hap_at(19.5), 2), 'on the 1st')
+    print('counters ok: 50,000 in, six bills, balance 0 at', TL['zero'], 's, DAY max', max(days))
 
 
 if __name__ == '__main__':

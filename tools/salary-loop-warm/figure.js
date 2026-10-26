@@ -20,7 +20,7 @@ function drawFace(g,W,H,m,blink,open,brow=0,wide=0){ g.clearRect(0,0,W,H); const
   const my=cy+66, w=44+30*happy, c=lerp(-26,26,m); g.strokeStyle=dark; g.lineWidth=9;
   if(open>0.15||happy>0.6){ const o=Math.max(open,happy*0.8); g.fillStyle='#4a1a14'; g.beginPath(); g.moveTo(cx-w,my-6); g.quadraticCurveTo(cx,my+4,cx+w,my-6); g.quadraticCurveTo(cx,my+8+60*o,cx-w,my-6); g.fill(); g.fillStyle='#ff8a85'; g.beginPath(); g.ellipse(cx,my+22+16*o,w*0.42,10+8*o,0,0,7); g.fill(); g.stroke(); }
   else { g.beginPath(); g.moveTo(cx-w,my+(c<0?8:0)); g.quadraticCurveTo(cx,my+c*1.1,cx+w,my+(c<0?8:0)); g.stroke(); } }
-export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,shoe=0x15171b,tie=0x3f4859,scale=1.0,headR=0.17}={}){
+export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,shoe=0x15171b,tie=0x3f4859,scale=1.0,headR=0.17,hair=null}={}){
   const g=new THREE.Group(); scene.add(g);
   const mk=(col,r=0.6)=>new THREE.MeshStandardMaterial({color:col,roughness:r,metalness:0});
   const skinM=mk(skin,0.55), shirtM=mk(shirt,0.75), pantsM=mk(pants,0.8), shoeM=mk(shoe,0.45), tieM=mk(tie,0.6), leatherM=mk(0x3a2a1e,0.7), idM=mk(0xffffff,0.5);
@@ -35,8 +35,11 @@ export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,
   // face: a curved cap on the head sphere carrying a redrawn canvas
   const cv=document.createElement('canvas'); cv.width=512; cv.height=384; const cg=cv.getContext('2d'); const ft=new THREE.CanvasTexture(cv); ft.colorSpace=THREE.SRGBColorSpace; ft.anisotropy=4;
   const cap=new THREE.Mesh(new THREE.SphereGeometry(headR*1.012,28,20,Math.PI/2-0.78,1.56,Math.PI/2-0.6,1.2),new THREE.MeshBasicMaterial({map:ft,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})); cap.frustumCulled=false; g.add(cap);
+  // hair, ears and a nose: a person, not a ball
+  const hairM=mk(hair??0x2a1c14,0.85); const hairMesh=new THREE.Mesh(new THREE.SphereGeometry(headR*1.04,26,16,0,Math.PI*2,0,Math.PI*0.44),hairM); hairMesh.castShadow=true; hairMesh.frustumCulled=false; hairMesh.visible=hair!==null; g.add(hairMesh);
+  const earL=part(sph,skinM), earR=part(sph,skinM), nose=part(sph,skinM);
   const F={group:g,parts:P,faceMood:-1,faceBlink:-1,faceOpen:-1};
-  F.setVisible=v=>{ g.visible=v; };
+  F.setVisible=v=>{ g.visible=v; hairMesh.visible=v&&hair!==null; };
   // pose: J joints (world), face {mood 0..1, blink, open, look(rad about head up), fwd Vector3}, dress {tie, lanyard, bag, belt} 0..1, hide: array of part names
   F.pose=(J,face={},dress={})=>{ const s=scale; const m=face.mood??0.5, blink=face.blink||0, open=face.open||0;
     const brow=face.brow||0, wide=face.wide||0; if(Math.abs(m-F.faceMood)>0.01||blink!==F.faceBlink||Math.abs(open-F.faceOpen)>0.02||Math.abs(brow-(F.faceBrow||0))>0.02||Math.abs(wide-(F.faceWide||0))>0.02){ drawFace(cg,512,384,m,blink,open,brow,wide); ft.needsUpdate=true; F.faceMood=m; F.faceBlink=blink; F.faceOpen=open; F.faceBrow=brow; F.faceWide=wide; }
@@ -44,6 +47,9 @@ export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,
     let f=fwd0.clone().addScaledVector(hdir,-fwd0.dot(hdir)).normalize(); if(face.look){ f.applyAxisAngle(hdir,face.look); }
     const hc=J.head.clone(); P.head.position.copy(hc); P.head.scale.setScalar(headR); cap.position.copy(hc);
     const hf=face.roll?hdir.clone().applyAxisAngle(f,face.roll):hdir; cap.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(hf.clone().cross(f).normalize(),hf,f));
+    { const s_=hdir.clone().cross(f).normalize(); const pole=hdir.clone().multiplyScalar(0.85).addScaledVector(f,-0.52).normalize(); hairMesh.position.copy(hc); hairMesh.quaternion.setFromUnitVectors(UP,pole);
+      for(const [e,sg] of [[earL,1],[earR,-1]]){ e.position.copy(hc).addScaledVector(s_,sg*headR*0.98).addScaledVector(hdir,-headR*0.05).addScaledVector(f,-headR*0.05); e.scale.set(headR*0.14,headR*0.22,headR*0.1); e.quaternion.setFromUnitVectors(UP,hdir); }
+      nose.position.copy(hc).addScaledVector(f,headR*1.0).addScaledVector(hdir,-headR*0.18); nose.scale.setScalar(headR*0.11); }
     limb(P.neck,J.neck.clone().addScaledVector(up,-0.02),hc.clone().addScaledVector(hdir,-headR*0.8),0.04);
     limb(P.torso,J.hip,J.neck.clone().addScaledVector(up,-0.04),0.088); P.chest.position.copy(J.neck).addScaledVector(up,-0.1); P.chest.scale.set(0.105,0.09,0.1); P.pelvis.position.copy(J.hip); P.pelvis.scale.setScalar(0.1);
     limb(P.thighL,J.hipL,J.kL,0.057); limb(P.thighR,J.hipR,J.kR,0.057); limb(P.shinL,J.kL,J.fL,0.047); limb(P.shinR,J.kR,J.fR,0.047); P.kneeL.position.copy(J.kL); P.kneeL.scale.setScalar(0.054); P.kneeR.position.copy(J.kR); P.kneeR.scale.setScalar(0.054);
