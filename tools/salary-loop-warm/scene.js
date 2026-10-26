@@ -46,7 +46,7 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
   const o=(J)=>{ for(const k in J) if(J[k].isVector3&&k!=='fwd') J[k].x+=ox; return J; };
   let J,face={mood:m,blink:blinkAt(t)},dress={};
   const hold=(P,hand,tgtL)=>{ P.tL=tgtL; P.wL=hand; P.pL=V(-0.3,-0.7,0.35); };
-  if(sc.id==='bed1'||sc.id==='bed3'){ const s=sc.id==='bed3'?t-20:t; const bp=BS.pose(s); const fc=BS.face(s); const lying=s<2.4;
+  if(sc.id==='bed1'||sc.id==='bed3'){ const s=sc.id==='bed3'?(t-18.6)*1.5:t; const bp=BS.pose(s); const fc=BS.face(s); const lying=s<2.4;
     face={roll:bp.roll||0,mood:fc.mood,brow:fc.brow,wide:fc.wide,open:fc.open,blink:fc.sleep?1:(s<1.2?0:blinkAt(t)),fwd:bp.faceFwd};
     return {J:o(bp.J),face,dress:{},phone:!!bp.phone,phonePos:bp.phone.pos.clone().add(V(ox,0,0)),phoneN:bp.phone.n,phoneLit:bp.phoneLight,bp}; }
   if(sc.id==='bed2'){ // reality: on the bed edge, the empty wallet turned upside down; the alarm; he pulls on his office shirt, takes the bag and leaves
@@ -54,12 +54,12 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
     const sit={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,sL:0.4,sR:0.4,eL:0.8,eR:0.8,p:0.3+0.25*sstep(al-0.6,al-0.1,t)*(1-sstep(al,al+0.2,t)),tilt:0.35}; const st={...R.P0,p:0.2,tilt:0.1}; const wk=sm5(clamp((t-w0)/(w1-w0)));
     const wu=Math.max(0,t-w1); const rt=V(0.25,0,-0.3).lerp(V(0.5,0,0.5),wk).add(V(wu*1.0,0,0)); const yaw=lerp(SLD.yawOf(V(0.35,0,0.94)),SLD.yawOf(V(1,0,0.12)),sstep(w1,w1+0.3,t));
     let P=R.blend(sit,st,wk); if(wu>0) P=R.gait({...P},wu*7.5,sstep(w1,w1+0.2,t)*0.9,0.34,0.62,0.2);
-    const flip=sstep(t0+0.1,t0+0.7,t), shake=(t>t0+0.3&&t<t0+0.9)?0.02*Math.sin(t*34):0; const wp=V(rt.x+0.12,0.74+0.22*flip+shake,rt.z+0.38);
+    const flip=sstep(t0+0.1,t0+0.7,t), shake=(t>t0+0.3&&t<t0+0.9)?0.02*Math.sin(t*34):0; const place=sstep(al+0.0,al+0.4,t); const wp0=V(rt.x+0.12,0.74+0.22*flip+shake,rt.z+0.38); const wp=wp0.clone().lerp(V(-0.35,0.575,-0.95),place); wp.y+=0.18*Math.sin(Math.PI*place); const hold=1-sstep(al,al+0.3,t);
     const dr=sstep(w0+0.1,w0+0.22,t)*(1-sstep(w0+0.34,w0+0.46,t));   // both arms up: the shirt goes on
-    if(t<w0){ P.tL=wp.clone().add(V(-0.06,0,0)); P.wL=1; P.pL=V(-0.3,-0.7,0.35); P.tR=wp.clone().add(V(0.06,0,0)); P.wR=1; P.pR=V(-0.3,-0.7,-0.35); }
+    if(t<w0&&hold>0){ P.tL=wp.clone().add(V(-0.06,0,0)); P.wL=hold; P.pL=V(-0.3,-0.7,0.35); P.tR=wp.clone().add(V(0.06,0,0)); P.wR=hold; P.pR=V(-0.3,-0.7,-0.35); }
     else if(dr>0){ P.tL=V(rt.x+0.05,1.72,rt.z+0.12); P.wL=dr; P.pL=V(-0.5,0.2,0.6); P.tR=V(rt.x+0.05,1.72,rt.z-0.12); P.wR=dr; P.pR=V(-0.5,0.2,-0.6); }
     J=R.skel(P,rt,yaw); const bag=sstep(w0+0.3,w1,t); const clothed=t>w0+0.25; dress=clothed?{bag,tie:bag,collar:1,lanyard:bag}:{}; face={mood:m,blink:blinkAt(t),fwd:J.fwd};
-    return {J:o(J),face,dress,phone:false,wallet:{pos:wp.clone().add(V(ox,0,0)),flip,held:t<w0&&t>t0+0.05}}; }
+    return {J:o(J),face,dress,phone:false,wallet:{pos:wp.clone().add(V(ox,0,0)),flip,held:true}}; }
   dress={tie:1,collar:1,lanyard:1,bag:1,belt:1};
   const yawF=SLD.yawOf(V(0.5,0,0.85));
   if(sc.id==='rent'){ const P=R.gait({...R.P0,p:0.06+0.25*(1-m),tilt:0.1,sL:0.1},0,0); P.tR=V(0.02,1.05,0.25); P.wR=sstep(TL.items[0].t-0.4,TL.items[0].t,t); P.pR=V(0,-0.6,-0.5); J=R.skel(P,V(-0.4,0,0.2),yawF); }
@@ -71,8 +71,8 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
   else if(sc.id==='street'){ const u=(t-sc.t0)/(sc.t1-sc.t0); const ph=u*14; const P=R.gait({...R.P0,p:0.12,tilt:0.1,eL:0.5,eR:0.5},ph,1,0.34,0.62,0.2); J=R.skel(P,V(lerp(-0.6,0.6,u),0,lerp(1.1,-1.6,u)),SLD.yawOf(V(0.25,0,-1))); face={mood:m,blink:0,fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
   else { // office: one continuous desk time-lapse: typing, coffee, rubbing his eyes, working on as the window goes day-night-day and the pile grows, the slump, then a hopeful look up
     const O0=TL.office[0], O1=TL.office[1]; const u=clamp((t-O0)/(O1-O0));
-    const slump=sstep(0.55,0.88,u), hope=sstep(0.93,0.985,u), rub=sstep(0.47,0.52,u)*(1-sstep(0.6,0.65,u));
-    const P={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,p:0.25+0.3*slump*(1-hope)+0.03*Math.sin(t*1.3),tilt:0.45+0.25*slump-0.7*hope,eL:1.0,eR:1.0};
+    const slump=sstep(0.5,0.76,u), hope=sstep(0.8,0.9,u), rub=sstep(0.47,0.52,u)*(1-sstep(0.6,0.65,u));
+    const look=sstep(0.8,0.9,u); const P={...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,p:0.25+0.3*slump*(1-hope)+0.03*Math.sin(t*1.3),tilt:0.45+0.25*slump-0.8*hope,eL:1.0,eR:1.0,hy:0.95*look,ty:0.3*look};
     const root=V(0.6,0,-0.5), yaw=SLD.yawOf(V(0,0,-1)); const J0=R.skel(P,root,yaw); const hd=J0.head, fw=J0.fwd.clone();
     const ty=t*13; const tying=1-rub;
     const kL=V(0.72,0.86+Math.max(0,Math.sin(ty))*0.012*tying,-1.0), kR=V(0.48,0.86+Math.max(0,Math.sin(ty+2))*0.012*tying,-1.0);
@@ -84,7 +84,7 @@ function heroPose(t,sc){ const ox=sets[sc.set].userData.ox; const m=hapAt(t); co
     P.tL=tL; P.wL=1; P.pL=V(-0.3,-0.7,0.5); P.tR=tR; P.wR=1; P.pR=V(-0.3,-0.7,-0.5);
     J=R.skel(P,root,yaw);
     const grabbed=(u>0.225&&u<0.335); const cupPos=grabbed?J.hR.clone().add(V(0,0.0,0)):V(1.0,0.86,-1.0);
-    face={mood:Math.max(0.06,m*0.6+0.3*hope),blink:rub>0.5?1:blinkAt(t),fwd:J.fwd,brow:0.2*hope};
+    face={mood:Math.max(0.06,m*0.6+0.45*hope),blink:rub>0.5?1:blinkAt(t),fwd:J.fwd,look:0.95*look,brow:0.5*hope};
     return {J:o(J),face,dress,phone:false,cupPos,u,eyeRub:rub}; }
   face={mood:m,blink:blinkAt(t),fwd:J.fwd}; return {J:o(J),face,dress,phone:false}; }
 // ---------------------------------------------------------------- lights per scene
@@ -131,15 +131,16 @@ function setT(t,k=0,K=1){ const sc=pickScene(t,k,K); const ox=sets[sc.set].userD
   let cm=CAMS[sc.id]; let u=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0)));
   let pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
   if(hp.bp){ pos=hp.bp.cam.pos.clone(); look=hp.bp.cam.look.clone(); }
-  if(sc.id==='office'){ const e=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0))); pos=V(lerp(3.1,2.7,e),1.45,lerp(2.2,1.0,e)); look=V(0.45,0.98,lerp(-0.6,-0.9,e)); }
+  if(sc.id==='office'){ const e=sm5(clamp((t-sc.t0)/(sc.t1-sc.t0))); pos=V(lerp(3.1,2.7,e),1.45,lerp(2.2,1.0,e)); look=V(0.45,0.98,lerp(-0.6,-0.9,e)); const f=sstep(0.78,0.97,(t-sc.t0)/(sc.t1-sc.t0)); pos.lerp(V(1.9,1.35,0.7),f); look.lerp(V(-0.2,1.35,-1.4),f); }
   if(window.DBG){ pos=V(...window.DBG.pos); look=V(...window.DBG.look); }
   ST.cam.position.set(ox+pos.x,pos.y,pos.z); ST.cam.lookAt(ox+look.x,look.y,look.z);
   ST.grade.uniforms.uFlash.value=0; ST.grade.uniforms.uT.value=t;
   let fl=0; SCENES.forEach(s=>{ if(s.t0>0.1) fl=Math.max(fl,0.45*Math.max(0,1-Math.abs(t-s.t0)/0.09)); }); ST.grade.uniforms.uFlash.value=fl; ST.grade.uniforms.uT.value=t;
   if(sc.set==='office'){ const o=sets.office; const uo=clamp((t-TL.office[0])/(TL.office[1]-TL.office[0])); const dn=0.5+0.5*Math.cos(2*Math.PI*2.4*uo); // 1 = bright day, 0 = night; ends in the evening
     o.userData.sky.color.setRGB(lerp(0.05,0.8,dn)+0.18*Math.sin(Math.PI*dn),lerp(0.07,0.68,dn)+0.05*Math.sin(Math.PI*dn),lerp(0.18,0.5,dn)-0.05*Math.sin(Math.PI*dn)); ST.hemi.intensity*=0.35+0.65*dn; ST.key.intensity*=0.3+0.7*dn; ST.lampA.intensity*=0.3+0.7*dn; scene.background.setRGB(lerp(0.02,0.09,dn),lerp(0.03,0.1,dn),lerp(0.06,0.11,dn));
+    { const dw=sstep(0.78,0.95,uo); if(dw>0){ const sk=o.userData.sky.color; sk.r=lerp(sk.r,1.0,dw); sk.g=lerp(sk.g,0.78,dw); sk.b=lerp(sk.b,0.45,dw); ST.hemi.intensity*=1+0.8*dw; ST.key.intensity*=1+0.5*dw; ST.hemi.color.setHex(0xffd9a0); scene.background.setRGB(0.25*dw,0.18*dw,0.1*dw); } o.userData.glow=dw; }
     o.userData.coffee.position.y=0.03-0.02*sstep(0.22,0.3,uo)-0.012*sstep(0.6,0.9,uo); o.userData.clockHand.rotation.z=-t*6;
-    const cal=o.userData.cal; const x=6+Math.floor(24.99*uo); if(cal.userData.x!==x){ cal.userData.x=x; cal.material.map.dispose(); cal.material.map=SETS.calendarTex(0,x,'JANUARY'); cal.material.needsUpdate=true; }
+    const cal=o.userData.cal; const x=uo>0.93?31:6+Math.floor(24.99*uo); if(cal.userData.x!==x){ cal.userData.x=x; cal.material.map.dispose(); cal.material.map=x===31?SETS.calendarTex(1,0,'FEBRUARY'):SETS.calendarTex(0,x,'JANUARY'); cal.material.needsUpdate=true; } cal.material.emissive.setRGB(1,0.75,0.35); cal.material.emissiveIntensity=0.55*(o.userData.glow||0); cal.material.emissiveMap=cal.material.map;
     const cg=o.userData.cupG; if(cg&&hp.cupPos) cg.position.set(hp.cupPos.x,hp.cupPos.y,hp.cupPos.z);
     // the pile on his desk grows; empty cups pile up
     const pl=o.userData.piles; pl.forEach((p,i)=>{ const h=0.02+0.3*Math.pow(uo,1.1)*[1,0.8,0.55][i]; p.scale.y=h/0.1; p.position.y=0.81+h/2; });

@@ -54,8 +54,15 @@ def day_at(t):
     u = min(1.0, max(0.0, (t - o0) / (o1 - o0))); return min(30, 6 + int(24.99 * u))
 
 
+CARDS = [(TL['notify'][0], TL['notify'][1]), (19.1, 20.5)]   # the salary card in the hook, and again when next month's salary lands
+
+
 def card_alpha(t):
-    return sstep(TL['notify'][0], TL['notify'][0] + 0.25, t) * (1 - sstep(TL['notify'][1], TL['notify'][1] + 0.3, t))
+    return max(sstep(a, a + 0.25, t) * (1 - sstep(b, b + 0.3, t)) for a, b in CARDS)
+
+
+def card_slide(t):
+    return max(sstep(a, a + 0.25, t) if t >= a else 0.0 for a, b in CARDS)
 
 
 def rr(d, box, r, fill, outline=None, width=0): d.rounded_rectangle(box, radius=r, fill=fill, outline=outline, width=width)
@@ -68,7 +75,7 @@ def bell(d, cx, cy, s, col):
 def notification(layer, t):
     a = card_alpha(t)
     if a <= 0: return
-    d = ImageDraw.Draw(layer); slide = sstep(TL['notify'][0], TL['notify'][0] + 0.25, t); y = int(160 - 300 * (1 - slide)); x0, x1, h = 110, W - 110, 250
+    d = ImageDraw.Draw(layer); slide = card_slide(t) if t >= CARDS[1][0] else sstep(TL['notify'][0], TL['notify'][0] + 0.25, t); y = int(160 - 300 * (1 - slide)); x0, x1, h = 110, W - 110, 250
     sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(sh).rounded_rectangle([x0 + 6, y + 14, x1 + 6, y + h + 14], radius=40, fill=(0, 0, 0, int(110 * a))); layer.alpha_composite(sh.filter(ImageFilter.GaussianBlur(16)))
     rr(d, [x0, y, x1, y + h], 40, (255, 252, 244, int(246 * a)), (232, 170, 60, int(255 * a)), 4)
     rr(d, [x0 + 28, y + 30, x0 + 108, y + 110], 22, (255, 190, 60, int(255 * a))); bell(d, x0 + 68, y + 66, 18, (255, 255, 255, int(255 * a)))
@@ -126,6 +133,15 @@ def strike_strip(layer, t):
             d.line([(x + bw - 10, y + 10), (x + bw - 10 - (bw - 20) * k, y + 10 + (bw - 20) * k)], fill=RED + (int(255 * a),), width=9)
 
 
+def end_card(layer, t):
+    a = sstep(19.35, 19.75, t)
+    if a <= 0: return
+    d = ImageDraw.Draw(layer); d.rectangle([0, 0, W, H], fill=(10, 6, 4, int(150 * a)))
+    ta = sstep(19.5, 19.85, t); y = 800 - int(20 * (1 - ta))
+    tracked(d, 'LIFE GOES ON.', 92, W / 2, y, 8, (255, 244, 224, int(255 * ta)))
+    tb = sstep(19.7, 20.0, t); tracked(d, 'UNTIL THE NEXT 1ST.', 40, W / 2, y + 150, 10, (255, 200, 110, int(255 * tb)), 'Medium')
+
+
 def top_text(layer, t):
     d = ImageDraw.Draw(layer); sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sd = ImageDraw.Draw(sh); items = []
     dd = day_at(t)
@@ -140,7 +156,7 @@ def top_text(layer, t):
         a1 = sstep(13.5, 13.8, t) * (1 - sstep(17.8, 18.1, t)); a2 = sstep(14.9, 15.2, t) * (1 - sstep(17.8, 18.1, t))
         items.append(('SALARY LASTED 6 DAYS.', 44, 8, 200, a1)); items.append(('WORK LASTS ALL 30.', 44, 8, 262, a2))
         items.append((f'DAY {dd}', 50, 12, 556, sstep(13.5, 13.8, t) * (1 - sstep(17.8, 18.1, t))))
-    n = sstep(18.35, 18.6, t) * (1 - sstep(19.2, 19.5, t))
+    n = sstep(18.25, 18.45, t) * (1 - sstep(18.7, 18.9, t))
     if n > 0: items.append(('1ST OF NEXT MONTH', 56, 12, 250, n))
     for text, size, tr, y, a in items:
         if a <= 0: continue
@@ -152,12 +168,12 @@ def top_text(layer, t):
     # a gold NEXT SALARY chip while he works: the hope
     h = sstep(13.7, 14.0, t) * (1 - sstep(17.9, 18.2, t))
     if h > 0:
-        pul = 0.6 + 0.4 * math.sin(t * 5); rr(d2, [W / 2 - 260, 610, W / 2 + 260, 686], 38, (255, 196, 70, int(70 * h * pul)), (255, 196, 70, int(255 * h)), 3); tracked(d2, 'NEXT SALARY: 1ST', 34, W / 2, 630, 6, (255, 214, 120, int(255 * h)))
+        pul = 0.6 + 0.4 * math.sin(t * 5); rr(d2, [W / 2 - 260, 700, W / 2 + 260, 776], 38, (255, 196, 70, int(70 * h * pul)), (255, 196, 70, int(255 * h)), 3); tracked(d2, 'NEXT SALARY: 1ST', 34, W / 2, 720, 6, (255, 214, 120, int(255 * h)))
 
 
 def draw(img, t):
     if img.size != (W, H): img = img.resize((W, H), Image.LANCZOS)
-    layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); hud(layer, t); bill_cards(layer, t); strike_strip(layer, t); top_text(layer, t); notification(layer, t); alarm(layer, t)
+    layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); hud(layer, t); bill_cards(layer, t); strike_strip(layer, t); top_text(layer, t); notification(layer, t); end_card(layer, t); alarm(layer, t)
     wm = ImageDraw.Draw(layer); tracked(wm, 'SLOW LIGHT', 24, W / 2, 1548, 10, (255, 244, 224, int(255 * 0.35)), 'Medium')
     base = img.convert('RGBA'); base.alpha_composite(layer); return base.convert('RGB')
 

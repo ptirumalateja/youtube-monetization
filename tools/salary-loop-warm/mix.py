@@ -80,5 +80,8 @@ def main(out_path):
     swell = sum(np.sin(2 * np.pi * f * ts + 0.3 * i) * a for i, (f, a) in enumerate([(196, 1.0), (294, 0.7), (392, 0.55), (588, 0.3)])) * ramp * 0.07 * (1 + 0.3 * np.sin(2 * np.pi * 5 * ts))
     place(bus['drone'], swell, 16.6, 1.0, 0.0)
     for k in range(3): place(bus['fol'], breath(0.9, 'in' if k % 2 == 0 else 'out', 750 + k, 0.35), 18.7 + k * 0.5, 1.0, -0.3)   # asleep
+    base.place_wrap(bus['air'], base.bell(), 18.8, 1.0, 0.0); bz3 = base.buzz(0.5); bz3 *= np.linspace(1, 0, len(bz3)) ** 0.8; place(bus['fol'], bz3, 18.8, 0.5, 0.2)   # next month's salary lands
+    ce = int(1.2 * SR); tc = np.arange(ce) / SR; chord = sum(np.sin(2 * np.pi * f * tc) * a for f, a in [(196, 1.0), (294, 0.7), (392, 0.5), (494, 0.3)]) * np.minimum(1, tc / 0.25) * np.exp(-tc / 0.7) * 0.07
+    place(bus['drone'], chord, 19.45, 1.0, 0.0)                                                                  # LIFE GOES ON: a warm chord
     write_wav(finish(bus, duck), out_path); print('wrote', out_path)
 if __name__ == '__main__': main(sys.argv[1])
