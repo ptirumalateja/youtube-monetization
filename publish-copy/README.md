@@ -35,6 +35,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [The Voice in Your Head (anendophasia)](the-voice-in-your-head.md) | V2 final (reach cut, scribble style), awaiting Teja's review; V1 kept; wordless | `final-reels/the-voice-in-your-head-v2.mp4` (silent: `_v2_silent.mp4`) |
 | [Three Answers to One Fall (gravity)](three-answers-to-one-fall.md) | Final (v2) | `final-reels/three-answers-to-one-fall.mp4` |
 | [What Andromeda Sees (alien perspective)](what-andromeda-sees.md) | Final (v1), awaiting Teja's review; mammoth claim corrected to early ancestors | `final-reels/what-andromeda-sees.mp4` (silent: `_music-ready.mp4`, drop on 8.6 s) |
+| [The Tic Tac Is Still Unidentified (USS Nimitz 2004, long-form)](the-tic-tac-is-still-unidentified.md) | v1 delivered, awaiting Teja's review; 5:36 YouTube film | `ufo-nimitz/the-tic-tac-is-still-unidentified_master.mp4` (share: `the-tic-tac-is-still-unidentified.mp4`) |
 
 ## Pending
 
