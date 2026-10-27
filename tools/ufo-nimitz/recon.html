@@ -1,0 +1,212 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<canvas id="c"></canvas>
+<script>
+const W=+(new URLSearchParams(location.search).get('w')||1920), H=+(new URLSearchParams(location.search).get('h')||1080);
+const c=document.getElementById('c'); c.width=W; c.height=H;
+const gl=c.getContext('webgl2',{preserveDrawingBuffer:true,antialias:false});
+const vs=`#version 300 es
+in vec2 p; void main(){gl_Position=vec4(p,0,1);}`;
+const fs=`#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 R; uniform float T; uniform int S;
+uniform vec3 cp, ct; uniform float fov, roll;
+uniform vec3 tp, ta; uniform float tA, tGlow, foam, streak;
+uniform vec3 sunD; uniform float expo, dusk;
+uniform vec3 trP; uniform float trA, trYaw;
+uniform float canopy, flare, ca;
+#define PI 3.14159265
+float h21(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+ return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}
+float fbm(vec2 p,int n){float a=.5,s=0.;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<8;i++){if(i>=n)break;s+=a*vn(p);p=m*p;a*=.5;}return s;}
+// ocean height (meters scale), detail limited by footprint
+float wav(vec2 x,float fp){
+ float h=0.;
+ vec2 y=vec2(x.x*.8+x.y*.3,x.y*1.4-x.x*.2);
+ h+=1.4*(fbm(y*0.006+T*0.01,4)-.5)*smoothstep(1500.,150.,fp);
+ h+=0.6*(fbm(y*0.03+vec2(T*0.04,0.),4)-.5)*smoothstep(300.,30.,fp);
+ h+=0.25*(fbm(y*0.12-T*0.08,3)-.5)*smoothstep(60.,6.,fp);
+ return h;}
+vec3 sky(vec3 d){
+ float y=max(d.y,0.);
+ vec3 day=mix(vec3(.62,.70,.80),vec3(.06,.18,.48),pow(y,.45));
+ vec3 dk=mix(vec3(.75,.30,.12),vec3(.05,.06,.15),smoothstep(0.,.22,y));
+ dk=mix(dk,vec3(.008,.012,.035),smoothstep(.2,.7,y));
+ vec3 col=mix(day,dk,dusk);
+ float s=max(dot(d,sunD),0.);
+ col+=vec3(1.,.9,.7)*(pow(s,600.)*6.+pow(s,12.)*.25)*(1.-.6*dusk);
+ col+=vec3(1.,.45,.18)*pow(s,10.)*.45*dusk*smoothstep(.35,0.,y);
+ return col;}
+float capI(vec3 ro,vec3 rd,vec3 pa,vec3 pb,float r){
+ vec3 ba=pb-pa,oa=ro-pa; float baba=dot(ba,ba),bard=dot(ba,rd),baoa=dot(ba,oa),rdoa=dot(rd,oa),oaoa=dot(oa,oa);
+ float a=baba-bard*bard,b=baba*rdoa-baoa*bard,c=baba*oaoa-baoa*baoa-r*r*baba,h=b*b-a*c;
+ if(h>=0.){float t=(-b-sqrt(h))/a;float y=baoa+t*bard;if(y>0.&&y<baba)return t;
+  vec3 oc=(y<=0.)?oa:ro-pb;b=dot(rd,oc);c=dot(oc,oc)-r*r;h=b*b-c;if(h>0.)return -b-sqrt(h);}
+ return -1.;}
+vec3 capN(vec3 p,vec3 a,vec3 b,float r){vec3 ba=b-a,pa=p-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return (pa-h*ba)/r;}
+// distance from ray to segment (for glow)
+float rayseg(vec3 ro,vec3 rd,vec3 a,vec3 b,out float tr){
+ float best=1e9;tr=0.;for(int i=0;i<=8;i++){vec3 q=mix(a,b,float(i)/8.);float t=max(dot(q-ro,rd),0.);float d=length(ro+rd*t-q);if(d<best){best=d;tr=t;}}return best;}
+vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
+
+vec3 ocean(vec3 ro,vec3 rd){
+ vec3 col=sky(rd);
+ float tw=1e9;
+ if(rd.y<0.){
+  tw=-ro.y/rd.y; vec3 p=ro+rd*tw;
+  float fp=tw*fov/R.y*1.5; // meters per pixel approx
+  float e=max(fp*.5,.3);
+  float h0=wav(p.xz,fp),hx=wav(p.xz+vec2(e,0),fp),hz=wav(p.xz+vec2(0,e),fp);
+  vec3 n=normalize(vec3(h0-hx,e,h0-hz));
+  vec3 rf=reflect(rd,n); rf.y=abs(rf.y);
+  float fr=.02+.98*pow(1.-max(dot(n,-rd),0.),5.);
+  vec3 deep=mix(vec3(.004,.03,.075),vec3(.02,.02,.04),dusk);
+  vec3 wc=mix(deep*(1.+2.*(1.-n.y)*40.),sky(rf),fr);
+  // whitewater pch at origin
+  float r=length(p.xz);
+  float churn=fbm(p.xz*.05+vec2(T*.3,-T*.2),5);
+  float churn2=fbm(p.xz*.18-vec2(T*.6,T*.4),4);
+  vec2 pe=p.xz*vec2(1.,1.6);
+  float pch=smoothstep(55.,15.,length(pe)+(churn-.5)*50.);
+  float ring=exp(-pow((length(pe)-38.-(churn-.5)*20.)/6.,2.));
+  vec2 wp=pe*.11+vec2(churn,churn2)*3.+vec2(T*.15,-T*.1);
+  float rg=1.-abs(fbm(wp,5)*2.-1.); float rg2=1.-abs(fbm(wp*2.3+7.,4)*2.-1.);
+  float fil=pow(rg,7.)*.8+pow(rg2,9.)*.6;               // foam filaments
+  fil=mix(fil,.22,smoothstep(.4,2.5,fp));               // footprint fade, no aliasing from altitude
+  float aer=pch*foam;                                    // aerated plume: pale turquoise under the foam
+  wc=mix(wc,vec3(.09,.32,.36)*(1.-.6*dusk)+sky(rf)*fr*.5,aer*.65);
+  float fm=(pch*(fil*1.1+smoothstep(.55,.8,churn2)*.35)+ring*fil*.7)*foam;
+  wc=mix(wc,vec3(.88,.92,.94)*(1.-.7*dusk),clamp(fm,0.,.95));
+  if(tA>0.){
+   vec3 a=tp-ta*6.,b=tp+ta*6.; float trr; float dr=rayseg(p,rf,a,b,trr);
+   float pxr=max(trr*fov/R.y,0.3);
+   wc+=tA*vec3(.85,.9,.95)*exp(-dr/(2.6+pxr*2.))*(.25+fr)*(.6+tGlow);
+   float sh=length((p.xz-tp.xz)*vec2(1.,1.))/(6.+tp.y*.15);
+   wc*=1.-.35*tA*exp(-sh*sh)*smoothstep(400.,20.,tp.y);
+  }
+  col=wc;
+  // haze
+  float hzf=(1.-exp(-tw*0.00001))*.85;
+  col=mix(col,sky(normalize(vec3(rd.x,.02,rd.z))),hzf);
+ }
+ return col;}
+
+void main(){
+ vec2 uv=(gl_FragCoord.xy-.5*R)/R.y;
+ vec3 ww=normalize(ct-cp); vec3 up=vec3(sin(roll),cos(roll),0.);
+ vec3 uu=normalize(cross(ww,up)), vv=cross(uu,ww);
+ float f=1./tan(fov*.5);
+ vec3 rd=normalize(uv.x*uu+uv.y*vv+f*ww), ro=cp;
+ vec3 col;
+ if(S==0){
+  col=ocean(ro,rd);
+  float tw=rd.y<0.?-ro.y/rd.y:1e9;
+  if(tA>0.){
+   vec3 a=tp-ta*6.,b=tp+ta*6.;
+   float tc=capI(ro,rd,a,b,2.6);
+   float tr; float dg=rayseg(ro,rd,a,b,tr);
+   float px=tr*fov/R.y; // meters per pixel at object
+   if(tc>0.&&tc<tw){
+    vec3 p=ro+rd*tc,n=capN(p,a,b,2.6);
+    float dif=max(dot(n,sunD),0.);
+    vec3 rr=reflect(rd,n); float fz=pow(1.-max(dot(n,-rd),0.),4.);
+    vec3 env=rr.y>0.?sky(rr):mix(vec3(.02,.06,.11),sky(normalize(vec3(rr.x,.05,rr.z))),.3);
+    float spec=pow(max(dot(rr,sunD),0.),80.)*3.;
+    vec3 sc=vec3(.93,.95,.97)*(.18+.8*dif)+env*(.25+.6*fz)+vec3(1.,.95,.85)*spec;
+    col=mix(col,sc*(1.+tGlow),tA);
+   }
+   // sub-pixel visibility + glow halo
+   float core=exp(-pow(dg/max(px*1.2,2.6),2.));
+   col+= tA*vec3(.9,.95,1.)*core*.6*smoothstep(1.,4.,px)*tGlow;
+   col+= tA*vec3(.9,.95,1.)*exp(-dg/max(px*6.,8.))*.25*tGlow;
+   col= mix(col,vec3(.95),tA*core*smoothstep(3.,1.,2.6/px)); // keep visible when tiny
+   // speed streak
+   if(streak>0.){vec3 b2=tp-ta*streak; float tr2; float ds=rayseg(ro,rd,tp,b2,tr2); float px2=tr2*fov/R.y;
+    col+=vec3(.8,.9,1.)*exp(-ds/max(px2*2.,3.))*.5*tA;}
+  }
+ } else if(S==1){
+  // dusk ridge + black triangle
+  col=sky(rd);
+  // stars
+  vec2 sp=rd.xz/(rd.y+.3)*300.; float st=h21(floor(sp)); col+=vec3(1.)*step(.997,st)*smoothstep(.1,.4,rd.y)*.6*dusk;
+  // ridge silhouette: elevation angle profile by azimuth
+  float az=atan(rd.x,rd.z);
+  float ridge=.035+.05*fbm(vec2(az*6.,1.),5)+.03*sin(az*2.+1.);
+  float canyon=smoothstep(.0,.12,abs(az-.18));
+  ridge*=mix(.35,1.,canyon);
+  float el=rd.y;
+  if(el<ridge){ float k=clamp((ridge-el)*8.,0.,1.); col=mix(vec3(.05,.04,.06),vec3(.02,.02,.03),k); 
+    col+=vec3(.25,.1,.05)*exp(-(ridge-el)*120.)*.4; }
+  // triangle: planar, facing camera-ish
+  if(trA>0.){
+   vec3 n=normalize(vec3(0.,1.,0.)); // flat wing seen from below/side -> use billboard in camera plane
+   vec3 rel=trP-ro; float tt=dot(rel,ww); 
+   vec3 q=ro+rd*(tt/dot(rd,ww)); vec3 dq=q-trP;
+   vec2 l=vec2(dot(dq,uu),dot(dq,vv));
+   float cy=cos(trYaw),sy=sin(trYaw); l=mat2(cy,-sy,sy,cy)*l;
+   l.y*=2.2; // foreshortened (seen at shallow angle)
+   float s=2.3; // half-span m
+   vec2 v0=vec2(0,s*.9),v1=vec2(-s,-s*.5),v2=vec2(s,-s*.5);
+   // inside test via edge functions
+   float e0=(v1.x-v0.x)*(l.y-v0.y)-(v1.y-v0.y)*(l.x-v0.x);
+   float e1=(v2.x-v1.x)*(l.y-v1.y)-(v2.y-v1.y)*(l.x-v1.x);
+   float e2=(v0.x-v2.x)*(l.y-v2.y)-(v0.y-v2.y)*(l.x-v2.x);
+   float ins=step(0.,-e0)*step(0.,-e1)*step(0.,-e2)+step(0.,e0)*step(0.,e1)*step(0.,e2);
+   col=mix(col,vec3(.012,.012,.015),ins*trA);
+  }
+ } 
+
+ // ---- lens: sun flare + object glare (before tonemap)
+ if(flare>0.){
+  float sw=dot(sunD,ww);
+  if(sw>0.){ vec2 su=vec2(dot(sunD,uu),dot(sunD,vv))/sw*f;
+   float dy=abs(uv.y-su.y), dx=abs(uv.x-su.x);
+   col+=flare*vec3(1.,.85,.65)*exp(-dy*90.)*exp(-dx*1.2)*.5;
+   col+=flare*vec3(1.,.9,.7)*.25/(1.+length(uv-su)*18.);
+   for(int i=1;i<5;i++){ vec2 g=-su*(float(i)*.35-.2); float r=.02+.025*float(i);
+    col+=flare*vec3(.4,.6,1.)*.06*smoothstep(r,r*.7,length(uv-g))*(1.-float(i)*.15);}
+  }
+ }
+ if(S==0 && tA>0. && tGlow>0.){
+  float tw2=dot(tp-ro,ww); if(tw2>0.){ vec2 to=vec2(dot(tp-ro,uu),dot(tp-ro,vv))/tw2*f;
+   col+=tA*tGlow*vec3(.8,.9,1.)*exp(-abs(uv.y-to.y)*300.)*exp(-abs(uv.x-to.x)*22.)*.35; }
+ }
+ // ---- canopy foreground
+ if(canopy>0.){
+  float arch=(uv.x*.8+uv.y*.35)-(.78-.25*uv.y*uv.y);
+  float frame=smoothstep(0.,.004,arch)*(1.-smoothstep(.035,.04,arch));
+  vec3 fc=vec3(.012,.013,.016)+vec3(.25,.22,.18)*exp(-abs(arch-.004)*400.)*.6;
+  col+=canopy*vec3(.02,.022,.025)*smoothstep(.12,0.,abs(uv.x*.7+uv.y-.55));
+  
+  float dust=step(.9993,h21(floor(gl_FragCoord.xy/2.3)+7.));
+  col+=canopy*dust*.25*(.3+length(col));
+  col=mix(col,fc,canopy*frame);
+  col=mix(col,vec3(.03,.032,.036)+vec3(.08,.07,.06)*smoothstep(.2,0.,abs(uv.y+.1)),canopy*smoothstep(.035,.04,arch));
+ }
+ col*=expo;
+ col=aces(col);
+ col=pow(col,vec3(1./2.2));
+ float lum=dot(col,vec3(.299,.587,.114));
+ col=mix(col,col*vec3(.92,1.0,1.06),1.-lum)+vec3(.02,.01,-.01)*smoothstep(.5,1.,lum);
+ col=clamp((col-.45)*1.3+.42,0.,1.);
+ // grain + vignette
+ col+= (h21(gl_FragCoord.xy+T*60.)-.5)*.025;
+ vec2 q=gl_FragCoord.xy/R; col*=1.+ca*vec3(.04,0.,-.04)*(q.x-.5)*2.; col*=.6+.4*pow(16.*q.x*q.y*(1.-q.x)*(1.-q.y),.18);
+ o=vec4(col,1);
+}`;
+function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(x);return x;}
+const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);gl.useProgram(pr);
+const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+const L=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(L);gl.vertexAttribPointer(L,2,gl.FLOAT,false,0,0);
+const U={};for(const n of ['R','T','S','cp','ct','fov','roll','tp','ta','tA','tGlow','foam','streak','sunD','expo','dusk','trP','trA','trYaw','canopy','flare','ca'])U[n]=gl.getUniformLocation(pr,n);
+window.draw=function(P){
+ gl.viewport(0,0,W,H);
+ gl.uniform2f(U.R,W,H);gl.uniform1f(U.T,P.T||0);gl.uniform1i(U.S,P.S||0);
+ for(const k of ['cp','ct','tp','ta','sunD','trP']){const v=P[k]||[0,1,0];gl.uniform3f(U[k],v[0],v[1],v[2]);}
+ for(const k of ['fov','roll','tA','tGlow','foam','streak','expo','dusk','trA','trYaw','canopy','flare','ca'])gl.uniform1f(U[k],P[k]===undefined?0:P[k]);
+ gl.drawArrays(gl.TRIANGLES,0,3);
+};
+window.grab=function(){return c.toDataURL('image/jpeg',0.95);}
+window.ready=true;
+</script></body></html>

@@ -1,0 +1,10 @@
+src/
+clips/
+out/
+stills/
+vo/
+logs_*.txt
+__pycache__/
+pv/
+dbg.json
+pv.json
