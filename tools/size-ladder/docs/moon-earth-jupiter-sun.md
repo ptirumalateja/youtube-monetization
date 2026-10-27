@@ -47,3 +47,24 @@ One world and one camera, never a 2D zoom or a crossfade. Units are Earth radii:
 ## Build
 
 `tools/size-ladder/`: `gl/scene.glsl` (the whole world as one fragment shader, ray-marched, headless Chromium + SwiftShader), `gl/render.mjs` (batch renderer; depth in the alpha channel), `cam.py` (timeline: camera, fills, closings, waves), `comp.py` (dust, bloom, text, counter; `plates`, `frames`, `events`), `sound.py`, `run_plates.sh` (parallel plate render, resumable). About 6 s per 1080x1920 plate per core.
+
+## v2: extended cut (21.0 s, loop), 27 Oct 2026
+
+Built in `cam2.py` + `comp2.py` + `sound2.py` on top of the 19.6 s cut.
+
+| Time | Beat |
+|---|---|
+| 0.0-1.5 | Hook, "49 MOONS FIT INSIDE EARTH." (full text on frame 0) |
+| 1.5-4.5 | Moons fall into Earth, counter to 49 |
+| 4.5-7.5 | Earth becomes the unit, Earths into Jupiter, counter to 1,321 |
+| 7.5-10.3 | Jupiter becomes the unit, Jupiters into the Sun, counter to 985 |
+| 10.3-14.0 | Sun shrinks to a marble and a bead, count runs 985 to 10,000,000,000 SUNS (hits 12.6 s), whip back to Stephenson 2-18, hard cut |
+| 14.0-16.6 | "YOU ARE SMALLER THAN ONE PIXEL." on the starfield |
+| 16.6-19.2 | "WHAT SHOULD WE SQUEEZE NEXT?" while the camera starts its zoom home |
+| 19.2-21.0 | One-world zoom back to the opening Moon, hook text re-forms; last frame matches frame 0 |
+
+- The original timeline is time-warped into 0-10.3 s (`cam2.KN`), so the first 10.3 s reuse the existing plates (no re-render); only 320 new frames were rendered (`plates2/`).
+- No handle card or platform icons: the handle goes in the caption.
+- Stephenson 2-18: radius 2,150 solar radii (estimate, varies between studies), ~9.9 billion Suns by volume, so "about 10 billion" and the caveat in the description. Drawn as a giant sphere in the same world (id 8 in `scene.glsl`), revealed by a fast log-distance pull-back; the Sun is a glowing bead against it.
+- Moons: each of the ~14 whole Moons that physically fit falls to its own slot and stays; counter keeps the volume count of 49.
+- Sound: falling whistle and thud per landing, ticking counter riser into a big hit at 12.6 s, whip, hard silence at the 14.0 s cut, quiet payoff, riser into the loop.

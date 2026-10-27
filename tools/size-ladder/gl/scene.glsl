@@ -11,6 +11,8 @@ uniform vec3 uCut;   // cut height (fraction of radius above centre); >=1 -> clo
 uniform vec3 uWave;  // ignition-wave radius for Jupiter and Sun shells (0 = hidden), z unused
 uniform vec3 uM0;    // hero Moon centre
 uniform float uExpo;
+uniform float uStarR, uStarVis, uBead;   // Stephenson 2-18: radius, visibility; bead = glow marking the tiny Sun
+uniform vec3 uStarC;
 uniform vec4 uSP[96];  // Earth-bowl unit slots: xyz, landing time (-1 = unused)
 uniform vec3 uHeap;  // heap scale above the rim of each bowl (shrinks away as the bowl closes)
 uniform sampler2D tEarth, tSpec, tCloud, tLights, tMoon;
@@ -128,8 +130,9 @@ float rain(vec3 p, vec3 C, float Ri, float r, float yb, float yRim, vec2 w, floa
 
 float map(vec3 p) {
   float d = 1e9; gid = 0;
+  if (uStarVis > .001) { float dst = length(p - uStarC) - uStarR; if (dst < d) { d = dst; gid = 8; gC = uStarC; gR = uStarR; } }
   float dm0 = length(p - uM0) - RM;
-  d = dm0; gid = 7; gC = uM0; gR = RM;
+  if (dm0 < d) { d = dm0; gid = 7; gC = uM0; gR = RM; }
   // Sun
   vec3 qs = p - S; float rs = length(qs);
   if (uWave.y > 0.) {
@@ -388,6 +391,20 @@ vec3 sunGlow(vec3 ro, vec3 rd, float tmax) {
   return g;
 }
 
+vec3 starSurf(vec3 nl, vec3 nw, vec3 V) {  // nl: unit direction from the star centre
+  float mu = clamp(dot(nw, V), 0., 1.); float tm = uT * .08;
+  nl = rotAxis(normalize(vec3(.3, .8, .5)), 1.1) * nl + vec3(17.3, 3.1, 9.7);
+  vec3 wv = nl + .1 * vec3(fbm3(nl * 3. + tm * .1), fbm3(nl * 3. + 7. - tm * .08), fbm3(nl * 3. + 13.));
+  float cel = .55 * fbm(wv * 6. + tm * .05) + .3 * fbm(wv * 15. - tm * .07) + .2 * vn(wv * 40. + tm * .2);
+  float lane = smoothstep(.15, .85, cel);
+  vec3 col = mix(vec3(.16, .008, .0), vec3(.95, .2, .03), pow(lane, 1.3));
+  col = mix(col, vec3(1., .6, .2), smoothstep(.72, 1., lane) * .8);
+  col *= .5 + 1.1 * fbm(nl * 2.5 + 5.);
+  col *= .12 + .88 * pow(mu, .75);
+  col = mix(col, col * vec3(1., .4, .12), pow(1. - mu, 1.3) * .8);
+  return col * 1.15;
+}
+
 int shellPart(float rr, float Rr, float tt, float yrel, float cutY, float t) {
   if (cutY < Rr && abs(yrel - cutY) < max(t * .003, Rr * .0012)) return 1;
   return rr > Rr - .5 * tt ? 0 : 2;
@@ -396,6 +413,7 @@ vec3 shade(vec3 ro, vec3 rd, float t, out float emisAdd) {
   vec3 p = ro + rd * t; vec3 n = nrm(p, max(1e-4, t * .0006));
   int id = gid; vec3 C = gC; float r = gR; float H0 = gH, P0 = gPop; vec3 G0 = gG; emisAdd = 0.;
   vec3 V = -rd; vec3 nw = n;
+  if (id == 8) return starSurf(normalize(p - gC), n, V) * uStarVis;
   vec3 col = vec3(0.); float amb = .05; float ndl = dot(n, LD);
   // soft shadow + AO
   float sh = 1., t2 = max(t * .002, .01);
@@ -523,7 +541,7 @@ void main() {
   bg += (vec3(.05, .035, .11) * neb + vec3(.04, .05, .09) * band * (.4 + fbm(rd * 7.))) * .9;
   bg += stars * .8;
   float t = 0.; float dist; bool hit = false; vec3 glow = vec3(0.);
-  float tmax = 2500.;
+  float tmax = 2500. + 3. * length(ro - S);
   for (int i = 0; i < 200; i++) {
     vec3 p = ro + rd * t; dist = map(p);
     if (dist < max(.0004, t * .0003)) { hit = true; break; }
@@ -533,6 +551,9 @@ void main() {
   if (hit) { col = shade(ro, rd, t, ea); }
   // volumetric-ish glow of the Sun bowl (corona, prominences) when its shell is lit
   if (uWave.y > 0.) col += sunGlow(ro, rd, hit ? t : tmax) * smoothstep(0., 40., uWave.y);
+  // Stephenson 2-18 bleeds light into the sky, and the Sun is a glowing bead against it
+  if (uStarVis > .001) { vec3 oc = ro - uStarC; float rm = length(oc - rd * max(dot(oc, rd), 0.)); float hs = max(rm - uStarR, 0.) / uStarR; if (!hit || gid != 8) col += vec3(1., .26, .05) * (exp(-hs * 12.) * 1.1 + exp(-hs * 3.5) * .35 + exp(-hs * .9) * .06) * uStarVis * step(uStarR * .995, rm + 1.); }
+  if (uBead > .001) { vec3 oc = ro - S; float tcb = max(-dot(oc, rd), 0.); float rb = length(oc + rd * tcb); float wd = max(length(oc) * .0016, RS * .5); col += vec3(1., .78, .45) * (exp(-rb / wd) * 1.6 + exp(-rb / (wd * 4.)) * .35) * uBead * (hit && t < tcb * .999 ? 0. : 1.); }
   // Earth atmosphere halo + Jupiter haze for rays that miss
   {
     vec3 oc = ro; float b = dot(oc, rd); float tc = clamp(-b, 0., hit ? t : tmax); float rmin = length(oc + rd * tc);
