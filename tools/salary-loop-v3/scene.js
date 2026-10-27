@@ -43,11 +43,11 @@ function heroPose(t,sc){
     const bag=sc.id==='bed2'?1-sstep(16.25,16.45,t):0;
     return {J:bp.J,face,dress:{bag,collar:1,belt:1},phone:bp.phone,phoneLit:bp.phoneLight,bp,quilt:bp.quilt}; }
   // ---- door: by the wall calendar he tears 30 -> 1, grins at nobody, slings the bag
-  if(sc.id==='door'){ const root=V(0.32,0,-1.6), yaw=YAW(V(-0.3,0,0.75));   /* 3/4 to camera: we see his face while he tears the page */ const P={...R.P0,p:0.04,tilt:-0.04};
-    const padTop=V(-0.06,1.69,-2.12), padLow=V(0.02,1.25,-1.9);
+  if(sc.id==='door'){ const root=V(1.02,0,-1.95), yaw=YAW(V(-0.5,0,0.7));   /* 3/4 to camera: we see his face while he tears the page */ const P={...R.P0,p:0.04,tilt:-0.04};
+    const padTop=V(0.42,1.5,-2.11), padLow=V(0.52,1.1,-1.95);
     const reach=sstep(3.6,3.82,t), pull=sstep(3.86,4.02,t), back=sstep(4.02,4.18,t);
-    let tL=V(-0.12,0.85,-1.35).lerp(padTop,reach).lerp(padLow,pull).lerp(V(-0.02,0.86,-1.32),back);
-    const sling=sstep(4.08,4.24,t)*(1-sstep(4.26,4.38,t)); const J0=R.skel(P,root,yaw); const tR=V(0.42,0.88,-1.32).lerp(J0.head.clone().add(V(0,0.16,0)),sling);
+    let tL=V(0.85,0.85,-1.75).lerp(padTop,reach).lerp(padLow,pull).lerp(V(0.86,0.86,-1.7),back);
+    const sling=sstep(4.08,4.24,t)*(1-sstep(4.26,4.38,t)); const J0=R.skel(P,root,yaw); const tR=V(1.2,0.88,-1.75).lerp(J0.head.clone().add(V(0,0.16,0)),sling);
     P.tL=tL; P.wL=1; P.tR=tR; P.wR=1; P.pR=V(-0.2,-0.3,-0.9);
     const J=R.skel(P,root,yaw); const look=sstep(4.0,4.18,t)*0.75;
     return {J,face:{mood:m,blink:blinkAt(t),fwd:J.fwd,look,brow:0.3*sstep(4.0,4.1,t)},dress:{bag:sstep(4.2,4.34,t),collar:1,belt:1},phone:null}; }
@@ -71,12 +71,12 @@ function heroPose(t,sc){
   const ds=dayState(t);
   // typing (right hand always on the keys, left hand when free)
   const ty=t*14, kR=V(0.14,0.815+0.012*Math.max(0,Math.sin(ty)),-1.04), kL=V(-0.04,0.815+0.012*Math.max(0,Math.sin(ty+2.1)),-1.04);
-  const padTop=V(-0.5,1.08,-1.04), padOff=V(-0.36,1.0,-0.98);
+  const padTop=V(-0.4,1.06,-1.12), padOff=V(-0.3,0.98,-1.02);
   const phoneDesk=V(-0.26,0.795,-0.78), phoneFace=head.clone().addScaledVector(fw,0.3).add(V(-0.06,-0.3,0));
   let tL=kL.clone(), lift=0, faceUp=0, look=0;
   // morning tear of the pad (days 2..6 by hand; in the time-lapse the hand flicks every page)
   const tearU=ds.t0>5.6&&ds.t0<14.9?clamp((t-ds.t0+0.18)/0.42):1;
-  if(tearU<1){ const a=sstep(0,0.4,tearU), b=sstep(0.4,0.75,tearU), c=sstep(0.75,1,tearU); tL=kL.clone().lerp(padTop,a).lerp(padOff,b).lerp(kL,c); }
+  if(tearU<1){ const a=sstep(0,0.4,tearU), b=sstep(0.4,0.75,tearU), c=sstep(0.75,1,tearU); tL=kL.clone().lerp(padTop,a).lerp(padOff,b).lerp(kL,c); const lean=Math.sin(Math.PI*tearU); P.ty=(P.ty||0)+0.35*lean; P.p+=0.12*lean; }   /* he leans and turns into the reach, so the arm stays bent */
   // the phone: buzz -> he looks -> he lifts it to his face -> puts it down
   const lifts=[[5.95,0.55],[6.7,0.45],[7.35,0.4],[7.95,0.35],[8.45,1.45],[13.5,0.85]];
   for(const [tb,len] of lifts){ const u=(t-tb)/len; if(u>-0.15&&u<1.15){ const up=sstep(-0.05,0.25,u), dn=sstep(0.8,1.1,u); lift=Math.max(lift,up*(1-dn)); look=Math.max(look,sstep(-0.15,0.05,u)*(1-sstep(0.9,1.1,u))); } }
@@ -90,7 +90,7 @@ function heroPose(t,sc){
   const J=R.skel(P,root,yaw);
   const phonePos=lift>0.01?J.hL.clone().add(V(0,0.03,0)):phoneDesk.clone().add(V(0.004*Math.sin(t*90)*buzzAt(t),0,0));
   const n=lift>0.01?head.clone().sub(phonePos).normalize():(t>13.9&&t<15?V(0,-1,0):V(0,1,0));
-  const face={mood:m,blink:blinkAt(t),fwd:J.fwd,look:0,brow:0,wide:t>8.75&&t<9.4?0.6:0};
+  const face={mood:m,blink:(t>8.7&&t<9.95)?0:blinkAt(t),fwd:J.fwd,look:0,brow:0,wide:t>8.75&&t<9.4?0.6:0};   /* the stare holds the eyes open */
   if(look>0){ face.fwd=phoneFace.clone().sub(head).normalize().lerp(J.fwd,0.3).normalize(); }
   return {J,face,dress:{bag:t>14.8?sstep(14.85,15.0,t):0,collar:1,belt:1},phone:{pos:phonePos,n,held:lift},phoneLit:Math.max(buzzAt(t),lift),ds}; }
 // ---------------------------------------------------------------- lights per set and time
@@ -113,7 +113,7 @@ function lights(set,ox,t){ const k=ST.key; const L=(o,x,y,z)=>o.position.set(ox+
 const nextTear=t=>{ for(const [tt] of DAYS) if(tt>t+1e-6) return tt; return 99; };
 // ---------------------------------------------------------------- cameras (set-local): [time, pos, look]
 const CAMS={
-  door:[[3.6,[1.75,1.5,1.7],[-0.05,1.15,-1.8]],[4.4,[1.6,1.48,1.45],[0.0,1.15,-1.8]]],
+  door:[[3.6,[2.55,1.5,1.25],[0.85,1.18,-1.9]],[4.4,[2.4,1.48,1.05],[0.9,1.18,-1.9]]],
   streetAM:[[4.4,[-0.7,1.4,4.4],[-0.6,1.0,-0.4]],[5.6,[0.2,1.4,4.2],[0.2,1.0,-0.4]]],
   streetPM:[[15.0,[1.2,1.4,4.4],[0.95,1.0,-0.4]],[15.8,[0.7,1.4,4.2],[0.4,1.0,-0.4]]],
   desk:[[5.6,[0.95,1.42,1.25],[-0.12,1.0,-1.1]],[8.3,[0.62,1.36,0.55],[-0.12,1.06,-1.15]],[8.75,[0.42,1.42,0.12],[-0.06,1.16,-1.3]],[9.85,[0.36,1.4,0.0],[-0.06,1.18,-1.3]],
@@ -137,7 +137,7 @@ const shift=(J,ox)=>{ const o={}; for(const k in J) o[k]=(J[k]&&J[k].isVector3)?
 function setT(t){ const sc=sceneAt(t); const set=SET_OF[sc.id]; const ox=sets[set].userData.ox; for(const k in sets) sets[k].visible=(k===set);
   lights(set,ox,t);
   const hp=heroPose(t,sc); hero.pose(shift(hp.J,ox),hp.face,hp.dress);
-  phone.visible=!!hp.phone; phoneLight.intensity=0;
+  phone.visible=!!hp.phone; phoneLight.intensity=0; phone.scale.setScalar(set==='street'?2.1:1.3);   /* readable in his hand on the wide street shots */
   if(hp.phone){ const p=hp.phone.pos.clone().add(V(ox,0,0)); phone.position.copy(p); const zA=hp.phone.n.clone().normalize(); const ref=Math.abs(zA.y)>0.9?V(0,0,-1):V(0,1,0); const xA=ref.clone().cross(zA).normalize(); const yA=zA.clone().cross(xA); phone.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xA,yA,zA));
     const lit=clamp(hp.phoneLit||0); phone.userData.scr.material.color.setRGB(lerp(0.05,0.55,lit),lerp(0.06,0.6,lit),lerp(0.08,0.68,lit)); phoneLight.position.copy(p).addScaledVector(zA,0.3); phoneLight.intensity=0.05*lit; }
   // the tear-off pads

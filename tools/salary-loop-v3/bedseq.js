@@ -91,7 +91,7 @@ export function createBedSeq(R){
 
   function cam(s,J){ const u=sst(2.6,3.9,s), w=sst(4.1,4.95,s);
     const hc=J.hip.clone().lerp(J.neck,0.5);
-    const p0=V(-1.05,1.3,1.55), l0=V(-0.62,0.74,-1.08);   /* V3: from his head side so the propped phone sits beside his face, not in front of it; the wall calendar is in frame */
+    const p0=V(-1.0,1.32,1.58), l0=V(-0.45,0.82,-1.1);   /* V3: from his head side so the propped phone sits beside his face, not in front of it; the wall calendar is in frame */
     const p1=V(0.55,1.4,3.5), l1=V(0.05,hc.y*0.9+0.2,-0.4);
     const p2=V(hc.x+0.5,1.4,3.6), l2=V(hc.x+0.4,1.0,-0.4);
     const pos=p0.clone().lerp(p1,u).lerp(p2,w), look=l0.clone().lerp(l1,u).lerp(l2,w);

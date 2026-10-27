@@ -21,8 +21,8 @@ function drawFace(g,W,H,m,blink,open,brow=0,wide=0){ g.clearRect(0,0,W,H); const
   const my=cy+66, w=44+30*happy, c=lerp(-26,26,m); g.strokeStyle=dark; g.lineWidth=9;
   if(open>0.15||happy>0.6){ const o=Math.max(open,happy*0.8); g.fillStyle='#4a1a14'; g.beginPath(); g.moveTo(cx-w,my-6); g.quadraticCurveTo(cx,my+4,cx+w,my-6); g.quadraticCurveTo(cx,my+8+60*o,cx-w,my-6); g.fill(); g.fillStyle='#ff8a85'; g.beginPath(); g.ellipse(cx,my+22+16*o,w*0.42,10+8*o,0,0,7); g.fill(); g.stroke(); }
   else { g.beginPath(); g.moveTo(cx-w,my+(c<0?8:0)); g.quadraticCurveTo(cx,my+c*1.1,cx+w,my+(c<0?8:0)); g.stroke(); } }
-// V3: the one hero design used in every scene (cream shirt, navy trousers, short dark hair, crimson bag strap)
-export const HERO={skin:0xf2e2c6,shirt:0xf1e9d8,pants:0x1f2a44,hair:0x2a1c14,strap:0xb83a30,headR:0.17};
+// V3: the one hero design used in every scene (pale blue office shirt so it never reads as skin, navy trousers, short dark hair, crimson bag strap)
+export const HERO={skin:0xf2e2c6,shirt:0x9fb2c8,pants:0x1f2a44,hair:0x2a1c14,strap:0xb83a30,headR:0.17};
 export function createFigure(scene,{skin=0xf0dfc5,shirt=0xf4f0e8,pants=0x24262c,shoe=0x15171b,tie=0x3f4859,scale=1.0,headR=0.17,hair=null,strap=0x3a2a1e}={}){
   const g=new THREE.Group(); scene.add(g);
   const mk=(col,r=0.6)=>new THREE.MeshStandardMaterial({color:col,roughness:r,metalness:0});

@@ -35,7 +35,7 @@ export function buildBedroom(){ const g=new THREE.Group(); floorAndWalls(g,{wall
   const sh=new THREE.Group(); B(sh,1.5,0.05,0.28,M(0x6b4428),0,0,0); B(sh,1.5,0.05,0.28,M(0x6b4428),0,0.55,0); const R=rng(9); const bc=[0xc4452f,0x2f6b8a,0xd9a63a,0x3f8a45,0x7a4a8a,0xe8e1d4]; for(let i=0;i<9;i++) book(sh,-0.62+i*0.075,0.025,0,0.055,0.2+R()*0.1,0.2,bc[i%6]); plant(sh,0.45,0.025,0,0.8,5); plant(sh,0.18,0.58,0,0.65,7); for(let i=0;i<4;i++) book(sh,-0.6+i*0.07,0.58,0,0.05,0.18+R()*0.06,0.2,bc[(i+2)%6]); sh.position.set(-0.9,1.7,-2.05); g.add(sh);
   frame(g,0.3,1.85,-2.17,0.42,0.54,0xd9a63a); frame(g,0.9,2.05,-2.17,0.3,0.4,0x3f8a8a); frame(g,-2.0,2.2,-2.17,0.5,0.35,0xc4452f);
   // wall calendar (changes through the story) and the sticky note (end)
-  g.userData.pad=tearPad(g,{x:-0.1,y:1.25,z:-2.15,w:0.38,h:0.44,maxD:0.06});   // V3: the tear-off day calendar
+  g.userData.pad=tearPad(g,{x:0.4,y:1.08,z:-2.15,w:0.38,h:0.44,maxD:0.06});   // V3: the tear-off day calendar
   const note=P(g,0.3,0.3,M(0xffe36b,{r:0.9,e:0xffd24a,ei:0.15}),0.7,1.25,-2.15); g.userData.note=note; note.visible=false;
   // wardrobe, chair with a bag, rug, a pair of shoes
   B(g,1.0,2.2,0.6,M(0x5a3a22,{map:woodTex('#5a3a22',[1,1])}),2.7,1.1,-1.8,{round:0.03}); B(g,0.02,2.0,0.02,M(0x222),2.7,1.1,-1.48);
@@ -156,5 +156,5 @@ export function buildDesk(){ const g=new THREE.Group(); floorAndWalls(g,{wall:0x
   // a second, empty desk and a plant for depth; ceiling strips
   { const d=new THREE.Group(); B(d,1.2,0.05,0.7,wm,0,0.755,0); B(d,0.04,0.74,0.6,M(0x3a2a1e),-0.55,0.37,0); B(d,0.04,0.74,0.6,M(0x3a2a1e),0.55,0.37,0); B(d,0.46,0.3,0.03,M(0x0d1013,{e:0x9fd0ff,ei:0.25}),0,0.95,-0.15); d.position.set(-2.1,0,-1.5); d.rotation.y=0.3; g.add(d); }
   plant(g,1.55,0,-1.9,1.5,13); for(let i=0;i<3;i++) ceilStrip(g,-1.2+i*1.3,3.0,-1.0);
-  g.userData.pad=tearPad(g,{x:-0.5,y:0.78,z:-1.0,ry:0.45,w:0.24,h:0.28,maxD:0.07,stand:true});
+  g.userData.pad=tearPad(g,{x:-0.42,y:0.78,z:-1.08,ry:0.45,w:0.24,h:0.28,maxD:0.07,stand:true});
   return g; }

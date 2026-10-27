@@ -111,9 +111,9 @@ def draw(img, t):
         card(layer, y, ca, 'credit', 'SALARY CREDITED', '+₹50,000', scale=0.86 + 0.14 * rise - 0.3 * sstep(2.3, 2.6, t))
     hook = ['GUESS WHICH DAY', 'IT HITS ZERO.']; nchar = len(''.join(hook))
     if t < 2.8:
-        big_lines(layer, mask, hook, 430, 1 - sstep(2.45, 2.75, t), size=68, cols=[CREAM, GOLD], typed=int(nchar * sstep(0.05, 1.0, t) + 0.999))
+        big_lines(layer, mask, hook, 700, 1 - sstep(2.45, 2.75, t), size=68, cols=[CREAM, GOLD], typed=int(nchar * sstep(0.05, 1.0, t) + 0.999))
     if t > TL['duration'] - 0.2:
-        big_lines(layer, mask, hook, 430, 1, size=68, cols=[CREAM, GOLD], typed=int(nchar * (t - (TL['duration'] - 0.2)) / 0.95 + 0.999))
+        big_lines(layer, mask, hook, 700, 1, size=68, cols=[CREAM, GOLD], typed=int(nchar * (t - (TL['duration'] - 0.2)) / 0.95 + 0.999))
     # ---- debits (street + desk)
     dc = debit_at(t)
     if dc:
@@ -129,7 +129,7 @@ def draw(img, t):
     card(layer, 1260, fa, 'debit', 'LOW BALANCE', '₹0', sub='DAY 27')
     # ---- the close
     cl = sstep(15.9, 16.2, t) * (1 - sstep(18.3, 18.6, t))
-    big_lines(layer, mask, ['WHICH DAY', 'BROKE YOU?'], 430, cl, size=88, cols=[CREAM, GOLD])
+    big_lines(layer, mask, ["WHICH DAY", "BROKE YOU?"], 700, cl, size=88, cols=[CREAM, GOLD])
     # ---- watermark
     d = ImageDraw.Draw(layer); md = ImageDraw.Draw(mask)
     tracked(d, 'SLOW LIGHT', font(24, 'Medium'), W / 2, 1548, 10, CREAM + (80,)); tracked(md, 'SLOW LIGHT', font(24, 'Medium'), W / 2, 1548, 10, 80)
