@@ -3,6 +3,7 @@ python3 audio.py -> out/film_audio.wav (48 kHz stereo). Cue times match edit.py.
 DUB=hi|te python3 audio.py -> out/film_audio_<lang>.wav, narration from vo_<lang>/ fitted to the English beats."""
 import numpy as np, subprocess, os
 from edit import VO, END
+from timeline import T, D, R, R_end, CARD_AT, CARD
 SR = 48000
 N = int(END * SR)
 rng = np.random.RandomState(7)
@@ -107,77 +108,169 @@ def pulse(d, bpm=96, f=36.7, g=.5):
     return out * g
 D2, F2, A2, C3, D3, E3, F3, G3, A3, Bb2 = 73.4, 87.3, 110, 130.8, 146.8, 164.8, 174.6, 196, 220, 116.5
 
-put(music, 0.0, pad(9.0, [D2, A2, D3], .10))
-put(music, 11.3, pad(18.4, [D2, A2, F3], .11))
-put(music, 11.3, pulse(18.0, 90, g=.25))
-put(music, 29.2, pad(23.5, [D2, F2, A2, E3], .10, 420))
-put(music, 52.3, pad(22.6, [Bb2, F3, D3], .10, 420))
-put(music, 74.8, pad(24.4, [D2, A2, C3, E3], .11, 600))
-put(music, 85.8, riser(13.2), .55)
-put(music, 99.0, pad(11.0, [D2, A2, D3, F3], .12, 700))
-put(music, 99.0, pulse(10.5, 120, g=.32))
-put(music, 112.0, pad(8.0, [D2, A2], .07, 300))
-put(music, 120.2, pad(10.4, [D2, F2, A2], .09))
-put(music, 130.4, pad(40.6, [D2, A2, D3, E3], .09, 450))
-put(music, 130.4, pulse(40.0, 76, g=.18))
-put(music, 171.0, pad(29.0, [Bb2, D3, F3], .06, 380))
-put(music, 200.0, pad(17.2, [C3, E3, G3], .09, 600))
-put(music, 217.2, pad(15.8, [D2, A2, D3, F3, A3], .11, 900))
-put(music, 217.2, pulse(15.8, 104, g=.32))
-put(music, 233.0, pad(16.4, [D2, A2, D3, F3], .13, 1200))
-put(music, 233.0, pulse(16.4, 124, g=.5))
-put(music, 249.4, pad(23.0, [D2, F2, A2, C3], .10, 500))
-put(music, 272.4, pad(14.0, [D2, Bb2, E3], .07, 300))
-put(music, 286.4, pad(19.8, [D2, A2, E3], .09, 450))
-put(music, 306.2, pad(22.0, [D2, F2, A2, D3, F3, A3], .12, 900))
-put(music, 328.2, pad(7.8, [D2, A2, D3, F3], .12, 700))
+# v1 cues for the sections that carried over, moved to their v2 times (dropped where that part of v1 is cut)
+def L(buf, t1, x, g=1.):
+    t2 = R(t1)
+    if t2 is None: return
+    n = int((R_end(t1) + .8 - t2) * SR)
+    if n < int(.3 * SR): return
+    if len(x) > n:
+        x = x[:n].copy(); f = min(int(.8 * SR), n); x[-f:] *= np.linspace(1, 0, f)
+    put(buf, t2, x, g)
+def at(k, f): return T[k] + f * D[k]
+
+L(music, 0.0, pad(9.0, [D2, A2, D3], .10))
+L(music, 11.3, pad(18.4, [D2, A2, F3], .11))
+L(music, 11.3, pulse(18.0, 90, g=.25))
+L(music, 29.2, pad(23.5, [D2, F2, A2, E3], .10, 420))
+L(music, 52.3, pad(22.6, [Bb2, F3, D3], .10, 420))
+L(music, 74.8, pad(24.4, [D2, A2, C3, E3], .11, 600))
+L(music, 85.8, riser(13.2), .55)
+L(music, 99.0, pad(11.0, [D2, A2, D3, F3], .12, 700))
+L(music, 99.0, pulse(10.5, 120, g=.32))
+L(music, 112.0, pad(8.0, [D2, A2], .07, 300))
+L(music, 120.2, pad(10.4, [D2, F2, A2], .09))
+L(music, 130.4, pad(40.6, [D2, A2, D3, E3], .09, 450))
+L(music, 130.4, pulse(40.0, 76, g=.18))
+L(music, 171.0, pad(29.0, [Bb2, D3, F3], .06, 380))
+L(music, 200.0, pad(17.2, [C3, E3, G3], .09, 600))
+L(music, 217.2, pad(15.8, [D2, A2, D3, F3, A3], .11, 900))
+L(music, 217.2, pulse(15.8, 104, g=.32))
+L(music, 233.0, pad(16.4, [D2, A2, D3, F3], .13, 1200))
+L(music, 233.0, pulse(16.4, 124, g=.5))
+L(music, 249.4, pad(23.0, [D2, F2, A2, C3], .10, 500))
+L(music, 272.4, pad(14.0, [D2, Bb2, E3], .07, 300))
+L(music, 286.4, pad(19.8, [D2, A2, E3], .09, 450))
+L(music, 306.2, pad(22.0, [D2, F2, A2, D3, F3, A3], .12, 900))
 
 # ---------------- sound design
-put(sfx, 0.0, lp_fast(rng.normal(0, 1, int(8.9 * SR)), 180) * .25)    # sensor hum
-put(sfx, 8.9, boom(3.0), .95)
-put(sfx, 9.15, rewind(), .8)
-put(sfx, 26.3, whoosh(.8), .6)
+L(sfx, 0.0, lp_fast(rng.normal(0, 1, int(8.9 * SR)), 180) * .25)    # sensor hum
+L(sfx, 8.9, boom(3.0), .95)
+L(sfx, 9.15, rewind(), .8)
+L(sfx, 26.3, whoosh(.8), .6)
 for s, d in ((37.4, 14.9), (70.4, 4.4)):
     k = 0.0
     while k < d:
-        put(sfx, s + k + .2, ping(), .5); k += 2 * np.pi / 1.6
-put(sfx, 52.3, jet_rumble(13.3), .45)
-put(sfx, 55.5, whoosh(.9), .7)            # catapult shot
-put(sfx, 130.4, jet_rumble(4.4), .45)
-put(sfx, 130.3, whoosh(.9), .6)
-put(sfx, 33.7, whoosh(.6), .4)
-put(sfx, 70.4, hit(), .7)
-put(sfx, 74.8, jet_rumble(11.0), .3)
-put(sfx, 79.8, wind(19.2), 1.0)
-put(sfx, 99.0, jet_rumble(10.0), .35)
-put(sfx, 99.0, heartbeat(10.0, 70), .5)
-put(sfx, 109.4, whoosh(1.0), .9)
-put(sfx, 110.2, boom(3.5, 90, 25), 1.0)
-put(sfx, 112.0, wind(6.0), .8)
-put(sfx, 121.8, snap(), .7)
-put(sfx, 124.6, hit(), .85)
-put(sfx, 160.8, hit(1.2), .5)
-put(sfx, 199.6, whoosh(1.0), .6)
-put(sfx, 206.0, hit(), .6)
-for s in (225.4, 228.4, 230.4): put(sfx, s, hit(), .7)
-put(sfx, 232.6, whoosh(.6), .7)
-for s in (233.0, 235.8, 237.9, 241.2, 245.2): put(sfx, s, hit(1.0), .5)
-put(sfx, 249.0, whoosh(.8), .6)
-put(sfx, 262.0, hit(), .6)
-put(sfx, 266.4, hit(), .6)
-put(sfx, 272.4, wind(14.0), .6)
-put(sfx, 289.6, hit(), .8)
-put(sfx, 292.2, hit(), .8)
-put(sfx, 298.4, boom(2.5), .6)
-put(sfx, 328.2, boom(3.0, 60, 30), .4)
+        L(sfx, s + k + .2, ping(), .5); k += 2 * np.pi / 1.6
+L(sfx, 52.3, jet_rumble(13.3), .45)
+L(sfx, 55.5, whoosh(.9), .7)            # catapult shot
+L(sfx, 130.4, jet_rumble(4.4), .45)
+L(sfx, 130.3, whoosh(.9), .6)
+L(sfx, 33.7, whoosh(.6), .4)
+L(sfx, 70.4, hit(), .7)
+L(sfx, 74.8, jet_rumble(11.0), .3)
+L(sfx, 79.8, wind(19.2), 1.0)
+L(sfx, 99.0, jet_rumble(10.0), .35)
+L(sfx, 99.0, heartbeat(10.0, 70), .5)
+L(sfx, 109.4, whoosh(1.0), .9)
+L(sfx, 110.2, boom(3.5, 90, 25), 1.0)
+L(sfx, 112.0, wind(6.0), .8)
+L(sfx, 121.8, snap(), .7)
+L(sfx, 124.6, hit(), .85)
+L(sfx, 160.8, hit(1.2), .5)
+L(sfx, 199.6, whoosh(1.0), .6)
+L(sfx, 206.0, hit(), .6)
+for s in (225.4, 228.4, 230.4): L(sfx, s, hit(), .7)
+L(sfx, 232.6, whoosh(.6), .7)
+for s in (233.0, 235.8, 237.9, 241.2, 245.2): L(sfx, s, hit(1.0), .5)
+L(sfx, 249.0, whoosh(.8), .6)
+L(sfx, 262.0, hit(), .6)
+L(sfx, 266.4, hit(), .6)
+L(sfx, 272.4, wind(14.0), .6)
+L(sfx, 289.6, hit(), .8)
+L(sfx, 292.2, hit(), .8)
+L(sfx, 298.4, boom(2.5), .6)
+
+
+# ---------------- v2 sections
+# 0 cold open: the black triangle files
+put(music, 0.0, pad(T['c02'] + 1.0, [D2, A2, E3], .09, 380))
+put(sfx, 0.0, wind(T['c02'] + 1.5), .8)
+put(sfx, 0.3, boom(3.0), .7)
+put(sfx, at('c01', .55), whoosh(1.2, up=False), .6)              # drops into a canyon
+put(sfx, at('c01', .86), hit(), .6)                               # no sound, no exhaust
+put(music, T['c02'], pad(D['c02'] + 1.5, [D2, F2, A2, C3], .10, 500))
+put(music, T['c02'], pulse(D['c02'], 90, g=.22))
+for f in (.45, .74): put(sfx, at('c02', f), hit(1.2), .6)          # 30 s vs 3 s
+put(sfx, at('c02', .84), boom(2.5), .7)                            # both can't be right
+fs = at('c03', .84)
+put(music, T['c03'], pad(fs - T['c03'] + 1.5, [Bb2, D3, F3], .09, 420))
+put(sfx, at('c03', .13), hit(), .7)                                # no video exists
+put(sfx, at('c03', .24), snap(), .7)
+put(sfx, at('c03', .26), hit(1.2), .5)                             # 23 Oct 2026
+put(sfx, at('c03', .53), whoosh(1.0), .6)
+put(sfx, at('c03', .71), boom(3.0, 60, 30), .6)                    # 22 years earlier
+put(sfx, fs, lp_fast(rng.normal(0, 1, int((R(0.0) - fs) * SR)), 180) * .25)   # sensor hum into the FLIR1 tail
+# 1 FLIR1 honesty
+c4 = T['b02'] - T['c04']
+put(music, T['c04'], pad(c4 + 1.0, [D2, A2, D3, F3], .09, 450))
+put(music, T['c04'], pulse(c4, 76, g=.18))
+put(sfx, T['c04'], lp_fast(rng.normal(0, 1, int(c4 * SR)), 180) * .15)
+put(sfx, at('c04', .2), snap(), .5)
+put(sfx, at('c04', .5), hit(), .7)                                 # his crew never saw it
+put(sfx, at('c04', .6), whoosh(1.0), .5)
+put(sfx, at('c04', .9), hit(1.2), .5)
+b2 = CARD_AT['b03s'] - T['b02']
+put(music, T['b02'], pad(b2 + 1.0, [D2, A2, F3], .11))
+put(music, T['b02'], pulse(b2, 90, g=.25))
+put(sfx, at('b02', .15), jet_rumble(.7 * D['b02']), .4)
+put(sfx, at('b02', .83), whoosh(.8), .6)
+# chapter cards
+for k, ct in CARD_AT.items():
+    put(sfx, ct - .6, whoosh(.8), .5); put(sfx, ct + .1, hit(1.2), .5)
+    put(music, ct - .5, pad(CARD + 1.4, [D2, A2, D3], .09, 380)); put(sfx, ct - .5, wind(CARD + 1.4), .7)   # no dead air under the card
+# 3 sixty miles: the maths, then the caveat
+c5 = CARD_AT['c06'] - T['c05']
+put(music, T['c05'], pad(c5 + 1.0, [D2, A2, D3, E3], .09, 450))
+put(music, T['c05'], pulse(.36 * D['c05'], 96, g=.25))
+for f in (0., .11): put(sfx, at('c05', f), snap(), .6)
+put(music, at('c05', .11), riser(.1 * D['c05'] + 1.4), .5)
+put(sfx, at('c05', .21) + 1.4, boom(3.0), .9)                     # counter lands on 3,600 mph
+k = at('c05', .36)
+while k < CARD_AT['c06'] - 1: put(sfx, k + .2, ping(), .45); k += 2 * np.pi / 1.6
+put(sfx, at('c05', .57), hit(), .7)                                # no recording you can watch
+# 4 four aviators, two jets, one radar
+put(music, T['c06'], pad(T['c12'] - T['c06'] + 1.0, [Bb2, D3, F3], .08, 400))
+put(sfx, T['c06'], jet_rumble(.55 * D['c06']), .4)
+for f in (.17, .24, .27, .36): put(sfx, at('c06', f), snap(), .5)  # seats light up
+put(sfx, at('c06', .57), hit(), .6)
+put(sfx, at('c06', .8), whoosh(1.0), .5)
+c12 = CARD_AT['c07'] - T['c12']
+put(music, T['c12'], pad(c12 + 1.0, [D2, A2, C3, E3], .10, 600))
+put(music, at('c12', .25), pulse(CARD_AT['c07'] - at('c12', .25), 104, g=.3))
+for s, e in ((.25, .65), (.85, 1.1)):
+    k = at('c12', s)
+    while k < min(at('c12', e), CARD_AT['c07'] - 1): put(sfx, k + .2, ping(), .45); k += 2 * np.pi / 1.6
+put(sfx, at('c12', .67), hit(), .7)
+put(sfx, at('c12', .86), boom(2.5), .7)                            # raw radar data, never made public
+# 5 Go Fast setup and payoff
+put(music, T['c07'], pad(R(171.0) - T['c07'] + 1.0, [D2, F2, A2], .08))
+for f in (0., .5): put(sfx, at('c07', f), snap(), .6)
+c8 = CARD_AT['b11'] - T['c08']
+put(music, T['c08'], pad(c8 + 1.0, [D2, A2, D3, F3, A3], .11, 900))
+put(music, T['c08'], pulse(c8, 104, g=.3))
+for f in (.4, .52): put(sfx, at('c08', f), hit(), .7)              # people / and radar
+put(sfx, at('c08', .63), whoosh(.8), .6)
+# 6 back to the black triangle
+c10 = CARD_AT['c11'] - T['c10']
+put(music, T['c10'], pad(c10 + 1.0, [D2, Bb2, E3], .08, 300))
+put(sfx, T['c10'], wind(c10 + 1.0), .6)
+for f in (.4, .6): put(sfx, at('c10', f), hit(1.2), .6)
+put(sfx, at('c10', .87), boom(2.5), .7)
+# 7 still unidentified, then the end screen
+put(music, T['c11'], pad(T['b14'] - T['c11'] + 1.0, [D2, A2, E3], .09, 450))
+put(sfx, at('c11', .47), hit(), .7)
+put(sfx, at('c11', .7), boom(2.5), .6)
+put(music, R(328.2), pad(END - R(328.2), [D2, A2, D3, F3], .12, 700))
+put(sfx, R(328.2), boom(3.0, 60, 30), .4)
 
 # ---------------- real cockpit audio from GOFAST (U.S. Navy, public domain)
 def load(path, ss=0, d=None):
     cmd = ['ffmpeg', '-v', 'error', '-ss', str(ss), '-i', path] + (['-t', str(d)] if d else []) + ['-f', 'f32le', '-ac', '1', '-ar', str(SR), '-']
     return np.frombuffer(subprocess.run(cmd, capture_output=True).stdout, np.float32).astype(np.float64)
 go = load('src/gofast.mp4', 0, 29.0)
-go_env = np.ones(len(go)); go_env[int(3.0 * SR):] = .28   # duck under narration after 3 s
-put(sfx, 171.0, go * go_env, 1.4)
+go_env = np.ones(len(go)); go_env[int(3.0 * SR):] = .14   # duck well under narration after 3 s (v2: 6 dB lower than v1)
+put(sfx, R(171.0), go * go_env, 1.4)
 
 # ---------------- narration
 DUB = os.environ.get('DUB', '')
