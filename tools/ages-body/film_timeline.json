@@ -1,0 +1,159 @@
+{
+ "total": 282.952,
+ "fps": 24,
+ "beats": [
+  {
+   "id": "hook",
+   "start": 0.0,
+   "dur": 9.409,
+   "vo": "beat01_hook.mp3",
+   "vo_dur": 8.359,
+   "lead": 0.35,
+   "estimated": false
+  },
+  {
+   "id": "lineup",
+   "start": 9.409,
+   "dur": 13.778,
+   "vo": "beat02_promise.mp3",
+   "vo_dur": 12.278,
+   "lead": 0.5,
+   "estimated": false
+  },
+  {
+   "id": "age1",
+   "start": 23.187,
+   "dur": 24.239,
+   "vo": "beat03_age1.mp3",
+   "vo_dur": 22.439,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age35",
+   "start": 47.426,
+   "dur": 20.556,
+   "vo": "beat04_age3_5.mp3",
+   "vo_dur": 18.756,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age10",
+   "start": 67.982,
+   "dur": 16.873,
+   "vo": "beat05_age10.mp3",
+   "vo_dur": 15.073,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age18",
+   "start": 84.854,
+   "dur": 19.119,
+   "vo": "beat06_age18.mp3",
+   "vo_dur": 17.319,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age25",
+   "start": 103.974,
+   "dur": 20.086,
+   "vo": "beat07_age25.mp3",
+   "vo_dur": 18.286,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age30",
+   "start": 124.059,
+   "dur": 20.991,
+   "vo": "beat08_age30.mp3",
+   "vo_dur": 18.991,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "rehook",
+   "start": 145.05,
+   "dur": 10.681,
+   "vo": "beat09_rehook.mp3",
+   "vo_dur": 8.281,
+   "lead": 0.8,
+   "estimated": false
+  },
+  {
+   "id": "age40",
+   "start": 155.731,
+   "dur": 16.794,
+   "vo": "beat10_age40.mp3",
+   "vo_dur": 14.994,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age50",
+   "start": 172.526,
+   "dur": 15.514,
+   "vo": "beat11_age50.mp3",
+   "vo_dur": 13.714,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age60",
+   "start": 188.04,
+   "dur": 15.671,
+   "vo": "beat12_age60.mp3",
+   "vo_dur": 13.871,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age70",
+   "start": 203.711,
+   "dur": 16.246,
+   "vo": "beat13_age70.mp3",
+   "vo_dur": 14.446,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age80",
+   "start": 219.957,
+   "dur": 20.399,
+   "vo": "beat14_age80.mp3",
+   "vo_dur": 18.599,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "age100",
+   "start": 240.356,
+   "dur": 18.866,
+   "vo": "beat15_age100.mp3",
+   "vo_dur": 16.666,
+   "lead": 0.6,
+   "estimated": false
+  },
+  {
+   "id": "tree",
+   "start": 259.222,
+   "dur": 11.366,
+   "vo": "beat16_close.mp3",
+   "vo_dur": 6.766,
+   "lead": 1.2,
+   "estimated": false
+  },
+  {
+   "id": "end",
+   "start": 270.588,
+   "dur": 12.364,
+   "vo": "beat17_cta.mp3",
+   "vo_dur": 5.564,
+   "lead": 0.8,
+   "estimated": false
+  }
+ ]
+}

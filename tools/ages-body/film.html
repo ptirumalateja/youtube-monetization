@@ -1,0 +1,471 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<style>html,body{margin:0;background:#0b0d14;overflow:hidden}canvas{display:block}</style></head><body>
+<canvas id="out"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+const Q = new URLSearchParams(location.search);
+const W = +Q.get('w') || 1920, H = +Q.get('h') || 1080;
+const clamp = THREE.MathUtils.clamp, lerp = THREE.MathUtils.lerp;
+const ease = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+const ramp = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const sstep = (a, b, x) => ease((x - a) / (b - a));
+
+// ------------------------------------------------------------------ data
+const AGES = [1, 5, 12, 18, 30, 45, 60, 70, 80, 90, 100];
+const raw = {}, jraw = {};
+await Promise.all(AGES.map(async a => {
+  raw[a] = new Float32Array(await (await fetch(`out/body_${a}.bin`)).arrayBuffer());
+  jraw[a] = await (await fetch(`out/joints_${a}.json`)).json();
+}));
+const idx = new Uint32Array(await (await fetch('out/body_idx.bin')).arrayBuffer());
+const TL = await (await fetch('film_timeline.json')).json();
+const nV = raw[1].length / 3;
+
+// interpolated body at any age, with the old-age stoop applied
+const cacheB = new Map();
+function bodyAt(age) {
+  age = clamp(age, 1, 100); const key = Math.round(age * 20) / 20;
+  if (cacheB.has(key)) return cacheB.get(key);
+  let i = 0; while (i < AGES.length - 2 && key > AGES[i + 1]) i++;
+  const a0 = AGES[i], a1 = AGES[i + 1], t = clamp((key - a0) / (a1 - a0), 0, 1);
+  const pos = new Float32Array(nV * 3), A = raw[a0], B = raw[a1];
+  for (let k = 0; k < pos.length; k++) pos[k] = A[k] + (B[k] - A[k]) * t;
+  const joints = {};
+  for (const n of Object.keys(jraw[a0])) { const p = jraw[a0][n], q = jraw[a1][n]; joints[n] = [lerp(p[0], q[0], t), lerp(p[1], q[1], t), lerp(p[2], q[2], t)]; }
+  const old = clamp((key - 55) / 40, 0, 1), maxA = 0.42 * old;
+  if (maxA > 0) {
+    const py = joints['joint-pelvis'][1], pz = joints['joint-pelvis'][2], ny = joints['joint-neck'][1] + 0.04;
+    const bend = (x, y, z) => { const a = maxA * sstep(py, ny, y), dy = y - py, dz = z - pz; return [x, py + dy * Math.cos(a) - dz * Math.sin(a), pz + dz * Math.cos(a) + dy * Math.sin(a)]; };
+    for (let i2 = 0; i2 < nV; i2++) pos.set(bend(pos[i2 * 3], pos[i2 * 3 + 1], pos[i2 * 3 + 2]), i2 * 3);
+    for (const n of Object.keys(joints)) joints[n] = bend(...joints[n]);
+  }
+  let h = 0; for (let k = 1; k < pos.length; k += 3) h = Math.max(h, pos[k]);
+  const r = {pos, joints, height: h, age: key, old}; cacheB.set(key, r); if (cacheB.size > 60) cacheB.delete(cacheB.keys().next().value); return r;
+}
+
+// ------------------------------------------------------------------ renderer, scene, composer
+const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(26, W / H, 0.05, 80);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, cam));
+const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.5, 0.7, 0.5); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+const out = document.getElementById('out'); out.width = W; out.height = H; const ctx = out.getContext('2d');
+
+const mkBg = (inner, mid, outer) => { const c = document.createElement('canvas'); c.width = 512; c.height = 288; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(256, 170, 10, 256, 170, 330); gr.addColorStop(0, inner); gr.addColorStop(0.55, mid); gr.addColorStop(1, outer); g.fillStyle = gr; g.fillRect(0, 0, 512, 288);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+const BG = {warm: mkBg('#3a2d28', '#1d1c24', '#0f1119'), cool: mkBg('#16243a', '#0d1626', '#090d18'), tree: mkBg('#2a1c14', '#150f0d', '#0a0807')};
+
+const uScan = {value: 10};
+const patchScan = (mat, keepBelow) => { // keepBelow: show only fragments with world y <= scan; else only y > scan
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uScan = uScan;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vWY;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWY=(modelMatrix*vec4(transformed,1.)).y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uScan; varying float vWY;').replace('void main() {', `void main() { if(${keepBelow ? 'vWY>uScan' : 'vWY<uScan'}) discard;`);
+  };
+  return mat;
+};
+const fresMat = (c1, c2, p, a, scanKeepBelow = true) => new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: {c1: {value: new THREE.Color(c1)}, c2: {value: new THREE.Color(c2)}, p: {value: p}, a: {value: a}, uScan},
+  vertexShader: 'varying vec3 vN; varying vec3 vV; varying float vWY; void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vWY=(modelMatrix*vec4(position,1.)).y;gl_Position=projectionMatrix*mv;}',
+  fragmentShader: `uniform vec3 c1;uniform vec3 c2;uniform float p;uniform float a;uniform float uScan;varying vec3 vN;varying vec3 vV;varying float vWY;void main(){${scanKeepBelow ? 'if(vWY>uScan) discard;' : ''}float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),p);gl_FragColor=vec4(mix(c2,c1,f)*(0.25+f*1.6)*a,1.);}`});
+const glowMat = (c, o = 1, scan = true) => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false}); return scan ? patchScan(m, true) : m; };
+const lineMat = c => new THREE.LineBasicMaterial({color: c, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: false});
+
+// ------------------------------------------------------------------ the body (shared geometry, updated when the age changes)
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nV * 3), 3));
+geo.setIndex(new THREE.BufferAttribute(idx, 1));
+geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(nV * 3), 3));
+geo.setAttribute('wr', new THREE.BufferAttribute(new Float32Array(nV), 1));
+
+const skinMat = (() => {
+  const m = new THREE.MeshStandardMaterial({vertexColors: true, roughness: 0.62});
+  const wrS = {value: 0};
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uScan = uScan; sh.uniforms.wrS = wrS;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float wr; varying float vWr; varying vec3 vOP; varying float vWY;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWr = wr; vOP = position; vWY=(modelMatrix*vec4(transformed,1.)).y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform float wrS; uniform float uScan; varying float vWr; varying vec3 vOP; varying float vWY;
+float h31(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+ return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),
+            mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float crease(vec3 p){float w=vn(p*vec3(16.,6.,16.));float l=1.-abs(sin(p.y*330.+w*16.));float m=smoothstep(.5,.8,vn(p*vec3(38.,9.,38.)));return pow(l,3.)*m;}`)
+      .replace('void main() {', 'void main() { if(vWY<uScan) discard;')
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{ float e=.0015; float c0=crease(vOP); vec3 g=vec3(crease(vOP+vec3(e,0,0))-c0,crease(vOP+vec3(0,e,0))-c0,crease(vOP+vec3(0,0,e))-c0)/e;
+  vec3 gv=(viewMatrix*vec4(g,0.)).xyz; normal=normalize(normal-gv*wrS*vWr*0.0016); }`);
+  };
+  m.userData.wrS = wrS; return m;
+})();
+
+const gSkin = new THREE.Group(), gXray = new THREE.Group(), gPlex = new THREE.Group(), gNerve = new THREE.Group(), gMuscle = new THREE.Group(),
+  gBrain = new THREE.Group(), gRings = new THREE.Group(), gLine = new THREE.Group(), gTree = new THREE.Group(), gFx = new THREE.Group();
+[gSkin, gXray, gPlex, gNerve, gMuscle, gBrain, gRings, gLine, gTree, gFx].forEach(g => scene.add(g));
+const skinMesh = new THREE.Mesh(geo, skinMat); gSkin.add(skinMesh);
+let briefs = null;
+const eyeMeshes = [];
+const lidMat = patchScan(new THREE.MeshStandardMaterial({color: '#9a6743', roughness: 0.7, side: THREE.DoubleSide}), false);
+for (let s = 0; s < 2; s++) {
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), patchScan(new THREE.MeshStandardMaterial({color: '#b09a86', roughness: 0.8}), false));
+  const iris = new THREE.Mesh(new THREE.SphereGeometry(0.66, 20, 14), patchScan(new THREE.MeshStandardMaterial({color: '#5a3a24', roughness: 0.7}), false));
+  const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), patchScan(new THREE.MeshStandardMaterial({color: '#0a0604', roughness: 0.8}), false));
+  const lidU = new THREE.Mesh(new THREE.SphereGeometry(1.08, 24, 12, 0, Math.PI * 2, 0, 0.85), lidMat); lidU.rotation.x = Math.PI / 2 - 0.05;
+  const lidL = new THREE.Mesh(new THREE.SphereGeometry(1.08, 24, 12, 0, Math.PI * 2, 0, 0.28), lidMat); lidL.rotation.x = -Math.PI / 2 - 0.1;
+  const g = new THREE.Group(); g.add(ball, iris, pupil, lidU, lidL); iris.position.set(0, -0.07, 0.5); pupil.position.set(0, -0.07, 0.84);
+  gSkin.add(g); eyeMeshes.push(g);
+}
+// lights
+const ambient = new THREE.AmbientLight('#1a1d30', 1.4), key = new THREE.SpotLight('#ffb070', 26, 0, 0.8, 0.95, 1.6), rim = new THREE.DirectionalLight('#5a7bd8', 0.9), fill = new THREE.DirectionalLight('#ffd2ae', 1.15);
+scene.add(ambient, key, key.target, rim, fill);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshBasicMaterial({color: '#2a2018'})); floor.rotation.x = -Math.PI / 2; floor.position.y = -0.002; scene.add(floor);
+
+// xray shell reuses the same geometry
+const xShell = new THREE.Mesh(geo, fresMat('#4fb3ff', '#0a2a66', 2.2, 1.0)); gXray.add(xShell);
+const pShell = new THREE.Mesh(geo, fresMat('#6fa8ff', '#07142e', 2.6, 0.55)); gPlex.add(pShell);
+const nShell = new THREE.Mesh(geo, fresMat('#5a7cff', '#080a24', 2.4, 0.5)); gNerve.add(nShell);
+const mShell = new THREE.Mesh(geo, fresMat('#4fb3ff', '#0a2a66', 2.2, 0.7)); gMuscle.add(mShell);
+
+// ---- plexus (indices chosen once on the age-30 mesh, positions follow the live mesh)
+const plexIdx = []; let plexSeg = [];
+{ const b = bodyAt(30), P = b.pos; let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647; const minD = 0.03; const sel = [];
+  for (let tries = 0; tries < 60000 && sel.length < 1300; tries++) { const i = Math.floor(rnd() * nV); let ok = true; for (const j of sel) { const dx = P[i * 3] - P[j * 3], dy = P[i * 3 + 1] - P[j * 3 + 1], dz = P[i * 3 + 2] - P[j * 3 + 2]; if (dx * dx + dy * dy + dz * dz < minD * minD) { ok = false; break; } } if (ok) sel.push(i); }
+  plexIdx.push(...sel);
+  for (let a = 0; a < sel.length; a++) { const near = []; for (let c = a + 1; c < sel.length; c++) { const dx = P[sel[a] * 3] - P[sel[c] * 3], dy = P[sel[a] * 3 + 1] - P[sel[c] * 3 + 1], dz = P[sel[a] * 3 + 2] - P[sel[c] * 3 + 2], d = dx * dx + dy * dy + dz * dz; if (d < (minD * 2.1) ** 2) near.push([d, c]); } near.sort((x, y) => x[0] - y[0]); for (const [, c] of near.slice(0, 3)) plexSeg.push(a, c); } }
+const plexLineGeo = new THREE.BufferGeometry(); plexLineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(plexSeg.length * 3), 3));
+const plexPtGeo = new THREE.BufferGeometry(); plexPtGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(plexIdx.length * 3), 3));
+gPlex.add(new THREE.LineSegments(plexLineGeo, lineMat('#8fc4ff')));
+const plexPts = new THREE.Points(plexPtGeo, new THREE.PointsMaterial({color: '#e8f4ff', size: 0.011, sizeAttenuation: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false})); gPlex.add(plexPts);
+gPlex.children[1].material.opacity = 0.5;
+
+// ---- skeleton (pooled cylinders), brain, heart, vessels
+const cyl = new THREE.CylinderGeometry(1, 1, 1, 10, 1), sph = new THREE.SphereGeometry(1, 16, 12);
+const bonePool = []; const boneMat = glowMat('#cfe8ff', 0.8);
+for (let i = 0; i < 140; i++) { const m = new THREE.Mesh(cyl, boneMat); m.visible = false; gXray.add(m); bonePool.push(m); }
+const skullPieces = []; for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(sph, boneMat); m.visible = false; gXray.add(m); skullPieces.push(m); }
+const ribLines = []; for (let i = 0; i < 8; i++) { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new Array(61).fill(0).map(() => new THREE.Vector3())), lineMat('#9fd0ff')); gXray.add(l); ribLines.push(l); }
+const heart = new THREE.Mesh(sph, glowMat('#ff6a44', 1)), halo = new THREE.Mesh(sph, glowMat('#ff4a2a', 0.22)); gXray.add(heart, halo);
+const lungs = [0, 1].map(() => { const m = new THREE.Mesh(sph, fresMat('#6fd0ff', '#0a2a66', 2.0, 0.7)); gXray.add(m); return m; });
+let vessels = [], nerves = [], muscles = [];
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const setFromTo = (m, p, q, r) => { const d = q.clone().sub(p), L = d.length(); m.position.copy(p).addScaledVector(d, 0.5); m.scale.set(r, Math.max(L, 1e-4), r); m.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize()); m.visible = true; };
+const tubeMesh = (pts, r, mat) => new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, r, 8, false), mat);
+
+// brain blob + network
+const brainMat = new THREE.ShaderMaterial({transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: {c1: {value: new THREE.Color('#9fe0ff')}, c2: {value: new THREE.Color('#1a3a7a')}, a: {value: 0.95}, wave: {value: -2}, hold: {value: 0}, uScan},
+  vertexShader: 'varying vec3 vN; varying vec3 vV; varying vec3 vL; varying float vWY; void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vL=normalize(position);vWY=(modelMatrix*vec4(position,1.)).y;gl_Position=projectionMatrix*mv;}',
+  fragmentShader: 'uniform vec3 c1;uniform vec3 c2;uniform float a;uniform float wave;uniform float hold;uniform float uScan;varying vec3 vN;varying vec3 vV;varying vec3 vL;varying float vWY;void main(){if(vWY>uScan) discard;float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),1.1);vec3 col=mix(c2,c1,f)*(0.25+f*1.6)*a;float z=vL.z;float band=exp(-pow((z-wave)/0.16,2.))*1.6;float front=smoothstep(0.1,0.6,z)*hold;col+=vec3(1.0,0.62,0.25)*(band+front*0.9)*(0.4+f);gl_FragColor=vec4(col,1.);}'});
+const brainMesh = (() => { const g = new THREE.IcosahedronGeometry(1, 5), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const v = V3(p.getX(i), p.getY(i), p.getZ(i)).normalize(); const r = 1 + 0.07 * (1 - Math.abs(Math.sin(v.x * 9 + Math.sin(v.y * 7) * 2) * Math.sin(v.y * 8 + v.z * 5))); p.setXYZ(i, v.x * r * 0.92, v.y * r * 0.85, v.z * r * 1.12); }
+  g.computeVertexNormals(); return new THREE.Mesh(g, brainMat); })();
+const brainCore = new THREE.Mesh(sph, glowMat('#9fe0ff', 0.2));
+gBrain.add(brainMesh, brainCore);
+// network inside the brain (unit ellipsoid coordinates)
+const netNodes = [], netEdges = [], netUse = []; { let s = 11; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  while (netNodes.length < 150) { const p = V3(rnd() * 2 - 1, rnd() * 2 - 1, rnd() * 2 - 1); if (p.lengthSq() < 0.8) netNodes.push(p.multiply(V3(0.82, 0.76, 1.0))); }
+  for (let a = 0; a < netNodes.length; a++) { const d = netNodes.map((q, j) => [netNodes[a].distanceToSquared(q), j]).filter(x => x[1] > a).sort((x, y) => x[0] - y[0]).slice(0, 3); for (const [, j] of d) { netEdges.push([a, j]); netUse.push(rnd() < 0.34); } } }
+const netGeo = new THREE.BufferGeometry(); netGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(netEdges.length * 6), 3)); netGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(netEdges.length * 6), 3));
+{ const P = netGeo.attributes.position; netEdges.forEach(([a, b], i) => { P.setXYZ(i * 2, ...netNodes[a].toArray()); P.setXYZ(i * 2 + 1, ...netNodes[b].toArray()); }); }
+const netLines = new THREE.LineSegments(netGeo, new THREE.LineBasicMaterial({vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false}));
+const netPts = new THREE.Points(new THREE.BufferGeometry().setFromPoints(netNodes), new THREE.PointsMaterial({color: '#ffffff', size: 0.012, sizeAttenuation: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false}));
+const brainNet = new THREE.Group(); brainNet.add(netLines, netPts); gBrain.add(brainNet);
+function setPrune(p) { const C = netGeo.attributes.color; netEdges.forEach((e, i) => { const used = netUse[i]; const v = used ? 0.55 + 0.45 * p : 0.55 * (1 - p); const c = used ? [0.5 * v + 0.2 * p, 0.8 * v, 1.0 * v] : [0.35 * v, 0.55 * v, 0.9 * v]; C.setXYZ(i * 2, ...c); C.setXYZ(i * 2 + 1, ...c); }); C.needsUpdate = true; }
+
+// floor rings: one circle per year
+const RING_N = 100, RING_SEG = 72; const ringGeo = new THREE.BufferGeometry();
+{ const P = new Float32Array(RING_N * RING_SEG * 6), C = new Float32Array(RING_N * RING_SEG * 6);
+  for (let r = 0; r < RING_N; r++) for (let s = 0; s < RING_SEG; s++) { const a0 = s / RING_SEG * Math.PI * 2, a1 = (s + 1) / RING_SEG * Math.PI * 2, rad = 0.32 + r * 0.0115, o = (r * RING_SEG + s) * 6; P.set([Math.cos(a0) * rad, 0.001, Math.sin(a0) * rad, Math.cos(a1) * rad, 0.001, Math.sin(a1) * rad], o); }
+  ringGeo.setAttribute('position', new THREE.BufferAttribute(P, 3)); ringGeo.setAttribute('color', new THREE.BufferAttribute(C, 3)); }
+const ringLines = new THREE.LineSegments(ringGeo, new THREE.LineBasicMaterial({vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false})); gRings.add(ringLines);
+function setRings(n, bright = 1, hi = -1) { const C = ringGeo.attributes.color; for (let r = 0; r < RING_N; r++) { const on = clamp(n - r, 0, 1), cur = (r === Math.floor(n) - 1) ? 1.6 : 1, h = r === hi ? 2.2 : 1, v = on * 0.55 * bright * Math.max(cur, h), c = [v * 1.0, v * 0.62, v * 0.28]; for (let s = 0; s < RING_SEG * 2; s++) C.setXYZ(r * RING_SEG * 2 + s, ...c); } C.needsUpdate = true; }
+
+// lineup ghosts
+const LINE_AGES = [1, 5, 10, 18, 25, 30, 40, 50, 60, 70, 80, 90, 100], ghosts = [];
+for (const a of LINE_AGES) { const b = bodyAt(a), g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(b.pos.slice(), 3)); g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, fresMat('#6fa8ff', '#07142e', 2.4, 0.9, false)); m.position.x = (LINE_AGES.indexOf(a) - 6) * 0.95; gLine.add(m); ghosts.push(m); }
+
+// tree rings finale
+const treeMat = new THREE.ShaderMaterial({uniforms: {n: {value: 0}, hi: {value: -1}, t: {value: 0}}, transparent: false,
+  vertexShader: 'varying vec2 vU; void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader: `uniform float n; uniform float hi; uniform float t; varying vec2 vU;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+void main(){ vec2 p=(vU-.5)*2.; float ang=atan(p.y,p.x);
+  vec2 cs=vec2(cos(ang),sin(ang));
+  float rr=length(p)+0.02*(vn(cs*2.5+1.)-.5)+0.01*(vn(cs*9.+3.)-.5);
+  float k=rr*100./1.0; float ring=floor(k); float f=fract(k);
+  float on=step(ring+1.,n+0.001)+step(ring,n)*fract(n)*step(n,ring+1.);
+  float w=0.09+0.07*h(vec2(ring,3.)); float line=smoothstep(0.5-w,0.5,f)*(1.-smoothstep(0.5,0.5+w,f));
+  float thick=0.35+0.65*h(vec2(ring,7.)); float cur=step(abs(ring-hi),0.5);
+  vec3 wood=vec3(0.13,0.075,0.045)*(0.8+0.4*vn(p*8.));
+  vec3 col=wood+vec3(1.0,0.6,0.26)*line*thick*0.9*on+vec3(1.,.85,.6)*cur*line*1.8;
+  float edge=1.-smoothstep(0.93,1.0,length(p)); col*=edge*(1.-0.5*smoothstep(0.7,1.,length(p)));
+  gl_FragColor=vec4(col,1.);}`});
+const treeMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 3.2), treeMat); treeMesh.rotation.x = -Math.PI / 2; gTree.add(treeMesh);
+
+// scan line glow
+const scanPlane = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.012), new THREE.MeshBasicMaterial({color: '#7fd0ff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false})); gFx.add(scanPlane); scanPlane.visible = false;
+
+// ------------------------------------------------------------------ apply age to the live meshes
+const st = {age: -1, body: null, hsc: 1};
+const skinC = new THREE.Color(), hairC = new THREE.Color(), browC = new THREE.Color(), lipC = new THREE.Color(), tmpC = new THREE.Color();
+function applyAge(age) {
+  const b = bodyAt(age); if (st.body === b) return; st.body = b; st.age = age;
+  const P = b.pos, J = b.joints, old = b.old, hs = b.height / 1.73; st.hsc = hs;
+  geo.attributes.position.array.set(P); geo.attributes.position.needsUpdate = true; geo.computeVertexNormals();
+  skinC.set('#9a6743').lerp(tmpC.set('#b89a86'), old * 0.8); hairC.set('#1c130e').lerp(tmpC.set('#d6d6dc'), old);
+  browC.copy(hairC).lerp(skinC, 0.25); lipC.copy(skinC).lerp(tmpC.set('#7a3a30'), 0.32);
+  const col = geo.attributes.color.array, wr = geo.attributes.wr.array, eyeY = J['joint-l-eye'][1], hz = J['joint-head'][2], mo = J['joint-mouth'], neckY = J['joint-neck'][1] - 0.01 * hs;
+  const hl = V3(...J['joint-l-hand']), hr = V3(...J['joint-r-hand']); const hairW = new Float32Array(nV);
+  for (let i = 0; i < nV; i++) {
+    const x = P[i * 3], y = P[i * 3 + 1], z = P[i * 3 + 2];
+    const front = sstep(0.04 * hs, 0.11 * hs, z - hz), line = eyeY + (0.015 + 0.075 * front) * hs;
+    hairW[i] = y > eyeY - 0.02 * hs ? sstep(line - 0.012, line + 0.012, y) : 0;
+    tmpC.copy(skinC).lerp(hairC, hairW[i]);
+    if (z > hz + 0.07 * hs) { const ax = Math.abs(x), bx = (ax - 0.036 * hs) / (0.024 * hs), by = (y - (eyeY + 0.024 * hs + 0.007 * hs * (1 - Math.min(1, ax / (0.06 * hs))))) / (0.0065 * hs);
+      const bw = Math.exp(-(bx * bx + by * by)) * (1 - 0.5 * old), lx = x / (0.02 * hs), ly = (y - (mo[1] - 0.016 * hs)) / (0.0055 * hs), lw = Math.exp(-(lx * lx + ly * ly * 0.6)) * 0.85;
+      tmpC.lerp(browC, Math.min(1, bw)).lerp(lipC, Math.min(1, lw)); }
+    col[i * 3] = tmpC.r; col[i * 3 + 1] = tmpC.g; col[i * 3 + 2] = tmpC.b;
+    let w = 0.03; if (y > neckY) w = 1; else { const dx = x - hl.x, dy = y - hl.y, dz = z - hl.z, ex = x - hr.x, ez = z - hr.z; if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.11 * hs || Math.sqrt(ex * ex + (y - hr.y) ** 2 + ez * ez) < 0.11 * hs) w = 0.25; }
+    wr[i] = w * (1 - hairW[i]);
+  }
+  geo.attributes.color.needsUpdate = true; geo.attributes.wr.needsUpdate = true;
+  // hair puff
+  { const Pp = geo.attributes.position, N = geo.attributes.normal; for (let i = 0; i < nV; i++) if (hairW[i] > 0) { const d = 0.007 * hs * hairW[i] * (1 - 0.6 * old); Pp.setXYZ(i, Pp.getX(i) + N.getX(i) * d, Pp.getY(i) + N.getY(i) * d, Pp.getZ(i) + N.getZ(i) * d); } geo.computeVertexNormals(); }
+  skinMat.userData.wrS.value = Math.max(old, clamp((age - 35) / 60, 0, 1) * 0.3);
+  // eyes
+  const sp = Math.abs(J['joint-l-eye'][0] - J['joint-r-eye'][0]) / 0.0586, r = 0.0112 * sp * (1 + 0.35 * (1 - Math.min(1, sp)));
+  eyeMeshes.forEach((g, s) => { const e = J[s === 0 ? 'joint-l-eye' : 'joint-r-eye']; g.position.set(e[0], e[1], e[2] - 0.0012 * sp); g.scale.setScalar(r); });
+  lidMat.color.copy(skinC).multiplyScalar(0.95);
+  makeBriefs(b);
+  updatePlexus(); buildInternals(b);
+  key.position.set(-1.7 * hs, b.height * 1.15, 1.3 * hs); key.intensity = 26 * Math.pow(hs, 1.6); key.target.position.set(0, b.height * 0.55, 0); key.target.updateMatrixWorld();
+  floor.scale.setScalar(Math.max(0.62 * b.height, 1.0));
+}
+function makeBriefs(b) {
+  if (briefs) { gSkin.remove(briefs); briefs.geometry.dispose(); }
+  const J = b.joints, k = b.height / 1.73, pelvisY = J['joint-pelvis'][1], hemY = pelvisY - 0.16 * k, waistY = pelvisY + 0.03 * k;
+  const P = geo.attributes.position, N = geo.attributes.normal, sel = new Map(), tri = [];
+  for (let f = 0; f < idx.length; f += 3) { const a = idx[f], bb = idx[f + 1], c = idx[f + 2], cy = (P.getY(a) + P.getY(bb) + P.getY(c)) / 3;
+    if (cy < hemY || cy > waistY || Math.abs((P.getX(a) + P.getX(bb) + P.getX(c)) / 3) > 0.24 * k) continue;
+    for (const v of [a, bb, c]) if (!sel.has(v)) sel.set(v, sel.size); tri.push(sel.get(a), sel.get(bb), sel.get(c)); }
+  const n = sel.size, sp = new Float32Array(n * 3), sn = new Float32Array(n * 3);
+  for (const [v, i] of sel) { sp[i * 3] = P.getX(v); sp[i * 3 + 1] = P.getY(v); sp[i * 3 + 2] = P.getZ(v); sn[i * 3] = N.getX(v); sn[i * 3 + 1] = N.getY(v); sn[i * 3 + 2] = N.getZ(v); }
+  const nb = Array.from({length: n}, () => new Set()); for (let f = 0; f < tri.length; f += 3) for (let a = 0; a < 3; a++) { nb[tri[f + a]].add(tri[f + (a + 1) % 3]); nb[tri[f + a]].add(tri[f + (a + 2) % 3]); }
+  const crotch = i => Math.abs(sp[i * 3]) < 0.11 * k && sp[i * 3 + 1] < pelvisY - 0.02 * k && sp[i * 3 + 1] > pelvisY - 0.14 * k && sp[i * 3 + 2] > -0.02 * k;
+  const orig = sp.slice(); for (let i = 0; i < n; i++) { const o = (crotch(i) ? 0.016 : 0.007) * k; for (let d = 0; d < 3; d++) sp[i * 3 + d] += sn[i * 3 + d] * o; }
+  for (let it = 0; it < 14; it++) { const nx = sp.slice(); for (let i = 0; i < n; i++) if (crotch(i)) { let sx = 0, sy = 0, sz = 0; for (const j of nb[i]) { sx += sp[j * 3]; sy += sp[j * 3 + 1]; sz += sp[j * 3 + 2]; } const m = nb[i].size; nx[i * 3] = sp[i * 3] * 0.4 + sx / m * 0.6; nx[i * 3 + 1] = sp[i * 3 + 1] * 0.4 + sy / m * 0.6; nx[i * 3 + 2] = sp[i * 3 + 2] * 0.4 + sz / m * 0.6; } sp.set(nx); }
+  const col2 = new Float32Array(n * 3), bandC = new THREE.Color('#5b6580'), clothC = new THREE.Color('#222c40');
+  for (let i = 0; i < n; i++) { let d = 0; for (let a = 0; a < 3; a++) d += (sp[i * 3 + a] - orig[i * 3 + a]) * sn[i * 3 + a]; const need = 0.006 * k - d; if (need > 0) for (let a = 0; a < 3; a++) sp[i * 3 + a] += sn[i * 3 + a] * need;
+    let y = sp[i * 3 + 1]; if (y < hemY + 0.02 * k) y = hemY; else if (y > waistY - 0.02 * k) y = waistY; sp[i * 3 + 1] = y; const c = y > waistY - 0.022 * k ? bandC : clothC; col2.set([c.r, c.g, c.b], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(sp, 3)); g.setAttribute('color', new THREE.BufferAttribute(col2, 3)); g.setIndex(tri); g.computeVertexNormals();
+  briefs = new THREE.Mesh(g, patchScan(new THREE.MeshStandardMaterial({vertexColors: true, roughness: 0.92, side: THREE.DoubleSide}), false)); gSkin.add(briefs);
+}
+function updatePlexus() {
+  const P = geo.attributes.position, L = plexLineGeo.attributes.position, Q2 = plexPtGeo.attributes.position;
+  plexIdx.forEach((v, i) => Q2.setXYZ(i, P.getX(v), P.getY(v), P.getZ(v)));
+  for (let s = 0; s < plexSeg.length; s++) { const v = plexIdx[plexSeg[s]]; L.setXYZ(s, P.getX(v), P.getY(v), P.getZ(v)); }
+  L.needsUpdate = true; Q2.needsUpdate = true; plexPtGeo.computeBoundingSphere(); plexLineGeo.computeBoundingSphere();
+}
+// body-dependent internals (skeleton definition, organs, vessels, nerves, muscle)
+let skelDef = [], spineCurve = null, headC = V3(), brainR = 0.075;
+function buildInternals(b) {
+  const J = b.joints, k = b.height / 1.73, Jv = n => V3(...J[n]);
+  skelDef = [];
+  for (const s of ['l', 'r']) { const sh = Jv(`joint-${s}-shoulder`), el = Jv(`joint-${s}-elbow`), ha = Jv(`joint-${s}-hand`), ul = Jv(`joint-${s}-upper-leg`), kn = Jv(`joint-${s}-knee`), an = Jv(`joint-${s}-ankle`), ft = Jv(`joint-${s}-foot-1`), cl = Jv(`joint-${s}-clavicle`);
+    skelDef.push({p: sh, q: el, r: 0.011 * k, fin: false}, {p: el, q: ha, r: 0.009 * k}, {p: ul, q: kn, r: 0.017 * k}, {p: kn, q: an, r: 0.0125 * k}, {p: an, q: ft, r: 0.01 * k, short: true}, {p: cl, q: sh, r: 0.008 * k, short: true});
+    for (let f = 0; f < 4; f++) { const dx = (f - 1.5) * 0.01 * k * (s === 'l' ? 1 : -1); skelDef.push({p: ha.clone(), q: ha.clone().add(V3(dx * 2, -0.06 * k, 0.015 * k)), r: 0.0035 * k, short: true, frag: true}); } }
+  spineCurve = new THREE.CatmullRomCurve3(['joint-pelvis', 'joint-spine-4', 'joint-spine-3', 'joint-spine-2', 'joint-spine-1', 'joint-neck', 'joint-head'].map(n => Jv(n).add(V3(0, 0, -0.01 * k))));
+  headC = Jv('joint-head-2').clone().lerp(Jv('joint-l-eye').clone().setX(0), 0.45); headC.z = J['joint-head-2'][2]; brainR = 0.075 * k;
+  // heart etc.
+  const sp1 = Jv('joint-spine-1'); const hp = V3(0.03 * k, sp1.y - 0.075 * k, sp1.z + 0.09 * k); st.heartPos = hp;
+  heart.position.copy(hp); halo.position.copy(hp);
+  lungs.forEach((m, i) => { const s = i ? 1 : -1; m.scale.set(0.068 * k, 0.128 * k, 0.06 * k); m.position.set(s * 0.085 * k, sp1.y - 0.04 * k, sp1.z + 0.06 * k); });
+  ribLines.forEach((l, i) => { const y = Jv('joint-spine-2').y + (sp1.y - Jv('joint-spine-2').y) * (i / 7) + 0.02 * k, w = (0.13 - 0.004 * Math.abs(i - 3)) * k, zc = sp1.z + 0.03 * k, pts = []; for (let a = -2.3; a <= 2.3; a += 0.2) pts.push(V3(Math.sin(a) * w, y - Math.abs(a) * 0.012 * k, zc + Math.cos(a) * 0.085 * k * (0.6 + 0.4 * Math.cos(a)))); l.geometry.setFromPoints(new THREE.CatmullRomCurve3(pts).getPoints(60)); });
+  // vessels
+  for (const m of vessels) { gXray.remove(m); m.geometry.dispose(); } vessels = [];
+  const add = (pts, r, c) => { const m = tubeMesh(pts, r, glowMat(c, 0.9)); gXray.add(m); vessels.push(m); };
+  for (const s of ['l', 'r']) for (const [c, off] of [['#ff4a3a', 0.006], ['#4a8cff', -0.006]]) { const o = off * (s === 'l' ? 1 : -1) * k;
+    add([hp.clone(), Jv(`joint-${s}-clavicle`).add(V3(o, 0, 0.02 * k)), Jv(`joint-${s}-shoulder`).add(V3(o, 0, 0.02 * k)), Jv(`joint-${s}-elbow`).add(V3(o, 0, 0.012 * k)), Jv(`joint-${s}-hand`).add(V3(o, 0, 0))], 0.0035 * k, c);
+    add([hp.clone(), Jv('joint-pelvis').add(V3(off * k, 0, 0)), Jv(`joint-${s}-upper-leg`).add(V3(off * k, 0, 0)), Jv(`joint-${s}-knee`).add(V3(off * k, 0, 0.015 * k)), Jv(`joint-${s}-ankle`), Jv(`joint-${s}-foot-1`)], 0.0042 * k, c); }
+  add([hp.clone(), sp1.clone().add(V3(0, 0.04 * k, 0.03 * k)), Jv('joint-neck').add(V3(0.012 * k, 0, 0.012 * k)), Jv('joint-head').add(V3(0.012 * k, 0.02 * k, 0.03 * k))], 0.0045 * k, '#ff4a3a');
+  // muscles: thick glowing limbs and a torso, thin with muscleK
+  for (const m of muscles) { gMuscle.remove(m.mesh); } muscles = [];
+  const mus = (p, q, r0) => { const m = new THREE.Mesh(cyl, glowMat('#ff8a4a', 0.55)); gMuscle.add(m); muscles.push({mesh: m, p, q, r0}); };
+  for (const s of ['l', 'r']) { mus(Jv(`joint-${s}-shoulder`), Jv(`joint-${s}-elbow`), 0.036 * k); mus(Jv(`joint-${s}-elbow`), Jv(`joint-${s}-hand`), 0.028 * k); mus(Jv(`joint-${s}-upper-leg`), Jv(`joint-${s}-knee`), 0.062 * k); mus(Jv(`joint-${s}-knee`), Jv(`joint-${s}-ankle`), 0.04 * k); }
+  mus(Jv('joint-pelvis').add(V3(0, 0, 0.0)), Jv('joint-spine-1'), 0.105 * k);
+  // nerves
+  for (const m of nerves) { gNerve.remove(m); m.geometry.dispose(); } nerves = [];
+  const nb = (pts, r, c) => { const m = tubeMesh(pts, r, glowMat(c, 0.9, false)); gNerve.add(m); nerves.push(m); };
+  nb(spineCurve.getPoints(20).concat([Jv('joint-head-2').add(V3(0, -0.01 * k, -0.012 * k))]), 0.005 * k, '#e6f2ff');
+  for (const s of ['l', 'r']) { const bk = Jv('joint-spine-1').add(V3(0, 0, -0.012 * k)); const sh = Jv(`joint-${s}-shoulder`), el = Jv(`joint-${s}-elbow`), ha = Jv(`joint-${s}-hand`), ul = Jv(`joint-${s}-upper-leg`), kn = Jv(`joint-${s}-knee`), ft = Jv(`joint-${s}-foot-1`), pv = Jv('joint-pelvis').add(V3(0, 0, -0.012 * k));
+    nb([bk.clone(), sh.clone().add(V3(0, 0.02 * k, 0)), el.clone().add(V3(0, 0, 0.01 * k)), ha], 0.0035 * k, '#7a5cff'); nb([bk.clone(), sh.clone().add(V3(0, -0.01 * k, -0.01 * k)), el.clone().add(V3(0.005 * k, 0, -0.005 * k)), ha.clone().add(V3(0.01 * k, 0.012 * k, 0))], 0.0025 * k, '#37c8ff');
+    nb([pv.clone(), ul.clone().add(V3(0, 0, -0.01 * k)), kn.clone().add(V3(0, 0, -0.01 * k)), ft], 0.004 * k, '#7a5cff'); }
+}
+function updateSkeleton(frag, dens) {
+  let n = 0; const f = clamp(frag, 0, 1), pieces = f > 0.66 ? 3 : f > 0.25 ? 2 : 1;
+  boneMat.opacity = 0.25 + 0.65 * dens; boneMat.color.setRGB(0.6 + 0.4 * dens, 0.75 + 0.25 * dens, 1);
+  for (const d of skelDef) { if (d.frag && f < 0.15) continue; const L = d.p.distanceTo(d.q), np = d.short ? 1 : pieces, gap = 0.1 * f * L;
+    for (let i = 0; i < np && n < bonePool.length; i++) { const a = d.p.clone().lerp(d.q, i / np + (np > 1 ? gap / L * 0.5 : 0)), c = d.p.clone().lerp(d.q, (i + 1) / np - (np > 1 ? gap / L * 0.5 : 0)); setFromTo(bonePool[n++], a, c, d.r * (np > 1 ? 0.9 : 1)); } }
+  // spine: 24 vertebrae, spread when fragmented
+  const k = st.body.height / 1.73; for (let i = 0; i < 24 && n < bonePool.length; i++) { const t = i / 23, p = spineCurve.getPoint(t), m = bonePool[n++]; m.position.copy(p); m.scale.set(0.017 * k * (1 - 0.3 * t), 0.0075 * k * (1 + 0.3 * f), 0.016 * k); m.quaternion.identity(); m.visible = true; }
+  for (; n < bonePool.length; n++) bonePool[n].visible = false;
+  const hc = headC; skullPieces.forEach((m, i) => { const a = i / 6 * Math.PI * 2, sep = 0.012 * k * f; m.position.set(hc.x + Math.cos(a) * (0.03 * k + sep), hc.y + 0.01 * k + Math.sin(a * 2) * 0.01 * k * f + (i % 2 ? 0.02 : -0.01) * k, hc.z + Math.sin(a) * (0.035 * k + sep)); m.scale.setScalar(0.034 * k); m.visible = f > 0.2; });
+}
+
+// ------------------------------------------------------------------ 2D overlay helpers
+const FONT = 'Inter, "DejaVu Sans", sans-serif';
+const S = {}; // per-frame state
+const reset = () => Object.assign(S, {age: 30, skin: true, scan: 10, xray: false, frag: 0, dens: 1, brain: false, brainK: 1, net: false, prune: 0, wave: -2, hold: 0, heart: false, bpm: 70, plex: false, nerve: false, muscle: false, muscleK: 1, rings: 0, ringBright: 1, lineup: false, tree: false, bg: 'warm', texts: [], counter: null, diagram: null, fade: 1, cx: 0, cy: 0.5, fit: 1.12, dolly: 1, rot: 0, hi: -1, bloom: 0.5, treeCam: null, headCam: false, fixedRef: null, scan2: 0, calls: [], prog: 0});
+function text(str, x, y, o = {}) { S.texts.push(Object.assign({str, x, y, size: 40, weight: 600, color: '#f1e3cf', a: 1, align: 'left', t0: 0, track: 0}, o)); }
+function drawTexts(t) { for (const o of S.texts) { const a = ramp(t, o.t0, o.t0 + 0.5) * (o.t1 != null ? 1 - ramp(t, o.t1 - 0.4, o.t1) : 1) * o.a; if (a <= 0) continue;
+  ctx.save(); ctx.globalAlpha = a; ctx.font = `${o.weight} ${o.size}px ${FONT}`; ctx.fillStyle = o.color; ctx.textAlign = o.align; ctx.textBaseline = 'alphabetic'; ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 14; if (o.track) ctx.letterSpacing = o.track + 'px';
+  ctx.fillText(o.str, o.x, o.y + (1 - ramp(t, o.t0, o.t0 + 0.5)) * 14); ctx.restore(); } }
+const glow = (c, blur) => { ctx.shadowColor = c; ctx.shadowBlur = blur; ctx.strokeStyle = c; ctx.fillStyle = c; };
+function dBG(c1, c2) { const g = ctx.createRadialGradient(W * 0.5, H * 0.55, 20, W * 0.5, H * 0.55, W * 0.7); g.addColorStop(0, c1); g.addColorStop(1, c2); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+function sideLabel(age, lines, t, o = {}) { const x = o.x || 1180; text('AGE', x, 250, {size: 34, weight: 600, color: '#ffb070', track: 8, t0: 0.4}); text(String(Math.round(age)), x - 6, 400, {size: 170, weight: 700, t0: 0.5});
+  lines.forEach((l, i) => text(l[0], x, 480 + i * 56, Object.assign({size: 36, weight: 500, color: '#cfd6e6', t0: l[1] != null ? l[1] : 1.0 + i * 0.5, t1: l[2]}, l[3] || {}))); }
+const heartsB = age => age * 0.0365; // billions of heartbeats, about 100,000 a day
+function counterText(age, t, show) { if (!show) return; const v = heartsB(age); text('HEARTBEATS SO FAR', W - 70, H - 108, {size: 22, weight: 600, color: '#ff8a6a', align: 'right', track: 5, t0: 0.3}); text('≈ ' + v.toFixed(2) + ' BILLION', W - 70, H - 58, {size: 44, weight: 700, color: '#ffe3d6', align: 'right', t0: 0.3}); }
+
+// ------------------------------------------------------------------ 2D diagram scenes
+function diagEye(t, D) { dBG('#14233a', '#080c16'); const s = ease(ramp(t, 3, 12)), cx = 760, cy = 560;
+  ctx.save(); ctx.lineWidth = 5; glow('#7fb8ff', 22); ctx.beginPath(); ctx.ellipse(cx, cy, 300, 240, 0, 0, Math.PI * 2); ctx.stroke();
+  // cornea + iris
+  ctx.beginPath(); ctx.arc(cx - 270, cy, 90, -1.0, 1.0); ctx.stroke(); ctx.lineWidth = 4; glow('#ffb070', 14); ctx.beginPath(); ctx.moveTo(cx - 190, cy - 100); ctx.lineTo(cx - 190, cy - 40); ctx.moveTo(cx - 190, cy + 100); ctx.lineTo(cx - 190, cy + 40); ctx.stroke();
+  // lens: gets thicker and stiffer (amber) with s
+  const th = 34 + 34 * s, col = s < 0.5 ? '#7fd0ff' : '#ffb070'; ctx.lineWidth = 6; glow(col, 26); ctx.beginPath(); ctx.ellipse(cx - 120, cy, th, 98, 0, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 0.18 + 0.2 * s; ctx.fill(); ctx.globalAlpha = 1;
+  // rays from the left converge: the focus point drifts behind the retina as the lens stiffens
+  const retinaX = cx + 280, focusX = retinaX + 150 * s - (1 - s) * 0; glow('#ffe9c8', 10); ctx.lineWidth = 3;
+  for (const dy of [-70, -35, 0, 35, 70]) { ctx.beginPath(); ctx.moveTo(cx - 560, cy + dy * 1.3); ctx.lineTo(cx - 120, cy + dy); ctx.lineTo(focusX, cy); ctx.stroke(); }
+  ctx.lineWidth = 7; glow('#ff6a6a', 16); ctx.beginPath(); ctx.arc(cx, cy, 285, -0.5, 0.5); ctx.stroke();
+  // focus dot
+  glow(s > 0.35 ? '#ff8a6a' : '#9fffd0', 22); ctx.beginPath(); ctx.arc(focusX, cy, 11, 0, 7); ctx.fill(); ctx.restore();
+  text('THE LENS STIFFENS', 150, 960, {size: 30, weight: 600, color: '#ffb070', track: 6, t0: 3.5});
+  // small print going soft
+  ctx.save(); ctx.filter = `blur(${(s * 9).toFixed(1)}px)`; ctx.globalAlpha = 0.95; ctx.font = `500 34px ${FONT}`; ctx.fillStyle = '#e9eefb'; ctx.textAlign = 'left';
+  ['SMALL PRINT.', 'SMALL PRINT.', 'SMALL PRINT.', 'SMALL PRINT.'].forEach((l, i) => ctx.fillText(l, 1290, 470 + i * 58)); ctx.restore();
+  text('AGE', 1290, 250, {size: 34, weight: 600, color: '#ffb070', track: 8, t0: 0.4}); text('40', 1284, 380, {size: 170, weight: 700, t0: 0.5}); }
+function diagSpine(t, D) { dBG('#14233a', '#080c16'); const s = ease(ramp(t, 3.2, 12.5)), cx = 780, topY = 140, bottomY = 930, N = 20, vH = 26, discH0 = 22, discH = discH0 * (1 - 0.65 * s);
+  const total = N * vH + (N - 1) * discH, y0 = bottomY - total; ctx.save();
+  for (let i = 0; i < N; i++) { const y = bottomY - (i + 1) * vH - i * discH, w = 130 - i * 2.5; glow('#cfe8ff', 14); ctx.lineWidth = 3; ctx.globalAlpha = 0.9; ctx.strokeRect(cx - w / 2, y, w, vH); ctx.globalAlpha = 0.12; ctx.fillRect(cx - w / 2, y, w, vH); ctx.globalAlpha = 1;
+    if (i < N - 1) { glow('#ffb070', 12); ctx.globalAlpha = 0.55; ctx.fillRect(cx - w / 2 + 8, y - discH, w - 16, discH); ctx.globalAlpha = 1; } }
+  // top marker and the original height line
+  glow('#ff8a6a', 10); ctx.setLineDash([12, 10]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 220, bottomY - N * vH - (N - 1) * discH0 - 10); ctx.lineTo(cx + 220, bottomY - N * vH - (N - 1) * discH0 - 10); ctx.stroke(); ctx.setLineDash([]);
+  glow('#7fd0ff', 12); ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - 220, y0 - 10); ctx.lineTo(cx + 220, y0 - 10); ctx.stroke(); ctx.restore();
+  text('DISCS FLATTEN', 1180, 640, {size: 30, weight: 600, color: '#ffb070', track: 6, t0: 4}); text('A LITTLE SHORTER, YEAR BY YEAR', 1180, 696, {size: 34, weight: 500, color: '#cfd6e6', t0: 5.2});
+  text('AGE', 1180, 250, {size: 34, weight: 600, color: '#ffb070', track: 8, t0: 0.4}); text('50', 1174, 400, {size: 170, weight: 700, t0: 0.5}); }
+function diagHearing(t, D) { dBG('#14233a', '#080c16'); const cx = 430, cy = 560; ctx.save(); glow('#7fb8ff', 18); ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(cx - 40, cy - 300); ctx.bezierCurveTo(cx + 140, cy - 340, cx + 220, cy - 140, cx + 150, cy - 40); ctx.bezierCurveTo(cx + 180, cy + 10, cx + 130, cy + 50, cx + 120, cy + 80); ctx.bezierCurveTo(cx + 120, cy + 190, cx + 40, cy + 280, cx - 80, cy + 300); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx + 20, cy - 20, 48, 78, 0.1, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  // six pitch bands; the highest fade first
+  const bands = [{f: 1, c: '#7fd0ff'}, {f: 2, c: '#7fd0ff'}, {f: 3.5, c: '#9fe0ff'}, {f: 5.5, c: '#b8c6ff'}, {f: 8, c: '#d0b8ff'}, {f: 11, c: '#ffc8f0'}];
+  bands.forEach((b, i) => { const fade = 1 - ramp(t, 3.2 + (i - 2) * 1.6, 5 + (i - 2) * 1.6) * (i >= 3 ? 1 : 0); if (fade <= 0.01) return; ctx.save(); ctx.globalAlpha = 0.85 * fade; glow(b.c, 14); ctx.lineWidth = 2.6;
+    const gap = 150 / b.f * 0.8 + 18, ph = (t * 90 * (0.6 + b.f * 0.15)) % gap; for (let k = 0; k < 9; k++) { const r = 200 + k * gap + ph; if (r > 1100) break; ctx.beginPath(); ctx.arc(1700, cy + (i - 2.5) * 36, r, Math.PI - 0.55, Math.PI + 0.55); ctx.stroke(); } ctx.restore(); });
+  text('HIGH PITCHES GO FIRST', 1000, 930, {size: 30, weight: 600, color: '#ffb070', track: 6, t0: 4.2});
+  text('AGE', 1100, 230, {size: 34, weight: 600, color: '#ffb070', track: 8, t0: 0.4}); text('60', 1094, 380, {size: 170, weight: 700, t0: 0.5}); }
+function diagRehook(t, D) { dBG('#101a2c', '#06080f'); const x0 = 200, x1 = W - 200, y = 600; ctx.save(); glow('#6fa8ff', 16); ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  LINE_AGES.forEach(a => { const x = x0 + (a - 1) / 99 * (x1 - x0), on = a <= 30 ? 1 : 0.55; ctx.globalAlpha = on; ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x, y + 14); ctx.stroke(); ctx.font = `600 26px ${FONT}`; ctx.fillStyle = '#cfd6e6'; ctx.textAlign = 'center'; ctx.shadowBlur = 0; ctx.fillText(a, x, y + 60); glow('#6fa8ff', 16); }); ctx.globalAlpha = 1;
+  const you = 30 + ease(ramp(t, 0.5, D - 0.5)) * 7, xx = x0 + (you - 1) / 99 * (x1 - x0), pulse = 1 + 0.25 * Math.sin(t * 5); glow('#ffb070', 30); ctx.beginPath(); ctx.arc(xx, y, 15 * pulse, 0, 7); ctx.fill(); ctx.restore();
+  text('WHEREVER YOU ARE RIGHT NOW,', W / 2, 360, {size: 50, weight: 600, align: 'center', t0: 0.6}); text('YOU ARE SOMEWHERE ON THIS LINE.', W / 2, 430, {size: 50, weight: 700, align: 'center', color: '#ffb070', t0: 1.6}); }
+
+function call(fy, t0, o = {}) { S.calls.push(Object.assign({fy, t0, dur: 1.1, head: false, dx: 0}, o)); }
+function drawCalls(lt, D) { if (S.diagram || S.tree || S.lineup) return; cam.updateMatrixWorld(); const hs = st.hsc;
+  for (const c of S.calls) { const p = ramp(lt, c.t0, c.t0 + c.dur); if (p <= 0) continue; const fade = 1 - ramp(lt, D - 1.0, D - 0.4);
+    const v = c.head ? headC.clone() : new THREE.Vector3(c.dx * hs, c.fy * st.body.height, 0.08 * hs); v.project(cam); const px = (v.x * 0.5 + 0.5) * W, py = (-v.y * 0.5 + 0.5) * H, R = c.r || 54;
+    ctx.save(); ctx.globalAlpha = fade; ctx.strokeStyle = '#ffb070'; ctx.shadowColor = '#ff9a40'; ctx.shadowBlur = 16; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); const a0 = -Math.PI / 2 - 0.5, n = 70; for (let i = 0; i <= n * p; i++) { const a = a0 + i / n * Math.PI * 2.1, rr = R * (1 + 0.06 * Math.sin(a * 3 + 1.3) + 0.04 * (i / n)); const x = px + Math.cos(a) * rr, y = py + Math.sin(a) * rr; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    const q = ramp(lt, c.t0 + c.dur * 0.7, c.t0 + c.dur * 1.7); if (q > 0) { const tx = 1130, ty = c.ty || 470; const sx = px + R * 0.95, sy = py; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx, sy); const mx = sx + (tx - sx) * 0.5; ctx.bezierCurveTo(mx, sy, mx, ty, sx + (tx - sx) * q, sy + (ty - sy) * q * q); ctx.stroke(); }
+    ctx.restore(); } }
+
+// ------------------------------------------------------------------ camera
+function frame(heightRef, o = {}) { const tanV = Math.tan(THREE.MathUtils.degToRad(13)), d = (heightRef * (o.fit || S.fit) * 0.5) / tanV * (o.dolly || 1);
+  const yc = (o.yc != null ? o.yc : S.cy) * heightRef; cam.position.set((o.cx != null ? o.cx : S.cx) + Math.sin(S.rot) * d, yc + (o.lift || 0), Math.cos(S.rot) * d); cam.lookAt(o.cx != null ? o.cx : S.cx, yc, 0); }
+const bpmAt = a => a < 5 ? lerp(130, 100, (a - 1) / 4) : a < 18 ? lerp(100, 74, (a - 5) / 13) : lerp(74, 68, clamp((a - 18) / 60, 0, 1));
+const beatPulse = (t, bpm) => { const ph = (t * bpm / 60) % 1; return Math.exp(-ph * 9) * (1 + 0.5 * Math.exp(-Math.pow((ph - 0.22) * 14, 2))); };
+
+// ------------------------------------------------------------------ the beats
+const BEAT = {
+  hook(t, D) { const m = ease(ramp(t, 3.0, 6.4)); S.age = lerp(100, 1, m); S.rings = S.age; S.ringBright = 0.8; const b = bodyAt(S.age); S.cx = 0; S.fit = lerp(1.4, 1.2, ramp(t, 0, D)); S.dolly = 1; S.rot = lerp(0.62, 0.0, ease(ramp(t, 3.0, 6.4))); },
+  lineup(t, D) { S.lineup = true; S.bg = 'cool'; S.skin = false; S.age = 30; S.hi = Math.floor(ramp(t, 2.2, D - 2.4) * 13); S.panX = lerp(-2.6, 2.6, ease(ramp(t, 0.2, D))); },
+  age1(t, D) { S.age = 1; S.rings = 1; const sc = ease(ramp(t, 2.2, 5.4)); S.scan = lerp(-0.05, 0.9, sc); S.skin = sc < 1; S.xray = sc > 0; S.heart = true; S.bpm = 130; S.frag = t < 9 ? 1 : 1 - ease(ramp(t, 9, 21.5)); S.brain = sc > 0.5; S.brainK = lerp(0.52, 1, ease(ramp(t, 13, 18)));
+    S.cx = 0.32; S.fit = lerp(1.38, 1.22, ramp(t, 0, D)); sideLabel(1, [['BONES  ≈ ' + Math.round(lerp(300, 206, ease(ramp(t, 9, 21.5)))), 4.6], ['BRAIN  DOUBLES THIS YEAR', 12.5], ['HEART  RACING', 17.5]], t); call(0.55, 4.6, {ty: 520}); call(0, 12.5, {head: true, r: 70, ty: 560}); call(0.7, 17.5, {r: 46, ty: 600}); },
+  age35(t, D) { S.age = lerp(3, 5, ease(ramp(t, 0, D))); S.skin = false; S.xray = true; S.brain = true; S.net = true; S.prune = ease(ramp(t, 7.5, 15)); S.bg = 'cool'; S.headCam = true; S.heart = false; S.brainK = 1; S.cx = 0.18;
+    sideLabel(S.age, [[t < 7.5 ? 'BRAIN  ≈ 80% OF ADULT SIZE' : 'BRAIN  ≈ 90% OF ADULT SIZE', 1.0], ['UNUSED CONNECTIONS FADE', 10.5]], t); S.skel = false; call(0, 10.5, {head: true, r: 130, ty: 520}); },
+  age10(t, D) { const m = ease(ramp(t, 2.4, D - 1.4)); S.age = lerp(9, 16, m); S.rings = S.age; S.fixedRef = bodyAt(17).height; S.cx = 0.42; S.fit = 1.2; text('GROWTH  SPURT', 1180, 600, {size: 34, weight: 600, color: '#ffb070', track: 6, t0: 6.5}); sideLabel(S.age, [], t); call(0.28, 6.5, {r: 90, ty: 620}); },
+  age18(t, D) { S.age = 18; S.rings = 18; const sc = ease(ramp(t, 2.8, 6.2)); S.scan = lerp(-0.05, 1.8, sc); S.skin = sc < 1; S.xray = sc > 0; S.frag = 0; S.dens = lerp(0.25, 1, ease(ramp(t, 6, 16))); S.cx = 0.42; S.fit = 1.18;
+    sideLabel(18, [['BONE DENSITY  STILL BUILDING', 6.2], ['KEEPS RISING UNTIL  ≈ 30', 10]], t); call(0.38, 6.2, {r: 60, ty: 500}); call(0.55, 10, {r: 70, ty: 540}); },
+  age25(t, D) { S.age = 25; S.skin = false; S.xray = true; S.brain = true; S.net = true; S.prune = 0.6; S.wave = lerp(-1.2, 1.0, ease(ramp(t, 3, D - 5.5))); S.hold = ease(ramp(t, D - 5.5, D - 3.5)); S.bg = 'cool'; S.headCam = true; S.cx = 0.18; S.heart = false;
+    sideLabel(25, [['THE PLANNING PART  GOES LAST', 3.5], ['FRONT OF THE BRAIN  FINISHES WIRING', 8]], t); call(0, 3.5, {head: true, r: 120, ty: 440}); call(0, 8, {head: true, r: 150, ty: 500}); },
+  age30(t, D) { S.age = 30; S.skin = false; S.plex = true; S.bg = 'cool'; S.heart = false; S.rot = Math.sin(t * 0.25) * 0.28; S.cx = 0.3; S.fit = 1.22; S.fixedRef = null; S.rings = 30; S.ringBright = 0.5; S.pulse = true; sideLabel(30, [['CLOSE TO YOUR PEAK', 6]], t); call(0.7, 6, {r: 80, ty: 470}); S.counterAge = lerp(18, 30, ease(ramp(t, 2, 14))); },
+  rehook(t, D) { S.diagram = diagRehook; },
+  age40(t, D) { S.diagram = diagEye; }, age50(t, D) { S.diagram = diagSpine; }, age60(t, D) { S.diagram = diagHearing; },
+  age70(t, D) { S.age = 70; S.skin = false; S.xray = true; S.heart = true; S.bpm = 68; S.bg = 'cool'; S.brain = true; S.frag = 0; S.dens = 0.75; S.cx = 0.42; S.fit = 1.2; S.cy = 0.5; S.rot = 0.6; S.counterAge = lerp(60, 70, ease(ramp(t, 2, 12)));
+    sideLabel(70, [['≈ 100,000 BEATS A DAY', 5], ['NOT ONE DAY OFF', 9]], t); call(0.7, 5, {r: 56, ty: 500}); call(0.5, 9, {r: 70, ty: 540}); },
+  age80(t, D) { S.age = 80; S.rings = 80; S.ringBright = 0.35; const sc = ease(ramp(t, 1.8, 4.8)); S.scan = lerp(-0.05, 1.8, sc); S.skin = sc < 1; S.xray = false; S.muscle = sc > 0; S.heart = false; S.muscleK = 1 - 0.45 * ease(ramp(t, 5.5, 15)); S.cx = 0.3; S.fit = 1.2; S.rot = 0.6;
+    S.bg = sc > 0.5 ? 'cool' : 'warm'; sideLabel(80, [['MUSCLE THINS  UNLESS USED', 5.5], ['MOVEMENT  WORKS AT EVERY AGE', 11]], t); call(0.38, 5.5, {r: 70, ty: 500}); call(0.7, 11, {r: 80, ty: 540}); },
+  age100(t, D) { S.age = 100; S.rings = 100; S.ringBright = lerp(0.8, 1.6, ramp(t, 2, D)); S.cx = 0.3; S.fit = lerp(1.35, 1.6, ramp(t, 0, D)); S.rot = 0.6; S.counterAge = lerp(92, 100, ease(ramp(t, 2, 9)));
+    text('AGE', 1180, 250, {size: 34, weight: 600, color: '#ffb070', track: 8, t0: 0.4}); text('100', 1174, 400, {size: 170, weight: 700, t0: 0.5}); call(0, 4.5, {head: true, r: 80, ty: 520}); },
+  tree(t, D) { S.tree = true; S.bg = 'tree'; S.treeN = ease(ramp(t, 0.8, 6)) * 100; S.hi = -1; S.treeCam = ease(ramp(t, 0, D)); text('ONE RING  =  ONE YEAR', W / 2, 960, {size: 30, weight: 600, color: '#ffb070', align: 'center', track: 8, t0: 2.5}); },
+  end(t, D) { S.tree = true; S.bg = 'tree'; S.treeN = 100; S.hi = 29; S.treeCam = 1; S.endCard = true; S.fadeOut = ramp(t, D - 1.5, D);
+    text('WHICH RING', W / 2, 410, {size: 110, weight: 700, align: 'center', t0: 0.9}); text('ARE YOU ON?', W / 2, 530, {size: 110, weight: 700, align: 'center', color: '#ffb070', t0: 1.4});
+    text('TELL ME YOUR AGE IN THE COMMENTS', W / 2, 650, {size: 38, weight: 600, align: 'center', color: '#f1e3cf', track: 4, t0: 3.2}); },
+};
+
+// ------------------------------------------------------------------ one frame
+const FADE = 0.4;
+function commit(t, beat, lt, D) {
+  const hook = beat.id === 'hook'; S.prog = lt / D; if (!hook && !S.diagram && !S.lineup && !S.tree) S.rot += (S.headCam ? 0.4 : 0.3) * Math.sin(lt * 0.33 + 0.6) + (S.headCam ? 0 : 0);
+  scene.background = BG[S.bg];
+  if (S.diagram) { for (const g of [gSkin, gXray, gPlex, gNerve, gMuscle, gBrain, gRings, gLine, gTree, gFx]) g.visible = false; floor.visible = false; ambient.visible = false; return; }
+  const fixedRefAge = S.fixedRef ? 17 : S.age; applyAge(S.age); const b = st.body, hs = st.hsc;
+  floor.visible = S.bg === 'warm' && !S.tree && !S.lineup; key.visible = ambient.visible = rim.visible = fill.visible = S.skin || S.scan < 5;
+  uScan.value = (S.xray || S.muscle) ? S.scan : -10; gSkin.visible = S.skin && !S.lineup && !S.tree; gXray.visible = S.xray; gPlex.visible = S.plex; gNerve.visible = S.nerve; gMuscle.visible = S.muscle; gBrain.visible = S.brain; gRings.visible = S.rings > 0 && !S.tree && !S.lineup; gLine.visible = S.lineup; gTree.visible = S.tree; gFx.visible = true;
+  if (S.xray) { updateSkeleton(S.frag, S.dens); const pulse = beatPulse(lt, S.bpm); const showHeart = S.heart; heart.visible = halo.visible = showHeart; heart.scale.set(0.05 * hs * (1 + 0.28 * pulse), 0.057 * hs * (1 + 0.28 * pulse), 0.045 * hs * (1 + 0.28 * pulse)); halo.scale.setScalar(0.075 * hs * (1 + 0.5 * pulse)); halo.material.opacity = 0.16 + 0.16 * pulse; }
+  if (S.muscle) { for (const m of muscles) setFromTo(m.mesh, m.p, m.q, m.r0 * S.muscleK); }
+  if (S.brain) { const k = hs, r = brainR * S.brainK; brainMesh.position.copy(headC); brainMesh.scale.setScalar(r); brainCore.position.copy(headC); brainCore.scale.setScalar(r * 0.66); brainNet.position.copy(headC); brainNet.scale.setScalar(r * 1.02); brainMat.uniforms.wave.value = S.wave; brainMat.uniforms.hold.value = S.hold; brainNet.visible = S.net; setPrune(S.prune); netPts.material.size = 0.012 * hs * 1.2; }
+  if (S.plex) { const p = S.pulse ? beatPulse(lt, 66) : 0; plexPts.material.size = 0.011 * (1 + 0.5 * p) * 1.2; pShell.material.uniforms.a.value = 0.5 + 0.4 * p; }
+  if (gRings.visible) { setRings(S.rings, S.ringBright, S.hi); }
+  if (S.lineup) { ghosts.forEach((g, i) => { const on = i === S.hi; g.material.uniforms.a.value = on ? 1.7 : 0.8; g.material.uniforms.c1.value.set(on ? '#ffb070' : '#6fa8ff'); }); gLine.position.x = -S.panX; }
+  if (S.tree) { treeMat.uniforms.n.value = S.treeN || 0; treeMat.uniforms.hi.value = S.hi; }
+  // scan plane
+  if ((S.skin && S.xray) || (S.scan > -0.04 && S.scan < b.height + 0.02 && S.scan < 5 && (S.xray || S.muscle) && S.skin)) { scanPlane.visible = true; scanPlane.position.set(0, S.scan, 0.2); scanPlane.scale.set(Math.max(0.6, b.height * 0.7), 1, 1); } else scanPlane.visible = false;
+  // camera
+  if (S.tree) { const u = S.treeCam || 0, y = lerp(2.2, 3.7, ease(u)); cam.position.set(0, y, 0.001); cam.lookAt(0, 0, 0); cam.fov = 26; cam.updateProjectionMatrix(); }
+  else if (S.lineup) { cam.position.set(0, 0.95, 7.6); cam.lookAt(0, 0.92, 0); }
+  else if (S.headCam) { const hh = headC; const dd = 0.95 * hs * 3.4 * (1 - 0.08 * S.prog), tx = S.cx * 0.9; cam.position.set(tx + Math.sin(S.rot) * dd, hh.y + 0.02 * hs, Math.cos(S.rot) * dd); cam.lookAt(tx, hh.y - 0.05 * hs, 0); }
+  else frame(S.fixedRef || b.height, {cx: S.cx, fit: S.fit, dolly: S.dolly * (1 - 0.06 * S.prog), yc: S.cy});
+  bloom.strength = S.skin && !S.xray && !S.plex ? 0.12 : 0.9; bloom.threshold = S.skin && !S.xray ? 0.9 : 0.15;
+}
+const sBeat = {};
+window.renderAt = t => {
+  t = clamp(t, 0, TL.total - 0.001); const beat = TL.beats.find(b => t >= b.start && t < b.start + b.dur) || TL.beats[TL.beats.length - 1], lt = t - beat.start, D = beat.dur;
+  reset(); BEAT[beat.id](lt, D); commit(t, beat, lt, D);
+  if (S.diagram) { ctx.save(); const z = 1 + 0.05 * (lt / D); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2); S.diagram(lt, D); }
+  else { composer.render(); ctx.drawImage(renderer.domElement, 0, 0); }
+  // text
+  drawCalls(lt, D); drawTexts(lt); if (S.diagram) ctx.restore();
+  if (S.counterAge != null) counterText(S.counterAge, lt, true);
+  // vignette
+  const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.55, W / 2, H / 2, H * 1.05); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  // fades through black at beat joins
+  let f = 1; if (beat.id !== 'hook') f *= ramp(lt, 0, FADE); const prevEnd = beat.start + beat.dur - t; if (beat.id !== 'end') f *= ramp(prevEnd, 0, FADE); if (beat.id === 'hook') f *= ramp(lt, 0, 0.25); if (S.fadeOut) f *= 1 - S.fadeOut;
+  if (f < 1) { ctx.fillStyle = `rgba(6,7,12,${1 - f})`; ctx.fillRect(0, 0, W, H); }
+  return out.toDataURL('image/jpeg', 0.92);
+};
+window.dbg = () => ({fit: S.fit, cy: S.cy, cx: S.cx, ref: S.fixedRef, cam: cam.position.toArray(), h: st.body.height, hs: st.hsc, fov: cam.fov, age: S.age, bb: (geo.computeBoundingBox(), geo.boundingBox), bg: gSkin.position.toArray(), sc: gSkin.scale.toArray()});
+window.timeline = TL; window.ready = true;
+</script></body></html>
