@@ -1,0 +1,184 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<style>html,body{margin:0;background:#0b0d14;overflow:hidden}canvas{display:block}</style></head><body>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+const Q = new URLSearchParams(location.search);
+const W = +Q.get('w') || 1080, H = +Q.get('h') || 1920;
+const AGE = +Q.get('age') || 30, MODE = Q.get('mode') || 'skin';
+
+const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+
+// background: charcoal-navy, never pure black, with a warm pool of light on the floor
+const bgc = document.createElement('canvas'); bgc.width = 256; bgc.height = 512;
+{ const g = bgc.getContext('2d'); const gr = g.createRadialGradient(128, 300, 10, 128, 300, 360);
+  gr.addColorStop(0, MODE === 'skin' ? '#3a2d28' : '#16243a'); gr.addColorStop(0.55, MODE === 'skin' ? '#1d1c24' : '#0d1626'); gr.addColorStop(1, '#0f1119');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 512); }
+const bgTex = new THREE.CanvasTexture(bgc); bgTex.colorSpace = THREE.SRGBColorSpace; scene.background = bgTex;
+
+const [idxBuf, posBuf, joints] = await Promise.all([
+  fetch('out/body_idx.bin').then(r => r.arrayBuffer()),
+  fetch(`out/body_${AGE}.bin`).then(r => r.arrayBuffer()),
+  fetch(`out/joints_${AGE}.json`).then(r => r.json())]);
+const pos = new Float32Array(posBuf), idx = new Uint32Array(idxBuf), nV = pos.length / 3;
+const J = n => new THREE.Vector3(...joints[n]);
+const height = Math.max(...Array.from({length: nV}, (_, i) => pos[i * 3 + 1]));
+
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(pos.slice(), 3));
+geo.setIndex(new THREE.BufferAttribute(idx, 1));
+geo.computeVertexNormals();
+const nrm = geo.attributes.normal;
+
+// ---------- skin / hair / shorts as vertex colours ----------
+const eyeY = joints['joint-l-eye'][1], pelvisY = joints['joint-pelvis'][1], kneeY = joints['joint-l-knee'][1];
+const old = THREE.MathUtils.clamp((AGE - 55) / 40, 0, 1);
+const skinC = new THREE.Color('#8a5a3c').lerp(new THREE.Color('#b89a86'), old * 0.8);
+const hairC = new THREE.Color('#1c130e').lerp(new THREE.Color('#9a9a9c'), old);
+const shortsC = new THREE.Color('#1d2733');
+const col = new Float32Array(nV * 3), hairW = new Float32Array(nV);
+const sstep = (a, b, x) => { const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const headScale = height / 1.73;
+for (let i = 0; i < nV; i++) {
+  const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+  // hairline: high on the forehead, low at the back and sides
+  const front = sstep(0.04 * headScale, 0.11 * headScale, z - joints['joint-head'][2]);
+  const line = eyeY + (0.015 + 0.075 * front) * headScale;
+  const hw = y > eyeY - 0.02 * headScale ? sstep(line - 0.012, line + 0.012, y) : 0;
+  hairW[i] = hw * (1 - 0.55 * old * sstep(0.05, 0.12, z - joints['joint-head'][2]) * 0);
+  const sw = sstep(pelvisY - 0.075 * height / 1.73, pelvisY - 0.06 * height / 1.73, y) * (1 - sstep(pelvisY + 0.01 * height / 1.73, pelvisY + 0.03 * height / 1.73, y));
+  const sw2 = (y < pelvisY + 0.03 * height / 1.73 && y > kneeY + 0.17 * height / 1.73) ? sw : sw;
+  const c = skinC.clone().lerp(shortsC, sw2).lerp(hairC, hairW[i]);
+  col.set([c.r, c.g, c.b], i * 3);
+}
+geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+// push hair out a few mm so it reads as a cap
+const hp = geo.attributes.position;
+for (let i = 0; i < nV; i++) if (hairW[i] > 0) {
+  const d = 0.007 * headScale * hairW[i] * (1 - 0.6 * old);
+  hp.setXYZ(i, hp.getX(i) + nrm.getX(i) * d, hp.getY(i) + nrm.getY(i) * d, hp.getZ(i) + nrm.getZ(i) * d);
+}
+geo.computeVertexNormals();
+
+const group = new THREE.Group(); scene.add(group);
+const lights = new THREE.Group(); scene.add(lights);
+
+if (MODE === 'skin') {
+  const mat = new THREE.MeshStandardMaterial({vertexColors: true, roughness: 0.62, metalness: 0.0});
+  group.add(new THREE.Mesh(geo, mat));
+  // eyes
+  for (const s of ['l', 'r']) {
+    const e = J(`joint-${s}-eye`), r = 0.0115 * headScale;
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), new THREE.MeshStandardMaterial({color: '#d8d2c8', roughness: 0.3}));
+    ball.position.copy(e); group.add(ball);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(r * 0.52, 16, 12), new THREE.MeshStandardMaterial({color: '#2a1a10', roughness: 0.2}));
+    iris.position.copy(e).add(new THREE.Vector3(0, 0, r * 0.62)); group.add(iris);
+  }
+  lights.add(new THREE.AmbientLight('#1a1d30', 1.4));
+  const key = new THREE.SpotLight('#ffb070', 26 * Math.pow(headScale, 1.6), 0, 0.8, 0.95, 1.6); key.position.set(-1.7 * headScale, height * 1.15, 1.3 * headScale); key.target.position.set(0, height * 0.55, 0); key.target.updateMatrixWorld(); lights.add(key, key.target);
+  const rim = new THREE.DirectionalLight('#5a7bd8', 0.9); rim.position.set(2, height, -2); lights.add(rim);
+  const fill = new THREE.DirectionalLight('#6a4a3a', 0.35); fill.position.set(1.5, 0.6, 2); lights.add(fill);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(0.62 * height, 64), new THREE.MeshBasicMaterial({color: '#2a2018'}));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -0.002; scene.add(floor);
+} else {
+  // ---------- shared glow materials ----------
+  const fres = (c1, c2, p, a) => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: {c1: {value: new THREE.Color(c1)}, c2: {value: new THREE.Color(c2)}, p: {value: p}, a: {value: a}},
+    vertexShader: 'varying vec3 vN; varying vec3 vV; varying float vY; void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);vY=position.y;gl_Position=projectionMatrix*mv;}',
+    fragmentShader: 'uniform vec3 c1;uniform vec3 c2;uniform float p;uniform float a;varying vec3 vN;varying vec3 vV;varying float vY;void main(){float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),p);gl_FragColor=vec4(mix(c2,c1,f)*(0.25+f*1.6)*a,1.);}'});
+  const glow = (c, o = 1) => new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false});
+  const lineMat = (c, o) => new THREE.LineBasicMaterial({color: c, transparent: true, opacity: o, blending: THREE.AdditiveBlending, depthWrite: false});
+  const tube = (pts, r, mat) => { const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, r, 8, false), mat); group.add(m); return m; };
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+  const k = height / 1.73;
+
+  if (MODE === 'xray') {
+    group.add(new THREE.Mesh(geo, fres('#4fb3ff', '#0a2a66', 2.2, 1.0)));
+    // skeleton
+    const sp = ['joint-pelvis', 'joint-spine-4', 'joint-spine-3', 'joint-spine-2', 'joint-spine-1', 'joint-neck', 'joint-head'].map(J);
+    const curve = new THREE.CatmullRomCurve3(sp.map(p => p.clone().add(V3(0, 0, -0.01 * k))));
+    for (let i = 0; i < 26; i++) { const t = i / 25, p = curve.getPoint(t); const v = new THREE.Mesh(new THREE.BoxGeometry(0.034 * k * (1 - 0.3 * t), 0.014 * k, 0.03 * k), glow('#cfe8ff', 0.55)); v.position.copy(p); group.add(v); }
+    // ribs
+    for (let i = 0; i < 8; i++) { const y = J('joint-spine-2').y + (J('joint-spine-1').y - J('joint-spine-2').y) * (i / 7) + 0.02 * k, w = (0.13 - 0.004 * Math.abs(i - 3)) * k;
+      const pts = []; for (let a = -2.3; a <= 2.3; a += 0.2) pts.push(V3(Math.sin(a) * w, y - Math.abs(a) * 0.012 * k, Math.cos(a) * 0.085 * k * (0.6 + 0.4 * Math.cos(a))));
+      const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new THREE.CatmullRomCurve3(pts).getPoints(60)), lineMat('#9fd0ff', 0.55)); group.add(l); }
+    // lungs, heart
+    for (const s of [-1, 1]) { const lung = new THREE.Mesh(new THREE.SphereGeometry(0.075 * k, 24, 16), fres('#6fd0ff', '#0a2a66', 2.0, 0.7)); lung.scale.set(0.9, 1.7, 0.8); lung.position.set(s * 0.085 * k, J('joint-spine-1').y - 0.04 * k, 0.015 * k); group.add(lung); }
+    const heartPos = V3(0.03 * k, J('joint-spine-1').y - 0.075 * k, 0.04 * k);
+    const heart = new THREE.Mesh(new THREE.SphereGeometry(0.043 * k, 24, 16), glow('#ff5a3c', 0.95)); heart.scale.set(0.95, 1.15, 0.9); heart.position.copy(heartPos); heart.rotation.z = -0.4; group.add(heart);
+    const hl = new THREE.PointLight('#ff4a2a', 0.6, 0.6); hl.position.copy(heartPos); group.add(hl);
+    // vessels: arteries red, veins blue, from the heart to hands and feet
+    const limb = (s, a, b, c, d, off) => [heartPos.clone(), J(`joint-${s}-clavicle`).clone().add(V3(0, 0, 0.02 * k)), J(`joint-${s}-shoulder`).clone().add(V3(0, 0, 0.02 * k)), J(`joint-${s}-elbow`).clone().add(V3(0, 0, 0.012 * k)), J(`joint-${s}-hand`).clone()].map(p => p.add(V3(off, 0, 0)));
+    for (const s of ['l', 'r']) for (const [c, off] of [['#ff4a3a', 0.006], ['#4a8cff', -0.006]]) {
+      tube(limb(s, 0, 0, 0, 0, off * (s === 'l' ? 1 : -1)), 0.0035 * k, glow(c, 0.9));
+      tube([heartPos.clone(), J('joint-pelvis').clone().add(V3(off, 0, 0.0)), J(`joint-${s}-upper-leg`).clone().add(V3(off, 0, 0)), J(`joint-${s}-knee`).clone().add(V3(off, 0, 0.015 * k)), J(`joint-${s}-ankle`).clone().add(V3(off, 0, 0)), J(`joint-${s}-foot-1`).clone()], 0.0042 * k, glow(c, 0.9)); }
+    tube([heartPos.clone(), J('joint-spine-1').clone().add(V3(0, 0.04 * k, 0.03 * k)), J('joint-neck').clone().add(V3(0.012 * k, 0, 0.012 * k)), J('joint-head').clone().add(V3(0.012 * k, 0.02 * k, 0.03 * k))], 0.0045 * k, glow('#ff4a3a', 0.9));
+    // brain
+    const brain = new THREE.Mesh(new THREE.SphereGeometry(0.085 * k, 24, 16), fres('#9fe0ff', '#1a3a7a', 1.6, 0.9)); brain.scale.set(0.9, 0.8, 1.05); brain.position.copy(J('joint-head-2')).add(V3(0, -0.07 * k, -0.005 * k)); group.add(brain);
+  }
+
+  if (MODE === 'wire') {
+    group.add(new THREE.Mesh(geo, fres('#6fa8ff', '#07142e', 2.6, 0.55)));
+    // plexus: sample surface points, link near neighbours
+    const rng = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(7);
+    const pts = []; const target = 1300, minD = 0.03 * k;
+    for (let tries = 0; tries < 60000 && pts.length < target; tries++) {
+      const i = Math.floor(rng() * nV); const p = V3(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
+      let ok = true; for (const q of pts) if (q.distanceToSquared(p) < minD * minD) { ok = false; break; } if (ok) pts.push(p); }
+    const seg = []; for (let i = 0; i < pts.length; i++) { const near = pts.map((q, j) => [pts[i].distanceToSquared(q), j]).filter(a => a[1] > i && a[0] < (minD * 2.1) ** 2).sort((a, b) => a[0] - b[0]).slice(0, 3); for (const [, j] of near) seg.push(pts[i], pts[j]); }
+    group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg), lineMat('#8fc4ff', 0.5)));
+    const dots = new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts), new THREE.PointsMaterial({color: '#e8f4ff', size: 0.011 * k, sizeAttenuation: true, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false})); group.add(dots);
+    for (let i = 0; i < pts.length; i += 14) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.0075 * k, 10, 8), glow('#ffffff', 1)); s.position.copy(pts[i]); group.add(s); }
+  }
+
+  if (MODE === 'nerve') {
+    group.add(new THREE.Mesh(geo, fres('#5a7cff', '#080a24', 2.4, 0.5)));
+    const sp = ['joint-pelvis', 'joint-spine-4', 'joint-spine-3', 'joint-spine-2', 'joint-spine-1', 'joint-neck', 'joint-head', 'joint-head-2'].map(J);
+    const back = sp.map(p => p.clone().add(V3(0, 0, -0.012 * k)));
+    tube(back, 0.005 * k, glow('#e6f2ff', 1));
+    const rngn = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(3);
+    const branch = (a, b, c, d, w, col) => { tube([a, b, c, d], w, glow(col, 0.85)); };
+    for (const s of [-1, 1]) {
+      const side = s > 0 ? 'l' : 'r';
+      const sh = J(`joint-${side}-shoulder`), el = J(`joint-${side}-elbow`), ha = J(`joint-${side}-hand`);
+      branch(J('joint-spine-1').clone().add(V3(0, 0, -0.012 * k)), sh.clone().add(V3(0, 0.02 * k, 0)), el.clone().add(V3(0, 0.0, 0.01 * k)), ha, 0.0035 * k, '#7a5cff');
+      branch(J('joint-spine-1').clone().add(V3(0, 0, -0.012 * k)), sh.clone().add(V3(0, -0.01 * k, -0.01 * k)), el.clone().add(V3(0.005 * k, 0, -0.005 * k)), ha.clone().add(V3(0.01 * k, 0.012 * k, 0)), 0.0025 * k, '#37c8ff');
+      const ul = J(`joint-${side}-upper-leg`), kn = J(`joint-${side}-knee`), an = J(`joint-${side}-ankle`), ft = J(`joint-${side}-foot-1`);
+      branch(J('joint-pelvis').clone().add(V3(0, 0, -0.012 * k)), ul.clone().add(V3(0, 0, -0.01 * k)), kn.clone().add(V3(0, 0, -0.01 * k)), ft, 0.004 * k, '#7a5cff');
+      branch(J('joint-pelvis').clone().add(V3(0, 0, -0.012 * k)), ul.clone().add(V3(-0.01 * k * s, 0, 0.005 * k)), kn.clone().add(V3(0.01 * k * s, 0, 0.01 * k)), an, 0.0025 * k, '#37c8ff');
+      // rib nerves
+      for (let i = 0; i < 6; i++) { const y = J('joint-spine-2').y + (J('joint-spine-1').y - J('joint-spine-2').y) * (i / 5);
+        const pts = []; for (let a = 0; a <= 1; a += 0.1) pts.push(V3(s * (0.01 + 0.12 * Math.sin(a * 1.9)) * k, y - 0.035 * k * a, (-0.012 + 0.1 * Math.sin(a * 2.6)) * k));
+        tube(pts, 0.0018 * k, glow('#6a8cff', 0.8)); }
+    }
+    // spark nodes
+    for (let i = 0; i < 40; i++) { const p = back[Math.floor(rngn() * back.length)].clone().add(V3((rngn() - 0.5) * 0.02, (rngn() - 0.5) * 0.04, 0)); const o = new THREE.Mesh(new THREE.SphereGeometry(0.0055 * k, 10, 8), glow('#ffffff', 1)); o.position.copy(p); group.add(o); }
+    const brain = new THREE.Mesh(new THREE.SphereGeometry(0.085 * k, 24, 16), fres('#c8d8ff', '#2a1a7a', 1.4, 1.0)); brain.scale.set(0.9, 0.8, 1.05); brain.position.copy(J('joint-head-2')).add(V3(0, -0.07 * k, -0.005 * k)); group.add(brain);
+  }
+}
+
+// ---------- camera ----------
+const cam = new THREE.PerspectiveCamera(26, W / H, 0.05, 50);
+const fit = +Q.get('fit') || 1.12;
+const tanV = Math.tan(THREE.MathUtils.degToRad(26) / 2), tanH = tanV * W / H;
+const dist = Math.max((height * fit * 0.5) / tanV, (0.336 * height) / tanH);
+cam.position.set(+Q.get('cx') || 0, height * 0.5, dist);
+cam.lookAt(0, height * 0.5, 0);
+const rot = +Q.get('rot') || 0; group.rotation.y = rot;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, cam));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), MODE === 'skin' ? 0.12 : 0.9, 0.7, MODE === 'skin' ? 0.9 : 0.15));
+composer.addPass(new OutputPass());
+window.renderStill = () => { composer.render(); return renderer.domElement.toDataURL('image/jpeg', 0.92); };
+window.ready = true;
+</script></body></html>
