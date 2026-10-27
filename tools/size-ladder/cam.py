@@ -12,7 +12,7 @@ def sm(x): x = min(max(x, 0.), 1.); return x * x * (3 - 2 * x)
 def sm5(x): x = min(max(x, 0.), 1.); return x * x * x * (x * (6 * x - 15) + 10)
 def lerp(a, b, k): return a + (b - a) * k
 def vlerp(a, b, k): return np.array(a, float) + (np.array(b, float) - np.array(a, float)) * k
-def dirv(az, el): az, el = math.radians(az), math.radians(el); return np.array([math.sin(az) * math.cos(el), math.sin(el), math.cos(az) * math.cos(el)])
+def dirv(az, el): az, el = math.radians(az), math.radians(el * .78); return np.array([math.sin(az) * math.cos(el), math.sin(el), math.cos(az) * math.cos(el)])
 
 # beat times
 T_FILL_E = (3.0, 5.5); T_CLOSE_E = (5.6, 6.4); T_WAVE_J = (5.8, 7.2); T_FILL_J = (7.8, 10.7); T_CLOSE_J = (10.8, 11.6)
@@ -63,8 +63,19 @@ def params(t):
     else:
         k = sm((t - T_CLOSE_S[0]) / (DUR - T_CLOSE_S[0]))
         D = lerp(560, 330, k); tg = vlerp([0, 62, 0], [0, 99, 0], k); d = dirv(lerp(225, 262, k), lerp(25, 10, k)); roll = 0
-    D *= float(np.interp(t, [1.2, 2.6, 6.5, 8.0, 10.8, 13.0, 19.6], [1., 1.38, 1.38, 1.2, 1.2, 1.32, 1.32]))   # breathing room: planets sit smaller in a wider frame
+    if True: D *= float(np.interp(t, [1.2, 2.6, 3.0, 5.5, 6.5, 7.8, 10.7, 11.6, 13.0, 13.4, 16.4, 19.6], [1., 1.25, 1.25, 1.12, 1.15, 1.15, 1.05, 1.12, 1.2, 1.2, 1.1, 1.1]))   # breathing room: planets sit smaller in a wider frame
+    # low rim-height shot while units pour: the bowl is a stadium and the units fall out of the sky above it
+    w = float(np.interp(t, [0, 2.4, 3.0, 6.0, 7.0, 7.6, 10.8, 11.8, 12.6, 13.4, 17.0, 17.8, 19.6], [0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0]))
+    if w > 0:
+        az = math.degrees(math.atan2(d[0], d[2])); el = math.degrees(math.asin(d[1]))
+        lo = float(np.interp(t, [3.0, 6.0, 7.6, 10.8, 13.4, 17.0], [6., 6., 5., 5., 5., 5.]))
+        d = dirv(az, lerp(el / .78, lo / .78, w))
+        tgy = float(np.interp(t, [3.0, 6.0, 7.6, 10.8, 13.4, 17.0], [1.6, 1.6, 24., 24., 240., 240.]))
+        Dl = float(np.interp(t, [3.0, 6.0, 7.6, 10.8, 13.4, 17.0], [4.4, 4.4, 45., 45., 455., 455.]))
+        tg = vlerp(tg, [0, tgy, 0], w); D = lerp(D, Dl, w)
     cp = tg + d * D
+    sh = sum(math.exp(-(t - h) / .22) * a for h, a in ((T_CLOSE_E[0], .35), (T_CLOSE_J[0], .6), (T_CLOSE_S[0], 1.)) if t >= h)
+    roll += .004 * sh * math.sin(t * 61.); cp = cp + np.array([math.sin(t * 47.) * .0022, math.cos(t * 53.) * .0022, 0.]) * D * sh
     f['uFov'] = math.radians(48); f['uRoll'] = roll
     # --- bowls --------------------------------------------------------------------------------------------
     fE = ease_fill(t, *T_FILL_E); fJ = ease_fill(t, *T_FILL_J); fS = ease_fill(t, *T_FILL_S)

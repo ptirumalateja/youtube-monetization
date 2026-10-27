@@ -23,6 +23,7 @@ TEXT = [
     (16.70, 19.6, [('1,000 JUPITERS.', 120, 'Black', 330), ('IN ONE STAR.', 84, 'ExtraBold', 468), ('STARS GET MUCH BIGGER.', 54, 'Bold', 575)]),
 ]
 CTA = (18.4, 19.6, 'Follow @slowlighttv')
+HUMAN = (17.9, 19.6, 'You are smaller than 1 pixel on this screen.')
 
 def env(t, a, b, fi=.25, fo=.3): return min(max((t - a) / fi, 0), 1) * min(max((b - t) / fo, 0), 1)
 
@@ -121,6 +122,8 @@ def text_layer(t):
             v = int(round(n * fr))
             s = f'{v:,}' if n == 49 else f'≈ {v:,}'
             put(s, 190, 'Black', 1400, al); put(lab, 46, 'Bold', 1630, al * .9)
+    t0, t1, s = HUMAN; al = env(t, t0, t1, .5, .0001)
+    if al > 0: put(s, 38, 'Bold', 1560, al * .92)
     t0, t1, s = CTA; al = env(t, t0, t1, .3, .0001)
     if al > 0:
         put(s, 54, 'Bold', 1690, al)
@@ -151,17 +154,9 @@ def do_frames(O, part=0, parts=1):
 def events(O):
     ev = dict(dur=cam.DUR, hit=[cam.T_CLOSE_E[0], cam.T_CLOSE_J[0], cam.T_CLOSE_S[0]], fills=[], fall=2.05,
               waves=[cam.T_WAVE_J, cam.T_WAVE_S], hook=2.4)
-    for n, lab, (a, b) in COUNTS:
-        ts = []
-        for k in range(1, 400):
-            fr = k / 400
-            # invert ease_fill numerically
-            lo, hi = a, b
-            for _ in range(30):
-                mid = (lo + hi) / 2
-                if cam.ease_fill(mid, a, b) / 1.06 < fr: lo = mid
-                else: hi = mid
-            ts.append(round(lo, 4))
+    for (n, lab, (a, b)), nr in zip(COUNTS, (49, 56, 56)):
+        # impact times of the falling units: j-th lands when the fill fraction reaches (j+.5)/nr, same law as the shader's rain
+        ts = [round(a + (b - a) * (1 - (1 - (j + .5) / nr) ** (1 / 1.6)), 4) for j in range(nr)]
         ev['fills'].append(dict(n=n, t=ts, a=a, b=b))
     json.dump(ev, open(f'{O}/events.json', 'w'))
 

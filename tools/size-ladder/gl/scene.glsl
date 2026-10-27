@@ -91,6 +91,40 @@ float lattice(vec3 p, vec3 C, vec3 off, float sp, float r, float Ri, float yb, f
   return max(d, dreg);
 }
 
+
+// units rain into each bowl: sphere j lands at its slot on the rising fill front, so the pile is built by what you see fall
+float fillFrac(float tt, vec2 w) { float x = clamp((tt - w.x) / (w.y - w.x), 0., 1.); return 1. - pow(1. - x, 1.6); }
+const float TAUF = .85;
+float rain(vec3 p, vec3 C, float Ri, float r, float yb, float yRim, vec2 w, float Nr, out vec3 pc, out float jid) {
+  float yt = yRim + .7 * Ri; float Hd = 4.5 * Ri;
+  vec3 Cb = vec3(C.x, yRim + 2.7 * Ri, C.z); float Rb = 3.2 * Ri;
+  float db = length(p - Cb) - Rb; pc = vec3(0.); jid = 0.;
+  if (db > r * 2.) return db;
+  float fr0 = fillFrac(uT, w), fr1 = fillFrac(uT + TAUF, w);
+  if (fr0 >= .999 || fr1 <= 0.) return max(db, 0.) + r;
+  float d = 1e9; int jlo = int(ceil(Nr * fr0 - .5));
+  for (int k = 0; k < 32; k++) {
+    float j = float(jlo + k);
+    if (j + .5 > Nr * fr1 || j >= Nr) break;
+    float frac = (j + .5) / Nr; float x = 1. - pow(1. - frac, 1. / 1.6);
+    float tau = w.x + (w.y - w.x) * x - uT;                 // seconds until it lands
+    float fL = 1.06 * frac; float qy = clamp((fL - .19) / .72, 0., 1.);
+    float yl = yb + qy * (yt - yb);
+    vec3 hj = h33(vec3(j, 3.7, 1.3) + 11.);
+    float yc = clamp(yl, yb, yt);
+    float inb = min(yc, yRim) - C.y;
+    float rad = .55 * sqrt(max(Ri * Ri - inb * inb, 0.)) * sqrt(max(1. - pow(max(yc - yRim, 0.) / (.7 * Ri), 2.), .05));
+    float an = 6.2831853 * hj.x; float rr = sqrt(hj.y) * rad;
+    vec3 land = vec3(C.x + cos(an) * rr, yl + .8 * r, C.z + sin(an) * rr);
+    float u = tau / TAUF;
+    vec3 ps = land + vec3(0., Hd * u * u, 0.) + vec3(.35 * r * sin(j * 1.7 + u * 3.), 0., .35 * r * cos(j * 2.3 + u * 3.)) * u;
+    float rs = r * mix(.22, 1., 1. - pow(clamp(u, 0., 1.), .7));   // far = small, near = full size
+    float dd = length(p - ps) - rs;
+    if (dd < d) { d = dd; pc = ps; jid = j; }
+  }
+  return min(d, max(db, 0.) + r);
+}
+
 float map(vec3 p) {
   float d = 1e9; gid = 0;
   float dm0 = length(p - uM0) - RM;
@@ -108,6 +142,10 @@ float map(vec3 p) {
     float dj = lattice(p, S, J, 2.12 * RJ / 1.41421356, RJ, RS - TS, J.y - RJ, S.y + CUT0S * RS, uHeap.z, uF.z, c, sid, pop);
     if (dj < d) { d = dj; gid = 2; gC = c; gR = RJ; gH = sid; gPop = pop; gG = gGl; }
   }
+  if (uF.z > 0.) {
+    vec3 pc; float jid; float dr = rain(p, S, RS - TS, RJ, J.y - RJ, S.y + CUT0S * RS, vec2(13.4, 16.4), 56., pc, jid);
+    if (dr < d) { d = dr; gid = 2; gC = pc; gR = RJ; gH = h31(vec3(jid, 5., 2.)); gPop = 1.; gG = vec3(jid, 3., 9.); }
+  }
   // Jupiter hero
   vec3 qj = p - J; float rj = length(qj);
   if (rj < RJ + 2.) {
@@ -121,6 +159,10 @@ float map(vec3 p) {
     float de = lattice(p, J, vec3(0.), 2.12 / 1.41421356, 1., RJ - TJ, J.y - RJ, J.y + CUT0J * RJ, uHeap.y, uF.y, c, sid, pop);
     if (de < d) { d = de; gid = 4; gC = c; gR = 1.; gH = sid; gPop = pop; gG = gGl; }
   }
+  if (uF.y > 0.) {
+    vec3 pc; float jid; float dr = rain(p, J, RJ - TJ, 1., J.y - RJ, J.y + CUT0J * RJ, vec2(7.8, 10.7), 56., pc, jid);
+    if (dr < d) { d = dr; gid = 4; gC = pc; gR = 1.; gH = h31(vec3(jid, 5., 2.)); gPop = 1.; gG = vec3(jid, 3., 9.); }
+  }
   if (rj < RJ - TJ) {
     vec3 c; float sid, pop;
     float re = length(p);
@@ -130,6 +172,10 @@ float map(vec3 p) {
       float dmm = lattice(p, vec3(0.), vec3(0., -1. + TE + RM + .01, 0.), 2.12 * RM / 1.41421356, RM, 1. - TE, -1. + TE, .5, uHeap.x, uF.x, c, sid, pop);
       if (dmm < d) { d = dmm; gid = 6; gC = c; gR = RM; gH = sid; gPop = pop; gG = gGl; }
     }
+  }
+  if (uF.x > 0.) {
+    vec3 pc; float jid; float dr = rain(p, vec3(0.), 1. - TE, RM, -1. + TE, .5, vec2(3.0, 5.5), 49., pc, jid);
+    if (dr < d) { d = dr; gid = 6; gC = pc; gR = RM; gH = h31(vec3(jid, 5., 2.)); gPop = 1.; gG = vec3(jid, 3., 9.); }
   }
   return d;
 }
@@ -292,7 +338,7 @@ vec3 sunGlow(vec3 ro, vec3 rd, float tmax) {
   vec3 fwc = normalize(uCamT - uCamP); vec3 rtc = normalize(cross(fwc, vec3(0., 1., 0.))); vec3 upc = cross(rtc, fwc);
   float ang = atan(dot(pc, upc), dot(pc, rtc));
   float strm = .5 + .9 * pow(max(vn(vec3(ang * 3.2, uT * .1, 1.)),0.), 2.) + .6 * pow(max(vn(vec3(ang * 9., uT * .17, 5.)),0.), 3.);
-  float cor = exp(-max(h, 0.) * 7.) * .9 + exp(-max(h, 0.) * 2.6) * .32 * strm + exp(-max(h, 0.) * .6) * .025;
+  float cor = exp(-max(h, 0.) * 7.) * .9 + exp(-max(h, 0.) * 2.6) * .32 * strm + exp(-max(h, 0.) * .5) * .07;
   float rtrue = length(oc - rd * dot(oc, rd)); float offd = smoothstep(RS * .985, RS * 1.02, rtrue);
   cor *= smoothstep(RS * .98, RS * 1.01, rmin) * offd;
   vec3 g = vec3(1., .3, .05) * cor * 1.0;
@@ -387,6 +433,7 @@ vec3 shade(vec3 ro, vec3 rd, float t, out float emisAdd) {
       // inner wall: warm mantle glow
       float gl = fbm(rel * 5. + uT * .05);
       col = vec3(.9, .26, .06) * (.12 + .3 * gl) * (.4 + .8 * ao) + vec3(.03, .01, .005);
+      col *= mix(.12, 1.1, smoothstep(-.95, .5, rel.y));   // deep: the floor sits in shadow
     }
     // closing seam glow
     float seam = exp(-abs(rel.y - uCut.x) / .02) * step(uCut.x, .99) * step(.3, uCut.x + .01);
@@ -409,6 +456,7 @@ vec3 shade(vec3 ro, vec3 rd, float t, out float emisAdd) {
       vec3 q = (p - J) * .3; float swl = fbm(q + vec3(0., 0., uT * .03));
       float bnd = .5 + .5 * sin(q.y * 7. + 5. * swl); bnd *= bnd;
       col = mix(vec3(.22, .035, .01), vec3(1., .46, .1), bnd) * (.25 + .6 * ao);
+      col *= mix(.1, 1.1, smoothstep(-RJ * .9, RJ * .5, (p - J).y));
     }
     if (id == 3) {
       float seam = exp(-abs((p - J).y - uCut.y * RJ) / .12) * step(uCut.y, .99);
@@ -427,6 +475,7 @@ vec3 shade(vec3 ro, vec3 rd, float t, out float emisAdd) {
     } else {
       vec3 q = (p - S) * .012; float swl = fbm(q + vec3(0., 0., uT * .03)); float gl = fbm(q * 3. + swl * 2. + uT * .04);
       col = mix(vec3(.45, .05, .005), vec3(1., .5, .1), smoothstep(.25, .75, gl)) * 1.9;
+      col *= mix(.15, 1.1, smoothstep(-RS * .9, RS * .5, (p - S).y));
     }
     float edge = exp(-abs(length(p) - uWave.y) / (.012 * uWave.y + .3)) * step(.01, uWave.y);
     col += vec3(1., .85, .6) * edge * 2.5;
@@ -451,6 +500,12 @@ void main() {
     vec3 sp = rd * 220.; vec3 ip = floor(sp); vec3 fr = fract(sp) - .5;
     float h = h31(ip); if (h > .985) { float d = length(fr - (h33(ip) - .5) * .6); stars = vec3(.9, .95, 1.) * smoothstep(.12, 0., d) * (h - .985) * 60.; }
   }
+  // deeper sky: denser stars of varied brightness, a faint milky band and a violet nebula wash
+  { vec3 sp2 = rd * 140.; vec3 ip2 = floor(sp2); vec3 fr2 = fract(sp2) - .5; float h2 = h31(ip2 + 3.1);
+    if (h2 > .93) { float d2 = length(fr2 - (h33(ip2 + 1.) - .5) * .6); stars += mix(vec3(1., .85, .7), vec3(.7, .85, 1.), h33(ip2).x) * smoothstep(.15, 0., d2) * (h2 - .93) * 18.; } }
+  float band = exp(-pow(dot(rd, normalize(vec3(.3, .8, -.5))) * 3.2, 2.));
+  float neb = fbm(rd * 2.2 + 4.);
+  bg += (vec3(.05, .035, .11) * neb + vec3(.04, .05, .09) * band * (.4 + fbm(rd * 7.))) * .9;
   bg += stars * .8;
   float t = 0.; float dist; bool hit = false; vec3 glow = vec3(0.);
   float tmax = 2500.;
@@ -466,7 +521,7 @@ void main() {
   // Earth atmosphere halo + Jupiter haze for rays that miss
   {
     vec3 oc = ro; float b = dot(oc, rd); float tc = clamp(-b, 0., hit ? t : tmax); float rmin = length(oc + rd * tc);
-    if (!hit) col += vec3(.2, .45, 1.) * exp(-max(rmin - 1., 0.) * 22.) * .55 * .6;
+    if (!hit) col += vec3(.2, .45, 1.) * exp(-max(rmin - 1., 0.) * 13.) * .55 * (.9 + .25 * sin(uT * 2.1));
   }
   // exposure + filmic tonemap
   col *= uExpo;
