@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v1 in production, 27 Oct 2026 |
-| Upload file | `ufo-nimitz/the-tic-tac-is-still-unidentified.mp4` (project files) |
+| Status | v1 delivered 27 Oct 2026, awaiting Teja's review |
+| Upload file | `ufo-nimitz/the-tic-tac-is-still-unidentified_master.mp4` (project files, 1 GB, upload this to YouTube; `the-tic-tac-is-still-unidentified.mp4` is a lighter share copy) |
 | Format | YouTube long-form, 16:9 1080p, 5:36 |
 | Voice | ElevenLabs "BlackvieW - Documentary Narator" |
 | Source | `tools/ufo-nimitz/`, script and fact table in project files `ufo-nimitz/script.md` |
