@@ -1,0 +1,452 @@
+#version 300 es
+// Moon -> Earth -> Jupiter -> Sun: ONE world, ONE camera.
+// Units are Earth radii. Earth bowl at the origin, Jupiter bowl around it (Earth is one of its units),
+// Sun bowl around that (Jupiter is one of its units). Every container is a hollow shell with a cut; units are FCC lattice spheres.
+precision highp float;
+uniform vec2 R;
+uniform vec3 uCamP, uCamT;
+uniform float uFov, uRoll, uT;
+uniform vec3 uF;     // fill 0..1 for Earth / Jupiter / Sun bowls
+uniform vec3 uCut;   // cut height (fraction of radius above centre); >=1 -> closed
+uniform vec3 uWave;  // ignition-wave radius for Jupiter and Sun shells (0 = hidden), z unused
+uniform vec3 uM0;    // hero Moon centre
+uniform float uExpo;
+uniform vec3 uHeap;  // heap scale above the rim of each bowl (shrinks away as the bowl closes)
+uniform sampler2D tEarth, tSpec, tCloud, tLights, tMoon;
+out vec4 o;
+
+const float RM = 0.2727, RJ = 10.97, RS = 109.1;
+const float TE = 0.05, TJ = 0.15, TS = 0.6;
+const vec3 J = vec3(0., 9.82, 0.);
+const vec3 S = vec3(0., 107.35, 0.);
+const float CUT0 = 0.42, CUT0J = 0.42, CUT0S = 0.42;
+const vec3 LD = normalize(vec3(0.86, 0.34, 0.38));   // sun direction (far away light)
+const float PI = 3.14159265;
+
+// ---------- noise ----------
+float h31(vec3 p) { p = fract(p * .3183099 + .1); p *= 17.; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+vec3 h33(vec3 p) { p = vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6))); return fract(sin(p) * 43758.5453); }
+float vn(vec3 p) {
+  vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(mix(h31(i), h31(i + vec3(1, 0, 0)), f.x), mix(h31(i + vec3(0, 1, 0)), h31(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(h31(i + vec3(0, 0, 1)), h31(i + vec3(1, 0, 1)), f.x), mix(h31(i + vec3(0, 1, 1)), h31(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+float fbm(vec3 p) { float a = .5, s = 0.; for (int i = 0; i < 5; i++) { s += a * vn(p); p = p * 2.03 + 11.7; a *= .5; } return s; }
+float fbm3(vec3 p) { float a = .5, s = 0.; for (int i = 0; i < 3; i++) { s += a * vn(p); p = p * 2.03 + 11.7; a *= .5; } return s; }
+mat3 rotY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0, -s, 0, 1, 0, s, 0, c); }
+mat3 rotAxis(vec3 k, float a) { float c = cos(a), s = sin(a); return mat3(
+  c + k.x*k.x*(1.-c), k.x*k.y*(1.-c) + k.z*s, k.x*k.z*(1.-c) - k.y*s,
+  k.x*k.y*(1.-c) - k.z*s, c + k.y*k.y*(1.-c), k.y*k.z*(1.-c) + k.x*s,
+  k.x*k.z*(1.-c) + k.y*s, k.y*k.z*(1.-c) - k.x*s, c + k.z*k.z*(1.-c)); }
+
+// ---------- geometry ----------
+float sdShell(vec3 q, float Rr, float t, float cutY) {
+  float s = abs(length(q) - (Rr - .5 * t)) - .5 * t;
+  return max(s, q.y - cutY);
+}
+vec3 fccNearest(vec3 q) {
+  vec3 f = floor(q + .5);
+  if (mod(f.x + f.y + f.z, 2.) > .5) {
+    vec3 r = q - f, a = abs(r);
+    if (a.x > a.y && a.x > a.z) f.x += r.x >= 0. ? 1. : -1.;
+    else if (a.y > a.z) f.y += r.y >= 0. ? 1. : -1.;
+    else f.z += r.z >= 0. ? 1. : -1.;
+  }
+  return f;
+}
+float eob(float x) { float c1 = 1.2, c3 = c1 + 1.; return 1. + c3 * pow(x - 1., 3.) + c1 * pow(x - 1., 2.); }
+
+// globals set by map()
+int gid; vec3 gC; float gR; float gH; float gPop; vec3 gG, gGl;
+
+// lattice of unit spheres. returns distance; sets gC, gR, gH, gPop if it is the sphere
+float lattice(vec3 p, vec3 C, vec3 off, float sp, float r, float Ri, float yb, float yRim, float hs, float f, out vec3 c_, out float sid, out float pop) {
+  float yt = yRim + .7 * Ri;
+  vec3 g = fccNearest((p - off) / sp);
+  gGl = g;
+  vec3 c = off + g * sp;
+  sid = h31(g + 7.3);
+  bool hero = dot(g, g) < .01;
+  float yr = yRim - C.y; float xzMax = sqrt(max(Ri * Ri - yr * yr, 0.)) - .1 * r;
+  vec2 hq = vec2(length(c.xz - C.xz) / xzMax, (c.y - yRim) / (.7 * Ri));
+  bool inBowl = length(c - C) <= Ri - r * .98 && c.y <= yRim;
+  bool inHeap = c.y > yRim && dot(hq, hq) <= 1.;
+  float ok = (!hero && (inBowl || (inHeap && hs > .01))) ? 1. : 0.;
+  float qy = clamp((c.y - yb) / (yt - yb), 0., 1.);
+  bool isHeap = c.y > yRim;
+  float qq = qy * .72 + sid * .28;
+  pop = clamp((f - qq) * 9., 0., 1.);
+  float sc = pop > 0. ? mix(.35, 1., pop * pop * (3. - 2. * pop)) : 0.;
+  if (isHeap) sc *= hs;
+  c_ = c;
+  float rr = r * sc;
+  float len = length(p - c);
+  float nn = sp * 1.41421356;
+  float bound = max(max(len, nn - len) - r, .03 * r);   // nearest any neighbouring unit can be
+  float d = (ok < .5 || sc <= 0.) ? bound : min(len - rr, bound);
+  float dSph = length(p - C) - (Ri + r * .06);
+  vec2 eq = vec2(length(p.xz - C.xz) / (xzMax + r * 1.1), (p.y - yRim) / (.7 * Ri + r * 1.1));
+  float dEll = (length(eq) - 1.) * min(xzMax + r * 1.1, .7 * Ri + r * 1.1);
+  float dreg = min(dSph, dEll);   // every unit lives inside the bowl sphere or the heap ellipsoid
+  return max(d, dreg);
+}
+
+float map(vec3 p) {
+  float d = 1e9; gid = 0;
+  float dm0 = length(p - uM0) - RM;
+  d = dm0; gid = 7; gC = uM0; gR = RM;
+  // Sun
+  vec3 qs = p - S; float rs = length(qs);
+  if (uWave.y > 0.) {
+    float ds = sdShell(qs, RS, TS, uCut.z * RS);
+    ds = max(ds, length(p) - uWave.y);
+    if (ds < d) { d = ds; gid = 1; gC = S; gR = RS; }
+  }
+  if (uF.z > 0. && rs >= 1.4 * RS) d = min(d, max(rs - 1.4 * RS, .05 * RS));
+  if (rs < 1.4 * RS && uF.z > 0.) {
+    vec3 c; float sid, pop;
+    float dj = lattice(p, S, J, 2.12 * RJ / 1.41421356, RJ, RS - TS, J.y - RJ, S.y + CUT0S * RS, uHeap.z, uF.z, c, sid, pop);
+    if (dj < d) { d = dj; gid = 2; gC = c; gR = RJ; gH = sid; gPop = pop; gG = gGl; }
+  }
+  // Jupiter hero
+  vec3 qj = p - J; float rj = length(qj);
+  if (rj < RJ + 2.) {
+    float dhj = 1e9;
+    if (uWave.x > 0.) { dhj = max(sdShell(qj, RJ, TJ, uCut.y * RJ), length(p) - uWave.x); if (rj > RJ + 1.) dhj = rj - RJ; }
+    if (dhj < d) { d = dhj; gid = 3; gC = J; gR = RJ; }
+  } else { float dd = rj - RJ - 1.; if (dd < d && uWave.x > 0.) { d = dd; gid = 0; } }
+  if (uF.y > 0. && rj >= 1.4 * RJ) d = min(d, max(rj - 1.4 * RJ, .05 * RJ));
+  if (rj < 1.4 * RJ && uF.y > 0.) {
+    vec3 c; float sid, pop;
+    float de = lattice(p, J, vec3(0.), 2.12 / 1.41421356, 1., RJ - TJ, J.y - RJ, J.y + CUT0J * RJ, uHeap.y, uF.y, c, sid, pop);
+    if (de < d) { d = de; gid = 4; gC = c; gR = 1.; gH = sid; gPop = pop; gG = gGl; }
+  }
+  if (rj < RJ - TJ) {
+    vec3 c; float sid, pop;
+    float re = length(p);
+    float dhe = re > 1.5 ? re - 1. : sdShell(p, 1., TE, uCut.x);
+    if (dhe < d) { d = dhe; gid = 5; gC = vec3(0.); gR = 1.; }
+    if (re < 1.7 && uF.x > 0.) {
+      float dmm = lattice(p, vec3(0.), vec3(0., -1. + TE + RM + .01, 0.), 2.12 * RM / 1.41421356, RM, 1. - TE, -1. + TE, .5, uHeap.x, uF.x, c, sid, pop);
+      if (dmm < d) { d = dmm; gid = 6; gC = c; gR = RM; gH = sid; gPop = pop; gG = gGl; }
+    }
+  }
+  return d;
+}
+
+vec3 nrm(vec3 p, float e) {
+  vec2 k = vec2(1., -1.);
+  return normalize(k.xyy * map(p + k.xyy * e) + k.yyx * map(p + k.yyx * e) + k.yxy * map(p + k.yxy * e) + k.xxx * map(p + k.xxx * e));
+}
+
+// ---------- surfaces ----------
+float lodFor(float t, float rad, float texW) {
+  float fp = t * (2. * tan(uFov * .5)) / R.y;
+  return max(0., log2(max(fp * texW / (6.2831853 * rad), 1e-4)));
+}
+vec2 sph(vec3 n) { return vec2(atan(n.z, n.x) / 6.2831853 + .5, acos(clamp(n.y, -1., 1.)) / PI); }
+
+float crater(vec3 n, float scale, float seed) {
+  vec3 p = n * scale; vec3 ip = floor(p), fp = fract(p);
+  float h = 0.;
+  for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+    vec3 g = vec3(x, y, z); vec3 r = h33(ip + g + seed);
+    if (r.z < .45) continue;
+    vec3 c = g + r * .8 + .1; float rad = .16 + .26 * r.x * r.x;
+    float dd = length(fp - c) / rad;
+    if (dd < 1.6) h += -(1. - dd * dd) * .55 * step(dd, 1.) + .32 * exp(-pow((dd - 1.05) / .16, 2.)) * (r.y * .5 + .5) * (1. - step(1.35, dd));
+  }
+  return h;
+}
+float moonH(vec3 n, float fp) {
+  float h = 0.;
+  h += crater(n, 7., 1.) * .8;
+  if (fp < .03) h += crater(n, 17., 2.) * .5;
+  if (fp < .012) h += crater(n, 41., 3.) * .3;
+  if (fp < .004) h += crater(n, 97., 4.) * .2;
+  return h + (fp < .004 ? (fbm3(n * 60.) - .5) * .12 : 0.);
+}
+vec3 moonSurf(vec3 nl, vec3 nw, float t, float seedRot, out vec3 N) {
+  float fp = t * (2. * tan(uFov * .5)) / R.y / RM;
+  vec2 uv = sph(nl);
+  vec3 alb = textureLod(tMoon, vec2(uv.x, uv.y), lodFor(t, RM, 1024.) + log2(1. / max(sqrt(1. - nl.y * nl.y), .1))).rgb;
+  float g = dot(alb, vec3(.333));
+  float hh = moonH(nl, fp);
+  // finite-difference bump
+  vec3 tu = normalize(cross(nl, vec3(0., 1., 0.) + 1e-3)), tv = cross(nl, tu);
+  float e = max(.004, fp * .5);
+  float hu = moonH(normalize(nl + tu * e), fp), hv = moonH(normalize(nl + tv * e), fp);
+  vec3 bump = (tu * (hu - hh) + tv * (hv - hh)) / e * .018 * smoothstep(.01, .002, fp);
+  N = normalize(nw - bump * 1.);
+  // young bright rayed craters: Tycho, Copernicus, Kepler (lat/lon on near side)
+  float ray = 0.;
+  vec2 ll = vec2((uv.x - .5) * 360., 90. - uv.y * 180.);
+  vec3 cs[3] = vec3[3](vec3(-11., -43.3, .9), vec3(-20., 9.7, .55), vec3(-38., 8.1, .35));
+  for (int i = 0; i < 3; i++) {
+    float lo = radians(cs[i].x), la = radians(cs[i].y);
+    vec3 cn = vec3(cos(la) * cos(lo), sin(la), -cos(la) * sin(lo));
+    float ang = acos(clamp(dot(nl, cn), -1., 1.));
+    vec3 pr = normalize(nl - cn * dot(nl, cn)); float az = atan(dot(pr, cross(vec3(0, 1, 0), cn)), dot(pr, vec3(0, 1, 0)));
+    float rays = pow(abs(sin(az * 11. + fbm3(vec3(az * 3., i, 1.)) * 6.)), 4.) * (.4 + .6 * vn(vec3(az * 7., i, 5.)));
+    ray += cs[i].z * (smoothstep(.06, .015, ang) * 1.2 + smoothstep(.55, .03, ang) * rays * .45) * smoothstep(.05, .012, fp * 8.);
+  }
+  vec3 col = vec3(g * 1.15) * vec3(1., .98, .94);
+  col *= .8 + .5 * (fbm3(nl * 14.) - .45) * 1.3;
+  col *= 1. + hh * .35 * smoothstep(.01, .002, fp);
+  col = mix(col, vec3(.92, .9, .86), clamp(ray, 0., 1.) * .8);
+  return col;
+}
+
+vec3 earthSurf(vec3 nl, vec3 nw, float t, vec3 V, float rad, out vec3 emis, out float spec, out float atm) {
+  vec2 uv = sph(nl); float lod = lodFor(t, rad, 2048.) + log2(1. / max(sqrt(1. - nl.y * nl.y), .08));
+  vec3 alb = textureLod(tEarth, uv, lod).rgb;
+  float sp = textureLod(tSpec, uv, lod).r;
+  float cl = smoothstep(.04, .75, textureLod(tCloud, vec2(fract(uv.x + uT * .004), uv.y), lodFor(t, rad, 2048.)).r);
+  vec3 lights = textureLod(tLights, uv, lod).rgb;
+  float ndl = dot(nw, LD);
+  float day = smoothstep(-.12, .22, ndl);
+  alb = pow(alb, vec3(1.08)) * 1.25;
+  vec3 ocean = vec3(.03, .14, .36); alb = mix(alb, ocean, sp * .7);
+  alb = mix(alb, vec3(.95, .96, 1.), cl * .9);
+  spec = sp * (1. - cl) * smoothstep(.02, .004, t * .0015 / rad);
+  emis = lights * (1. - day) * (1. - cl * .8) * vec3(1.3, .85, .45) * 1.6;
+  float fres = pow(1. - max(dot(nw, V), 0.), 3.);
+  atm = fres * (.25 + .75 * smoothstep(-.3, .5, ndl));
+  return alb;
+}
+
+vec3 jupiterSurf(vec3 nl, float t, float spin) {
+  float fpj = t * .89 / R.y / RJ; float hf = smoothstep(.02, .004, fpj);
+  float lat = nl.y; float lon = atan(nl.z, nl.x);
+  vec3 w = vec3(nl.x, nl.y * 3.2, nl.z) * 5.;
+  float warp = fbm(w * 1.3 + vec3(0, lat * 18., 0)) - .5;
+  float band = lat + .10 * warp * (1. - lat * lat) + .02 * sin(lat * 26.);
+  float b = sin(band * 21. + 1.) * .5 + sin(band * 9. - .4) * .35 + sin(band * 47.) * .12 * hf;
+  vec3 zone = vec3(.93, .86, .72), belt = vec3(.62, .38, .22), dark = vec3(.40, .22, .14);
+  vec3 col = mix(belt, zone, smoothstep(-.5, .6, b));
+  col = mix(col, dark, smoothstep(.65, 1., -b) * .55);
+  float streak = fbm(vec3(lon * 7. + lat * 3., lat * 60., 2.)) ;
+  col *= .82 + .36 * mix(.5, streak, hf);
+  float edge = abs(fract(band * 4.5) - .5);                     // turbulence on band boundaries
+  float turb = fbm(vec3(lon * 14. + warp * 10., lat * 38., 5.) * 1.2);
+  col = mix(col, vec3(.96, .9, .8), smoothstep(.55, .85, turb) * smoothstep(.34, .5, edge) * .35 * hf);
+  // Great Red Spot at 22 deg S, plus white ovals
+  float gl = radians(-22.); vec2 gp = vec2(lon - (-1.0), lat - sin(gl));
+  gp.x = mod(gp.x + PI, 2. * PI) - PI;
+  vec2 q = vec2(gp.x / .24, gp.y / .085);
+  float g = length(q);
+  vec3 grs = mix(vec3(.72, .22, .12), vec3(.9, .5, .32), fbm(vec3(q * 3., 1.)));
+  grs *= .8 + .3 * sin(atan(q.y, q.x) * 3. + g * 7. - uT * .3 + fbm(vec3(q * 5., 2.)) * 3.);
+  col = mix(col, vec3(.74, .62, .5), smoothstep(1.55, 1.1, g) * .5);          // pale collar
+  col = mix(col, grs, smoothstep(1.0, .8, g));
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i); vec2 oq = vec2(mod(lon - (-.2 + fi * 1.6) + PI, 2. * PI) - PI, lat - (-.42 + fi * .03)) / vec2(.05, .02);
+    col = mix(col, vec3(.97, .94, .88), smoothstep(1., .6, length(oq)) * .85);
+  }
+  return col * 1.05;
+}
+
+vec3 sunSurf(vec3 nl, vec3 nw, vec3 V, float t) {
+  float mu = clamp(dot(nw, V), 0., 1.);
+  vec3 p = nl * 38.;
+  // granulation: boiling Voronoi cells
+  float tm = uT * .45;
+  vec3 ip = floor(p), fp = fract(p); float d1 = 9., d2 = 9.;
+  for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+    vec3 g = vec3(x, y, z); vec3 r = h33(ip + g);
+    r = .5 + .5 * sin(tm * (.6 + r) + 6.2831 * r);
+    float dd = length(g + r - fp);
+    if (dd < d1) { d2 = d1; d1 = dd; } else if (dd < d2) d2 = dd;
+  }
+  float cell = smoothstep(.0, .55, d2 - d1);                 // bright cell centres, dark intergranular lanes
+  float gran = .55 + .55 * (1. - cell * .0) * (.35 + .65 * (1. - smoothstep(0., .5, d2 - d1) * .0) );
+  float lane = smoothstep(.0, .42, d2 - d1);
+  float super_ = fbm(nl * 7. + tm * .1);
+  vec3 hot = vec3(1.0, .56, .16), cool = vec3(.16, .015, .0);
+  vec3 col = mix(cool, hot, pow(lane, 1.1)) * (.3 + 2.0 * super_ * super_ + .5 * fbm3(nl * 22. + tm * .15));
+  // sunspots + faculae
+  float sp = smoothstep(.7, .76, vn(nl * 6. + 3.7)) * smoothstep(.45, .8, 1. - abs(nl.y - .12) * 3.) * .8;
+  col = mix(col, vec3(.12, .04, .01), sp * .9);
+  col += vec3(1., .8, .5) * smoothstep(.62, .85, fbm(nl * 11. + 9.)) * .25;
+  // limb darkening
+  float ld = .22 + .78 * pow(mu, .8);
+  col *= ld; col *= mix(vec3(1.), vec3(1.15, .8, .5), 1. - mu);
+  return col * .78;
+}
+
+// prominences + corona glow around the Sun (additive, analytic)
+vec3 sunGlow(vec3 ro, vec3 rd, float tmax) {
+  vec3 oc = ro - S; float b = dot(oc, rd); float tc = clamp(-b, 0., tmax);
+  vec3 pc = oc + rd * tc; float rmin = length(pc);
+  float h = (rmin - RS) / RS;
+  float cor = exp(-max(h, 0.) * 9.) * .7 + exp(-max(h, 0.) * 2.2) * .1;
+  cor *= smoothstep(RS * .98, RS * 1.01, rmin);
+  vec3 g = vec3(1., .5, .2) * cor;
+  // arches: loops standing on the limb as seen from the camera
+  vec3 fwc = normalize(uCamT - uCamP); vec3 rtc = normalize(cross(fwc, vec3(0., 1., 0.))); vec3 upc = cross(rtc, fwc);
+  for (int i = 0; i < 7; i++) {
+    float fi = float(i);
+    float an = fi * 2.399 + uT * .04;
+    vec3 ax = normalize(cos(an) * rtc + sin(an) * upc);          // surface point on the limb
+    vec3 side = normalize(cross(ax, fwc));                         // arch plane = (ax, side)... seen edge-on from camera: use fwc-perp
+    side = rtc * -sin(an) + upc * cos(an);
+    float rad = RS * (.10 + .10 * fract(fi * .37 + .1)) * (.8 + .2 * sin(uT * .7 + fi * 2.));
+    vec3 c = S + ax * (RS - rad * .15);
+    vec3 pp = ro + rd * tc;
+    vec2 pl = vec2(dot(pp - c, side), dot(pp - c, ax));
+    float dist = abs(length(pl) - rad); float inh = smoothstep(-.1 * rad, .3 * rad, pl.y);
+    float depthT = abs(dot(pp - c, fwc));
+    float tube = exp(-dist / (rad * .11)) * inh * exp(-depthT / (rad * .8));
+    tube *= .75 + .4 * sin(uT * 1.1 + fi * 2. + pl.x * 8. / rad);
+    g += vec3(1., .28, .08) * tube * 5.6 + vec3(1., .75, .45) * tube * tube * 2.4;
+  }
+  return g;
+}
+
+int shellPart(float rr, float Rr, float tt, float yrel, float cutY, float t) {
+  if (cutY < Rr && abs(yrel - cutY) < max(t * .003, Rr * .0012)) return 1;
+  return rr > Rr - .5 * tt ? 0 : 2;
+}
+vec3 shade(vec3 ro, vec3 rd, float t, out float emisAdd) {
+  vec3 p = ro + rd * t; vec3 n = nrm(p, max(1e-4, t * .0006));
+  int id = gid; vec3 C = gC; float r = gR; float H0 = gH, P0 = gPop; vec3 G0 = gG; emisAdd = 0.;
+  vec3 V = -rd; vec3 nw = n;
+  vec3 col = vec3(0.); float amb = .05; float ndl = dot(n, LD);
+  // soft shadow + AO
+  float sh = 1., t2 = max(t * .002, .01);
+  for (int i = 0; i < 18; i++) {
+    vec3 sp = p + n * (t * .004 + .004) + LD * t2; float dd = map(sp);
+    sh = min(sh, 7. * dd / t2); t2 += clamp(dd, .01 + t * .0004, .6 + t * .01);
+    if (sh < .02 || t2 > 40.) break;
+  }
+  sh = mix(.3, 1., clamp(sh, 0., 1.));
+  int id2 = gid; vec3 C2 = gC; float r2 = gR; // restore (map() overwritten by shadow march)
+  gid = id; gC = C; gR = r; gH = H0; gPop = P0; gG = G0;
+  float ao = 1.;
+  for (int i = 1; i <= 3; i++) { float h = .06 * float(i) * (id == 4 || id == 3 || id == 5 ? 1. : r * 1.2) * (id == 2 || id == 1 ? 6. : 1.); ao -= (h - map(p + n * h)) * (.9 / float(i)) * (1. / (h * 3. + .2)) * h * 1.2; }
+  ao = clamp(ao, .15, 1.);
+  gid = id; gC = C; gR = r; gH = H0; gPop = P0; gG = G0;
+  vec3 rel = p - C; vec3 nl;
+  if (id == 6 || id == 7) {
+    float sd = id == 7 ? 3.1 : gH;
+    vec3 hm = id == 7 ? vec3(.3, .8, .5) : h33(gG * .171 + 1.7);
+    mat3 rm = rotAxis(normalize(hm - .5 + 1e-3), hm.z * 6.28 + (id == 7 ? uT * .35 : 0.));
+    nl = normalize(transpose(rm) * rel);
+    vec3 N; vec3 alb = moonSurf(nl, nw, t, sd, N);
+    float dif = max(dot(N, LD), 0.) * sh;
+    // earthshine + warm bounce from the bowl
+    col = alb * (dif * 2.1 + amb * .8) + alb * vec3(.3, .5, .9) * .22;
+    col += alb * vec3(1., .55, .25) * .08 * ao * (id == 6 ? 1.3 : .1);
+    col *= mix(.45, 1., ao);
+    emisAdd = id == 6 ? (1. - gPop) * .8 : 0.;
+    col += vec3(1., .85, .6) * emisAdd * .6;
+  } else if (id == 5 || id == 4) {
+    float rad = 1.;
+    float spinA = uT * .12 + (id == 4 ? gH * 20. : 0.);
+    nl = normalize(rotY(spinA) * rel);
+    if (id == 4) { vec3 hr = h33(gG * .137 + 3.1); nl = normalize(rotAxis(normalize(hr - .5 + 1e-3), hr.z * 6.28) * nl); }
+    float rr = length(rel);
+    int part = id == 4 ? 0 : shellPart(rr, 1., TE, rel.y, uCut.x, t);
+    if (part == 0) {
+      vec3 em; float sp, atm; vec3 alb = earthSurf(nl, nw, t, V, rad, em, sp, atm);
+      float dif = max(ndl, 0.) * sh;
+      col = alb * (dif * 1.9 + amb + (id == 4 ? vec3(.22, .3, .45) + vec3(.35, .18, .08) : vec3(0.))) + em;
+      vec3 hh = normalize(LD + V); col += vec3(1., .95, .85) * pow(max(dot(nw, hh), 0.), 90.) * sp * sh * 1.1 * (id == 5 ? 1. : 0.);
+      col += vec3(.25, .55, 1.) * atm * (id == 5 ? 1.6 : .7);
+      col *= mix(.5, 1., ao);
+      if (id == 4) { col += vec3(1., .8, .55) * (1. - gPop) * .5; }
+    } else if (part == 1) {
+      // cut section: crust + glowing mantle
+      float k = smoothstep(1., 1. - TE, rr);
+      col = mix(vec3(.18, .1, .06), vec3(1., .42, .12), k * k) * (1.4 + .6 * fbm3(rel * 40.));
+    } else {
+      // inner wall: warm mantle glow
+      float gl = fbm(rel * 5. + uT * .05);
+      col = vec3(.9, .26, .06) * (.12 + .3 * gl) * (.4 + .8 * ao) + vec3(.03, .01, .005);
+    }
+    // closing seam glow
+    float seam = exp(-abs(rel.y - uCut.x) / .02) * step(uCut.x, .99) * step(.3, uCut.x + .01);
+    col += vec3(1., .7, .35) * seam * 2.0;
+  } else if (id == 3 || id == 2) {
+    vec3 cc = (id == 3) ? J : C; float rr = length(p - cc); float Rr = RJ; float tt = TJ;
+    nl = normalize(rotY(uT * .18 + (id == 2 ? gH * 20. : 0.)) * (p - cc));
+    int part = id == 2 ? 0 : shellPart(rr, Rr, tt, (p - cc).y, uCut.y * RJ, t);
+    if (part == 0) {
+      vec3 alb = jupiterSurf(nl, t, 0.);
+      float dif = max(ndl, 0.) * sh;
+      col = alb * (dif * 1.9 + amb + (id == 2 ? vec3(1., .5, .16) * .8 : vec3(0.)));
+      float fres = pow(1. - max(dot(nw, V), 0.), 3.); col += vec3(.9, .65, .4) * fres * .5 * (.3 + .7 * smoothstep(-.3, .4, ndl));
+      col *= mix(.5, 1., ao);
+      if (id == 2) col += vec3(1., .8, .55) * (1. - gPop) * .6;
+    } else if (part == 1) {
+      float k = smoothstep(Rr, Rr - tt, rr);
+      col = mix(vec3(.95, .8, .55), vec3(1., .35, .08), k) * 1.8;
+    } else {
+      vec3 q = (p - J) * .3; float swl = fbm(q + vec3(0., 0., uT * .03));
+      float bnd = .5 + .5 * sin(q.y * 7. + 5. * swl); bnd *= bnd;
+      col = mix(vec3(.22, .035, .01), vec3(1., .46, .1), bnd) * (.25 + .6 * ao);
+    }
+    if (id == 3) {
+      float seam = exp(-abs((p - J).y - uCut.y * RJ) / .12) * step(uCut.y, .99);
+      col += vec3(1., .75, .4) * seam * 2.;
+      float edge = exp(-abs(length(p) - uWave.x) / (.012 * uWave.x + .05)) * step(.01, uWave.x);
+      col += vec3(1., .85, .6) * edge * 3.;
+    }
+  } else if (id == 1) {
+    float rr = length(p - S);
+    nl = normalize(rotY(uT * .02) * (p - S));
+    int part = shellPart(rr, RS, TS, (p - S).y, uCut.z * RS, t);
+    if (part == 0) {
+      col = sunSurf(nl, nw, V, t);
+    } else if (part == 1) {
+      float k = smoothstep(RS, RS - TS, rr); col = mix(vec3(1., .95, .8), vec3(1., .4, .08), k) * 4.5;
+    } else {
+      vec3 q = (p - S) * .012; float swl = fbm(q + vec3(0., 0., uT * .03)); float gl = fbm(q * 3. + swl * 2. + uT * .04);
+      col = mix(vec3(.45, .05, .005), vec3(1., .5, .1), smoothstep(.25, .75, gl)) * 1.9;
+    }
+    float edge = exp(-abs(length(p) - uWave.y) / (.012 * uWave.y + .3)) * step(.01, uWave.y);
+    col += vec3(1., .85, .6) * edge * 2.5;
+    emisAdd = 1.;
+  }
+  return col;
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * R) / R.y;
+  uv.y -= .07;   // lens shift: subject rides high, counter sits below
+  float cr = cos(uRoll), sr = sin(uRoll); uv = mat2(cr, -sr, sr, cr) * uv;
+  vec3 ro = uCamP; vec3 fw = normalize(uCamT - ro);
+  vec3 rt = normalize(cross(fw, vec3(0., 1., 0.))); vec3 up = cross(rt, fw);
+  float fl = 1. / tan(uFov * .5) * .5;
+  vec3 rd = normalize(uv.x * rt + uv.y * up + fw * fl);
+  // space backdrop: deep navy gradient with faint stars (parallax stars are added in comp)
+  float sky = .5 + .5 * rd.y;
+  vec3 bg = mix(vec3(.012, .016, .034), vec3(.03, .035, .07), sky);
+  bg += vec3(.25, .12, .08) * pow(max(dot(rd, LD), 0.), 6.) * .05;
+  vec3 stars = vec3(0.); {
+    vec3 sp = rd * 220.; vec3 ip = floor(sp); vec3 fr = fract(sp) - .5;
+    float h = h31(ip); if (h > .985) { float d = length(fr - (h33(ip) - .5) * .6); stars = vec3(.9, .95, 1.) * smoothstep(.12, 0., d) * (h - .985) * 60.; }
+  }
+  bg += stars * .8;
+  float t = 0.; float dist; bool hit = false; vec3 glow = vec3(0.);
+  float tmax = 2500.;
+  for (int i = 0; i < 200; i++) {
+    vec3 p = ro + rd * t; dist = map(p);
+    if (dist < max(.0004, t * .0003)) { hit = true; break; }
+    t += dist * .95; if (t > tmax) break;
+  }
+  vec3 col = bg; float ea = 0.;
+  if (hit) { col = shade(ro, rd, t, ea); }
+  // volumetric-ish glow of the Sun bowl (corona, prominences) when its shell is lit
+  if (uWave.y > 0.) col += sunGlow(ro, rd, hit ? t : tmax) * smoothstep(0., 40., uWave.y);
+  // Earth atmosphere halo + Jupiter haze for rays that miss
+  {
+    vec3 oc = ro; float b = dot(oc, rd); float tc = clamp(-b, 0., hit ? t : tmax); float rmin = length(oc + rd * tc);
+    if (!hit) col += vec3(.2, .45, 1.) * exp(-max(rmin - 1., 0.) * 22.) * .55 * .6;
+  }
+  // exposure + filmic tonemap
+  col *= uExpo;
+  col = col * (2.51 * col + .03) / (col * (2.43 * col + .59) + .14);
+  col = pow(clamp(col, 0., 1.), vec3(1. / 2.2));
+  o = vec4(col, hit ? clamp(log2(t + 1.) / 11.5, 0., 1.) * .98 + .02 : 0.);
+}
