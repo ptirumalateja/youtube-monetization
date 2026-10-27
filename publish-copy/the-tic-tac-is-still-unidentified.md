@@ -2,10 +2,11 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 27 Oct 2026, awaiting Teja's review |
+| Status | v1.1 delivered 27 Oct 2026 (narration gap at 3:53–4:09 filled), ready to upload |
 | Upload file | `ufo-nimitz/the-tic-tac-is-still-unidentified_master.mp4` (project files, 1 GB, upload this to YouTube; `the-tic-tac-is-still-unidentified.mp4` is a lighter share copy) |
 | Format | YouTube long-form, 16:9 1080p, 5:36 |
 | Voice | ElevenLabs "BlackvieW - Documentary Narator" |
+| Languages | `ufo-nimitz/youtube-languages/`: EN/HI/TE `.srt` subtitles and Hindi + Telugu dubbed audio tracks (`.wav`, full 5:36, same voice) |
 | Source | `tools/ufo-nimitz/`, script and fact table in project files `ufo-nimitz/script.md` |
 
 ## Publish copy
@@ -40,6 +41,7 @@
 > - UAP Task Force briefing to NASA, Oct 2020 (date of the incident, 14 Nov 2004)
 > - Alex Dietrich, interview with AFP, Jun 2021
 > - AARO, GOFAST case resolution, Feb 2025
+> - AARO, FY2024 Consolidated Annual Report on UAP, Nov 2024 (757 reports, 1 May 2023 to 1 Jun 2024)
 > - Department of War, war.gov/UFO releases, May to Oct 2026 (AARO memo DOW-UAP-D176, FBI FD-302 FBI-UAP-D043)
 >
 > FOOTAGE
@@ -53,6 +55,8 @@
 **Pinned comment:** FLIR1, the clip at the start, was recorded on a later flight that day, and that crew never saw the object by eye. What Fravor and Dietrich saw up close was never filmed. Which part of the story do you find hardest to explain? 👇
 
 **Upload checklist:**
+- Subtitles: Studio > Subtitles > Add language (English, Hindi, Telugu) > Upload file > With timing, pick the matching `.srt`.
+- Dubs: Studio > Languages > Add language (Hindi, Telugu) > Audio track > Add > upload `..._hindi-audio.wav` or `..._telugu-audio.wav`. Needs multi-language audio access on the channel; if the option isn't shown, the SRTs still work.
 - Turn the altered/synthetic content label on (3D reconstructions are labelled on screen).
 - Add the chapters above (first chapter must be 0:00).
 - Thumbnail idea: the FLIR1 frame with the object centred, red text `STILL "UNIDENTIFIED"`.
