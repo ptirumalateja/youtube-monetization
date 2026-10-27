@@ -1,0 +1,22 @@
+{
+ "_comment": "V2 re-edit of The Salary Loop (warm). Source frames come from ../salary-loop-warm rendered with XF=0 (hard cuts). Each segment is [first source frame, end source frame) at 30 fps; the output plays them back to back. Dark-warm: the office keeps its full 5 s (the eye-rub beat is back) so the calendar flips slower.",
+ "fps": 30,
+ "segments": [
+  [
+   22,
+   144
+  ],
+  [
+   144,
+   396
+  ],
+  [
+   396,
+   546
+  ],
+  [
+   546,
+   600
+  ]
+ ]
+}
