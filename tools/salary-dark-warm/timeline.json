@@ -1,0 +1,21 @@
+{
+ "duration": 18.5,
+ "fps": 24,
+ "slug": "salary-dark-warm",
+ "_comment": "One dark-warm room, wide shot, one wooden man small in frame. Beats follow Salary Loop V2: hook (salary credited) / six bills / zero / work lasts all 30 (calendar flips slowly) / next month's salary, loops to frame 0.",
+ "salary": 50000,
+ "hookOut": 2.3,
+ "bills": [
+  {"label": "RENT", "amt": 18000, "t": 2.9},
+  {"label": "BIKE EMI", "amt": 12000, "t": 4.1},
+  {"label": "GROCERIES", "amt": 7000, "t": 5.3},
+  {"label": "FUEL", "amt": 5000, "t": 6.5},
+  {"label": "ELECTRICITY, WATER, WI-FI", "amt": 4000, "t": 7.7},
+  {"label": "FOOD & PARTY", "amt": 4000, "t": 8.9}
+ ],
+ "zero": 9.9,
+ "work": [11.2, 16.4],
+ "flipPage": [16.5, 17.1],
+ "next": 17.3,
+ "boomAt": 9.9
+}
