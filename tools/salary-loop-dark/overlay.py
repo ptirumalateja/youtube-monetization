@@ -42,7 +42,7 @@ def hap_at(t): return keys(TL['hap'], t)
 def balance(t):
     """Rupees: +50,000 lands with the notification, then each bill takes its amount."""
     v = TL['salary'] * sstep(TL['notify'][1] - 0.2 if False else 0.45, 0.85, t)
-    for it in ITEMS: v -= it['amt'] * sstep(it['t'] + 0.15, it['t'] + 0.15 + TL['countDur'], t)
+    for it in ITEMS: v -= it['amt'] * sstep(it['t'] - 0.3, it['t'] - 0.3 + TL['countDur'], t)   # lands with the DAY n tick: the balance is always the balance AFTER that day's spend
     return v
 
 
@@ -75,7 +75,7 @@ def bell(d, cx, cy, s, col):
 def notification(layer, t):
     a = card_alpha(t)
     if a <= 0: return
-    d = ImageDraw.Draw(layer); slide = card_slide(t) if t >= CARDS[1][0] else sstep(TL['notify'][0], TL['notify'][0] + 0.25, t); y = int(160 - 300 * (1 - slide)); x0, x1, h = 110, W - 110, 250
+    d = ImageDraw.Draw(layer); slide = card_slide(t) if t >= CARDS[1][0] else sstep(TL['notify'][0], TL['notify'][0] + 0.25, t); y = int(260 - 400 * (1 - slide)); x0, x1, h = 110, W - 110, 250
     sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(sh).rounded_rectangle([x0 + 6, y + 14, x1 + 6, y + h + 14], radius=40, fill=(0, 0, 0, int(110 * a))); layer.alpha_composite(sh.filter(ImageFilter.GaussianBlur(16)))
     rr(d, [x0, y, x1, y + h], 40, (255, 252, 244, int(246 * a)), (232, 170, 60, int(255 * a)), 4)
     rr(d, [x0 + 28, y + 30, x0 + 108, y + 110], 22, (255, 190, 60, int(255 * a))); bell(d, x0 + 68, y + 66, 18, (255, 255, 255, int(255 * a)))

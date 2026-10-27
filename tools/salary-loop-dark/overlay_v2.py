@@ -45,7 +45,7 @@ def big(d, lines, y0, a, size=96, gap=118, cols=(CREAM, GOLD)):
         tracked(d, ln, size, W / 2 + 3, y + 5, 6, (0, 0, 0, int(170 * a))); tracked(d, ln, size, W / 2, y, 6, c + (int(255 * a),))
 
 
-def card(layer, a, y=420):
+def card(layer, a, y=520):
     """The SALARY CREDITED box, parked under the hook line (V1 drew it at the very top)."""
     if a <= 0: return
     tmp = Image.new('RGBA', (W, H), (0, 0, 0, 0)); V1.notification(tmp, V1.CARDS[0][0] + 1.0)   # fully in
@@ -57,8 +57,8 @@ def spine(d, t, ts):
     """DAY n huge, the balance right under it: the only counter on screen during the bills."""
     a = sstep(T_RENT, T_RENT + 0.12, t) * (1 - sstep(T_ZERO - 0.02, T_ZERO + 0.05, t))
     if a <= 0: return
-    tracked(d, f'DAY {max(1, V1.day_at(ts))}', 120, W / 2 + 3, 145, 14, (0, 0, 0, int(170 * a))); tracked(d, f'DAY {max(1, V1.day_at(ts))}', 120, W / 2, 140, 14, CREAM + (int(255 * a),))
-    b = V1.balance(ts); w = 660; x0 = (W - w) / 2; y = 310
+    tracked(d, f'DAY {max(1, V1.day_at(ts))}', 120, W / 2 + 3, 245, 14, (0, 0, 0, int(170 * a))); tracked(d, f'DAY {max(1, V1.day_at(ts))}', 120, W / 2, 240, 14, CREAM + (int(255 * a),))
+    b = V1.balance(ts); w = 660; x0 = (W - w) / 2; y = 410
     rr(d, [x0, y, x0 + w, y + 120], 60, (20, 14, 12, int(215 * a)), (255, 255, 255, int(70 * a)), 2)
     tracked(d, 'BALANCE', 28, x0 + 44, y + 46, 8, (230, 215, 190, int(220 * a)), 'Medium', anchor='l')
     tracked(d, money(b), 72, x0 + w - 44 - 360, y + 22, 3, (RED if b < 1 else (255, 255, 255)) + (int(255 * a),), anchor='l')
@@ -69,24 +69,25 @@ def draw(img, f):
     if img.size != (W, H): img = img.resize((W, H), Image.LANCZOS)
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     hook_in = 1 - sstep(T_RENT - 0.2, T_RENT - 0.02, t); hook_end = sstep(DUR - 0.75, DUR - 0.45, t)
-    pay = sstep(T_STREET, T_STREET + 0.15, t) * (1 - sstep(T_BED3 - 0.15, T_BED3, t))
-    top_shade(layer, max(hook_in, hook_end, pay, sstep(T_RENT, T_RENT + 0.1, t) * (1 - sstep(T_STREET, T_STREET + 0.1, t)) * 0.8))
+    pay = sstep(T_STREET, T_STREET + 0.15, t) * (1 - sstep(T_OFF1 - 1.7, T_OFF1 - 1.4, t))
+    q = sstep(T_OFF1 - 1.55, T_OFF1 - 1.25, t) * (1 - sstep(DUR - 1.05, DUR - 0.75, t))
+    top_shade(layer, max(hook_in, hook_end, pay, q, sstep(T_RENT, T_RENT + 0.1, t) * (1 - sstep(T_STREET, T_STREET + 0.1, t)) * 0.8))
     d = ImageDraw.Draw(layer)
     V1.bill_cards(layer, ts)
     spine(d, t, ts)
     # the hit: DAY 6, ₹0, until the alarm
     z = sstep(T_ZERO, T_ZERO + 0.08, t) * (1 - sstep(T_ALARM - 0.1, T_ALARM, t))
-    big(d, ['DAY 6.', f'{money(0)} LEFT.'], 150, z, 120, 150, (CREAM, RED))
+    big(d, ['DAY 6.', f'{money(0)} LEFT.'], 250, z, 120, 150, (CREAM, RED))
     V1.alarm(layer, ts)
     # the payoff, held from the street to the end of the office
-    big(d, ['YOUR WORK', 'LASTS ALL 30.'], 130, pay)
+    big(d, ['YOUR WORK', 'LASTS ALL 30.'], 230, pay)
     if T_OFF0 <= t < T_BED3:
         u = (t - T_OFF0) / (T_OFF1 - T_OFF0); dd = min(30, 7 + int(23.99 * max(0.0, min(1.0, u)))); a = sstep(T_OFF0, T_OFF0 + 0.15, t) * pay
-        tracked(d, f'DAY {dd}  ·  BALANCE {money(0)}', 40, W / 2, 400, 6, (255, 214, 160, int(240 * a)), 'Medium')
-    nm = sstep(T_BED3, T_BED3 + 0.12, t) * (1 - sstep(T_CARD2 - 0.15, T_CARD2, t))
-    big(d, ['1ST OF', 'NEXT MONTH.'], 150, nm, 96, 118, (CREAM, CREAM))
+        tracked(d, f'DAY {dd}  ·  BALANCE {money(0)}', 40, W / 2, 500, 6, (255, 214, 160, int(240 * a)), 'Medium')
+    # the new close (comment bait): the question fades in over the last office frame and holds through the sleeping scene, then the hook returns
+    big(d, ['WHICH DAY', 'BROKE YOU?'], 230, q, 108, 132, (CREAM, GOLD))
     # the hook, from frame 0, and back over the last frames so the replay is seamless
-    big(d, ['YOUR SALARY', 'LASTS 6 DAYS.'], 130, max(hook_in, hook_end))
+    big(d, ['YOUR SALARY', 'LASTS 6 DAYS.'], 230, max(hook_in, hook_end))
     card(layer, max(1 - sstep(T_RENT - 0.6, T_RENT - 0.3, t), sstep(T_CARD2, T_CARD2 + 0.2, t)))
     tracked(d, 'SLOW LIGHT', 24, W / 2, 1548, 10, CREAM + (90,), 'Medium')
     base = img.convert('RGBA'); base.alpha_composite(layer); return base.convert('RGB')
