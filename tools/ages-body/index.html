@@ -162,15 +162,15 @@ if (MODE === 'skin') {
   group.add(makeBriefs());
   // eyes: warm sclera, larger iris, and skin-coloured lids so they don't stare
   for (const sd of ['l', 'r']) {
-    const e = J(`joint-${sd}-eye`).clone(), r = 0.0112 * headScale; e.z -= 0.0012 * headScale;
+    const sp = Math.abs(joints['joint-l-eye'][0] - joints['joint-r-eye'][0]) / 0.0586, e = J(`joint-${sd}-eye`).clone(), r = 0.0112 * sp * (1 + 0.35 * (1 - Math.min(1, sp))); e.z -= 0.0012 * sp;
     const ball = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), new THREE.MeshStandardMaterial({color: '#b09a86', roughness: 0.8}));
     ball.position.copy(e); group.add(ball);
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(r * 0.66, 20, 14), new THREE.MeshStandardMaterial({color: '#4a2f1e', roughness: 0.7}));
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(r * 0.66, 20, 14), new THREE.MeshStandardMaterial({color: '#5a3a24', roughness: 0.7}));
     iris.position.copy(e).add(new THREE.Vector3(0, -0.0008 * headScale, r * 0.5)); group.add(iris);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(r * 0.3, 12, 10), new THREE.MeshStandardMaterial({color: '#0a0604', roughness: 0.8}));
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(r * 0.24, 12, 10), new THREE.MeshStandardMaterial({color: '#0a0604', roughness: 0.8}));
     pupil.position.copy(e).add(new THREE.Vector3(0, -0.0008 * headScale, r * 0.84)); group.add(pupil);
     const lidMat = new THREE.MeshStandardMaterial({color: skinC.clone().multiplyScalar(0.95), roughness: 0.7, side: THREE.DoubleSide});
-    const lidU = new THREE.Mesh(new THREE.SphereGeometry(r * 1.08, 24, 12, 0, Math.PI * 2, 0, 0.98), lidMat);
+    const lidU = new THREE.Mesh(new THREE.SphereGeometry(r * 1.08, 24, 12, 0, Math.PI * 2, 0, 0.85), lidMat);
     lidU.rotation.x = Math.PI / 2 - 0.05; lidU.position.copy(e); group.add(lidU);
     const lidL = new THREE.Mesh(new THREE.SphereGeometry(r * 1.08, 24, 12, 0, Math.PI * 2, 0, 0.28), lidMat);
     lidL.rotation.x = -Math.PI / 2 - 0.1; lidL.position.copy(e); group.add(lidL);
