@@ -148,7 +148,7 @@ L(sfx, 0.0, lp_fast(rng.normal(0, 1, int(8.9 * SR)), 180) * .25)    # sensor hum
 L(sfx, 8.9, boom(3.0), .95)
 L(sfx, 9.15, rewind(), .8)
 L(sfx, 26.3, whoosh(.8), .6)
-for s, d in ((37.4, 14.9), (70.4, 4.4)):
+for s, d in ((37.4, 14.9),):
     k = 0.0
     while k < d:
         L(sfx, s + k + .2, ping(), .5); k += 2 * np.pi / 1.6
@@ -185,21 +185,21 @@ L(sfx, 298.4, boom(2.5), .6)
 # ---------------- v2 sections
 # 0 cold open: the black triangle files
 put(music, 0.0, pad(T['c02'] + 1.0, [D2, A2, E3], .09, 380))
-put(sfx, 0.0, wind(T['c02'] + 1.5), .8)
-put(sfx, 0.3, boom(3.0), .7)
-put(sfx, at('c01', .55), whoosh(1.2, up=False), .6)              # drops into a canyon
-put(sfx, at('c01', .86), hit(), .6)                               # no sound, no exhaust
+put(sfx, 0.0, wind(T['c02'] + 1.5), .5)
+put(sfx, 0.3, boom(3.0), .35)
+put(sfx, at('c01', .55), whoosh(1.2, up=False), .22)              # drops into a canyon
+put(sfx, at('c01', .86), hit(), .3)                               # no sound, no exhaust
 put(music, T['c02'], pad(D['c02'] + 1.5, [D2, F2, A2, C3], .10, 500))
 put(music, T['c02'], pulse(D['c02'], 90, g=.22))
-for f in (.45, .74): put(sfx, at('c02', f), hit(1.2), .6)          # 30 s vs 3 s
-put(sfx, at('c02', .84), boom(2.5), .7)                            # both can't be right
+for f in (.45, .74): put(sfx, at('c02', f), hit(1.2), .32)          # 30 s vs 3 s
+put(sfx, at('c02', .84), boom(2.5), .4)                            # both can't be right
 fs = at('c03', .84)
 put(music, T['c03'], pad(fs - T['c03'] + 1.5, [Bb2, D3, F3], .09, 420))
-put(sfx, at('c03', .13), hit(), .7)                                # no video exists
-put(sfx, at('c03', .24), snap(), .7)
-put(sfx, at('c03', .26), hit(1.2), .5)                             # 23 Oct 2026
-put(sfx, at('c03', .53), whoosh(1.0), .6)
-put(sfx, at('c03', .71), boom(3.0, 60, 30), .6)                    # 22 years earlier
+put(sfx, at('c03', .13), hit(), .38)                                # no video exists
+put(sfx, at('c03', .24), snap(), .38)
+put(sfx, at('c03', .26), hit(1.2), .28)                             # 23 Oct 2026
+put(sfx, at('c03', .53), whoosh(1.0), .25)
+put(sfx, at('c03', .71), boom(3.0, 60, 30), .35)                    # 22 years earlier
 put(sfx, fs, lp_fast(rng.normal(0, 1, int((R(0.0) - fs) * SR)), 180) * .25)   # sensor hum into the FLIR1 tail
 # 1 FLIR1 honesty
 c4 = T['b02'] - T['c04']
@@ -215,6 +215,8 @@ put(music, T['b02'], pad(b2 + 1.0, [D2, A2, F3], .11))
 put(music, T['b02'], pulse(b2, 90, g=.25))
 put(sfx, at('b02', .15), jet_rumble(.7 * D['b02']), .4)
 put(sfx, at('b02', .83), whoosh(.8), .6)
+# split screens slide open
+for t0 in (at('c04', .45), at('c04', .6), T['c07'], at('c08', .63), T['c11']): put(sfx, t0 - .2, whoosh(.6), .3)
 # chapter cards
 for k, ct in CARD_AT.items():
     put(sfx, ct - .6, whoosh(.8), .5); put(sfx, ct + .1, hit(1.2), .5)
@@ -238,11 +240,11 @@ put(sfx, at('c06', .8), whoosh(1.0), .5)
 c12 = CARD_AT['c07'] - T['c12']
 put(music, T['c12'], pad(c12 + 1.0, [D2, A2, C3, E3], .10, 600))
 put(music, at('c12', .25), pulse(CARD_AT['c07'] - at('c12', .25), 104, g=.3))
-for s, e in ((.25, .65), (.85, 1.1)):
+for s, e in ((.25, .65),):
     k = at('c12', s)
     while k < min(at('c12', e), CARD_AT['c07'] - 1): put(sfx, k + .2, ping(), .45); k += 2 * np.pi / 1.6
 put(sfx, at('c12', .67), hit(), .7)
-put(sfx, at('c12', .86), boom(2.5), .7)                            # raw radar data, never made public
+put(sfx, at('c12', .85) + 1.3, boom(2.5), .7)                      # NOT PUBLIC stamp
 # 5 Go Fast setup and payoff
 put(music, T['c07'], pad(R(171.0) - T['c07'] + 1.0, [D2, F2, A2], .08))
 for f in (0., .5): put(sfx, at('c07', f), snap(), .6)
@@ -294,7 +296,8 @@ else:
 # sidechain-ish duck for music/sfx under VO
 venv = lp_fast(np.abs(vo), 4.0); venv = np.clip(venv / (venv.max() * .25 + 1e-9), 0, 1)
 duck = 1 - .55 * venv
-mix_l = reverb(music, 3.0, .35) * duck * .9 + sfx * (1 - .35 * venv) + vo * 1.0
+sduck = np.full(N, .35); sduck[:int(T['b01'] * SR)] = .6   # cold open: effects sit further under the voice
+mix_l = reverb(music, 3.0, .35) * duck * .9 + sfx * (1 - sduck * venv) + vo * 1.0
 mix = np.stack([mix_l, mix_l], 1)
 # a touch of stereo width on the score
 mix[:, 0] += np.roll(music, 300) * duck * .12; mix[:, 1] -= np.roll(music, 300) * duck * .12

@@ -2,7 +2,7 @@
 Timeline is in seconds at 30 fps. Picture only; audio is mixed by audio.py and muxed by build.sh."""
 import subprocess, sys, json, math, os, numpy as np
 from PIL import Image, ImageFilter, ImageDraw
-import gfx
+import gfx, panels
 from gfx import W, H, clamp, ease, eout
 FPS = 30
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -100,7 +100,7 @@ S(T['c02'], T['c03'] - T['c02'], 'versus', bg=('clips/t1_triangle.mp4', 4.0, .5)
 O(T['c02'] + .2, .3 * D['c02'], lambda L, t, d: gfx.lower_third(L, 'AARO MEMO DOW-UAP-D176', 'VS. FBI FD-302 · FBI-UAP-D043', t, d))
 S(T['c03'], .24 * D['c03'], 't_recon', clip='t1_triangle', t0=9.5, speed=.5, z0=1.1, z1=1.2)
 HL('c03', .13, .24, 'NO VIDEO EXISTS', size=110, color=gfx.RED)
-S(at('c03', .24), .31 * D['c03'], 'files', n=7, bg=('src/DOD_111796027.mp4', 12.0, .38))
+S(at('c03', .24), .31 * D['c03'], 'files', n=7, hl='last', bg=('src/DOD_111796027.mp4', 12.0, .38))
 TAG(at('c03', .24), at('c03', .55), 'WAR.GOV/UFO · RELEASE 7 · 23 OCT 2026')
 HL('c03', .26, .52, '23 OCT 2026', y=170, size=96)
 B(at('c03', .55), .29 * D['c03'], 'DOD_111585732', 6.0, 1.0, 1.1)
@@ -115,26 +115,25 @@ O(fs, T['b01'] + 10.9 - fs, lambda L, t, d: gfx.tag(L, NAVY_TAG + ' · 2004', cl
 O(fs, R(8.9) - fs, lambda L, t, d: gfx.source_line(L, 'U.S. Navy · released by the Department of Defense, 27 Apr 2020'))
 LO(5.6, 3.3, lambda L, t, d: gfx.headline(L, 'STILL “UNIDENTIFIED”', t, d, y=880, size=104, sub='U.S. DEPARTMENT OF DEFENSE'))
 c4 = D['c04']
-S(T['c04'], .6 * c4, 'video', src='flir1', t0=0.0, z0=1.0, z1=1.25, cy=.47)
-S(at('c04', .6), .2 * c4, 'video', src='flir1', t0=74.5 - .03 * c4, speed=.5, z0=1.25, z1=1.45, cy=.47)
-S(at('c04', .8), T['b02'] - at('c04', .8), 'video', src='flir1', t0=30.0, z0=1.5, z1=1.7, cy=.47)
+S(T['c04'], .45 * c4, 'video', src='flir1', t0=0.0, z0=1.0, z1=1.2, cy=.47)
+S(at('c04', .45), .15 * c4, 'split', left=('video', 'flir1', .45 * c4, 1.0, 1.0, 1.15, .47), right=('panel', 'eye'), labels=('', 'ILLUSTRATIVE'))
+S(at('c04', .6), .3 * c4, 'split', left=('video', 'flir1', 73.7, .5, 1.15, 1.4, .47), right=('panel', 'lock'), labels=('', 'ILLUSTRATIVE'))
+S(at('c04', .9), T['b02'] - at('c04', .9), 'video', src='flir1', t0=30.0, z0=1.5, z1=1.7, cy=.47)
 O(T['c04'], T['b02'] - T['c04'], lambda L, t, d: gfx.tag(L, NAVY_TAG + ' · FLIR1 · 14 NOV 2004', 1))
 O(T['c04'], T['b02'] - T['c04'], lambda L, t, d: gfx.source_line(L, 'U.S. Navy / DoD release, 27 Apr 2020'))
 HL('c04', .2, .44, 'A LATER FLIGHT — NOT THE CLOSE ENCOUNTER', y=170, size=54)
 O(at('c04', .23), .22 * c4, lambda L, t, d: gfx.lower_third(L, 'CHAD UNDERWOOD', 'WEAPONS SYSTEMS OFFICER · RECORDED FLIR1', t, d))
-HL('c04', .5, .64, 'HIS CREW NEVER SAW IT BY EYE', y=960, size=60, color=gfx.RED)
-O(at('c04', .7), .2 * c4, lambda L, t, d: gfx.headline(L, 'BURST OF SPEED — OR LOST LOCK?', t, d, y=1000, size=60))
 HL('c04', .9, 1.02, 'THE FOOTAGE CAN’T SETTLE IT', y=1000, size=60)
 b2 = D['b02']
 S(T['b02'], .15 * b2, 'freeze', src='flir1', t0=4.0, z0=1.5, z1=1.35)
 TAG(T['b02'], at('b02', .15), NAVY_TAG + ' · FLIR1', gfx.RED)
-B(at('b02', .15), .33 * b2, 'DOD_111581586', 35.0, 1.0, 1.08)
-B(at('b02', .48), .37 * b2, 'DOD_109335834', 0.6, 1.0, 1.08)
+B(at('b02', .15), .33 * b2, 'DOD_112040853', 0.0, 1.0, 1.08)
+B(at('b02', .48), .37 * b2, 'DOD_109335834', 172.0, 1.0, 1.08, speed=.6)
 TAG(at('b02', .15), at('b02', .85), FILE_TAG)
 HL('b02', .2, .32, '2 JETS', size=118)
 HL('b02', .33, .46, '4 AVIATORS', size=118)
 O(at('b02', .5), .35 * b2, lambda L, t, d: gfx.quote(L, 'far superior to anything that we had', 'DAVID FRAVOR · SWORN TESTIMONY TO CONGRESS · 26 JUL 2023', t, d, y=860))
-S(at('b02', .85), CARD_AT['b03s'] - at('b02', .85), 'recon', clip='e4_close', t0=1.0, z0=1.0, z1=1.08)
+S(at('b02', .85), CARD_AT['b03s'] - at('b02', .85), 'recon', clip='n2_skim', t0=1.5, z0=1.0, z1=1.08)
 TAG(at('b02', .85), CARD_AT['b03s'], REC_TAG)
 # --- 2 · NOVEMBER 2004 (v1 sections, unchanged)
 LB(29.2, 4.6, 'DOD_111802050', 80.6, 1.0, 1.12)
@@ -156,8 +155,8 @@ LB(62.6, 3.0, 'DOD_112040853', 32.0, 1.0, 1.1)
 LO(62.9, 3.4, lambda L, t, d: gfx.lower_third(L, 'LT ALEX DIETRICH', 'PILOT · SECOND F/A-18F', t, d))
 LB(65.6, 4.8, 'DOD_111796027', 2.0, 1.0, 1.1)
 LO(65.6, 4.8, lambda L, t, d: gfx.tag(L, 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE', 1, gfx.CREAM))
-LS(70.4, 4.4, 'radar', d0=1.0, d1=1.0, lead=0)
-LO(70.4, 4.4, lambda L, t, d: gfx.tag(L, 'ILLUSTRATIVE', 1, gfx.CREAM))
+LB(70.4, 4.4, 'DOD_112040853', 42.0, 1.0, 1.08)
+LO(70.4, 4.4, lambda L, t, d: gfx.tag(L, FILE_TAG, 1, gfx.CREAM))
 LO(70.6, 4.0, lambda L, t, d: gfx.headline(L, 'EXERCISE CALLED OFF', t, d, y=1000, size=70, color=gfx.RED))
 # --- BODY 2 74.8–99.0: encounter (reconstruction)
 LB(74.8, 5.0, 'DOD_111585732', 0.0, 1.0, 1.1)
@@ -190,40 +189,37 @@ TAG(T['c05'], at('c05', .36), 'ILLUSTRATIVE MAP')
 HL('c05', .0, .11, '60 MILES ÷ 60 SECONDS', y=900, size=96)
 HL('c05', .11, .21, '= 1 MILE EVERY SECOND', y=900, size=96)
 O(at('c05', .21), .15 * c5, lambda L, t, d: gfx.headline(L, f'≥ {3600 * eout(t / 1.4):,.0f} MPH', t, d, y=880, size=150, color=gfx.RED))
-S(at('c05', .36), CARD_AT['c06'] - at('c05', .36), 'radar', d0=1.0, d1=1.0, lead=0)
-TAG(at('c05', .36), CARD_AT['c06'], 'ILLUSTRATIVE · USS PRINCETON RADAR')
-HL('c05', .4, .56, 'SOURCE: THE SHIP’S RADAR, OVER THE RADIO', y=1000, size=52)
-HL('c05', .57, .7, 'NO RECORDING YOU CAN WATCH', y=1000, size=64, color=gfx.RED)
-O(at('c05', .78), CARD_AT['c06'] - at('c05', .78), lambda L, t, d: gfx.headline(L, 'BEST EVIDENCE — OR FIRST THING TO QUESTION?', t, d, y=1000, size=52))
+S(at('c05', .36), CARD_AT['c06'] - at('c05', .36), 'chain', marks=(at('c05', .57) - at('c05', .36), at('c05', .63) - at('c05', .36)))
+TAG(at('c05', .36), CARD_AT['c06'], 'ILLUSTRATIVE · HOW THE NUMBER REACHED THE PILOTS')
+O(at('c05', .78), CARD_AT['c06'] - at('c05', .78), lambda L, t, d: gfx.headline(L, 'BEST EVIDENCE — OR FIRST THING TO QUESTION?', t, d, y=930, size=52))
 # --- 4 · FOUR AVIATORS, TWO JETS, ONE RADAR
 c6, c12 = D['c06'], D['c12']
-B(T['c06'], .15 * c6, 'DOD_111581586', 40.0, 1.0, 1.1)
+B(T['c06'], .15 * c6, 'DOD_111581586', 50.5, 1.0, 1.1)
 TAG(T['c06'], at('c06', .15), FILE_TAG)
 S(at('c06', .15), .4 * c6, 'crew', seats=(at('c06', .17), at('c06', .24), at('c06', .27), at('c06', .36)), radar=None)
 TAG(at('c06', .15), at('c06', .55), 'ILLUSTRATIVE · TWO F/A-18F SUPER HORNETS')
 O(at('c06', .41), .15 * c6, lambda L, t, d: gfx.lower_third(L, 'JIM SLAIGHT', 'FRAVOR’S WEAPONS SYSTEMS OFFICER · HAS NOT SPOKEN PUBLICLY', t, d))
-S(at('c06', .55), .25 * c6, 'recon', clip='e2_lookdown', t0=0, z0=1.0, z1=1.12)
+S(at('c06', .55), .25 * c6, 'recon', clip='n1_topdown', t0=0, speed=.7, z0=1.0, z1=1.12)
 TAG(at('c06', .55), at('c06', .8), REC_TAG)
 HL('c06', .57, .78, '4 WITNESSES · ABOUT 5 MINUTES', y=980, size=64)
-B(at('c06', .8), T['c12'] - at('c06', .8), 'DOD_111796027', 10.0, 1.0, 1.1)
-TAG(at('c06', .8), T['c12'], 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE')
-B(T['c12'], .25 * c12, 'DOD_107844340', 5.0, 1.0, 1.1)
-TAG(T['c12'], at('c12', .25), FILE_TAG)
+B(at('c06', .8), 2.6, 'DOD_112040853', 21.6, 1.0, 1.06)
+_p0 = at('c06', .8) + 2.6
+B(_p0, at('c12', .25) - _p0, 'DOD_107844340', 5.0, 1.0, 1.12)
+TAG(at('c06', .8), at('c12', .25), FILE_TAG)
 O(T['c12'] + .2, .24 * c12, lambda L, t, d: gfx.lower_third(L, 'SENIOR CHIEF KEVIN DAY', 'RADAR OPERATOR · USS PRINCETON', t, d))
-S(at('c12', .25), .4 * c12, 'radar', d0=0.0, d1=1.0, lead=.5)
+S(at('c12', .25), .4 * c12, 'waterfall')
 TAG(at('c12', .25), at('c12', .65), 'ILLUSTRATIVE · AS DESCRIBED BY KEVIN DAY')
 HL('c12', .28, .5, '5–10 OBJECTS AT A TIME', y=1000, size=60, sub='KEVIN DAY’S ACCOUNT')
 S(at('c12', .65), .2 * c12, 'crew', seats=(0, 0, 0, 0), radar=at('c12', .66))
 TAG(at('c12', .65), at('c12', .85), 'ILLUSTRATIVE')
 HL('c12', .67, .85, '2 COCKPITS + 1 WARSHIP RADAR', y=980, size=60)
-S(at('c12', .85), CARD_AT['c07'] - at('c12', .85), 'radar', d0=1.0, d1=1.0, lead=0)
+S(at('c12', .85), CARD_AT['c07'] - at('c12', .85), 'printout')
 TAG(at('c12', .85), CARD_AT['c07'], 'ILLUSTRATIVE')
 O(at('c12', .86), CARD_AT['c07'] - at('c12', .86), lambda L, t, d: gfx.headline(L, 'RAW RADAR DATA · NEVER MADE PUBLIC', t, d, y=1000, size=60, color=gfx.RED))
 # --- 5 · GO FAST, after the Nimitz case, as the test of what a video can prove
-S(T['c07'], .5 * D['c07'], 'freeze', src='flir1', t0=40.0, z0=1.3, z1=1.5)
-TAG(T['c07'], at('c07', .5), NAVY_TAG + ' · FLIR1', gfx.RED)
-S(at('c07', .5), R(171.0) - at('c07', .5), 'freeze', src='gofast', t0=1.0, z0=1.0, z1=1.08)
-TAG(at('c07', .5), R(171.0), NAVY_TAG + ' · GOFAST · JAN 2015', gfx.RED)
+S(T['c07'], R(171.0) - T['c07'], 'split', left=('freeze', 'flir1', 40.0, 1.0, 1.0, 1.1, .47), right=('freeze', 'gofast', 1.0, 1.0, 1.0, 1.1, .5),
+  labels=('FLIR1 · 2004', 'GOFAST · 2015'))
+TAG(T['c07'], R(171.0), NAVY_TAG, gfx.RED)
 HL('c07', .05, .55, 'WHAT DOES A VIDEO PROVE?', y=980, size=70)
 LS(171.0, 29.0, 'video', src='gofast', t0=0.0, z0=1.0, z1=1.2, cy=.5)
 LS(200.0, 17.2, 'parallax')
@@ -237,16 +233,15 @@ LO(211.2, 5.8, lambda L, t, d: gfx.quote(L, 'did not move at anomalous speeds', 
 c8 = D['c08']
 S(T['c08'], .17 * c8, 'video', src='gofast', t0=20.0, z0=1.2, z1=1.3)
 TAG(T['c08'], at('c08', .17), NAVY_TAG + ' · GOFAST', gfx.RED)
-S(at('c08', .17), .23 * c8, 'recon', clip='e4_close', t0=3.0, z0=1.05, z1=1.15)
+S(at('c08', .17), .23 * c8, 'recon', clip='n2_skim', t0=4.5, z0=1.05, z1=1.12)
 TAG(at('c08', .17), at('c08', .4), REC_TAG)
 B(at('c08', .4), .12 * c8, 'DOD_111581586', 61.0, 1.0, 1.08)
 TAG(at('c08', .4), at('c08', .52), FILE_TAG)
 HL('c08', .4, .52, 'PEOPLE', size=130)
 S(at('c08', .52), .11 * c8, 'radar', d0=1.0, d1=1.0, lead=0)
 HL('c08', .52, .63, 'AND RADAR', size=130)
-S(at('c08', .63), CARD_AT['b11'] - at('c08', .63), 'video', src='flir1', t0=10.0, z0=1.2, z1=1.35, cy=.47)
+S(at('c08', .63), CARD_AT['b11'] - at('c08', .63), 'split', left=('video', 'flir1', 10.0, 1.0, 1.0, 1.15, .47), right=('panel', 'timeline'), labels=('', 'ILLUSTRATIVE'))
 TAG(at('c08', .63), CARD_AT['b11'], NAVY_TAG + ' · FLIR1', gfx.RED)
-HL('c08', .66, .98, 'THE VIDEO CAME LATER', y=1000, size=60)
 # --- 6 · TWENTY-TWO YEARS OF FILES (v1 montage and file batches)
 LB(233.0, 2.8, 'DOD_111579505', 32.4, 1.0, 1.1)
 LB(235.8, 2.1, 'DOD_112040853', 9.9, 1.0, 1.08)
@@ -256,7 +251,7 @@ LB(245.2, 4.2, 'DOD_112040853', 56.3, 1.0, 1.1)
 LO(233.0, 16.4, lambda L, t, d: gfx.tag(L, 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE', 1, gfx.CREAM))
 LO(236.0, 4.4, lambda L, t, d: gfx.headline(L, 'THE REPORTS NEVER STOPPED', t, d, y=980, size=72))
 LO(241.6, 5.4, lambda L, t, d: gfx.headline(L, '757 NEW REPORTS IN 13 MONTHS', t, d, y=980, size=72, sub='AARO ANNUAL REPORT · NOV 2024'))
-LS(249.4, 23.0, 'files', n=7, bg=('src/DOD_111796027.mp4', 0.5, .38))
+LS(249.4, 23.0, 'files', n=7, hl='all', bg=('src/DOD_111796027.mp4', 0.5, .38))
 LO(249.4, 23.0, lambda L, t, d: gfx.tag(L, 'WAR.GOV/UFO · 7 RELEASES · MAY–OCT 2026', 1, gfx.CREAM))
 LO(262.0, 4.0, lambda L, t, d: gfx.headline(L, '23 OCT 2026', t, d, y=170, size=96))
 LO(266.4, 5.8, lambda L, t, d: gfx.headline(L, 'DOCUMENTS ONLY. NO NEW VIDEO.', t, d, y=980, size=70))
@@ -266,16 +261,15 @@ S(T['c10'], CARD_AT['c11'] - T['c10'], 'versus', bg=('clips/t1_triangle.mp4', 0.
 TAG(T['c10'], CARD_AT['c11'], TRI_TAG)
 # --- 7 · STILL UNIDENTIFIED
 c11 = D['c11']
-S(T['c11'], .22 * c11, 'recon', clip='e3_mid', t0=.3, z0=1.0, z1=1.1)
-TAG(T['c11'], at('c11', .22), REC_TAG)
-S(at('c11', .22), .24 * c11, 't_recon', clip='t1_triangle', t0=3.0, z0=1.0, z1=1.1)
-TAG(at('c11', .22), at('c11', .46), TRI_TAG)
+S(T['c11'], .46 * c11, 'split', left=('recon', 'e4_close', 1.0, 1.0, 1.0, 1.08, .5), right=('recon', 't1_triangle', 3.0, 1.0, 1.0, 1.08, .5),
+  labels=('2004 · PACIFIC OCEAN', '2026 FILES · WESTERN U.S.'), tag_cols=(gfx.CREAM, gfx.CREAM))
+TAG(T['c11'], at('c11', .46), 'RECONSTRUCTIONS · BASED ON WITNESS ACCOUNTS AND DOCUMENTS')
 B(at('c11', .46), T['b14'] - at('c11', .46), 'DOD_111796027', 20.0, 1.0, 1.1, speed=.6)
 TAG(at('c11', .46), T['b14'], 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE')
 HL('c11', .47, .69, '2004 · 2026', size=140)
 O(at('c11', .7), T['b14'] - at('c11', .7), lambda L, t, d: gfx.headline(L, 'SERIOUS. NOT SOLVED.', t, d, size=110))
 LB(306.2, 7.2, 'DOD_111796027', 46.4, 1.0, 1.12, speed=.6)
-LS(313.4, 6.8, 'recon', clip='e4_close', t0=0.0, z0=1.12, z1=1.0)
+LS(313.4, 6.8, 'recon', clip='n3_rise', t0=0.0, speed=.85, z0=1.0, z1=1.06)
 LS(320.2, 8.0, 'freeze', src='flir1', t0=4.0, z0=1.5, z1=1.9, cy=.47)
 LO(306.2, 7.2, lambda L, t, d: gfx.tag(L, 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE', 1, gfx.CREAM))
 LO(313.4, 6.8, lambda L, t, d: gfx.tag(L, REC_TAG, 1, gfx.CREAM))
@@ -303,13 +297,15 @@ def backdrop(img, u, fi):
     a = np.asarray(im, np.float32) * .32
     return film_look(Image.fromarray(a.astype(np.uint8)), fi)
 
-def files_frame(t, d, n, bg):
+def files_frame(t, d, n, bg, hl=None):
     im = bg.copy(); dr = ImageDraw.Draw(im)
+    lit_at = n * .5 + .5
     for i in range(n):
         u = clamp((t - i * .5) / .6)
         if u <= 0: continue
         x = 180 + i * 230 + (1 - eout(u)) * 300 - t * 6; y = 300 + (i % 2) * 60
-        dr.rectangle([x, y, x + 200, y + 280], fill=(26, 30, 40), outline=(90, 100, 120), width=2)
+        lit = hl == 'all' and t > lit_at + i * .18 or hl == 'last' and i == n - 1 and t > lit_at
+        dr.rectangle([x, y, x + 200, y + 280], fill=(60, 22, 20) if lit else (26, 30, 40), outline=gfx.RED if lit else (90, 100, 120), width=5 if lit else 2)
         dr.text((x + 100, y + 120), f'{i + 1:02d}', font=gfx.font('black', 90), fill=gfx.CREAM, anchor='mm')
         dr.text((x + 100, y + 230), ['8 MAY', '22 MAY', '12 JUN', 'JUL', 'AUG', 'SEP', '23 OCT'][i], font=gfx.font('monob', 26), fill=(200, 190, 170), anchor='mm')
     return im
@@ -347,13 +343,7 @@ def chapter_frame(t, d, num, title, fi):
     dr.line([(W / 2 - w, 625), (W / 2 + w, 625)], fill=gfx.RED + (int(200 * a),), width=3)
     return Image.alpha_composite(im.convert('RGBA'), L).convert('RGB')
 
-def _jet(cx, cy, s, ang):
-    """F/A-18-like planform, top view, as a polygon (nose up at ang=0)."""
-    pts = [(0, -1.0), (.07, -.75), (.09, -.25), (.55, .1), (.55, .2), (.12, .12), (.1, .45), (.3, .62), (.3, .7), (.06, .68),
-           (0, .72)]
-    pts = pts + [(-x, y) for x, y in reversed(pts[1:-1])]
-    c, sn = math.cos(ang), math.sin(ang)
-    return [(cx + s * (x * c - y * sn), cy + s * (x * sn + y * c)) for x, y in pts]
+_jet = panels.jet_poly
 
 def crew_frame(t, u, seats, radar, fi):
     """Illustrative: two jets, four seats lighting up as each crew member is named; optional radar beam from the ship."""
@@ -396,12 +386,29 @@ def endcard_frame(t, d, bg):
     gfx.shadow_text(L, (W / 2, 990), 'SUBSCRIBE FOR THE NEXT FILE', gfx.font('monob', 32), gfx.RED + (int(255 * b),))
     return Image.alpha_composite(im.convert('RGBA'), L).convert('RGB')
 
+# ------------------------------------------------------------- split screens: each side is ('video'|'freeze'|'recon', src, t0, speed, z0, z1, cy) or ('panel', name)
+def side_reader(spec, lt):
+    if spec[0] in ('video', 'recon'):
+        path = f'src/{spec[1]}.mp4' if spec[0] == 'video' else f'clips/{spec[1]}.mp4'
+        return Reader(path, spec[2] + lt * spec[3], spec[3])
+    if spec[0] == 'freeze':
+        r = Reader(f'src/{spec[1]}.mp4', spec[2]); r.still = r.next(); return r
+    return None
+def side_img(spec, rdr, lt, u, d, fi):
+    if spec[0] == 'panel': return panels.PANELS[spec[1]](lt, d)
+    img = rdr.still if spec[0] == 'freeze' else rdr.next()
+    z = spec[4] + (spec[5] - spec[4]) * ease(u)
+    if spec[0] == 'recon': return panels.fill_rect(img, None, panels.HALF, H, z, spec[6])
+    a = np.asarray(panels.fill_rect(img, CROP[spec[1]], panels.HALF, H, z, spec[6]).filter(ImageFilter.UnsharpMask(3, 60, 2)), np.float32)
+    g = GRAIN[fi % 6].repeat(2, 0).repeat(2, 1)[:, :panels.HALF, None]
+    return Image.fromarray(np.clip(a + g, 0, 255).astype(np.uint8))
+
 # ------------------------------------------------------------- render
 def render(t_start=0., t_end=END, out='out/film_video.mp4'):
     os.makedirs('out', exist_ok=True)
     enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
                             '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', out], stdin=subprocess.PIPE)
-    cur = None; reader = None; frozen = {}
+    cur = None; reader = None; reader2 = None; frozen = {}
     n0, n1 = int(t_start * FPS), int(t_end * FPS)
     for fi in range(n0, n1):
         t = fi / FPS
@@ -410,9 +417,12 @@ def render(t_start=0., t_end=END, out='out/film_video.mp4'):
             if s[0] <= t < s[0] + s[1]: sh = s
         if sh is not cur:
             if reader: reader.close(); reader = None
+            if reader2: reader2.close(); reader2 = None
             cur = sh
             if sh and 'bg' in sh[3]:
                 bp, bt0, bsp = sh[3]['bg']; reader = Reader(bp, bt0 + (t - sh[0]) * bsp, bsp)
+            elif sh and sh[2] == 'split':
+                reader, reader2 = (side_reader(sh[3][k], t - sh[0]) for k in ('left', 'right'))
             elif sh and sh[2] in ('video', 'recon', 't_recon', 'broll'):
                 p = sh[3]
                 if sh[2] in ('video', 'broll'):
@@ -462,7 +472,7 @@ def render(t_start=0., t_end=END, out='out/film_video.mp4'):
             elif kind == 'cards':
                 frame = cards_frame(lt, d, p['items'])
             elif kind == 'files':
-                frame = files_frame(lt, d, p['n'], backdrop(reader.next(), u, fi))
+                frame = files_frame(lt, d, p['n'], backdrop(reader.next(), u, fi), p.get('hl'))
             elif kind == 'versus':
                 frame = versus_frame(lt, d, backdrop(reader.next(), u, fi), p.get('a1', 3.2), p.get('a2', 5.8), p.get('a3', 12.0),
                                      p.get('final', 'AND NO VIDEO AT ALL.'), p.get('intro', 'HOW LONG DID IT LAST?'))
@@ -470,6 +480,15 @@ def render(t_start=0., t_end=END, out='out/film_video.mp4'):
                 frame = endcard_frame(lt, d, backdrop(reader.next(), u, fi))
             elif kind == 'chapter':
                 frame = chapter_frame(lt, d, p['num'], p['title'], fi)
+            elif kind == 'split':
+                frame = panels.split_compose(side_img(p['left'], reader, lt, u, d, fi), side_img(p['right'], reader2, lt, u, d, fi), lt,
+                                             p.get('labels', ('', '')), p.get('tag_cols', (gfx.RED, gfx.RED)))
+            elif kind == 'chain':
+                frame = panels.chain_frame(lt, d, p['marks'])
+            elif kind == 'waterfall':
+                frame = panels.waterfall_frame(lt, d)
+            elif kind == 'printout':
+                frame = panels.printout_frame(lt, d)
             elif kind == 'crew':
                 frame = crew_frame(t, u, p['seats'], p['radar'], fi)
         L = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -479,6 +498,7 @@ def render(t_start=0., t_end=END, out='out/film_video.mp4'):
         enc.stdin.write(frame.tobytes())
         if fi % 150 == 0: print(f'{t:7.1f}s', flush=True)
     if reader: reader.close()
+    if reader2: reader2.close()
     enc.stdin.close(); enc.wait()
 
 if __name__ == '__main__':

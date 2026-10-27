@@ -78,6 +78,22 @@ def _(t,u):   # whitewater fades to calm sea
 def _(t,u):   # closing shot: slow pull-back from altitude, calm sea
     cp=[-1000-u*2000,4000+u*2000,-6000-u*3000]
     return dict(cp=cp,ct=[0,0,2000],fov=.9,roll=.1,tA=0,foam=0,flare=1,canopy=0)
+@shot('n1_topdown',6)
+def _(t,u):   # v2: from altitude, looking into the sun glitter: the object hopping over the whitewater, in silhouette
+    p,d=darting(t+11,5,1.2,40)
+    cp=[-200+u*250,700-u*120,-1500+u*200]
+    return dict(cp=cp,ct=[0,0,0],fov=.36,roll=.1,tp=p,ta=d,tGlow=.5,sunD=SUN)
+@shot('n2_skim',7)
+def _(t,u):   # v2: low tracking shot, the object skimming across the whitewater
+    x=-170+u*340; p=[x,15+3*math.sin(t*1.7),8*math.sin(t*.9)]
+    s=shake(t,.8,12)
+    cp=[x-55+s[0],24+s[1],-95]
+    return dict(cp=cp,ct=[x+6,15,0],fov=.55,roll=.02,tp=p,ta=[1,0,0],tGlow=.4,sunD=SUN2)
+@shot('n3_rise',6)
+def _(t,u):   # v2: rising reveal from beside the object up to altitude
+    e=ease(u)
+    cp=[lerp(-160,-260,e),lerp(40,650,e),lerp(-260,-1500,e)]
+    return dict(cp=cp,ct=[0,lerp(14,4,e),0],fov=lerp(.5,.32,e),roll=.08,tp=[0,15,0],ta=n([1,0,.3]),tGlow=.45,sunD=SUN2)
 @shot('t1_triangle',14)
 def _(t,u):   # dusk ridge: rise, hover, drop into canyon (based on AARO memo description)
     rise=ease(u/.3); drop=ease((u-.75)/.12)
