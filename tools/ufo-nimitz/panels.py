@@ -60,11 +60,11 @@ def chain_frame(t, d, marks):
     return Image.alpha_composite(im.convert('RGBA'), L).convert('RGB')
 
 def waterfall_frame(t, d):
-    """Kevin Day's account: groups of 5-10 contacts dropping from ~80,000 ft, day after day. Amber, time scrolls left."""
+    """Kevin Day's account: groups of up to ten contacts dropping from ~28,000 ft toward the sea, day after day. Amber, time scrolls left."""
     im = Image.new('RGB', (W, H), (14, 10, 6)); dr = ImageDraw.Draw(im)
     x0, x1, top, bot = 260, 1780, 150, 900
-    def Y(ft): return bot - ft / 90000 * (bot - top)
-    for ft in range(0, 90001, 10000):
+    def Y(ft): return bot - ft / 30000 * (bot - top)
+    for ft in range(0, 30001, 5000):
         y = Y(ft); dr.line([(x0, y), (x1, y)], fill=(40, 30, 18), width=1)
         dr.text((x0 - 20, y), f'{ft // 1000}k ft' if ft else 'SEA', font=font('mono', 24), fill=(200, 150, 80), anchor='rm')
     dr.line([(x0, top), (x0, bot)], fill=(160, 120, 60), width=2); dr.line([(x0, bot), (x1, bot)], fill=(160, 120, 60), width=2)
@@ -72,25 +72,25 @@ def waterfall_frame(t, d):
     L = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ld = ImageDraw.Draw(L)
     speed = 150.   # px per second of scroll
     rnd = np.random.RandomState(11)
-    groups = [(x1 + 120 - speed * 0 - i * 260 + rnd.uniform(-40, 40), int(rnd.randint(5, 11)), rnd.uniform(0, 1)) for i in range(14)]
+    groups = [(x1 + 120 - speed * 0 - i * 260 + rnd.uniform(-40, 40), int(rnd.randint(4, 11)), rnd.uniform(0, 1)) for i in range(14)]
     for gx, n, ph in groups:
         x = gx - speed * t + 260 * 6     # groups already on screen at t=0, more arriving from the right
         if x < x0 + 10 or x > x1 + 200: continue
         age = (x1 + 200 - x) / speed     # seconds since the group entered
-        drop = eout(age / 2.2)
+        drop = eout(age / 5.0)
         for k in range(n):
             xx = x + (k - n / 2) * 13
             if xx < x0 + 6 or xx > x1: continue
-            ft = 80000 - 60000 * clamp(drop * (1.1 - k * .02))
+            ft = 28000 - 27500 * clamp(drop * (1.1 - k * .02))
             for s in range(0, 12):
-                f2 = 80000 - (80000 - ft) * s / 11
+                f2 = 28000 - (28000 - ft) * s / 11
                 ld.ellipse([xx - 2, Y(f2) - 2, xx + 2, Y(f2) + 2], fill=AMBER + (int(40 + 60 * s / 11),))
             ld.ellipse([xx - 7, Y(ft) - 7, xx + 7, Y(ft) + 7], fill=AMBER + (255,))
         if age > .4 and x < x1 - 40:
-            ld.text((x, Y(84000)), f'{n}', font=font('monob', 26), fill=AMBER + (220,), anchor='mm')
+            ld.text((x, Y(29500)), f'{n}', font=font('monob', 26), fill=AMBER + (220,), anchor='mm')
     L = glow(L, 9, .9)
     ld = ImageDraw.Draw(L)
-    ld.text((x1, top - 50), '80,000 FT  →  20,000 FT', font=font('monob', 30), fill=CREAM + (255,), anchor='rm')
+    ld.text((x1, top - 50), 'GROUPS OF UP TO 10  ·  ≈ 28,000 FT → SEA', font=font('monob', 30), fill=CREAM + (255,), anchor='rm')
     return Image.alpha_composite(im.convert('RGBA'), L).convert('RGB')
 
 def printout_frame(t, d):
@@ -229,3 +229,16 @@ def panel_timeline(t, d):
     return Image.alpha_composite(p.convert('RGBA'), glow(L, 6, .4)).convert('RGB')
 
 PANELS = {'eye': panel_eye, 'lock': panel_lock, 'timeline': panel_timeline}
+
+def scoreboard_frame(t, d, bg, times, verdicts=None):
+    """The evidence on the record: EYES / RADAR / VIDEO / DOCUMENTS. Titles light one by one; with verdicts, each gets a one-line result."""
+    im = bg.copy(); L = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ld = ImageDraw.Draw(L)
+    cw, ch, gap = 390, 300, 36; x0 = (W - (4 * cw + 3 * gap)) // 2; y0 = 360
+    for i, name in enumerate(('EYES', 'RADAR', 'VIDEO', 'DOCUMENTS')):
+        a = clamp((t - times[i]) / .3)
+        x = x0 + i * (cw + gap); col = verdicts[i][1] if verdicts else CREAM
+        ld.rounded_rectangle([x, y0, x + cw, y0 + ch], 10, fill=(10, 12, 18, int(170 * (.35 + .65 * a))), outline=col + (int(255 * (.3 + .7 * a)),), width=4 if a > 0 else 2)
+        shadow_text(L, (x + cw / 2, y0 + 110), name, font('black', 62 if name != 'DOCUMENTS' else 50), CREAM + (int(255 * (.35 + .65 * a)),), spread=10)
+        if verdicts and a > 0:
+            shadow_text(L, (x + cw / 2, y0 + 215), verdicts[i][0], font('monob', 32), col + (int(255 * a),), spread=10)
+    return Image.alpha_composite(im.convert('RGBA'), L).convert('RGB')

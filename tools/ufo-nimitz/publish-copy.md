@@ -1,38 +1,41 @@
-# The Tic Tac Is Still Unidentified (USS Nimitz, 2004)
+# The Tic Tac UFO Was Never Filmed (USS Nimitz, 2004)
 
 | | |
 |---|---|
-| Status | v2 in progress (vidIQ restructure, ~8 min). v1.1 (5:36) is still the latest finished file. Chapter times below are provisional until the last 3 lines are recorded |
-| Upload file | `ufo-nimitz/the-tic-tac-is-still-unidentified_master.mp4` (project files, 1 GB, upload this to YouTube; `the-tic-tac-is-still-unidentified.mp4` is a lighter share copy) |
-| Format | YouTube long-form, 16:9 1080p, ~8:00 (v2) |
-| Voice | ElevenLabs "BlackvieW - Documentary Narator" |
-| Languages | `ufo-nimitz/youtube-languages/` holds the v1.1 SRTs and dubs. They do NOT match v2; they get redone after the English v2 is final |
-| Source | `tools/ufo-nimitz/`, v2 script and fact table in `tools/ufo-nimitz/script_v2.md` |
+| Status | v3 English master delivered 27 Oct 2026 (8:01). Opening A, three fact fixes, ElevenLabs BlackvieW voice throughout |
+| Upload file | `ufo-nimitz/v3/the-tic-tac-ufo-was-never-filmed_master.mp4` (1.2 GB). `..._review.mp4` is a 720p review copy |
+| Format | YouTube long-form, 16:9 1080p, 8:01, -14.6 LUFS, true peak -1.2 dBFS after AAC |
+| Voice | ElevenLabs "BlackvieW - Documentary Narator" (the 6 new lines were made on a second account with the same voice) |
+| Languages | English only for now. Hindi/Telugu after the English is frozen; the v1.1 SRTs and dubs do not match this cut |
+| Source | `tools/ufo-nimitz/`, v3 script and fact table in `script_v2.md`, audit in the Claude Doc "Tic Tac UFO documentary: production audit" |
 
 ## Publish copy
 
-**YouTube title:** The Navy Pilot Who Chased a "Tic Tac". It's Still Unidentified.
+**YouTube title:** The Tic Tac UFO Was Never Filmed
 **Alt titles (A/B):**
-- UFO Documentary: The Nimitz "Tic Tac" and the 2026 UAP Files
-- 60 Miles in Under a Minute: The 2004 Nimitz "Tic Tac"
+- Pentagon UFO Files 2026: The Tic Tac Case Still Isn't Closed
+- 60 Miles in Under a Minute: The 2004 Nimitz Tic Tac
+
+**Thumbnail:** FLIR1 frame on the left, empty sea with whitewater on the right. Text: `NO VIDEO`. A/B test in Studio (Test & Compare) against `NOT THE ENCOUNTER` (FLIR1 centred, red ring) and `3,600 MPH?` (stopwatch 0:59 over a map line).
 
 **YouTube description:**
-> A UFO documentary on the 2004 USS Nimitz "Tic Tac", told through the newest UAP files. On 23 October 2026 the Pentagon released two official reports on the same black triangle sighting, and they disagree. To see why a case with no video still gets taken seriously, we go back to November 2004: two Navy F/A-18F Super Hornets, four aviators, and a warship's radar, all on the same object. Twenty-two years on, the Pentagon still calls it unidentified.
+> The most famous Navy UFO video isn't the 2004 Tic Tac encounter. Four aviators saw the real thing, and nobody filmed it. This UFO documentary weighs every piece of evidence: the eyewitnesses, the radar, the videos, and the 2026 Pentagon UAP files.
 >
-> This film explains what the famous FLIR1 video does and doesn't show, works out what "60 miles in under a minute" really means, shows how the GOFAST video fooled everyone, and ends on the 2026 UAP files, which have no video at all.
+> This film looks at the Nimitz evidence only; it doesn't cover claims about recovered craft or non-human biologics.
 >
-> Reconstructions are our own renders, based on witness testimony. They are labelled on screen and are not footage of the event.
+> It explains what the FLIR1 video does and doesn't show, works out what "60 miles in under a minute" means and where that number came from, shows how the GOFAST video fooled everyone, and ends on the 23 October 2026 files: two official reports on one black triangle sighting that disagree.
 >
-> CHAPTERS (provisional)
-> 0:00 Two files, one sighting
-> 0:54 The video everybody knows
-> 1:54 November 2004
-> 3:25 60 miles in under a minute
-> 4:00 Four aviators, two jets, one radar
-> 5:03 Go Fast: how a video can fool you
-> 6:11 Twenty-two years of files
-> 6:50 Back to the black triangle
-> 7:06 Still unidentified
+> Reconstructions are our own renders, based on witness testimony and documents. They are labelled on screen and are not footage of the event.
+>
+> CHAPTERS
+> 0:00 The video everyone knows
+> 0:32 What FLIR1 really shows
+> 1:12 November 2004
+> 2:44 60 miles in under a minute
+> 3:19 Four aviators, one radar
+> 4:25 How Go Fast fooled everyone
+> 5:34 The 2026 files
+> 7:08 Still unidentified
 >
 > SOURCES
 > - DoD, "Statement by the Department of Defense on the Release of Historical Navy Videos," 27 Apr 2020 (FLIR1, GIMBAL, GOFAST; NAVAIR FOIA reading room)
@@ -40,11 +43,11 @@
 > - UAP Task Force briefing to NASA, Oct 2020 (date of the incident, 14 Nov 2004)
 > - Alex Dietrich, interview with AFP, Jun 2021
 > - Chad Underwood, interview with New York Magazine, Dec 2019 (recorded FLIR1)
-> - The Black Vault, Nimitz encounter records (Jim Slaight; Kevin Day)
+> - The Black Vault, Nimitz encounter records and Kevin Day interviews; WRAL / New York Times, Dec 2017 (Jim Slaight)
 > - AARO, GOFAST case resolution, Feb 2025
 > - AARO, FY2024 Consolidated Annual Report on UAP, Nov 2024 (757 reports, 1 May 2023 to 1 Jun 2024)
 > - Presidential direction to release government UAP files, 19 Feb 2026
-> - Department of War, war.gov/UFO releases, May to Oct 2026 (AARO memo DOW-UAP-D176, FBI FD-302 FBI-UAP-D043, release 7 on 23 Oct 2026)
+> - Department of War, war.gov/UFO releases, May to Oct 2026 (AARO memo DOW-UAP-D176, FBI report FBI-UAP-D043, release 7 on 23 Oct 2026)
 >
 > FOOTAGE
 > FLIR1, GOFAST: U.S. Navy, released by the Department of Defense. Navy b-roll: U.S. Navy / DoD via DVIDS (file footage, not from the 2004 incident). The appearance of U.S. Department of Defense visual information does not imply or constitute DoD endorsement.
@@ -52,18 +55,17 @@
 >
 > #UFO #UAP #UFODocumentary #TicTac #SlowLight
 
-**Tags:** ufo documentary, uap files, Nimitz tic tac, tic tac UFO, USS Nimitz 2004, David Fravor, Alex Dietrich, Kevin Day, FLIR1, GOFAST, AARO, UAP, Navy UFO video, Pentagon UFO files 2026, war.gov UFO, black triangle UFO, Slow Light
+**Tags:** tic tac ufo, nimitz ufo, uss nimitz 2004, ufo documentary, uap files, pentagon ufo files 2026, war.gov ufo, david fravor, alex dietrich, kevin day, flir1, gofast, aaro, black triangle ufo, navy ufo video
 
-**Pinned comment:** Two official reports on the same black triangle: one says 30+ seconds, the other says about 3. If you had to trust one kind of evidence in the Tic Tac case, which would it be: the four aviators, the ship's radar, or the video? 👇
+**Pinned comment:** The famous FLIR1 clip was filmed on a later flight. The close encounter was never filmed, and the Princeton's radar data has never been released. Which piece of evidence would you want to see first: the radar, more video, or the aviators under questioning? 👇
 
 **Upload checklist:**
-- Subtitles: Studio > Subtitles > Add language (English, Hindi, Telugu) > Upload file > With timing, pick the matching `.srt`.
-- Dubs: Studio > Languages > Add language (Hindi, Telugu) > Audio track > Add > upload `..._hindi-audio.wav` or `..._telugu-audio.wav`. Needs multi-language audio access on the channel; if the option isn't shown, the SRTs still work.
-- Turn the altered/synthetic content label on (3D reconstructions are labelled on screen).
+- Turn the altered/synthetic content label on (the 3D reconstructions and the synthetic score; all reconstructions are labelled on screen).
 - Add the chapters above (first chapter must be 0:00).
-- Thumbnail idea: the FLIR1 frame with the object centred, red text `STILL "UNIDENTIFIED"`.
-- Subtitles and dubs: upload only the v2 versions once they are made; the v1.1 files are out of sync with this cut.
-- End screen: the last 16 s are the Slow Light card with the middle left clear. In Studio > End screen, add 1 video (best for viewer) on the left, a Subscribe element on the right, and keep both clear of the title at the top.
+- Before upload, read the two primary PDFs on war.gov/UFO (DOW-UAP-D176 and FBI-UAP-D043). war.gov was blocked from the build machine, so the 30+ s vs about 3 s wording and the FBI "delta-wing drone" comparison come from news summaries (IBTimes UK, Breezyscroll).
+- End screen: the last 16 s are the Slow Light card with the middle left clear. Add 1 video (best for viewer) on the left and a Subscribe element on the right.
+- Subtitles and dubs: none yet for v3. Make English SRT from `subs/cues.py` after the cut is frozen, then Hindi.
+- Two Shorts to cut after upload: "This UFO video is from the wrong flight" (hook + c04, about 35 s) and "Sixty miles in under a minute. Who measured it?" (c05, about 30 s).
 
 ## Facts
 See the fact-check tables in `script.md` (v1) and `script_v2.md` (new v2 lines). Footage notes:

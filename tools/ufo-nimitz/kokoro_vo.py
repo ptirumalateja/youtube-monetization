@@ -14,7 +14,7 @@ VOICE, SPEED = 'am_michael', .92     # closest to the ElevenLabs voice in pitch 
 
 TEXT = {k: ' '.join(c[0] for c in CUES[k]) for k in CUES}
 TEXT['b03s'] = ' '.join(c[0] for c in CUES['b03'][:-1])          # last sentence was cut in v2
-for m in re.finditer(r'\*\*(c\d\d) \(new[^)]*\)\*\* (.+)', open('script_v2.md').read()):
+for m in re.finditer(r'\*\*([hc]\d\d) \(new[^)]*\)\*\* (.+)', open('script_v2.md').read()):
     TEXT[m.group(1)] = m.group(2).strip()
 
 # spell things the way they are said
