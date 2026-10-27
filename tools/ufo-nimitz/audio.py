@@ -1,5 +1,6 @@
 """Synthesised score + sound design + VO mix for the Tic Tac film (no stock audio).
-python3 audio.py -> out/film_audio.wav (48 kHz stereo). Cue times match edit.py."""
+python3 audio.py -> out/film_audio.wav (48 kHz stereo). Cue times match edit.py.
+DUB=hi|te python3 audio.py -> out/film_audio_<lang>.wav, narration from vo_<lang>/ fitted to the English beats."""
 import numpy as np, subprocess, os
 from edit import VO, END
 SR = 48000
@@ -179,9 +180,24 @@ go_env = np.ones(len(go)); go_env[int(3.0 * SR):] = .28   # duck under narration
 put(sfx, 171.0, go * go_env, 1.4)
 
 # ---------------- narration
+DUB = os.environ.get('DUB', '')
 vo = np.zeros(N)
-for k, st in VO.items():
-    x = load(f'vo/{k}.wav'); put(vo, st, x, 1.0)
+if not DUB:
+    for k, st in VO.items():
+        x = load(f'vo/{k}.wav'); put(vo, st, x, 1.0)
+else:
+    # dubs run ~20% longer than English: speed each beat up (max 1.18x), then let it push the next one later
+    keys = list(VO); t_free = 0.
+    for i, k in enumerate(keys):
+        st = max(VO[k], t_free)
+        nxt = VO[keys[i + 1]] if i + 1 < len(keys) else END - 1.0
+        d = len(load(f'vo_{DUB}/{k}.wav')) / SR
+        tempo = min(max(d / max(nxt - st - .35, .1), 1.0), 1.18)
+        x = load(f'vo_{DUB}/{k}.wav') if tempo == 1.0 else np.frombuffer(subprocess.run(
+            ['ffmpeg', '-v', 'error', '-i', f'vo_{DUB}/{k}.wav', '-af', f'atempo={tempo:.4f}', '-f', 'f32le', '-ac', '1', '-ar', str(SR), '-'],
+            capture_output=True).stdout, np.float32).astype(np.float64)
+        put(vo, st, x, 1.0); t_free = st + len(x) / SR + .35
+        print(f'{k}: start {st:.2f} (en {VO[k]:.2f}) tempo {tempo:.2f} ends {st + len(x) / SR:.2f} / next {nxt:.2f}')
 # sidechain-ish duck for music/sfx under VO
 venv = lp_fast(np.abs(vo), 4.0); venv = np.clip(venv / (venv.max() * .25 + 1e-9), 0, 1)
 duck = 1 - .55 * venv
@@ -192,8 +208,9 @@ mix[:, 0] += np.roll(music, 300) * duck * .12; mix[:, 1] -= np.roll(music, 300) 
 peak = np.abs(mix).max(); mix = mix / peak * .89
 os.makedirs('out', exist_ok=True)
 import wave
-with wave.open('out/film_audio_raw.wav', 'wb') as w:
+SUF = f'_{DUB}' if DUB else ''
+with wave.open(f'out/film_audio{SUF}_raw.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
     w.writeframes((np.clip(mix, -1, 1) * 32767).astype(np.int16).tobytes())
-subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', 'out/film_audio_raw.wav', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '48000', 'out/film_audio.wav'])
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'out/film_audio{SUF}_raw.wav', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '48000', f'out/film_audio{SUF}.wav'])
 print('audio done')

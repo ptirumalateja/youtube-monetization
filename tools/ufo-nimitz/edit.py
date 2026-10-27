@@ -62,7 +62,7 @@ def film_look(img, i):
 # ------------------------------------------------------------- timeline
 # VO placement (seconds) — matches audio.py
 VO = {'b01': .4, 'b02': 11.3, 'b03': 29.2, 'b04': 52.3, 'b05': 74.8, 'b06': 99.0, 'b07': 120.2, 'b08a': 130.4,
-      'b08b': 155.4, 'b09': 174.0, 'b10': 217.2, 'b12': 249.4, 'b13': 272.4, 'b14': 306.2}
+      'b08b': 155.4, 'b09': 174.0, 'b10': 217.2, 'b11': 233.6, 'b12': 249.4, 'b13': 272.4, 'b14': 306.2}
 END = 336.0
 SHOTS = []   # (start, dur, kind, params)
 def S(start, dur, kind, **kw): SHOTS.append((start, dur, kind, kw))
@@ -178,7 +178,7 @@ B(241.2, 4.0, 'DOD_111796027', 41.8, 1.0, 1.08)
 B(245.2, 4.2, 'DOD_112040853', 56.3, 1.0, 1.1)
 O(233.0, 16.4, lambda L, t, d: gfx.tag(L, 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE', 1, gfx.CREAM))
 O(236.0, 4.4, lambda L, t, d: gfx.headline(L, 'THE REPORTS NEVER STOPPED', t, d, y=980, size=72))
-O(245.6, 3.6, lambda L, t, d: gfx.headline(L, 'THEN, IN 2026…', t, d, y=980, size=72))
+O(241.6, 5.4, lambda L, t, d: gfx.headline(L, '757 NEW REPORTS IN 13 MONTHS', t, d, y=980, size=72, sub='AARO ANNUAL REPORT · NOV 2024'))
 S(249.4, 23.0, 'files', n=7, bg=('src/DOD_111796027.mp4', 0.5, .38))
 O(249.4, 23.0, lambda L, t, d: gfx.tag(L, 'WAR.GOV/UFO · 7 RELEASES · MAY–OCT 2026', 1, gfx.CREAM))
 O(262.0, 4.0, lambda L, t, d: gfx.headline(L, '23 OCT 2026', t, d, y=170, size=96))
