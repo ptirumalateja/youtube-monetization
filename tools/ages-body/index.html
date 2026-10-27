@@ -52,7 +52,7 @@ const nrm = geo.attributes.normal;
 // ---------- skin / hair / shorts as vertex colours ----------
 const eyeY = joints['joint-l-eye'][1], pelvisY = joints['joint-pelvis'][1], kneeY = joints['joint-l-knee'][1];
 const old = oldAge;
-const skinC = new THREE.Color('#8a5a3c').lerp(new THREE.Color('#b89a86'), old * 0.8);
+const skinC = new THREE.Color('#9a6743').lerp(new THREE.Color('#b89a86'), old * 0.8);
 const hairC = new THREE.Color('#1c130e').lerp(new THREE.Color('#d6d6dc'), old);
 const shortsC = new THREE.Color('#1d2733');
 const col = new Float32Array(nV * 3), hairW = new Float32Array(nV);
@@ -69,6 +69,19 @@ for (let i = 0; i < nV; i++) {
   const sw2 = (y < pelvisY + 0.03 * height / 1.73 && y > kneeY + 0.17 * height / 1.73) ? sw : sw;
   const c = skinC.clone().lerp(hairC, hairW[i]);
   col.set([c.r, c.g, c.b], i * 3);
+}
+{ // eyebrows and lips painted as vertex colour so the face stops looking blank
+  const browC = hairC.clone().lerp(skinC, 0.25), lipC = skinC.clone().lerp(new THREE.Color('#7a3a30'), 0.32);
+  const eh = joints['joint-l-eye'], hz = joints['joint-head'][2], mo = joints['joint-mouth'];
+  for (let i = 0; i < nV; i++) {
+    const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+    if (z < hz + 0.07 * headScale) continue;
+    const ax = Math.abs(x), bx = (ax - 0.036 * headScale) / (0.024 * headScale), by = (y - (eh[1] + 0.024 * headScale + 0.007 * headScale * (1 - Math.min(1, ax / (0.06 * headScale))))) / (0.0065 * headScale);
+    const bw = Math.exp(-(bx * bx + by * by)) * (1 - 0.5 * old);
+    const lx = x / (0.02 * headScale), ly = (y - (mo[1] - 0.016 * headScale)) / (0.0055 * headScale), lw = Math.exp(-(lx * lx + ly * ly * 0.6)) * 0.85;
+    const c = new THREE.Color(col[i * 3], col[i * 3 + 1], col[i * 3 + 2]).lerp(browC, Math.min(1, bw)).lerp(lipC, Math.min(1, lw));
+    col.set([c.r, c.g, c.b], i * 3);
+  }
 }
 geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 // push hair out a few mm so it reads as a cap
@@ -147,18 +160,25 @@ const lights = new THREE.Group(); scene.add(lights);
 if (MODE === 'skin') {
   group.add(new THREE.Mesh(geo, skinMaterial()));
   group.add(makeBriefs());
-  // eyes
-  for (const s of ['l', 'r']) {
-    const e = J(`joint-${s}-eye`), r = 0.0115 * headScale;
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), new THREE.MeshStandardMaterial({color: '#d8d2c8', roughness: 0.3}));
+  // eyes: warm sclera, larger iris, and skin-coloured lids so they don't stare
+  for (const sd of ['l', 'r']) {
+    const e = J(`joint-${sd}-eye`).clone(), r = 0.0112 * headScale; e.z -= 0.0012 * headScale;
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), new THREE.MeshStandardMaterial({color: '#b09a86', roughness: 0.8}));
     ball.position.copy(e); group.add(ball);
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(r * 0.52, 16, 12), new THREE.MeshStandardMaterial({color: '#2a1a10', roughness: 0.2}));
-    iris.position.copy(e).add(new THREE.Vector3(0, 0, r * 0.62)); group.add(iris);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(r * 0.66, 20, 14), new THREE.MeshStandardMaterial({color: '#4a2f1e', roughness: 0.7}));
+    iris.position.copy(e).add(new THREE.Vector3(0, -0.0008 * headScale, r * 0.5)); group.add(iris);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(r * 0.3, 12, 10), new THREE.MeshStandardMaterial({color: '#0a0604', roughness: 0.8}));
+    pupil.position.copy(e).add(new THREE.Vector3(0, -0.0008 * headScale, r * 0.84)); group.add(pupil);
+    const lidMat = new THREE.MeshStandardMaterial({color: skinC.clone().multiplyScalar(0.95), roughness: 0.7, side: THREE.DoubleSide});
+    const lidU = new THREE.Mesh(new THREE.SphereGeometry(r * 1.08, 24, 12, 0, Math.PI * 2, 0, 0.98), lidMat);
+    lidU.rotation.x = Math.PI / 2 - 0.05; lidU.position.copy(e); group.add(lidU);
+    const lidL = new THREE.Mesh(new THREE.SphereGeometry(r * 1.08, 24, 12, 0, Math.PI * 2, 0, 0.28), lidMat);
+    lidL.rotation.x = -Math.PI / 2 - 0.1; lidL.position.copy(e); group.add(lidL);
   }
   lights.add(new THREE.AmbientLight('#1a1d30', 1.4));
   const key = new THREE.SpotLight('#ffb070', 26 * Math.pow(headScale, 1.6), 0, 0.8, 0.95, 1.6); key.position.set(-1.7 * headScale, height * 1.15, 1.3 * headScale); key.target.position.set(0, height * 0.55, 0); key.target.updateMatrixWorld(); lights.add(key, key.target);
   const rim = new THREE.DirectionalLight('#5a7bd8', 0.9); rim.position.set(2, height, -2); lights.add(rim);
-  const fill = new THREE.DirectionalLight('#6a4a3a', 0.35); fill.position.set(1.5, 0.6, 2); lights.add(fill);
+  const fill = new THREE.DirectionalLight('#ffd2ae', 1.15); fill.position.set(0.5, height * 1.1, 3); lights.add(fill);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(0.62 * height, 64), new THREE.MeshBasicMaterial({color: '#2a2018'}));
   floor.rotation.x = -Math.PI / 2; floor.position.y = -0.002; scene.add(floor);
 } else {
