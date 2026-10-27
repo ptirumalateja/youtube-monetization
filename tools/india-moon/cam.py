@@ -205,6 +205,7 @@ def counter(t):
         if t < b + .55 + (0.35 if key == 'S' else 0):
             if t < a: return None, lab
             v = COUNT[key] * wave_frac(t, key)
+            if v < .5: return None, lab
             if key == 'S' and wave_frac(t, key) >= 1: return '1.85 MILLION', lab
             return f'{int(round(v)):,}', lab
     return None, ''
