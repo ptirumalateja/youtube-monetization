@@ -82,6 +82,24 @@ def bloom(img):
     b2 = np.asarray(b.resize((W // 4, H // 4)).filter(ImageFilter.GaussianBlur(22)).resize((W, H), Image.BICUBIC), np.float32) / 255
     return img + b1 * .22 + b2 * .32
 
+def icons(d, al):
+    # Facebook / YouTube / Instagram marks, drawn flat in the text colour so they read on any frame
+    a = int(255 * al); ink = (255, 246, 232, a); hole = (24, 18, 20, a); sz = 76; gap = 64; y = 1782
+    x0 = (W - (3 * sz + 2 * gap)) / 2; f = font(60, 'Black')
+    for k in range(3):
+        x = x0 + k * (sz + gap)
+        d.rounded_rectangle((x + 3, y + 6, x + sz + 3, y + sz + 6), 20, fill=(0, 0, 0, int(120 * al)))
+        d.rounded_rectangle((x, y, x + sz, y + sz), 20, fill=ink)
+        cx, cy = x + sz / 2, y + sz / 2
+        if k == 0:      # Facebook: lowercase f
+            d.text((cx + 4, cy + 8), 'f', font=f, fill=hole, anchor='mm')
+        elif k == 1:    # YouTube: play triangle
+            d.polygon([(cx - 11, cy - 16), (cx - 11, cy + 16), (cx + 18, cy)], fill=hole)
+        else:           # Instagram: camera ring + dot
+            d.rounded_rectangle((cx - 22, cy - 22, cx + 22, cy + 22), 11, outline=hole, width=5)
+            d.ellipse((cx - 10, cy - 10, cx + 10, cy + 10), outline=hole, width=5)
+            d.ellipse((cx + 11, cy - 17, cx + 17, cy - 11), fill=hole)
+
 def text_layer(t):
     lay = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
     def put(s, sz, w, y, al, shadow=True):
@@ -104,7 +122,9 @@ def text_layer(t):
             s = f'{v:,}' if n == 49 else f'≈ {v:,}'
             put(s, 190, 'Black', 1400, al); put(lab, 46, 'Bold', 1630, al * .9)
     t0, t1, s = CTA; al = env(t, t0, t1, .3, .0001)
-    if al > 0: put(s, 54, 'Bold', 1690, al)
+    if al > 0:
+        put(s, 54, 'Bold', 1690, al)
+        icons(d, al)
     return np.asarray(lay, np.float32) / 255
 
 def do_frame(O, i):
@@ -119,7 +139,6 @@ def do_frame(O, i):
     img = rgb + dust_layer(t, cp, fw, rt, up, fl, tsurf, focus, f['uRoll']) * .55
     img = bloom(img)
     yy, xx = np.mgrid[0:H, 0:W]; r2 = ((xx - W / 2) / (W * .75)) ** 2 + ((yy - H / 2) / (H * .62)) ** 2
-    img *= (1 - .28 * np.clip(r2, 0, 1.4))[..., None]
     img += (np.random.default_rng(i).standard_normal((H, W, 1)) * .012).astype(np.float32)
     tl = text_layer(t); img = img * (1 - tl[..., 3:]) + tl[..., :3] * tl[..., 3:]
     Image.fromarray(np.clip(img * 255 + .5, 0, 255).astype(np.uint8)).save(out + '.tmp.png'); os.replace(out + '.tmp.png', out)

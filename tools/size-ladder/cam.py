@@ -62,7 +62,8 @@ def params(t):
         D = lerp(540, 560, k); tg = np.array([0, 62, 0]); d = dirv(lerp(190, 225, k), lerp(27, 25, k)); roll = 0
     else:
         k = sm((t - T_CLOSE_S[0]) / (DUR - T_CLOSE_S[0]))
-        D = lerp(560, 420, k); tg = vlerp([0, 62, 0], [0, 106, 0], k); d = dirv(lerp(225, 250, k), lerp(25, 14, k)); roll = 0
+        D = lerp(560, 330, k); tg = vlerp([0, 62, 0], [0, 99, 0], k); d = dirv(lerp(225, 262, k), lerp(25, 10, k)); roll = 0
+    D *= float(np.interp(t, [1.2, 2.6, 6.5, 8.0, 10.8, 13.0, 19.6], [1., 1.38, 1.38, 1.2, 1.2, 1.32, 1.32]))   # breathing room: planets sit smaller in a wider frame
     cp = tg + d * D
     f['uFov'] = math.radians(48); f['uRoll'] = roll
     # --- bowls --------------------------------------------------------------------------------------------
@@ -75,5 +76,5 @@ def params(t):
     hh = lambda a, b: 1. - sm((t - a) / (b - a) / .6)
     v['uHeap'] = [hh(*T_CLOSE_E), hh(*T_CLOSE_J), hh(*T_CLOSE_S)]
     v.update(uCamP=cp.tolist(), uCamT=tg.tolist(), uF=[fE, fJ, fS], uCut=[cE, cJ, cS], uWave=[wJ, wS, 0.], uM0=mp.tolist())
-    f['uExpo'] = lerp(.78, .42, sm((t - 11.0) / 3.)) if t > 11.0 else lerp(.72, .78, sm((t - 5.6) / 4))
+    f['uExpo'] = lerp(.78, .55, sm((t - 11.0) / 3.)) if t > 11.0 else lerp(.72, .78, sm((t - 5.6) / 4))
     return f, v

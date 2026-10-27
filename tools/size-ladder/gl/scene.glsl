@@ -248,57 +248,81 @@ vec3 jupiterSurf(vec3 nl, float t, float spin) {
 
 vec3 sunSurf(vec3 nl, vec3 nw, vec3 V, float t) {
   float mu = clamp(dot(nw, V), 0., 1.);
-  vec3 p = nl * 38.;
-  // granulation: boiling Voronoi cells
-  float tm = uT * .45;
+  float tm = uT * .5;
+  // flow: domain-warped so the cells stream and boil instead of sitting still
+  vec3 wv = nl + .06 * vec3(fbm3(nl * 5. + tm * .12), fbm3(nl * 5. + 7. - tm * .1), fbm3(nl * 5. + 13.));
+  vec3 p = wv * 30.;
   vec3 ip = floor(p), fp = fract(p); float d1 = 9., d2 = 9.;
   for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
     vec3 g = vec3(x, y, z); vec3 r = h33(ip + g);
-    r = .5 + .5 * sin(tm * (.6 + r) + 6.2831 * r);
+    r = .5 + .5 * sin(tm * (.7 + r) + 6.2831 * r);
     float dd = length(g + r - fp);
     if (dd < d1) { d2 = d1; d1 = dd; } else if (dd < d2) d2 = dd;
   }
-  float cell = smoothstep(.0, .55, d2 - d1);                 // bright cell centres, dark intergranular lanes
-  float gran = .55 + .55 * (1. - cell * .0) * (.35 + .65 * (1. - smoothstep(0., .5, d2 - d1) * .0) );
-  float lane = smoothstep(.0, .42, d2 - d1);
-  float super_ = fbm(nl * 7. + tm * .1);
-  vec3 hot = vec3(1.0, .56, .16), cool = vec3(.16, .015, .0);
-  vec3 col = mix(cool, hot, pow(lane, 1.1)) * (.3 + 2.0 * super_ * super_ + .5 * fbm3(nl * 22. + tm * .15));
-  // sunspots + faculae
-  float sp = smoothstep(.7, .76, vn(nl * 6. + 3.7)) * smoothstep(.45, .8, 1. - abs(nl.y - .12) * 3.) * .8;
-  col = mix(col, vec3(.12, .04, .01), sp * .9);
-  col += vec3(1., .8, .5) * smoothstep(.62, .85, fbm(nl * 11. + 9.)) * .25;
-  // limb darkening
-  float ld = .22 + .78 * pow(mu, .8);
-  col *= ld; col *= mix(vec3(1.), vec3(1.15, .8, .5), 1. - mu);
-  return col * .78;
+  float lane = smoothstep(.0, .38, d2 - d1);           // 0 in the dark intergranular lanes, 1 at cell cores
+  float core = smoothstep(.55, 1., 1. - d1 * .9);      // hotter cell centres
+  float super_ = fbm(nl * 6. + tm * .08);
+  float act = smoothstep(.5, .85, fbm(nl * 4. + 3.));  // active regions: brighter and more violent
+  vec3 lane_c = vec3(.45, .035, .0), mid_c = vec3(1., .38, .05), hot_c = vec3(1., .86, .45), wht = vec3(1., .97, .85);
+  vec3 col = mix(lane_c, mid_c, pow(lane, 1.7));
+  col = mix(col, hot_c, core * lane * (.35 + .5 * super_));
+  col = mix(col, wht, core * core * act * .7);
+  col *= max(.3 + 1.6 * super_, .12);
+  // big sunspot groups with umbra + penumbra
+  float sn = vn(nl * 5. + 3.7);
+  float spm = smoothstep(.60, .72, sn) * smoothstep(.2, .6, 1. - abs(nl.y - .1) * 2.2);
+  float um = smoothstep(.72, .8, sn) * spm;
+  col = mix(col, vec3(.35, .08, .01), spm * .75);
+  col = mix(col, vec3(.02, .004, 0.), um);
+  // bright plage around spots, arcs of magnetic brightening
+  col += vec3(1., .7, .35) * smoothstep(.45, .7, sn) * (1. - spm) * .5;
+  col += vec3(1., .6, .25) * pow(max(vn(nl * 14. + tm * .3), 0.), 6.) * 1.5;
+  // limb darkening and reddening
+  float ld = .14 + .86 * pow(mu, .9);
+  col *= ld; col = mix(col, col * vec3(1., .42, .12), pow(1. - mu, 1.5) * .9);
+  col = pow(max(col, 0.), vec3(1.35, 1.8, 2.6));
+  return col * .75;
 }
 
-// prominences + corona glow around the Sun (additive, analytic)
+// prominences, flares and corona around the Sun (additive, analytic)
 vec3 sunGlow(vec3 ro, vec3 rd, float tmax) {
   vec3 oc = ro - S; float b = dot(oc, rd); float tc = clamp(-b, 0., tmax);
   vec3 pc = oc + rd * tc; float rmin = length(pc);
   float h = (rmin - RS) / RS;
-  float cor = exp(-max(h, 0.) * 9.) * .7 + exp(-max(h, 0.) * 2.2) * .1;
-  cor *= smoothstep(RS * .98, RS * 1.01, rmin);
-  vec3 g = vec3(1., .5, .2) * cor;
-  // arches: loops standing on the limb as seen from the camera
   vec3 fwc = normalize(uCamT - uCamP); vec3 rtc = normalize(cross(fwc, vec3(0., 1., 0.))); vec3 upc = cross(rtc, fwc);
-  for (int i = 0; i < 7; i++) {
+  float ang = atan(dot(pc, upc), dot(pc, rtc));
+  float strm = .5 + .9 * pow(max(vn(vec3(ang * 3.2, uT * .1, 1.)),0.), 2.) + .6 * pow(max(vn(vec3(ang * 9., uT * .17, 5.)),0.), 3.);
+  float cor = exp(-max(h, 0.) * 7.) * .9 + exp(-max(h, 0.) * 2.6) * .32 * strm + exp(-max(h, 0.) * .6) * .025;
+  float rtrue = length(oc - rd * dot(oc, rd)); float offd = smoothstep(RS * .985, RS * 1.02, rtrue);
+  cor *= smoothstep(RS * .98, RS * 1.01, rmin) * offd;
+  vec3 g = vec3(1., .3, .05) * cor * 1.0;
+  vec3 pp = ro + rd * tc;
+  for (int i = 0; i < 9; i++) {
     float fi = float(i);
-    float an = fi * 2.399 + uT * .04;
-    vec3 ax = normalize(cos(an) * rtc + sin(an) * upc);          // surface point on the limb
-    vec3 side = normalize(cross(ax, fwc));                         // arch plane = (ax, side)... seen edge-on from camera: use fwc-perp
-    side = rtc * -sin(an) + upc * cos(an);
-    float rad = RS * (.10 + .10 * fract(fi * .37 + .1)) * (.8 + .2 * sin(uT * .7 + fi * 2.));
-    vec3 c = S + ax * (RS - rad * .15);
-    vec3 pp = ro + rd * tc;
+    float an = fi * 2.399 + uT * .035 + .7 * sin(fi * 1.7);
+    vec3 ax = normalize(cos(an) * rtc + sin(an) * upc);
+    vec3 side = rtc * -sin(an) + upc * cos(an);
+    float life = .75 + .25 * sin(uT * .8 + fi * 2.1);
+    float rad = RS * (.22 + .3 * fract(fi * .37 + .1)) * life;
+    vec3 c = S + ax * (RS - rad * .12);
     vec2 pl = vec2(dot(pp - c, side), dot(pp - c, ax));
-    float dist = abs(length(pl) - rad); float inh = smoothstep(-.1 * rad, .3 * rad, pl.y);
+    float dist = abs(length(vec2(pl.x, pl.y * 1.25)) - rad); float inh = smoothstep(-.12 * rad, .25 * rad, pl.y);
     float depthT = abs(dot(pp - c, fwc));
-    float tube = exp(-dist / (rad * .11)) * inh * exp(-depthT / (rad * .8));
-    tube *= .75 + .4 * sin(uT * 1.1 + fi * 2. + pl.x * 8. / rad);
-    g += vec3(1., .28, .08) * tube * 5.6 + vec3(1., .75, .45) * tube * tube * 2.4;
+    float tube = exp(-dist / (rad * .14)) * inh * exp(-depthT / (rad * .9));
+    float strands = max(.55 + .6 * vn(vec3(pl * 14. / rad, uT * .3 + fi)), .05);
+    tube *= strands * offd;
+    g += vec3(1., .16, .02) * tube * 8. + vec3(1., .5, .2) * tube * tube * 3.;
+  }
+  // flares: bright jets lashing off the limb
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i);
+    float an = fi * 2.1 + 1.3 + uT * .07;
+    vec3 ax = normalize(cos(an) * rtc + sin(an) * upc);
+    vec3 d = pp - (S + ax * RS);
+    float along = dot(d, ax), perp = length(d - ax * along);
+    float len = RS * (.6 + .35 * sin(uT * .9 + fi * 3.));
+    float jet = exp(-perp / (RS * .018 * (1. + max(along, 0.) / len * 2.))) * smoothstep(-.02 * RS, .05 * RS, along) * (1. - smoothstep(len * .3, len, along));
+    g += vec3(1., .45, .15) * jet * 4.5 * offd;
   }
   return g;
 }
