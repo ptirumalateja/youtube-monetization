@@ -100,8 +100,9 @@ function heroPose(t,sc){
   if(t>9.2&&t<9.9){ P.p-=0.06*sstep(9.2,9.5,t); P.tilt+=0.1*sstep(9.2,9.6,t); }          // the stare
   if(t>9.9&&t<10.8){ look=0; P.hy=-0.45*sstep(9.95,10.3,t); }                                // he turns to the calendar
   if(t>=10.8&&t<10.95) P.hy=-0.45*(1-sstep(10.8,10.95,t));
-  const sl=sstep(15.25,16.3,t);   /* the end: the last X lands on 30, he folds onto the desk */
-  P.p+=0.5*sl; P.tilt+=0.55*sl; tL=tL.clone().lerp(V(-0.2,0.84,-0.75),sl); tRr=tRr.clone().lerp(V(0.25,0.84,-0.75),sl);
+  const sl=sstep(15.75,16.7,t);   /* the end: the last X lands on 30, he shuts the laptop, hands drop to his lap, his head sags to his chest (nothing passes through the laptop) */
+  const shut=sstep(15.3,15.7,t); tL=tL.clone().lerp(V(-0.05,0.9,-0.98),shut*(1-sl)); tRr=tRr.clone().lerp(V(0.08,0.9,-0.98),shut*(1-sl));
+  P.p-=0.04*sl; P.tilt+=0.3*sl; tL=tL.clone().lerp(V(-0.16,0.52,-1.12),sl); tRr=tRr.clone().lerp(V(0.16,0.52,-1.12),sl);
   P.tL=tL; P.wL=1; P.pL=V(-0.35,-1,0.45); P.tR=tRr; P.wR=1; P.pR=V(-0.35,-1,-0.45);
   const J=R.skel(P,root,yaw);
   const phonePos=lift>0.01?J.hL.clone().add(V(0,0.03,0)):phoneDesk.clone().add(V(0.004*Math.sin(t*90)*buzzAt(t),0,0));
@@ -178,7 +179,7 @@ function setT(t){ const sc=sceneAt(t); const set=SET_OF[sc.id]; const ox=sets[se
   if(set==='bed'){ const b=sets.bed; const qt=hp.quilt??1; updateBlanket(hp.bp?hp.bp.J:null,qt); b.userData.bag.visible=!(t>=4.2&&t<17.0);
     const ds=dayState(t); const home=sc.id==='bed2'?{n:30,left:1,tear:1,prev:null}:(t<3.9?{n:30,left:1,tear:1,prev:null}:{n:1,left:31,tear:clamp((t-3.9)/0.32),prev:30}); b.userData.pad.set(home.n,home.left,home.tear,home.prev); }
   if(set==='desk'){ const d=sets.desk; const cr=crossedAt(t); const tex=calTex(cr); if(d.userData.cal.material.map!==tex){ d.userData.cal.material.map=tex; d.userData.cal.material.emissiveMap=tex; }
-    const lidA=-0.25; d.userData.lid.rotation.x=lidA; d.userData.screen.material.color.setRGB(...(t>16.3?[0.05,0.06,0.08]:[0.74,0.83,0.93]));
+    const lidA=lerp(-0.25,-1.5,sstep(15.3,15.65,t)); d.userData.lid.rotation.x=lidA; d.userData.screen.material.color.setRGB(...(t>15.5?[0.05,0.06,0.08]:[0.74,0.83,0.93]));
     const day=cr; d.userData.tiffin.visible=day>=10&&day<=26; d.userData.cups.forEach((c,i)=>{ c.visible=day>=[9,15,22][i]; }); d.userData.piles.forEach((p,i)=>{ const h=0.02+0.22*clamp((day-1)/29)*[1,0.7][i]; p.scale.y=h/0.1; p.position.y=0.78+h/2; }); }
   // camera
   let pos,look; if(sc.id==='bed1'||sc.id==='bed2'){ pos=hp.bp.cam.pos.clone(); look=hp.bp.cam.look.clone(); } else { const c=camAt(sc.id,t); pos=c.pos; look=c.look; }

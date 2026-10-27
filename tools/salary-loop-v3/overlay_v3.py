@@ -119,6 +119,8 @@ def draw(img, t):
     if dc:
         a, sl, (lab, amt, left) = dc; y = 1300 - 60 * sl
         card(layer, y, a, 'debit', lab, '-' + money(amt), sub=f'{money(left)} LEFT')
+        di = [r[1] for r in TL['debits']].index(lab) + 1   # the hook's promise, paid off visually: DAY 1 ... DAY 6
+        dl = Image.new('RGBA', (W, H), (0, 0, 0, 0)); dd = ImageDraw.Draw(dl); tracked(dd, f'DAY {di}', font(34, 'Bold'), W / 2 - 380 + 4, y - 56, 6, GOLD + (int(255 * a),), anchor='l'); layer.alpha_composite(dl)
     # ---- zero, then the thick pad
     za = sstep(TL['zero'] + 0.08, TL['zero'] + 0.2, t) * (1 - sstep(TL['reveal'][0] - 0.1, TL['reveal'][0] + 0.05, t))
     big_lines(layer, mask, ['DAY 6.', '₹0.'], 150, za, size=118, cols=[CREAM, CRIMSON])
