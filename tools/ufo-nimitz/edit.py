@@ -17,7 +17,7 @@ class Reader:
                                '-of', 'csv=p=0', path], capture_output=True, text=True).stdout.strip().split(',')
         self.w, self.h = int(info[0]), int(info[1])
         vf = f'setpts=PTS/{speed},fps={FPS}' if speed != 1 else f'fps={FPS}'
-        self.p = subprocess.Popen(['ffmpeg', '-v', 'error', '-ss', str(t0), '-i', path, '-vf', vf, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
+        self.p = subprocess.Popen(['ffmpeg', '-v', 'error', '-ss', f'{max(t0, 0.):.3f}', '-i', path, '-vf', vf, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
                                   stdout=subprocess.PIPE)
         self.last = None
     def next(self):
