@@ -156,7 +156,7 @@ def events(O):
               waves=[cam.T_WAVE_J, cam.T_WAVE_S], hook=2.4)
     for (n, lab, (a, b)), nr in zip(COUNTS, (49, 56, 56)):
         # impact times of the falling units: j-th lands when the fill fraction reaches (j+.5)/nr, same law as the shader's rain
-        ts = [round(a + (b - a) * (1 - (1 - (j + .5) / nr) ** (1 / 1.6)), 4) for j in range(nr)]
+        ts = [round(x, 4) for x in cam.moon_land_times(a, b)] if n == 49 else [round(a + (b - a) * (1 - (1 - (j + .5) / nr) ** (1 / 1.6)), 4) for j in range(nr)]
         ev['fills'].append(dict(n=n, t=ts, a=a, b=b))
     json.dump(ev, open(f'{O}/events.json', 'w'))
 

@@ -93,10 +93,15 @@ voice = [(pop, [1500, 1760, 1976, 2217, 2349]), (tap, [392, 440, 494, 587, 659])
 for (fn, fs), fl, gain in zip(voice, EV['fills'], (.55, .38, .55)):
     ts = fl['t']; step = 1
     for k in range(0, len(ts), step):
-        place(sfx, fn(fs[k % len(fs)] * (1 + .01 * rng.standard_normal())), ts[k], gain * rng.uniform(.7, 1.0))
+        place(sfx, fn(fs[k % len(fs)] * (1 + .01 * rng.standard_normal())), ts[k], gain * 1.5 * rng.uniform(.8, 1.0))
         if fn is not pop: place(hit, boom(90 if fn is tap else 60, 38, .5 if fn is tap else .8, .05, .5, 1.2) * (.12 if fn is tap else .22), ts[k], 1.)   # weight of the impact
-        wl = int(.3 * SR); kk = np.arange(wl) / SR; fw = np.linspace(2600 if fn is pop else 1200 if fn is tap else 600, 300, wl)
-        place(sfx, np.sin(2 * np.pi * np.cumsum(fw) / SR) * (kk / .3) ** 2 * .18, ts[k] - .3, 1.)    # falling whistle into the landing
+        # the fall itself: a rising airy rush plus a pitched whistle that swells toward the landing (matches the 0.85 s fall in the shader)
+        wl = int(.85 * SR); kk = np.arange(wl) / SR; sw = (kk / .85) ** 2.2
+        f0, f1 = (500, 2800) if fn is pop else (320, 1500) if fn is tap else (180, 700)
+        fw = np.linspace(f0, f1, wl) * (1 + .02 * np.sin(2 * np.pi * 9 * kk))
+        rush = bp(rng.standard_normal(wl), f0 * 1.2, f1 * 1.6) * sw
+        gw = .75 if fn is pop else .35 if fn is tap else .3
+        place(sfx, (np.sin(2 * np.pi * np.cumsum(fw) / SR) * .5 + rush * 1.1) * sw * gw, ts[k] - .85, 1.)
     seg = env([(0, 0), (fl['a'] - .05, 0), (fl['a'] + .3, 1), (fl['b'] - .2, .8), (fl['b'] + .3, 0), (DUR, 0)])
     bed += lp(rng.standard_normal(N), 900 if fn is not pop else 2500) * seg * .06      # granular wash
 

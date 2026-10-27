@@ -11,6 +11,7 @@ uniform vec3 uCut;   // cut height (fraction of radius above centre); >=1 -> clo
 uniform vec3 uWave;  // ignition-wave radius for Jupiter and Sun shells (0 = hidden), z unused
 uniform vec3 uM0;    // hero Moon centre
 uniform float uExpo;
+uniform vec4 uSP[96];  // Earth-bowl unit slots: xyz, landing time (-1 = unused)
 uniform vec3 uHeap;  // heap scale above the rim of each bowl (shrinks away as the bowl closes)
 uniform sampler2D tEarth, tSpec, tCloud, tLights, tMoon;
 out vec4 o;
@@ -168,14 +169,28 @@ float map(vec3 p) {
     float re = length(p);
     float dhe = re > 1.5 ? re - 1. : sdShell(p, 1., TE, uCut.x);
     if (dhe < d) { d = dhe; gid = 5; gC = vec3(0.); gR = 1.; }
-    if (re < 1.7 && uF.x > 0.) {
+    if (false) {
       float dmm = lattice(p, vec3(0.), vec3(0., -1. + TE + RM + .01, 0.), 2.12 * RM / 1.41421356, RM, 1. - TE, -1. + TE, .5, uHeap.x, uF.x, c, sid, pop);
       if (dmm < d) { d = dmm; gid = 6; gC = c; gR = RM; gH = sid; gPop = pop; gG = gGl; }
     }
   }
   if (uF.x > 0.) {
-    vec3 pc; float jid; float dr = rain(p, vec3(0.), 1. - TE, RM, -1. + TE, .5, vec2(3.0, 5.5), 49., pc, jid);
-    if (dr < d) { d = dr; gid = 6; gC = pc; gR = RM; gH = h31(vec3(jid, 5., 2.)); gPop = 1.; gG = vec3(jid, 3., 9.); }
+    // Moons: every one falls to its own slot and stays there
+    vec3 Cb = vec3(0., 2.7, 0.); float db = length(p - Cb) - 3.4;
+    if (db > .6) { d = min(d, db); }
+    else {
+      float dm = 1e9; vec3 pcm = vec3(0.); float jm = 0.;
+      for (int i = 0; i < 96; i++) {
+        vec4 s = uSP[i]; if (s.w < -.5) break;
+        float tau = s.w - uT; if (tau > TAUF) continue;
+        float u = clamp(tau / TAUF, 0., 1.); bool hp = s.y > .5;
+        vec3 ps = s.xyz + vec3(0., 4.275 * u * u, 0.) + vec3(.35 * RM * sin(float(i) * 1.7 + u * 3.), 0., .35 * RM * cos(float(i) * 2.3 + u * 3.)) * u;
+        float rs = RM * mix(.22, 1., 1. - pow(u, .7)) * (hp ? uHeap.x : 1.);
+        float dd = length(p - ps) - rs;
+        if (dd < dm) { dm = dd; pcm = ps; jm = float(i); }
+      }
+      if (dm < d) { d = dm; gid = 6; gC = pcm; gR = RM; gH = h31(vec3(jm, 5., 2.)); gPop = 1.; gG = vec3(jm, 3., 9.); }
+    }
   }
   return d;
 }

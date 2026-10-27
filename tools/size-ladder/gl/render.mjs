@@ -36,7 +36,7 @@ await page.evaluate(async ({ frag, texData }) => {
     c.width = w; c.height = h; gl.viewport(0, 0, w, h);
     gl.uniform2f(gl.getUniformLocation(pr, 'R'), w, h);
     for (const k in f) gl.uniform1f(gl.getUniformLocation(pr, k), f[k]);
-    for (const k in v) gl.uniform3fv(gl.getUniformLocation(pr, k), v[k]);
+    for (const k in v) { if (v[k].length > 3) gl.uniform4fv(gl.getUniformLocation(pr, k), v[k]); else gl.uniform3fv(gl.getUniformLocation(pr, k), v[k]); }
     gl.enable(gl.SCISSOR_TEST);
     for (let y = 0; y < h; y += 32) { gl.scissor(0, y, w, 32); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish(); await new Promise(r => setTimeout(r, 0)); }
     gl.disable(gl.SCISSOR_TEST);

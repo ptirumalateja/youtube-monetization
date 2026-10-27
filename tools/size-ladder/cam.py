@@ -19,6 +19,25 @@ T_FILL_E = (3.0, 5.5); T_CLOSE_E = (5.6, 6.4); T_WAVE_J = (5.8, 7.2); T_FILL_J =
 T_WAVE_S = (11.7, 13.0); T_FILL_S = (13.4, 16.4); T_CLOSE_S = (16.5, 17.3)
 
 
+def _moon_sites():
+    # every unit slot of the Earth bowl (FCC, same layout the shader used), sorted bottom-up with a little scatter; the j-th lands at fill fraction (j+.5)/N
+    Ri, yRim, yb = 1 - TE, .5, -1 + TE; yt = yRim + .7 * Ri; sp = 2.12 * RM / math.sqrt(2); off = np.array([0., M_SITE[1], 0.])
+    xzMax = math.sqrt(max(Ri * Ri - yRim * yRim, 0.)) - .1 * RM; rng = np.random.default_rng(5); out = []
+    for a in range(-8, 9):
+        for b in range(-8, 9):
+            for k in range(-8, 9):
+                if (a + b + k) % 2 or (a == b == k == 0): continue
+                p = off + np.array([a, b, k]) * sp
+                inb = np.linalg.norm(p) <= Ri - RM * .98 and p[1] <= yRim
+                hq = np.array([math.hypot(p[0], p[2]) / xzMax, (p[1] - yRim) / (.7 * Ri)])
+                if not (inb or (p[1] > yRim and hq @ hq <= 1)): continue
+                qy = min(max((p[1] - yb) / (yt - yb), 0.), 1.)
+                out.append((qy * .72 + rng.random() * .28, p))
+    out.sort(key=lambda s: s[0]); return [p for _, p in out]
+MOON_SITES = _moon_sites()
+def moon_land_times(a, b):
+    n = len(MOON_SITES); return [a + (b - a) * (1 - (1 - (j + .5) / n) ** (1 / 1.6)) for j in range(n)]
+
 def ease_fill(t, a, b): x = (t - a) / (b - a); return 1.06 * (1 - (1 - x) ** 1.6) if 0 < x < 1 else (0. if x <= 0 else 1.06)
 
 
@@ -86,6 +105,9 @@ def params(t):
     wS = 0. if t < T_WAVE_S[0] else 12. * math.exp(math.log(320 / 12.) * sm((t - T_WAVE_S[0]) / (T_WAVE_S[1] - T_WAVE_S[0])))
     hh = lambda a, b: 1. - sm((t - a) / (b - a) / .6)
     v['uHeap'] = [hh(*T_CLOSE_E), hh(*T_CLOSE_J), hh(*T_CLOSE_S)]
+    lt = moon_land_times(*T_FILL_E); sp = []
+    for p, L in zip(MOON_SITES, lt): sp += [float(p[0]), float(p[1]), float(p[2]), L]
+    v['uSP'] = sp + [0., 0., 0., -1.] * (96 - len(MOON_SITES))
     v.update(uCamP=cp.tolist(), uCamT=tg.tolist(), uF=[fE, fJ, fS], uCut=[cE, cJ, cS], uWave=[wJ, wS, 0.], uM0=mp.tolist())
     f['uExpo'] = lerp(.78, .55, sm((t - 11.0) / 3.)) if t > 11.0 else lerp(.72, .78, sm((t - 5.6) / 4))
     return f, v
