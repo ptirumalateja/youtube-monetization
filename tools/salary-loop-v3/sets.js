@@ -35,7 +35,7 @@ export function buildBedroom(){ const g=new THREE.Group(); floorAndWalls(g,{wall
   const sh=new THREE.Group(); B(sh,1.5,0.05,0.28,M(0x6b4428),0,0,0); B(sh,1.5,0.05,0.28,M(0x6b4428),0,0.55,0); const R=rng(9); const bc=[0xc4452f,0x2f6b8a,0xd9a63a,0x3f8a45,0x7a4a8a,0xe8e1d4]; for(let i=0;i<9;i++) book(sh,-0.62+i*0.075,0.025,0,0.055,0.2+R()*0.1,0.2,bc[i%6]); plant(sh,0.45,0.025,0,0.8,5); plant(sh,0.18,0.58,0,0.65,7); for(let i=0;i<4;i++) book(sh,-0.6+i*0.07,0.58,0,0.05,0.18+R()*0.06,0.2,bc[(i+2)%6]); sh.position.set(-0.9,1.7,-2.05); g.add(sh);
   frame(g,0.3,1.85,-2.17,0.42,0.54,0xd9a63a); frame(g,0.9,2.05,-2.17,0.3,0.4,0x3f8a8a); frame(g,-2.0,2.2,-2.17,0.5,0.35,0xc4452f);
   // wall calendar (changes through the story) and the sticky note (end)
-  g.userData.pad=tearPad(g,{x:0.4,y:1.08,z:-2.15,w:0.38,h:0.44,maxD:0.06});   // V3: the tear-off day calendar
+  g.userData.pad=tearPad(g,{x:0.45,y:0.95,z:-2.15,w:0.62,h:0.72,maxD:0.07});   // V3: the tear-off day calendar
   const note=P(g,0.3,0.3,M(0xffe36b,{r:0.9,e:0xffd24a,ei:0.15}),0.7,1.25,-2.15); g.userData.note=note; note.visible=false;
   // wardrobe, chair with a bag, rug, a pair of shoes
   B(g,1.0,2.2,0.6,M(0x5a3a22,{map:woodTex('#5a3a22',[1,1])}),2.7,1.1,-1.8,{round:0.03}); B(g,0.02,2.0,0.02,M(0x222),2.7,1.1,-1.48);
@@ -80,11 +80,11 @@ export function buildBills(){ const g=new THREE.Group(); floorAndWalls(g,{wall:0
   // the three bills as things: a bulb (electricity), a tap (water), a wifi router
   S(g,0.13,M(0xfff0c8,{e:0xffd890,ei:2.2}),0.9,1.35,-1.5,{cast:false}); C(g,0.05,0.05,0.12,M(0x888,{m:0.7}),0.9,1.2,-1.5); const tap=C(g,0.03,0.03,0.3,M(0xb8c0c8,{m:0.8,r:0.3}),1.75,1.15,-2.05,{rx:Math.PI/2}); S(g,0.07,M(0x6ab4e8,{r:0.2,e:0x6ab4e8,ei:0.5}),1.75,0.98,-1.92);
   B(g,0.36,0.06,0.22,M(0x1b1e24,{r:0.4}),1.0,0.88,-0.75); for(let i=0;i<3;i++) C(g,0.01,0.01,0.28,M(0x1b1e24),0.9+i*0.1,1.03,-0.75,{rz:(i-1)*0.2}); S(g,0.012,M(0x4aff7a,{e:0x4aff7a,ei:3}),0.88,0.92,-0.64);
-  B(g,0.45,0.05,0.45,M(0x4a3020),-0.5,0.45,-0.2); B(g,0.05,0.5,0.45,M(0x4a3020),-0.72,0.7,-0.2); for(const [x,z] of [[-0.3,-0.02],[-0.7,-0.02],[-0.3,-0.38],[-0.7,-0.38]]) B(g,0.04,0.45,0.04,M(0x3a2418),x,0.22,z); sign(g,-1.6,1.7,-2.17,0.62,0.4,'ELECTRICITY\nWATER\nWI-FI',{font:20,bg:'#fff3c8'}); plant(g,2.3,0,-1.4,1.3,8); B(g,0.5,0.5,0.4,M(0x6b4428),-2.2,0.25,-1.5); return g; }
+  /* his chair is behind the desk, facing the camera (he sits like at the office desk) */ B(g,0.5,0.05,0.48,M(0x4a3020),0,0.45,-1.72,{round:0.02}); B(g,0.5,0.55,0.05,M(0x4a3020),0,0.75,-1.98,{round:0.02}); C(g,0.03,0.03,0.43,M(0x333),0,0.22,-1.72); sign(g,-1.6,1.7,-2.17,0.62,0.4,'ELECTRICITY\nWATER\nWI-FI',{font:20,bg:'#fff3c8'}); plant(g,2.3,0,-1.4,1.3,8); B(g,0.5,0.5,0.4,M(0x6b4428),-2.2,0.25,-1.5); return g; }
 // ---------------------------------------------------------------- 6: food: a small restaurant
 export function buildRestaurant(){ const g=new THREE.Group(); floorAndWalls(g,{wall:0x323a4c,floor:'#6a4a34'});
   B(g,1.1,0.06,0.8,M(0xe8d9bd,{r:0.5}),0.2,0.78,-0.5,{round:0.02}); C(g,0.05,0.05,0.76,M(0x4a3020),0.2,0.38,-0.5); const plate=C(g,0.22,0.2,0.03,M(0xfdf8ee,{r:0.3}),0.2,0.83,-0.5); S(g,0.14,M(0xf2e4c0,{r:0.7}),0.2,0.88,-0.5,{sy:0.5}); S(g,0.08,M(0xd9822b,{r:0.6}),0.3,0.9,-0.45,{sy:0.5}); C(g,0.05,0.045,0.12,M(0xcfe6f4,{r:0.1,o:0.6,t:true}),0.5,0.87,-0.4);
-  B(g,0.42,0.05,0.42,M(0x6b3f26),-0.5,0.47,-0.5); B(g,0.42,0.5,0.05,M(0x6b3f26),-0.5,0.75,-0.7);
+  /* his chair is on the far side of the table, facing the camera */ B(g,0.46,0.05,0.44,M(0x6b3f26),0.2,0.47,-1.25,{round:0.02}); B(g,0.46,0.5,0.05,M(0x6b3f26),0.2,0.75,-1.49,{round:0.02}); C(g,0.03,0.03,0.45,M(0x333),0.2,0.23,-1.25);
   // other diners (blurred grey-warm figures are added by the scene), hanging lamps, menu board, kitchen pass
   for(let i=0;i<4;i++){ C(g,0.005,0.005,0.8,M(0x111),-1.6+i*1.4,2.7,-1.4); C(g,0.05,0.2,0.2,M(0xffd890,{e:0xffc06a,ei:1.8}),-1.6+i*1.4,2.25,-1.4,{cast:false}); }
   sign(g,1.8,1.9,-2.17,1.0,0.8,'MENU\nTHALI 150\nCHAI 20',{bg:'#2a1c12',fg:'#ffe9b0',font:26}); B(g,1.8,0.9,0.5,M(0x5a3a22),-1.9,0.45,-1.9); P(g,6,3,new THREE.MeshBasicMaterial({color:0x6a6a6a,map:bokehTex(true,17,80),fog:false,transparent:true,opacity:0.6}),0,1.8,-2.15);
@@ -138,7 +138,7 @@ export function tearPad(parent,{x=0,y=0,z=0,ry=0,w=0.3,h=0.35,maxD=0.05,stand=fa
 export function buildDesk(){ const g=new THREE.Group(); floorAndWalls(g,{wall:0x2c3444,floor:'#5e5a58',backZ:-2.4});
   // the window behind him: the day / night clock of the time-lapse
   const win=new THREE.Group(); const skyM=new THREE.MeshBasicMaterial({color:0x1a2440,fog:false}); P(win,2.8,1.45,skyM,0,0,0);
-  for(let i=0;i<7;i++) buildingBlock(win,-1.25+i*0.42,-0.15,0.36,0.5+((i*5)%4)*0.18,0x4a4c5c,70+i);
+  for(let i=0;i<7;i++){ const bh=0.38+((i*5)%4)*0.13; const bb=buildingBlock(win,-1.25+i*0.42,-0.45,0.36,bh,0x4a4c5c,70+i); bb.position.y=-0.72+bh/2; bb.material.emissiveIntensity=0.16; }   /* skyline sits inside the window frame, windows dim */
   for(const yy of [-0.74,0.74]) B(win,2.9,0.06,0.07,M(0x1b1e24),0,yy,0.05); for(let i=0;i<4;i++) B(win,0.06,1.5,0.07,M(0x1b1e24),-1.4+i*0.93,0,0.05);
   win.position.set(-0.1,1.75,-2.37); g.add(win); g.userData.sky=skyM;
   // desk, laptop (screen faces him), desk lamp, mug, paper piles, the phone's resting spot
@@ -156,5 +156,6 @@ export function buildDesk(){ const g=new THREE.Group(); floorAndWalls(g,{wall:0x
   // a second, empty desk and a plant for depth; ceiling strips
   { const d=new THREE.Group(); B(d,1.2,0.05,0.7,wm,0,0.755,0); B(d,0.04,0.74,0.6,M(0x3a2a1e),-0.55,0.37,0); B(d,0.04,0.74,0.6,M(0x3a2a1e),0.55,0.37,0); B(d,0.46,0.3,0.03,M(0x0d1013,{e:0x9fd0ff,ei:0.25}),0,0.95,-0.15); d.position.set(-2.1,0,-1.5); d.rotation.y=0.3; g.add(d); }
   plant(g,1.55,0,-1.9,1.5,13); for(let i=0;i<3;i++) ceilStrip(g,-1.2+i*1.3,3.0,-1.0);
-  g.userData.pad=tearPad(g,{x:-0.42,y:0.78,z:-1.08,ry:0.45,w:0.24,h:0.28,maxD:0.07,stand:true});
+  /* the month on the wall: a big grid calendar, a red X for every day gone (scene.js swaps the texture) */
+  const cal=new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.25),new THREE.MeshStandardMaterial({map:calendarTex(0,0,'THE MONTH'),roughness:0.9,emissive:0xffffff,emissiveIntensity:0.32})); cal.material.emissiveMap=cal.material.map; cal.position.set(-1.9,1.62,-2.36); g.add(cal); g.userData.cal=cal;
   return g; }

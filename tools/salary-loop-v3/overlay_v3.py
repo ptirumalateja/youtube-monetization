@@ -107,29 +107,31 @@ def draw(img, t):
     # ---- the hook: credit card + typed line (and its restart in the last 6 frames)
     ca = sstep(0.0, 0.22, t) * (1 - sstep(2.3, 2.6, t))
     if ca > 0:
-        rise = sstep(0.0, 0.5, t); y = 1240 - 110 * rise + 120 * sstep(2.3, 2.6, t)   # under his face, beside the phone (the hook line sits above it)
+        rise = sstep(0.0, 0.5, t); y = 560 + 40 * (1 - rise) - 60 * sstep(2.3, 2.6, t)   # floats over the bed under the hook line, V2 style
         card(layer, y, ca, 'credit', 'SALARY CREDITED', '+₹50,000', scale=0.86 + 0.14 * rise - 0.3 * sstep(2.3, 2.6, t))
-    hook = ['GUESS WHICH DAY', 'IT HITS ZERO.']; nchar = len(''.join(hook))
+    hook = ['YOUR SALARY', 'LASTS 6 DAYS.']; nchar = len(''.join(hook))
     if t < 2.8:
-        big_lines(layer, mask, hook, 700, 1 - sstep(2.45, 2.75, t), size=68, cols=[CREAM, GOLD], typed=int(nchar * sstep(0.05, 1.0, t) + 0.999))
+        big_lines(layer, mask, hook, 150, 1 - sstep(2.45, 2.75, t), size=84, cols=[CREAM, GOLD], typed=int(nchar * sstep(0.05, 0.9, t) + 0.999))
     if t > TL['duration'] - 0.2:
-        big_lines(layer, mask, hook, 700, 1, size=68, cols=[CREAM, GOLD], typed=int(nchar * (t - (TL['duration'] - 0.2)) / 0.95 + 0.999))
+        big_lines(layer, mask, hook, 150, 1, size=84, cols=[CREAM, GOLD], typed=int(nchar * (t - (TL['duration'] - 0.2)) / 0.95 + 0.999))
     # ---- debits (street + desk)
     dc = debit_at(t)
     if dc:
-        a, sl, (lab, amt, left) = dc; y = 1230 - 60 * sl if t < 5.6 else 1260 - 60 * sl
+        a, sl, (lab, amt, left) = dc; y = 1300 - 60 * sl
         card(layer, y, a, 'debit', lab, '-' + money(amt), sub=f'{money(left)} LEFT')
     # ---- zero, then the thick pad
     za = sstep(TL['zero'] + 0.08, TL['zero'] + 0.2, t) * (1 - sstep(TL['reveal'][0] - 0.1, TL['reveal'][0] + 0.05, t))
-    big_lines(layer, mask, ['DAY 6.', '₹0.'], 170, za, size=118, cols=[CREAM, CRIMSON])
+    big_lines(layer, mask, ['DAY 6.', '₹0.'], 150, za, size=118, cols=[CREAM, CRIMSON])
     ra = sstep(TL['reveal'][0], TL['reveal'][0] + 0.15, t) * (1 - sstep(TL['reveal'][1] - 0.05, TL['reveal'][1] + 0.1, t))
-    big_lines(layer, mask, ['24 DAYS', 'OF WORK LEFT.'], 170, ra, size=86, cols=[GOLD, CREAM])
+    big_lines(layer, mask, ['24 DAYS', 'OF WORK LEFT.'], 150, ra, size=86, cols=[GOLD, CREAM])
     # ---- false hope
     fh = TL['falseHope']; fa = sstep(fh[0] + 0.12, fh[0] + 0.22, t) * (1 - sstep(fh[0] + 0.75, fh[0] + 0.9, t))
-    card(layer, 1260, fa, 'debit', 'LOW BALANCE', '₹0', sub='DAY 27')
+    card(layer, 1300, fa, 'debit', 'LOW BALANCE', '₹0', sub='DAY 27')
     # ---- the close
-    cl = sstep(15.9, 16.2, t) * (1 - sstep(18.3, 18.6, t))
-    big_lines(layer, mask, ["WHICH DAY", "BROKE YOU?"], 700, cl, size=88, cols=[CREAM, GOLD])
+    cl = sstep(15.5, 15.8, t) * (1 - sstep(17.3, 17.6, t))
+    big_lines(layer, mask, ["WHICH DAY", "BROKE YOU?"], 150, cl, size=88, cols=[CREAM, GOLD])
+    wk = sstep(10.95, 11.15, t) * (1 - sstep(14.75, 14.95, t))
+    big_lines(layer, mask, ["YOUR WORK", "LASTS ALL 30."], 150, wk, size=84, cols=[CREAM, GOLD])   # the payoff line, held over the time-lapse
     # ---- watermark
     d = ImageDraw.Draw(layer); md = ImageDraw.Draw(mask)
     tracked(d, 'SLOW LIGHT', font(24, 'Medium'), W / 2, 1548, 10, CREAM + (80,)); tracked(md, 'SLOW LIGHT', font(24, 'Medium'), W / 2, 1548, 10, 80)
