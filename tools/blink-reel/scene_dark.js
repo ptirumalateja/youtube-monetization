@@ -10,23 +10,29 @@ import {buildEye} from './eye.js';
 const {V,clamp,sstep,lerp,sm5,PAL}=SLD;
 const {M,B,C,S:SPH,P:PLN,canvasTex,rng}=SETS;
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
-const DUR=19.0;
+const DUR=22.0;
 const ST=SLD.createStage({W,H}); const scene=ST.scene; const R=SLD.createRig(scene);
 
 // ---------------------------------------------------------------- blinks (screen lids) and the shot list
-const BLINKS=[0.95,3.1,5.2, 6.45,7.5,8.45,9.5, 10.05,10.3,10.52,10.72,10.9,11.06, 16.75,17.85];
+// V3 (payoff-first): the eye blinks in the hook; screen lids carry the day; the brain cuts out on each blink; the mirror dare; the CTA; lids close into the loop.
+const BLINKS=[3.3,4.75, 5.9,6.85,7.8,8.65, 9.05,9.3,9.5,9.66,9.8,9.9, 12.4, 18.6,19.75];
+const EYEBLINKS=[-0.12,1.2, 13.45];           // real-lid blinks in the eye shots (the first one is already shut at frame 0)
+const BRAINBLINKS=[15.5,16.35];
 const lidOne=(t,b)=>{ const u=t-b; if(u<0||u>0.22) return 0; if(u<0.06) return sm5(u/0.06); if(u<0.13) return 1; return 1-sm5((u-0.13)/0.09); };
-function lidAt(t){ let l=0; if(t<0.14) l=1-sm5(clamp((t-0.03)/0.11)); if(t>18.8) l=Math.max(l,sm5(clamp((t-18.8)/0.08))); for(const b of BLINKS) l=Math.max(l,lidOne(t,b)); return l; }
+function lidAt(t){ let l=0; if(t<0.14) l=1-sm5(clamp((t-0.03)/0.11)); if(t>21.82) l=Math.max(l,sm5(clamp((t-21.82)/0.08))); for(const b of BLINKS) l=Math.max(l,lidOne(t,b)); return l; }
 const SHOTS=[
-  {id:'read',  t0:0.0, t1:6.0,  tod:'night'},
-  {id:'window',t0:6.0, t1:7.0,  tod:'morning'},
-  {id:'desk',  t0:7.0, t1:8.0,  tod:'noon'},
-  {id:'bed',   t0:8.0, t1:9.0,  tod:'evening'},
-  {id:'read2', t0:9.0, t1:10.0, tod:'night'},
-  {id:'wide',  t0:10.0,t1:12.0, tod:'night'},
-  {id:'eye',   t0:12.0,t1:13.8},
-  {id:'brain', t0:13.8,t1:16.0},
-  {id:'mirror',t0:16.0,t1:19.0, tod:'night'} ];
+  {id:'eyehook',t0:0.0, t1:2.4},
+  {id:'read',   t0:2.4, t1:3.9,  tod:'night'},
+  {id:'read2',  t0:3.9, t1:5.4,  tod:'night'},
+  {id:'window', t0:5.4, t1:6.4,  tod:'morning'},
+  {id:'desk',   t0:6.4, t1:7.4,  tod:'noon'},
+  {id:'bed',    t0:7.4, t1:8.4,  tod:'evening'},
+  {id:'readn',  t0:8.4, t1:9.3,  tod:'night'},
+  {id:'wide',   t0:9.3, t1:11.2, tod:'night'},
+  {id:'life',   t0:11.2,t1:13.0, tod:'night'},
+  {id:'eye',    t0:13.0,t1:14.6},
+  {id:'brain',  t0:14.6,t1:17.0},
+  {id:'mirror', t0:17.0,t1:22.0, tod:'night'} ];
 const shotAt=t=>SHOTS.find(s=>t>=s.t0&&t<s.t1)||SHOTS[SHOTS.length-1];
 
 // ---------------------------------------------------------------- the props, each staged in the pool of light (dark materials, faint rim)
@@ -105,41 +111,79 @@ const brainU={uT:{value:0},uB:{value:1},uH:{value:H}};
   lm.frustumCulled=false; BRAIN.add(lm); }const eyeSpot=new THREE.SpotLight(0xffc890,0,14,0.5,0.7,1.2); eyeSpot.position.set(57.6,3.0,5.0); eyeSpot.target.position.set(60,0,0); scene.add(eyeSpot,eyeSpot.target);
 const EYEM=buildEye(ST.renderer); EYE.add(EYEM.group);
 
+// ---------------------------------------------------------------- V3 brain: a glowing brain you can recognise (two hemispheres with gyri, cerebellum, stem).
+// The visual cortex at the back burns gold, fed by pulses running back from the eyes along the optic radiation; on a blink it all cuts out.
+const BRAIN2=new THREE.Group(); BRAIN2.position.set(180,0,0); scene.add(BRAIN2);
+const b2U={uT:{value:0},uB:{value:1},uOcc:{value:1},uH:{value:H}};
+{ const Rr=rng(77), P=[], A=[]; // A: [kind, occipital weight, seed]
+  const gyri=(x,y,z)=>Math.sin(9.0*(y+0.28*Math.sin(3.1*z+1.3*x))+3.2*Math.sin(4.3*z-2.0*y)+2.0*Math.sin(5.5*x+z)+1.4*Math.sin(6.0*x*z+5.0*y+2.0*z*z));
+  for(let i=0;i<150000;i++){ const side=Rr()<0.5?-1:1; let th=Math.acos(2*Rr()-1), ph=Rr()*Math.PI*2; let dx=Math.sin(th)*Math.cos(ph), dy=Math.cos(th), dz=Math.sin(th)*Math.sin(ph);
+    if(dx*side<-0.55) continue; // medial wall mostly hidden
+    let x=side*0.33+dx*0.42, y=dy*0.6, z=dz*0.86; if(y<0) y*=0.75+0.25*Math.exp(-((z-0.25)**2)/0.12); // flatter base, temporal lobe drop
+    if(y<-0.3&&z<-0.35) continue;
+    const g=gyri(x,y,z); if(Math.abs(g)<0.22) continue; const r=1+0.035*g; x=side*0.33+(x-side*0.33)*r; y*=r; z*=r;
+    const occ=sstep(-0.35,-0.7,z)*sstep(-0.45,0.1,y)*(0.85+0.15*Math.sin(17*x+11*y)); P.push(x,y,z); A.push(0,occ,Rr()); }
+  for(let i=0;i<26000;i++){ let th=Math.acos(2*Rr()-1), ph=Rr()*Math.PI*2; const x=Math.sin(th)*Math.cos(ph)*0.5, y=-0.5+Math.cos(th)*0.22, z=-0.62+Math.sin(th)*Math.sin(ph)*0.3; if(Math.abs(Math.sin(y*90))<0.3) continue; P.push(x,y,z); A.push(1,0.2,Rr()); }
+  for(let i=0;i<5000;i++){ const u=Rr(), a=Rr()*6.283; P.push(Math.cos(a)*0.09,-0.35-u*0.55,-0.32+Math.sin(a)*0.09-u*0.08); A.push(2,0,Rr()); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('info',new THREE.Float32BufferAttribute(A,3));
+  const m=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:b2U,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+    vertexShader:`attribute vec3 info; uniform float uT,uH,uB,uOcc; varying vec3 vC; varying float vA;
+      void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); gl_Position=projectionMatrix*mv; float s=info.z*6.283;
+        float fire=pow(0.5+0.5*sin(uT*(2.0+info.z*5.0)+s*3.0),5.0); float occ=info.y*uOcc;
+        vec3 cool=vec3(0.42,0.5,0.66), gold=vec3(1.0,0.7,0.34); vC=mix(cool,gold,clamp(occ*1.2,0.0,1.0)); if(info.x>1.5) vC=vec3(0.35,0.4,0.52);
+        float sz=(0.011+0.012*fire*(0.3+occ))*uH/(-mv.z); gl_PointSize=clamp(sz,1.0,14.0);
+        vA=(0.1+0.32*fire*occ+0.3*occ)*uB*min(1.0,sz/1.2); }`,
+    fragmentShader:`varying vec3 vC; varying float vA; void main(){ float d=length(gl_PointCoord-0.5); float a=smoothstep(0.5,0.0,d); gl_FragColor=vec4(vC*a*vA,1.0); }`}));
+  m.frustumCulled=false; BRAIN2.add(m);
+  const NT=70, SEG=40, lp=[], la=[], ls=[];
+  for(let k=0;k<NT;k++){ const side=k%2?1:-1, sd=Rr(); const p0=new THREE.Vector3(side*0.08,-0.28,0.62), p1=new THREE.Vector3(side*(0.28+0.12*Rr()),-0.1+0.12*Rr(),0.0), p2=new THREE.Vector3(side*(0.18+0.12*Rr()),-0.05+0.2*Rr(),-0.76);
+    const c=new THREE.QuadraticBezierCurve3(p0,p1,p2); const pts=c.getPoints(SEG); for(let j=0;j<SEG;j++){ lp.push(...pts[j].toArray(),...pts[j+1].toArray()); la.push(j/SEG,(j+1)/SEG); ls.push(sd,sd); } }
+  const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3)); lg.setAttribute('along',new THREE.Float32BufferAttribute(la,1)); lg.setAttribute('seed',new THREE.Float32BufferAttribute(ls,1));
+  const lm=new THREE.LineSegments(lg,new THREE.ShaderMaterial({uniforms:b2U,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+    vertexShader:`attribute float along; attribute float seed; varying float vL; varying float vS; void main(){ vL=along; vS=seed; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`uniform float uT,uB,uOcc; varying float vL; varying float vS; void main(){ float p=fract(uT*1.3+vS*5.0); float pulse=exp(-pow((vL-p)*9.0,2.0)); gl_FragColor=vec4(vec3(1.0,0.76,0.42)*(0.04+0.9*pulse)*uB*uOcc,1.0); }`}));
+  lm.frustumCulled=false; BRAIN2.add(lm); }
+
 // ---------------------------------------------------------------- hero poses, all inside the pool of light
 const sitP=(o={})=>({...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,...o});
 const breathe=t=>0.014*Math.sin(2*Math.PI*0.23*t);
 function heroPose(t,id){ const ex={}; let J,P,root,yaw;
-  if(id==='read'||id==='read2'||id==='wide'){ root=V(0.0,0,0.05); yaw=SLD.yawOf(V(0.3,0,0.95)); P=sitP({p:0.14+breathe(t),tilt:0.42+0.03*Math.sin(t*0.9),hy:0.06*Math.sin(t*0.5),eL:1.0,eR:1.0});
+  if(id==='read'||id==='read2'||id==='readn'||id==='wide'||id==='life'){ root=V(0.0,0,0.05); yaw=SLD.yawOf(V(0.3,0,0.95)); P=sitP({p:0.14+breathe(t),tilt:0.42+0.03*Math.sin(t*0.9),hy:0.06*Math.sin(t*0.5),eL:1.0,eR:1.0});
     const J0=R.skel(P,root,yaw); const f=J0.fwd, sd=V(-f.z,0,f.x); const bc=J0.neck.clone().addScaledVector(f,0.33).add(V(0,-0.2,0));
-    if(t>3.85&&t<4.3){ bc.addScaledVector(sd,0.04*Math.sin(Math.PI*(t-3.85)/0.45)); }    // page turn
+    if(t>4.2&&t<4.65){ bc.addScaledVector(sd,0.04*Math.sin(Math.PI*(t-4.2)/0.45)); }    // page turn
     P.tL=bc.clone().addScaledVector(sd,0.1); P.wL=1; P.pL=V(-0.3,-0.7,0.6); P.tR=bc.clone().addScaledVector(sd,-0.1); P.wR=1; P.pR=V(-0.3,-0.7,-0.6); J=R.skel(P,root,yaw); ex.book={pos:bc,f}; }
   else if(id==='window'){ root=V(0,0,-0.7); yaw=SLD.yawOf(V(0.05,0,-1)); P={...R.P0,p:0.03+breathe(t),tilt:-0.12}; const J0=R.skel(P,root,yaw);
-    const sip=sstep(6.3,6.6,t)*(1-sstep(6.75,6.95,t)); const mp=J0.neck.clone().addScaledVector(J0.fwd,0.24).add(V(0,-0.24+0.13*sip,0)).addScaledVector(V(-J0.fwd.z,0,J0.fwd.x),-0.13);
+    const sip=sstep(5.7,6.0,t)*(1-sstep(6.15,6.35,t)); const mp=J0.neck.clone().addScaledVector(J0.fwd,0.24).add(V(0,-0.24+0.13*sip,0)).addScaledVector(V(-J0.fwd.z,0,J0.fwd.x),-0.13);
     P.tR=mp; P.wR=1; P.pR=V(-0.3,-0.7,-0.5); J=R.skel(P,root,yaw); ex.mug=J.hR.clone(); }
   else if(id==='desk'){ root=V(0,0,0.17); yaw=SLD.yawOf(V(0,0,-1)); P=sitP({p:0.3+breathe(t),tilt:0.25,eL:1.0,eR:1.0}); const ty=t*13;
     P.tL=V(-0.1,0.83+Math.max(0,Math.sin(ty))*0.014,-0.36); P.wL=1; P.pL=V(-0.3,-0.7,0.5); P.tR=V(0.12,0.83+Math.max(0,Math.sin(ty+2))*0.014,-0.36); P.wR=1; P.pR=V(-0.3,-0.7,-0.5); J=R.skel(P,root,yaw); }
   else if(id==='bed'){ root=V(0.1,0,0.42); yaw=SLD.yawOf(V(0.2,0,1)); P=sitP({p:0.42+breathe(t),tilt:0.55,eL:1.2,eR:1.2,dy:0.05}); const J0=R.skel(P,root,yaw); const pp=J0.neck.clone().addScaledVector(J0.fwd,0.28).add(V(0,-0.28,0));
     P.tL=pp.clone(); P.wL=1; P.pL=V(-0.3,-0.7,0.5); P.tR=pp.clone().add(V(0,0.02,0)); P.wR=1; P.pR=V(-0.3,-0.7,-0.5); J=R.skel(P,root,yaw); ex.phone={pos:pp.clone().add(V(0,0.04,0)),f:J.fwd}; }
-  else { root=V(0,0,-0.8); yaw=SLD.yawOf(V(0.03,0,-1)); const lean=sstep(16.2,17.4,t); P={...R.P0,p:0.04+0.07*lean+breathe(t),tilt:0.0,hy:0.08*Math.sin(t*0.7)}; J=R.skel(P,root,yaw); }
+  else { root=V(0,0,-0.8); yaw=SLD.yawOf(V(0.03,0,-1)); const lean=sstep(17.2,18.4,t); P={...R.P0,p:0.04+0.07*lean+breathe(t),tilt:0.0,hy:0.08*Math.sin(t*0.7)}; J=R.skel(P,root,yaw); }
   return {J,ex}; }
 
 // ---------------------------------------------------------------- light per time of day (the lamp changes colour; window / screen / phone add their own)
 const TOD={ night:{col:PAL.GOLD,k:1.0}, morning:{col:0xd8e4f6,k:0.55}, noon:{col:0xfff0d8,k:0.55}, evening:{col:0xff9a52,k:0.9} };
-const CAMS={ read:[[0.6,1.35,7.6],[0,0.8,0],[0.2,1.2,5.3],[0,1.0,0]],
-  window:[[0.95,1.35,3.9],[0,1.25,-1.0],[0.75,1.35,3.4],[0,1.25,-1.0]],
+const CAMS={
+  read:[[0.9,1.3,5.6],[0,0.85,0],[0.5,1.2,4.3],[0,0.95,0]],
+  readn:[[1.3,1.6,4.2],[0,0.95,0],[1.0,1.5,3.6],[0,1.0,0]],
+  life:[[0,2.1,8.8],[0,1.0,0],[0,6.5,26],[0,0.6,0]],
+  window:[[0.95,1.3,3.9],[0,1.55,-1.0],[0.75,1.3,3.4],[0,1.55,-1.0]],
   desk:[[2.4,1.55,3.6],[0,0.85,-0.2],[2.15,1.5,3.2],[0,0.85,-0.2]],
   bed:[[-1.7,1.25,4.6],[0.1,0.7,0.1],[-1.4,1.22,4.2],[0.1,0.7,0.1]],
-  read2:[[-0.45,1.95,3.9],[0,1.1,0.05],[-0.55,1.88,3.45],[0,1.12,0.05]],
-  wide:[[0,1.9,7.4],[0,1.0,0],[0,2.1,8.8],[0,1.0,0]],
-  mirror:[[1.9,1.5,6.2],[-0.1,1.1,-1.1],[1.5,1.45,4.9],[-0.1,1.15,-1.2]] };
-const PROPS={read:'chair',read2:'chair',wide:'chair',window:'window',desk:'desk',bed:'bed',mirror:'mirror'};
+  read2:[[-0.5,1.9,3.5],[0,1.1,0.05],[-0.6,1.85,3.0],[0,1.12,0.05]],
+  wide:[[0,1.7,6.2],[0,1.0,0],[0,2.1,8.8],[0,1.0,0]],
+  mirror:[[1.0,1.62,3.6],[-0.15,1.3,-1.55],[0.6,1.58,2.5],[-0.15,1.35,-1.55]] };
+const PROPS={read:'chair',read2:'chair',readn:'chair',wide:'chair',life:'chair',window:'window',desk:'desk',bed:'bed',mirror:'mirror'};
 
 function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0)/(sh.t1-sh.t0)));
-  ST.GU.uLid.value=(id==='eye'||id==='brain')?0:lidAt(t);
+  ST.GU.uLid.value=(id==='eye'||id==='brain')?0:(id==='eyehook'?(t<0.14?lidAt(t):0):lidAt(t));
   for(const k of ['chair','window','desk','bed','mirror']) G[k].visible=(PROPS[id]===k);
   rbook.visible=mug.visible=phone.visible=false; phoneLight.intensity=0; lapLight.intensity=0; winLight.intensity=0; eyeLight.intensity=0; eyeSpot.intensity=0;
-  EYE.visible=id==='eye'; BRAIN.visible=id==='brain';
-  if(sh.tod){ const L=TOD[sh.tod]; scene.fog.density=0.085; ST.spot.color.setHex(L.col); ST.beamU.uCol.value.setHex(L.col); ST.tick(t,0); ST.spot.intensity*=L.k; ST.beamU.uI.value*=L.k;
+  EYE.visible=id==='eye'||id==='eyehook'; BRAIN.visible=false; BRAIN2.visible=id==='brain';
+  if(sh.tod){ let L=TOD[sh.tod]; if(id==='life'){ const cyc=['morning','noon','evening','night'], f=Math.pow(clamp((t-11.35)/1.4),1.6)*14, i=Math.floor(f), w=f-i;
+      const a=TOD[cyc[i%4]], b=TOD[cyc[(i+1)%4]]; L={col:new THREE.Color(a.col).lerp(new THREE.Color(b.col),w).getHex(),k:lerp(a.k,b.k,w)}; if(t<11.35) L=TOD.night; }
+    scene.fog.density=id==='life'?lerp(0.085,0.02,u):0.085; ST.spot.color.setHex(L.col); ST.beamU.uCol.value.setHex(L.col); ST.tick(t,0); ST.spot.intensity*=L.k; ST.beamU.uI.value*=L.k;
     if(id==='window') winLight.intensity=6; if(id==='desk'){ lapLight.position.set(0,0.95,-0.35); lapLight.intensity=0.6; }
     const hp=heroPose(t,id); hero.all.forEach(m=>m.visible=true); R.poseFig(hero,hp.J); placeEyes(hp.J,id==='mirror'?false:lidAt(t)>0.45);
     const e=hp.ex; if(e.book){ rbook.visible=true; rbook.position.copy(e.book.pos); rbook.lookAt(e.book.pos.clone().add(e.book.f.clone().multiplyScalar(-1)).add(V(0,0.9,0))); rbook.rotateX(-Math.PI/2); }
@@ -148,11 +192,13 @@ function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0
     const cm=CAMS[id]; const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
     ST.cam.fov=38; ST.cam.updateProjectionMatrix(); ST.cam.position.copy(pos); ST.cam.lookAt(look); return; }
   hero.all.forEach(m=>m.visible=false); eyes.forEach(e=>e.visible=false); scene.fog.density=0.012; ST.tick(t,0);
-  if(id==='eye'){ eyeSpot.intensity=26; eyeLight.position.set(62.2,0.8,3.2); eyeLight.color.setHex(0x9fb2d6); eyeLight.intensity=0.8;
-    const b=t-12.85; const shut=b<0||b>0.34?0:(b<0.09?sm5(b/0.09):(b<0.16?1:1-sm5((b-0.16)/0.18))); EYEM.update(1-shut,t);
-    const pu=sstep(13.15,13.8,t); const z=lerp(+(window.EYEZ||9.5),1.16,Math.pow(pu,1.5)); ST.cam.fov=lerp(30,26,pu); ST.cam.updateProjectionMatrix(); EYEM.cornea.visible=pu<0.55&&shut<0.6; ST.cam.position.set(60,0.15*(1-pu),z); ST.cam.lookAt(60,0,0); return; }
+  if(id==='eye'||id==='eyehook'){ eyeSpot.intensity=26; eyeLight.position.set(62.2,0.8,3.2); eyeLight.color.setHex(0x9fb2d6); eyeLight.intensity=0.8;
+    let shut=0; for(const e of EYEBLINKS){ const b=t-e; shut=Math.max(shut,b<0||b>0.34?0:(b<0.09?sm5(b/0.09):(b<0.16?1:1-sm5((b-0.16)/0.18)))); } EYEM.update(1-shut,t);
+    if(id==='eyehook'){ const k=sm5(clamp(t/2.4)); ST.cam.fov=30; ST.cam.updateProjectionMatrix(); EYEM.cornea.visible=shut<0.6; ST.cam.position.set(60+lerp(0.25,-0.1,k),lerp(0.35,0.15,k),lerp(6.6,5.4,k)); ST.cam.lookAt(60,-0.05,0); return; }
+    const pu=sstep(13.95,14.6,t); const k=sm5(clamp((t-13)/1.0)); const z=lerp(lerp(8.2,7.0,k),1.16,Math.pow(pu,1.5)); ST.cam.fov=lerp(30,26,pu); ST.cam.updateProjectionMatrix(); EYEM.cornea.visible=pu<0.55&&shut<0.6;
+    ST.cam.position.set(60+lerp(-1.6,-1.0,k)*(1-pu),lerp(0.6,0.3,k)*(1-pu),z); ST.cam.lookAt(60,0,0); return; }
   const dip=b=>{ const x=t-b; return x<-0.05||x>0.35?0:(x<0?sm5((x+0.05)/0.05):(x<0.15?1:1-sm5((x-0.15)/0.2))); };
-  brainU.uT.value=t; brainU.uB.value=sstep(13.8,14.1,t)*(1-0.88*Math.max(dip(14.55),dip(15.45)));
-  const v=(t-13.8)/2.2; ST.cam.fov=40; ST.cam.updateProjectionMatrix(); ST.cam.position.set(120+0.3*Math.sin(v*2),0.2*Math.cos(v*1.5),3.5-v*6.5); ST.cam.lookAt(120+0.2*Math.sin(v*2+0.5),0,-20); }
+  const off=Math.max(...BRAINBLINKS.map(dip)); b2U.uT.value=t; b2U.uB.value=sstep(14.6,14.95,t)*(1-0.82*off); b2U.uOcc.value=1-off;
+  const v=clamp((t-14.6)/2.4), a=lerp(-2.35,-1.75,sm5(v)); const d=lerp(5.6,4.8,sm5(v)); ST.cam.fov=36; ST.cam.updateProjectionMatrix(); ST.cam.position.set(180+Math.sin(a)*d,0.55-0.25*v,Math.cos(a)*d); ST.cam.lookAt(180,0.3,-0.25); }
 window.renderAt=(t,K=3)=>{ const sh=shotAt(t); return ST.renderAt(setT,t,K,{t0:sh.t0,t1:sh.t1,shutter:1/60}); };
-window.events={DUR,BLINKS,SHOTS}; window.ready=true;
+window.events={DUR,BLINKS,EYEBLINKS,BRAINBLINKS,SHOTS}; window.ready=true;

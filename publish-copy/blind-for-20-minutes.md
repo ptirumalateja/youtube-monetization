@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | V2 (full-dark, rebuilt eye) delivered 28 Oct 2026, awaiting Teja's review |
+| Status | V3 (payoff-first re-cut, 22 s) rendering 28 Oct 2026; V2 kept in final-reels/blink-v2/ |
 | Upload file | `final-reels/blind-for-20-minutes.mp4` (silent: `blind-for-20-minutes_music-ready.mp4`) |
-| Length | 19.0 s, loops (frame 0 and the last frame are both shut eyelids) |
+| Length | 22.0 s, loops (the last frame closes the lids, frame 0 opens the eye) |
 | Voice | None (wordless) |
 | Renderer | `tools/blink-reel` |
 
@@ -20,7 +20,7 @@
   Sound: original, synthesised for Slow Light (room tone: CC0).
   #blink #brain #eyes #psychology #mindblown #slowlight #shorts
 - **Pinned comment:** Did you just try it in a mirror? 👀 Could you catch a single blink?
-- **Instagram / Facebook caption:** You were blind for 20 minutes today 👁️ Every blink is about 0.1 s of darkness, 10,000+ times a day, and your brain hides every one. Try catching yourself blink in a mirror. You can't. Tag someone who's going to try it 👇 #blink #brain #psychology #slowlight #reels
+- **Instagram / Facebook caption:** You were blind for 20 minutes today 👁️ Every blink is about 0.1 s of darkness, around 12,000 times a day. Over a lifetime that's about a year with your eyes shut, and your brain edits out every one. Try catching yourself blink in a mirror. You can't. Tag someone who's going to try it 👇 #blink #brain #psychology #slowlight #reels
 - Upload: 9:16 full-bleed; AI/synthetic content label on (animation is code-generated). Use the music-ready copy only if adding platform music.
 
 ## Facts and sources
@@ -29,5 +29,7 @@
 - People blink about 10 to 15 times a minute (UCL press summary of Bristow et al.), https://www.biospace.com/blink-and-you-really-do-miss-it
 - Blinks suppress activity in visual brain areas, so the darkness goes unnoticed: Bristow, Haynes, Sylvester, Frith & Rees, "Blinking suppresses the neural response to unchanging retinal stimulation", Current Biology 15:1296-1300, 2005, doi:10.1016/j.cub.2005.06.025 (https://eurekalert.org/news-releases/514450).
 - The math on screen: 10-15 blinks/min x 0.10-0.15 s x 960 waking minutes = 16-36 minutes; "20 minutes" is a typical value, and the description says "about". Blink rate drops when reading or looking at screens, so a screen-heavy day can be lower. Don't state 20 minutes as an exact figure in replies.
-- "10,000+ times a day": 10-15/min x 960 min = 9,600-14,400.
+- "10,000+ times a day" (V2) / "~12,000 times a day" (V3): 10-15/min x 960 min = 9,600-14,400. V3 uses ~12,000 so the on-screen math closes: 12,000 x 0.1 s = 1,200 s = 20:00.
+- "~1 YEAR" in a lifetime (V3): 20 min/day x 365 days x 72 years = 525,600 min, about 365 days. It is an order-of-magnitude figure that rests on the 20-minute typical day, so keep the "~".
+- "YOUR BRAIN EDITS OUT EVERY BLINK" (V3): blink suppression, as in Bristow et al. 2005 above.
 - The mirror test is commonly reported and matches blink suppression. On screen it is framed as an invitation ("try it"), not as a measurement.

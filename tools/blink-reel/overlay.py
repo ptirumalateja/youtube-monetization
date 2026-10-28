@@ -1,5 +1,6 @@
-"""Text layer for You Were Blind for 20 Minutes Today: the hook, three lock-in lines, the DARKNESS TODAY counter (00:00 -> 20:00, asserted
-monotonic), time-of-day chips, the rehook, the brain line and the mirror close. Frame 0 carries the hook on the shut lids, so the loop closes.
+"""Text layer for You Were Blind for 20 Minutes Today (V3, 22 s): the hook over the blinking eye, two one-line lock-in beats, the
+DARKNESS TODAY counter (00:00 -> 20:00, asserted monotonic) with time-of-day chips, the 20:00 rehook, "~1 YEAR" in a lifetime, the eye
+question, the brain line, the mirror dare and the follow CTA. V2's layer is kept in overlay_v2.py.
 
   python3 overlay.py still IN.jpg T OUT.jpg       overlay one rendered frame at time T
   python3 overlay.py frames IN_DIR OUT_DIR        overlay every fNNNNN.jpg (30 fps)
@@ -8,7 +9,7 @@ monotonic), time-of-day chips, the rehook, the brain line and the mirror close. 
 import os, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 FONT_DIR = '/usr/share/fonts/truetype/jetbrains-mono'
-W, H, FPS, DUR = 1080, 1920, 30, 19.0
+W, H, FPS, DUR = 1080, 1920, 30, 22.0
 CREAM = (250, 240, 222); GOLD = (240, 184, 92); DIM = (200, 190, 175)
 _f = {}
 def font(size, weight='Bold'):
@@ -27,46 +28,58 @@ def tracked(d, text, size, cx, y, track, fill, weight='Bold'):
     return tot
 
 def dark_s(t):
-    """Seconds of darkness counted so far: 0 at 6.0 s, 1200 (20:00) at 10.9 s, accelerating, then held."""
-    u = min(1.0, max(0.0, (t - 6.0) / 4.9)); return 1200.0 * u ** 1.7
+    """Seconds of darkness counted so far: 0 at 5.4 s, 1200 (20:00) at 9.9 s, accelerating, then held."""
+    u = min(1.0, max(0.0, (t - 5.4) / 4.5)); return 1200.0 * u ** 1.7
 
-TOD = [(6.0, 7.0, '7 AM'), (7.0, 8.0, '1 PM'), (8.0, 9.0, '6 PM'), (9.0, 10.0, '11 PM')]
+TOD = [(5.4, 6.4, '7 AM'), (6.4, 7.4, '1 PM'), (7.4, 8.4, '6 PM'), (8.4, 9.3, '11 PM')]
 def layer(t):
-    """Return (text RGBA layer, shadow RGBA layer) for time t."""
+    """Return (text RGBA layer, shadow RGBA layer) for time t. V3: payoff-first, one line per beat, nothing below y 1300."""
     L = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(L)
-    def lines(rows, size, y0, a, col=CREAM, gap=1.18, track=2):
+    def lines(rows, size, y0, a, col=CREAM, gap=1.18, track=2, weight='Bold'):
         for i, r in enumerate(rows):
             c = col[i] if isinstance(col, list) else col
-            tracked(d, r, size, W / 2, y0 + i * size * gap, track, c + (int(255 * a),))
-    # hook (frame 0)
-    a = win(t, 0, 2.45);
-    if a: lines(['YOU WERE BLIND', 'FOR 20 MINUTES', 'TODAY.'], 92, 250, a, [CREAM, GOLD, CREAM])
-    # lock-in
-    for k, (t0, txt, size, col) in enumerate([(2.55, 'YOU BLINK 10,000+', 54, CREAM), (2.55, 'TIMES A DAY.', 54, CREAM), (3.6, 'EACH ONE = 0.1 s', 54, CREAM), (3.6, 'OF DARKNESS.', 54, CREAM), (4.65, "YOU'VE NEVER", 70, GOLD), (4.65, 'SEEN ONE.', 70, GOLD)]):
-        a = win(t, t0, 5.95)
-        if a: y = [230, 298, 380, 448, 530, 612][k]; tracked(d, txt, size, W / 2, y, 2, col + (int(255 * a),))
+            tracked(d, r, size, W / 2, y0 + i * size * gap, track, c + (int(255 * a),), weight)
+    # hook (frame 0, over the eye)
+    a = win(t, 0, 2.35)
+    if a: lines(['YOU WERE BLIND', 'FOR 20 MINUTES', 'TODAY.'], 96, 200, a, [CREAM, GOLD, CREAM])
+    # lock-in: one beat per shot
+    a = win(t, 2.45, 3.85, 0.1, 0.12)
+    if a: lines(['YOU BLINK ~12,000', 'TIMES A DAY.'], 80, 230, a, [CREAM, CREAM])
+    a = win(t, 3.95, 5.35, 0.1, 0.12)
+    if a: lines(['EACH ONE:', '0.1 s OF DARKNESS.'], 80, 230, a, [CREAM, GOLD])
     # counter + time-of-day chips
-    a = win(t, 6.0, 12.0, 0.1, 0.2)
+    a = win(t, 5.4, 11.2, 0.1, 0.15)
     if a:
-        s = int(dark_s(t)); tracked(d, 'DARKNESS TODAY', 36, W / 2, 300, 10, DIM + (int(235 * a),), 'Medium')
-        tracked(d, f'{s // 60:02d}:{s % 60:02d}', 150, W / 2, 352, 6, (GOLD if t >= 10.9 else CREAM) + (int(255 * a),))
+        s = int(dark_s(t)); tracked(d, 'DARKNESS TODAY', 46, W / 2, 240, 10, DIM + (int(235 * a),), 'Medium')
+        tracked(d, f'{s // 60:02d}:{s % 60:02d}', 160, W / 2, 300, 6, (GOLD if t >= 9.9 else CREAM) + (int(255 * a),))
         for t0, t1, lab in TOD:
             b = win(t, t0, t1, 0.08, 0.1)
-            if b: tracked(d, lab, 34, W / 2, 560, 6, CREAM + (int(220 * b),), 'Medium')
-    a = win(t, 10.9, 12.0, 0.06, 0.15)
-    if a: lines(['20 MINUTES.', 'EVERY DAY.'], 100, 1180, a, [CREAM, GOLD])
-    # eye + brain
-    a = win(t, 12.1, 13.75)
-    if a: lines(["SO WHY DON'T", 'YOU NOTICE?'], 66, 1430, a)
-    a = win(t, 13.95, 15.95)
-    if a: tracked(d, 'YOUR VISUAL BRAIN', 34, W / 2, 320, 10, DIM + (int(230 * a),), 'Medium')
-    a = win(t, 14.25, 15.95)
-    if a: lines(['YOUR BRAIN', 'SWITCHES OFF', 'THE DARK.'], 92, 760, a, [CREAM, CREAM, GOLD])
-    # mirror
-    a = win(t, 16.05, 18.82)
-    if a: lines(['TRY IT IN A MIRROR.'], 58, 230, a)
-    a = win(t, 16.95, 18.82, 0.08, 0.1)
-    if a: lines(["YOU'LL NEVER", 'CATCH ONE.'], 96, 340, a, [CREAM, GOLD])
+            if b: tracked(d, lab, 54, W / 2, 500, 6, CREAM + (int(230 * b),), 'Medium')
+    a = win(t, 9.9, 11.2, 0.06, 0.15)
+    if a: lines(['20 MINUTES.', 'EVERY DAY.'], 100, 1080, a, [CREAM, GOLD])
+    # stakes: a lifetime
+    a = win(t, 11.25, 13.0, 0.08, 0.15)
+    if a:
+        tracked(d, 'IN A LIFETIME', 46, W / 2, 240, 10, DIM + (int(235 * a),), 'Medium')
+        b = win(t, 11.45, 13.0, 0.06, 0.15)
+        if b: tracked(d, '~1 YEAR', 170, W / 2, 300, 6, GOLD + (int(255 * b),))
+        c = win(t, 11.9, 13.0, 0.1, 0.15)
+        if c: lines(['WITH YOUR', 'EYES SHUT.'], 96, 1080, c)
+    # why
+    a = win(t, 13.05, 14.5, 0.1, 0.12)
+    if a: lines(["SO WHY DON'T", 'YOU NOTICE?'], 92, 210, a, [CREAM, GOLD])
+    # brain
+    a = win(t, 14.75, 16.95, 0.1, 0.15)
+    if a: lines(['YOUR BRAIN', 'EDITS OUT', 'EVERY BLINK.'], 92, 200, a, [CREAM, CREAM, GOLD])
+    # mirror dare + CTA
+    a = win(t, 17.05, 20.45)
+    if a: lines(['TRY IT IN A MIRROR.'], 64, 200, a)
+    a = win(t, 17.9, 20.45, 0.08, 0.12)
+    if a: lines(["YOU'LL NEVER", 'CATCH ONE.'], 100, 300, a, [CREAM, GOLD])
+    a = win(t, 20.5, 21.85, 0.1, 0.06)
+    if a:
+        lines(['FOLLOW @SLOWLIGHTTV'], 64, 220, a, GOLD)
+        lines(['MORE THINGS YOUR', 'BRAIN HIDES FROM YOU.'], 52, 320, a, CREAM, weight='Medium')
     sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sh.putalpha(L.getchannel('A').point(lambda v: int(v * 0.75))); sh = sh.filter(ImageFilter.GaussianBlur(10))
     return L, sh
 
