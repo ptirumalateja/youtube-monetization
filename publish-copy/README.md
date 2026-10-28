@@ -8,7 +8,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 
 | Reel | Status | Upload file |
 |---|---|---|
-| [How Many Countries Fit on the Moon? (South Asia set)](countries-on-the-moon.md) | v2 delivered, awaiting Teja's review; post this one rather than 11 Indias | `final-reels/countries-on-the-moon_v2.mp4` (silent: `_v2_music-ready.mp4`) |
+| [How Many Countries Fit on the Moon? (South Asia set)](countries-on-the-moon.md) | v3 delivered, awaiting Teja's review; post this one rather than 11 Indias | `final-reels/countries-on-the-moon_v3.mp4` (silent: `_v3_music-ready.mp4`) |
 | [11 Indias Fit on the Moon (India size ladder)](eleven-indias-on-the-moon.md) | v1 delivered; superseded by the countries cut after VidIQ's review | `final-reels/eleven-indias-on-the-moon.mp4` (silent: `_music-ready.mp4`, drop on 16.0 s) |
 | [16 Sunrises a Day (ISS free fall)](iss-16-sunrises.md) | Delivered, awaiting Teja's review | `iss_16_sunrises_v1.mp4` (project files root) / `final-reels/iss-16-sunrises.mp4` on the Mac |
 | [Born From Static (how AI art is made)](born-from-static.md) | Final (v1), awaiting Teja's review | `final-reels/born-from-static_master.mp4` (share: `born-from-static.mp4`; silent: `_music-ready.mp4`) |

@@ -120,11 +120,12 @@ def params(t):
         gB, gB2 = grid(iso, t, a, b, endclr, 1.); oB = list(origin_at(a)); cB = TINT[iso]; isoB = iso
     if kA is not None:
         iso, a, b = SEQ[kA][:3]; na = SEQ[kB][1]
-        clr = wave_angle(t + .3, na - .3, SEQ[kB][2] - .3)                 # the wipe runs just ahead of the new country
+        nb_ = SEQ[kB][2]; popw_b = max(math.pi / (nb_ - na) * .3, .02)
+        clr = max(wave_angle(t, na, nb_) - .7 * popw_b, 0.) if t >= na else 0.   # old tiles vanish only once the new ones over them have grown in: never a bare Moon
         gA, gA2 = grid(iso, t, a, b, clr, 1.); oA = list(origin_at(a)); cA = TINT[iso]; isoA = iso
     # India: packed tiles, wiped by Pakistan's front
     pa = SEQ[1][1]
-    ind = [1. if t < SEQ[1][2] + .5 else 0., wave_angle(t + .3, pa - .3, SEQ[1][2] - .3), 0., 0.]
+    ind = [1. if t < SEQ[1][2] + .5 else 0., max(wave_angle(t, pa, SEQ[1][2]) - .7 * max(math.pi / (SEQ[1][2] - pa) * .3, .02), 0.) if t >= pa else 0., 0., 0.]
     # hero sheet: hovers, descends, wraps at T_SHEET; re-forms over the Moon at the end
     if t < T_SHEET:
         h = .42 * (1 - sm(t / T_SHEET)) ** 1.2; al = 1.; fl = 0.
@@ -140,17 +141,21 @@ def params(t):
 
 
 def counter(t):
-    """(big value, label, area line, alpha) for the bottom counter"""
-    for k, (iso, a, b, hold, big, lab, area) in enumerate(SEQ):
+    """(big value, label, area line) for the bottom counter. The last landed number stays up until the next count starts."""
+    def show(k):
+        iso, a, b, hold, big, lab, area = SEQ[k]
         if iso == 'IND':
-            if t < hold:
-                n = sum((.5 if j == len(MOON_SCHED) - 1 else 1) for j, (_, ta) in enumerate(MOON_SCHED) if t >= ta)
-                if n <= 0: return None
-                return (big if n == 11.5 else f'{int(n)}'), lab, area
-            continue
-        if a <= t < hold:
-            c = wave_frac(t, a, b)
-            if c >= 1: return big, lab, area
-            v = int(COUNT[iso] * c)
-            return (f'{v:,}' if v > 0 else None), lab, area
+            n = sum((.5 if j == len(MOON_SCHED) - 1 else 1) for j, (_, ta) in enumerate(MOON_SCHED) if t >= ta)
+            return ((big if n == 11.5 else f'{int(n)}'), lab, area) if n > 0 else None
+        c = wave_frac(t, a, b)
+        if c >= 1: return big, lab, area
+        v = int(COUNT[iso] * c)
+        return (f'{v:,}', lab, area) if v > 0 else None
+    if t >= T_END: return None
+    started = [k for k in range(len(SEQ)) if t >= SEQ[k][1]]
+    for k in reversed(started):
+        r = show(k)
+        if r: return r
+        if k > 0:      # new count not visible yet: keep the previous country's final number
+            iso, a, b, hold, big, lab, area = SEQ[k - 1]; return big, lab, area
     return None

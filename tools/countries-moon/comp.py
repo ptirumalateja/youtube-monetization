@@ -15,6 +15,7 @@ TEXT = [
     (-1.0, 1.7, HOOK, .25, .3),
     (5.45, 7.0, [('SAME MOON.', 120, 'Black', 230), ('NEW COUNTRY.', 120, 'Black', 370)], .2, .3),
     (15.25, 16.5, [('SAME SIZE AS', 92, 'Black', 230), ('BANGLADESH.', 120, 'Black', 345), ('WITH 1/6 OF THE PEOPLE.', 52, 'Bold', 490)], .2, .3),
+    (19.4, 20.65, [('BHUTAN NEXT.', 110, 'Black', 230), ('GUESS FIRST.', 110, 'Black', 360)], .2, .25),
     (22.75, 24.1, [('ALMOST 1,000', 120, 'Black', 230), ('BHUTANS.', 120, 'Black', 370)], .2, .3),
     (24.35, 25.25, [('AND INDIA', 120, 'Black', 230), ('WAS JUST 11.5.', 120, 'Black', 370)], .2, .25),
     (25.35, 99, HOOK, .4, .3),
@@ -102,8 +103,7 @@ def text_layer(t, v, f):
     r = cam.counter(t)
     if r and r[0]:
         val, lab, area = r
-        span = [(s[1] - .05, s[3]) for s in cam.SEQ]; span[0] = (cam.T_SHEET - .05, cam.SEQ[0][3])
-        al = max(env(t, a, b, .15, .3) for a, b in span)
+        al = env(t, cam.T_SHEET - .05, cam.T_END, .15, .3)
         put(val, 200, 'Black', 1410, al); put(lab, 48, 'Bold', 1630, al * .95); put(area, 40, 'SemiBold', 1696, al * .8)
     return np.asarray(lay, np.float32) / 255
 

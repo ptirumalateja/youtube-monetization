@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v2 delivered 28 Oct 2026 (VidIQ pre-publish notes: push-in from frame one, Moon nearly full width, every entrance and landing on a 120 BPM grid), awaiting Teja's review. v1 delivered 27 Oct. Built from the VidIQ six-country plan, with two fact fixes (below). Replaces the planet-ladder idea of [11 Indias Fit on the Moon](eleven-indias-on-the-moon.md) as the one to post. |
-| Upload file | `final-reels/countries-on-the-moon_v2.mp4` (with sound design) or `final-reels/countries-on-the-moon_v2_music-ready.mp4` (silent; 120 BPM, music cut at 24.25 s) |
+| Status | v3 delivered 28 Oct 2026 (VidIQ flow notes: each new country now sweeps over the old one with no bare-Moon gap, and a "BHUTAN NEXT. GUESS FIRST." beat breaks the count-up pattern before the last reveal), awaiting Teja's review. v2 delivered 28 Oct (push-in from frame one, Moon nearly full width, 120 BPM grid). v1 delivered 27 Oct. Built from the VidIQ six-country plan, with two fact fixes (below). Replaces the planet-ladder idea of [11 Indias Fit on the Moon](eleven-indias-on-the-moon.md) as the one to post. |
+| Upload file | `final-reels/countries-on-the-moon_v3.mp4` (with sound design) or `final-reels/countries-on-the-moon_v3_music-ready.mp4` (silent; 120 BPM, music cut at 24.25 s) |
 | Length | 26 s, loops (last frame matches frame one) |
 | Voice | None (on-screen text only) |
 | Source | `tools/countries-moon/` |
@@ -38,9 +38,9 @@ No handle card. Handles go in the caption. Nothing sits in the top 10% of the fr
 
 **Facebook tags (Tags field, no #):** Moon, India, Pakistan, Bangladesh, Nepal, Sri Lanka, Bhutan, geography, size comparison, South Asia, Slow Light
 
-**Pinned comment:** Nepal and Bangladesh are the same size, but Bangladesh has 6× the people. Did you know? 👇 Which country should we put on the Moon next?
+**Pinned comment:** Did you guess Bhutan before it landed? Nepal and Bangladesh are the same size, but Bangladesh has 6× the people. 👇 Which country should we put on the Moon next?
 
-**Upload checklist:** use `countries-on-the-moon.mp4`. Turn the AI/synthetic label on (computer-generated visuals). Cover frame: frame one (tricolour India landing on the Moon, "11.5 INDIAS FIT ON THE MOON.").
+**Upload checklist:** use `countries-on-the-moon_v3.mp4`. Turn the AI/synthetic label on (computer-generated visuals). Cover frame: frame one (tricolour India landing on the Moon, "11.5 INDIAS FIT ON THE MOON.").
 
 ## Facts and sources
 
