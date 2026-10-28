@@ -35,16 +35,31 @@ const SHOTS=[
   {id:'mirror', t0:17.0,t1:22.0, tod:'night'} ];
 const shotAt=t=>SHOTS.find(s=>t>=s.t0&&t<s.t1)||SHOTS[SHOTS.length-1];
 
+// ---------------------------------------------------------------- what he looks at (seen in the POV shots): page text, sunrise, laptop doc, phone feed
+const WORDS='the light had gone out of the room before she noticed it and the long hour after was only the slow return of things she had stopped seeing because she had stopped looking and the window held the last of the evening like water in a glass'.split(' ');
+const pageTex=sd=>canvasTex(512,768,(g,w,h)=>{ const r=rng(sd); g.fillStyle='#efe6d4'; g.fillRect(0,0,w,h); const gr=g.createLinearGradient(sd%2?w:0,0,sd%2?0:w,0); gr.addColorStop(0,'rgba(90,70,40,0.35)'); gr.addColorStop(0.12,'rgba(90,70,40,0)'); g.fillStyle=gr; g.fillRect(0,0,w,h);
+  g.fillStyle='#2a2420'; g.font='19px Georgia, serif'; let y=70; while(y<h-50){ let x=44, line=''; while(true){ const wd=WORDS[Math.floor(r()*WORDS.length)]; if(g.measureText(line+wd+' ').width>w-88) break; line+=wd+' '; } g.fillText(line,x,y); y+=30; }
+  g.font='15px Georgia, serif'; g.fillText(String(140+sd),w/2-12,h-24); });
+const skyTex=canvasTex(1024,1280,(g,w,h)=>{ const r=rng(41); const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#7fa6d8'); gr.addColorStop(0.55,'#d8c8c4'); gr.addColorStop(0.75,'#ffd9a8'); gr.addColorStop(1,'#ffe8c8'); g.fillStyle=gr; g.fillRect(0,0,w,h);
+  const sg=g.createRadialGradient(w*0.66,h*0.7,10,w*0.66,h*0.7,360); sg.addColorStop(0,'rgba(255,250,230,1)'); sg.addColorStop(0.15,'rgba(255,236,190,0.9)'); sg.addColorStop(1,'rgba(255,220,170,0)'); g.fillStyle=sg; g.fillRect(0,0,w,h);
+  for(const [base,hm,col] of [[h*0.86,h*0.12,'rgba(150,150,175,0.55)'],[h*0.92,h*0.2,'rgba(95,95,120,0.8)'],[h,h*0.3,'#3a3a4a']]){ let x=-10; g.fillStyle=col; while(x<w){ const bw=40+r()*90, bh=hm*(0.3+0.7*r()); g.fillRect(x,base-bh,bw,h); x+=bw+3; } }
+  g.strokeStyle='rgba(40,40,50,0.6)'; g.lineWidth=2; for(let i=0;i<4;i++){ const bx=200+r()*500, by=200+r()*300; g.beginPath(); g.moveTo(bx-9,by); g.quadraticCurveTo(bx-4,by-6,bx,by); g.quadraticCurveTo(bx+4,by-6,bx+9,by); g.stroke(); } });
+const lapTex=canvasTex(768,480,(g,w,h)=>{ const r=rng(43); g.fillStyle='#1d2330'; g.fillRect(0,0,w,h); g.fillStyle='#2a3242'; g.fillRect(0,0,w,34); g.fillStyle='#f4f1ea'; g.fillRect(150,52,w-300,h-52);
+  g.fillStyle='#1d1d22'; g.font='bold 22px Helvetica, Arial'; g.fillText('Q3 notes',176,92); g.font='14px Helvetica, Arial'; for(let y=124;y<h-20;y+=22){ g.fillStyle='rgba(40,40,48,0.85)'; g.fillRect(176,y,(w-352)*(0.55+0.45*r()),7); } g.fillStyle='#4a7fd0'; g.fillRect(176+(w-352)*0.3,124+22*7,2,16);
+  for(const [x,c] of [[18,'#ff5f57'],[38,'#febc2e'],[58,'#28c840']]){ g.fillStyle=c; g.beginPath(); g.arc(x,17,6,0,7); g.fill(); } });
+const phoneTex=canvasTex(360,760,(g,w,h)=>{ const r=rng(47); g.fillStyle='#0e0f14'; g.fillRect(0,0,w,h); let y=40; for(let k=0;k<4;k++){ const hue=[18,200,330,45][k];
+    g.fillStyle=`hsl(${hue},55%,${45+10*r()}%)`; g.fillRect(14,y+40,w-28,170); const gr=g.createLinearGradient(0,y+40,0,y+210); gr.addColorStop(0,'rgba(255,255,255,0.15)'); gr.addColorStop(1,'rgba(0,0,0,0.35)'); g.fillStyle=gr; g.fillRect(14,y+40,w-28,170);
+    g.fillStyle='#ddd'; g.beginPath(); g.arc(30,y+18,12,0,7); g.fill(); g.fillStyle='rgba(230,230,235,0.8)'; g.fillRect(50,y+12,120,8); g.fillStyle='rgba(230,230,235,0.5)'; g.fillRect(14,y+222,w*0.7,7); y+=260; } });
 // ---------------------------------------------------------------- the props, each staged in the pool of light (dark materials, faint rim)
 const IRONM=M(0x3a3b40,{r:0.55,m:0.3}), DARKW=M(0x2a2420,{r:0.7}), FAB=M(0x4a3a36,{r:0.95});
 const G={}; const mk=id=>{ const g=new THREE.Group(); g.visible=false; scene.add(g); G[id]=g; return g; };
 { const ch=mk('chair'); B(ch,0.78,0.42,0.74,FAB,0,0.21,0,{round:0.08}); B(ch,0.78,0.62,0.18,FAB,-0.02,0.64,-0.3,{round:0.08}); for(const sx of [-1,1]) B(ch,0.16,0.3,0.74,FAB,sx*0.39,0.52,0,{round:0.06}); ch.position.set(0.05,0,-0.05); ch.rotation.y=0.3; }
-const paneM=new THREE.MeshBasicMaterial({color:0xbfd6f0,fog:false});
+const paneM=new THREE.MeshBasicMaterial({map:skyTex,color:0x8c8c8c,fog:false});
 { const w=mk('window'); B(w,1.3,1.6,0.06,DARKW,0,0,0); PLN(w,1.18,1.48,paneM,0,0,0.035); B(w,0.035,1.6,0.07,DARKW,0,0,0.04); B(w,1.3,0.035,0.07,DARKW,0,0,0.04); w.position.set(0,1.55,-1.45); }
 const winLight=new THREE.SpotLight(0xcfe0ff,0,8,0.7,0.6,1.2); winLight.position.set(0,1.6,-1.8); winLight.target.position.set(0,0.9,1.5); scene.add(winLight,winLight.target);
-const screenM=new THREE.MeshBasicMaterial({color:0xbcd4ff,fog:false});
+const screenM=new THREE.MeshBasicMaterial({map:lapTex,color:0x9a9a9a,fog:false});
 { const dk=mk('desk'); B(dk,1.2,0.05,0.6,DARKW,0,0.76,0,{round:0.01}); for(const [x,z] of [[-0.55,-0.25],[0.55,-0.25],[-0.55,0.25],[0.55,0.25]]) B(dk,0.04,0.76,0.04,IRONM,x,0.38,z);
-  const lt=new THREE.Group(); B(lt,0.36,0.015,0.25,M(0x8a8c92,{m:0.6,r:0.35}),0,0,0); const lid=new THREE.Group(); B(lid,0.36,0.24,0.012,M(0x8a8c92,{m:0.6,r:0.35}),0,0.12,0); PLN(lid,0.33,0.21,screenM,0,0.12,0.007); lid.position.set(0,0.008,-0.12); lid.rotation.x=-0.25; lt.add(lid); lt.position.set(0,0.79,-0.02); lt.rotation.y=Math.PI; dk.add(lt);
+  const lt=new THREE.Group(); B(lt,0.36,0.015,0.25,M(0x8a8c92,{m:0.6,r:0.35}),0,0,0); const lid=new THREE.Group(); B(lid,0.36,0.24,0.012,M(0x8a8c92,{m:0.6,r:0.35}),0,0.12,0); PLN(lid,0.33,0.21,screenM,0,0.12,0.007); lid.position.set(0,0.008,-0.12); lid.rotation.x=-0.25; lt.add(lid); lt.position.set(0,0.79,-0.02); dk.add(lt);   // screen faces the chair
   C(dk,0.045,0.04,0.1,M(0xd9c8a8,{r:0.4}),0.42,0.83,0.05); B(dk,0.46,0.05,0.44,DARKW,0,0.47,0.62); B(dk,0.46,0.5,0.05,DARKW,0,0.75,0.84); for(const [x,z] of [[-0.2,0.43],[0.2,0.43],[-0.2,0.81],[0.2,0.81]]) B(dk,0.04,0.47,0.04,IRONM,x,0.235,z);
   dk.position.set(0,0,-0.45); }
 const lapLight=new THREE.PointLight(0xbcd4ff,0,2.2,2); scene.add(lapLight);
@@ -55,9 +70,9 @@ const mirror=new Reflector(new THREE.PlaneGeometry(MIR.w,MIR.h),{textureWidth:Ma
 { const bg=mk('bg'); bg.visible=true; B(bg,1.1,1.9,0.35,M(0x1c1c20,{r:0.9}),-2.6,0.95,-3.2); B(bg,0.9,0.04,0.25,M(0x26262a),2.4,1.6,-3.4); B(bg,0.9,0.04,0.25,M(0x26262a),2.4,1.1,-3.4); C(bg,0.12,0.09,0.22,M(0x2a2420),2.9,0.11,-2.6); }
 
 // ---------------------------------------------------------------- small props: book, mug, phone
-const rbook=new THREE.Group(); { const pg=M(0xf4efe6,{r:0.9}), cv=M(0x5a4a3a,{r:0.7}); for(const sx of [-1,1]){ const h=new THREE.Group(); B(h,0.13,0.012,0.19,cv,sx*0.065,0,0); B(h,0.12,0.02,0.18,pg,sx*0.062,0.012,0); h.rotation.z=-sx*0.28; rbook.add(h); } } scene.add(rbook);
+const rbook=new THREE.Group(); { const pg=M(0xf4efe6,{r:0.9}), cv=M(0x5a4a3a,{r:0.7}); for(const sx of [-1,1]){ const h=new THREE.Group(); B(h,0.13,0.012,0.19,cv,sx*0.065,0,0); B(h,0.12,0.02,0.18,pg,sx*0.062,0.012,0); PLN(h,0.116,0.176,new THREE.MeshStandardMaterial({map:pageTex(sx>0?2:1),color:0x5a544c,roughness:0.95}),sx*0.062,0.0225,0,{rx:-Math.PI/2}); h.rotation.z=-sx*0.28; rbook.add(h); } } scene.add(rbook);
 const mug=new THREE.Group(); C(mug,0.045,0.04,0.1,M(0xe8e1d4,{r:0.4}),0,0,0); scene.add(mug);
-const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({color:0xbcd4ff}),0,0,0.006,{cast:false}); } phone.scale.setScalar(1.4); scene.add(phone); const phoneLight=new THREE.PointLight(0xbcd4ff,0,2.2,2); scene.add(phoneLight);
+const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({map:phoneTex,color:0x8a8a8a}),0,0,0.006,{cast:false}); } phone.scale.setScalar(1.4); scene.add(phone); const phoneLight=new THREE.PointLight(0xbcd4ff,0,2.2,2); scene.add(phoneLight);
 
 // ---------------------------------------------------------------- the hero: cream free-flowing stickman with two eye dots
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
@@ -174,6 +189,7 @@ const CAMS={
   read2:[[-0.5,1.9,3.5],[0,1.1,0.05],[-0.6,1.85,3.0],[0,1.12,0.05]],
   wide:[[0,1.7,6.2],[0,1.0,0],[0,2.1,8.8],[0,1.0,0]],
   mirror:[[1.0,1.62,3.6],[-0.15,1.3,-1.55],[0.6,1.58,2.5],[-0.15,1.35,-1.55]] };
+const POV={read:1,window:1,desk:1,bed:1};   // V3.1: these shots are what HE sees, so the blinks black out the viewer's own view
 const PROPS={read:'chair',read2:'chair',readn:'chair',wide:'chair',life:'chair',window:'window',desk:'desk',bed:'bed',mirror:'mirror'};
 
 function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0)/(sh.t1-sh.t0)));
@@ -189,6 +205,12 @@ function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0
     const e=hp.ex; if(e.book){ rbook.visible=true; rbook.position.copy(e.book.pos); rbook.lookAt(e.book.pos.clone().add(e.book.f.clone().multiplyScalar(-1)).add(V(0,0.9,0))); rbook.rotateX(-Math.PI/2); }
     if(e.mug){ mug.visible=true; mug.position.copy(e.mug).add(V(0,0.03,0)); }
     if(e.phone){ phone.visible=true; phone.position.copy(e.phone.pos); phone.lookAt(e.phone.pos.clone().addScaledVector(e.phone.f,-1).add(V(0,0.6,0))); phoneLight.position.copy(e.phone.pos).addScaledVector(e.phone.f,0.25); phoneLight.intensity=0.35; }
+    if(POV[id]){ hero.all.forEach(m=>m.visible=false); mug.visible=false; eyes.forEach(e=>e.visible=false); const sway=V(0.005*Math.sin(t*1.3),0.004*Math.sin(t*1.7+1),0); let cp, tg;
+      if(id==='read'){ tg=e.book.pos.clone(); cp=tg.clone().addScaledVector(e.book.f,-0.22).add(V(0,0.5,0)); rbook.position.copy(tg); rbook.lookAt(cp); rbook.rotateX(Math.PI/2); }   // pages square to his eyes
+      else if(id==='window'){ tg=V(0.05,1.5,-1.45); cp=V(0.1,1.45,-0.35); }
+      else if(id==='desk'){ tg=V(0,0.93,-0.6); cp=V(0.03,1.12,-0.02); }
+      else { tg=e.phone.pos.clone(); cp=tg.clone().addScaledVector(e.phone.f,-0.3).add(V(0,0.14,0)); }
+      ST.cam.fov=id==='window'?56:44; ST.cam.updateProjectionMatrix(); ST.cam.position.copy(cp.add(sway)); ST.cam.lookAt(tg.add(V(0,0.01*Math.sin(t*0.9),0))); return; }
     const cm=CAMS[id]; const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
     ST.cam.fov=38; ST.cam.updateProjectionMatrix(); ST.cam.position.copy(pos); ST.cam.lookAt(look); return; }
   hero.all.forEach(m=>m.visible=false); eyes.forEach(e=>e.visible=false); scene.fog.density=0.012; ST.tick(t,0);
