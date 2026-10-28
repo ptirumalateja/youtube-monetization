@@ -102,6 +102,16 @@ silence = env([(0, 1), (EV['same'] - .3, 1), (EV['same'] - .28, .04), (EV['same'
 drone_g = env([(0, 0), (1.0, .4), (6, .6), (10, .75), (14, .85), (18, .95), (22.5, 1.1), (END, 1.1), (END + .02, 0), (DUR, 0)])
 dr = sum(a * np.sin(2 * np.pi * f * t + ph) for f, a, ph in ((55, 1, 0), (82.5, .5, 1), (110.2, .35, 2), (36.7, .8, 3)))
 tone += lp(dr * (1 + .12 * np.sin(2 * np.pi * .35 * t)), 500) * drone_g * .12
+# a soft 120 BPM pulse under everything, so the entrances and landings (all on the grid) feel locked to a beat
+bt = 60. / EV['bpm']; kick_n = int(.25 * SR); kk = np.arange(kick_n) / SR
+kick = np.sin(2 * np.pi * (48 + 90 * np.exp(-kk / .03)) * kk) * np.exp(-kk / .12)
+hat = hp(rng.standard_normal(int(.05 * SR)), 7000) * dec(int(.05 * SR), .012)
+x = EV['beat0'] + bt
+while x < END - .1:
+    bar = int(round((x - EV['beat0']) / bt)) % 4
+    place(tone, kick * (.32 if bar == 0 else .2), x)
+    place(sfx, hat * .1, x + bt / 2)
+    x += bt
 # "...and India was just 11.5": one tick in the silence, then the sheet re-forms on a soft rise into frame one
 place(free, stamp(880) * .5, END + .35)       # not gated by the silence
 rise = bp(rng.standard_normal(N), 400, 7000) * env([(0, 0), (DUR - 1.2, 0), (DUR, 1)]) ** 2.5

@@ -12,19 +12,21 @@ MOON_KM2 = 37.93e6
 SPIN_AX = np.array([.12, 1., 0.]); SPIN_AX /= np.linalg.norm(SPIN_AX)
 
 # (iso, wave start, wave end, hold end, big number, label, area line)
+# every entrance and landing sits on a 120 BPM grid (beats at 0.25 + 0.5 k)
 SEQ = [
-    ('IND', 0.9, 4.0, 5.5, '11.5', 'INDIAS ON THE MOON', '32.9 LAKH KM²'),
-    ('PAK', 5.75, 7.45, 9.5, '47.6', 'PAKISTANS ON THE MOON', '7.96 LAKH KM²'),
-    ('BGD', 9.75, 11.35, 13.0, '255', 'BANGLADESHES ON THE MOON', '1.48 LAKH KM²'),
-    ('NPL', 13.25, 14.85, 16.5, '257', 'NEPALS ON THE MOON', '1.47 LAKH KM²'),
-    ('LKA', 16.75, 18.45, 20.5, '578', 'SRI LANKAS ON THE MOON', '65,610 KM²'),
-    ('BTN', 20.75, 22.45, 24.0, '988', 'BHUTANS ON THE MOON', '38,394 KM²'),
+    ('IND', 0.75, 4.25, 5.5, '11.5', 'INDIAS ON THE MOON', '32.9 LAKH KM²'),
+    ('PAK', 5.75, 7.25, 9.5, '47.6', 'PAKISTANS ON THE MOON', '7.96 LAKH KM²'),
+    ('BGD', 9.75, 11.25, 13.0, '255', 'BANGLADESHES ON THE MOON', '1.48 LAKH KM²'),
+    ('NPL', 13.25, 14.75, 16.5, '257', 'NEPALS ON THE MOON', '1.47 LAKH KM²'),
+    ('LKA', 16.75, 18.25, 20.5, '578', 'SRI LANKAS ON THE MOON', '65,610 KM²'),
+    ('BTN', 20.75, 22.25, 24.0, '988', 'BHUTANS ON THE MOON', '38,394 KM²'),
 ]
+BPM = 120; BEAT0 = 0.25
 COUNT = {iso: MOON_KM2 / CT[iso]['km2'] for iso in CT}
 TINT = {'PAK': (.35, .85, .7), 'BGD': (.35, .8, .4), 'NPL': (1., .4, .4), 'LKA': (1., .72, .3), 'BTN': (1., .55, .2)}
-T_SHEET = 0.9
-T_INDIA = (1.6, 4.0)
-T_END = 24.0            # Bhutan wipes off, the hero India re-forms above the Moon
+T_SHEET = 0.75
+T_INDIA = (1.75, 4.25)
+T_END = 24.25           # Bhutan wipes off, the hero India re-forms above the Moon
 
 
 def sm(x): x = min(max(x, 0.), 1.); return x * x * (3 - 2 * x)
@@ -59,7 +61,7 @@ def _moon_schedule():
     rest.sort(key=lambda i: first[i])
     endface = {i: (rot(SPIN_AX, spin(T_INDIA[1])) @ ICO[i]) @ VIEW for i in rest}
     half = max(rest, key=lambda i: endface[i]); rest.remove(half)
-    times = np.linspace(T_INDIA[0], T_INDIA[1] - .3, len(rest))
+    times = np.linspace(T_INDIA[0], T_INDIA[1] - .25, len(rest))   # one India per 16th note
     return [(0, T_SHEET)] + list(zip(rest, times)) + [(half, T_INDIA[1])]
 MOON_SCHED = _moon_schedule()
 
@@ -78,13 +80,20 @@ def origin_at(t):
     return rot(SPIN_AX, spin(t)).T @ w
 
 
+PUSH0, PUSHT = 1.10, 2.4      # frame one is already pushing in; the end arrives at PUSH0 still moving in, so the loop has no stall
+def zoom(t):
+    if t < PUSHT: x = t / PUSHT; return 1 + (PUSH0 - 1) * (1 - x) ** 2
+    if t < T_END: return 1 + .35 * sm5((t - 22.3) / 1.5)               # Bhutan: macro pull-out to the whole Moon
+    # Hermite from (1.35, still) at T_END to (PUSH0, moving in at the start's speed) at DUR
+    p0, p1, v1 = 1.35, PUSH0, -2 * (PUSH0 - 1) / PUSHT; h = DUR - T_END; x = (t - T_END) / h
+    return (2 * x ** 3 - 3 * x * x + 1) * p0 + (-2 * x ** 3 + 3 * x * x) * p1 + (x ** 3 - x * x) * h * v1
+
+
 def camera(t):
     M = np.zeros(3)
-    d = 5.55 * RM * 1.02
-    pull = sm5((t - 22.3) / 1.5) * (1 - sm5((t - 24.1) / 1.6))          # Bhutan: macro pull-out to the whole Moon, then back
-    d *= 1 + .35 * pull
+    d = 5.55 * RM * 1.02 * .9 * zoom(t)                                  # Moon nearly full width
     az = 2.5 * math.sin(2 * math.pi * t / DUR); el = 4 + 1.5 * math.sin(4 * math.pi * t / DUR)
-    tg = M + np.array([0, -0.06 * RM, 0])
+    tg = M + np.array([0, -0.12 * RM, 0])
     return tg + cam_dir(az, el) * d, tg
 
 

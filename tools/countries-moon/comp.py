@@ -14,10 +14,10 @@ HOOK = [('11.5 INDIAS', 190, 'Black', 230), ('FIT ON THE MOON.', 88, 'ExtraBold'
 TEXT = [
     (-1.0, 1.7, HOOK, .25, .3),
     (5.45, 7.0, [('SAME MOON.', 120, 'Black', 230), ('NEW COUNTRY.', 120, 'Black', 370)], .2, .3),
-    (15.0, 16.5, [('SAME SIZE AS', 92, 'Black', 230), ('BANGLADESH.', 120, 'Black', 345), ('WITH 1/6 OF THE PEOPLE.', 52, 'Bold', 490)], .2, .3),
-    (22.6, 24.0, [('ALMOST 1,000', 120, 'Black', 230), ('BHUTANS.', 120, 'Black', 370)], .2, .3),
-    (24.1, 25.1, [('AND INDIA', 120, 'Black', 230), ('WAS JUST 11.5.', 120, 'Black', 370)], .2, .25),
-    (25.2, 99, HOOK, .4, .3),
+    (15.25, 16.5, [('SAME SIZE AS', 92, 'Black', 230), ('BANGLADESH.', 120, 'Black', 345), ('WITH 1/6 OF THE PEOPLE.', 52, 'Bold', 490)], .2, .3),
+    (22.75, 24.1, [('ALMOST 1,000', 120, 'Black', 230), ('BHUTANS.', 120, 'Black', 370)], .2, .3),
+    (24.35, 25.25, [('AND INDIA', 120, 'Black', 230), ('WAS JUST 11.5.', 120, 'Black', 370)], .2, .25),
+    (25.35, 99, HOOK, .4, .3),
 ]
 
 def env(t, a, b, fi=.25, fo=.3): return min(max((t - a) / fi, 0), 1) * min(max((b - t) / fo, 0), 1)
@@ -104,7 +104,7 @@ def text_layer(t, v, f):
         val, lab, area = r
         span = [(s[1] - .05, s[3]) for s in cam.SEQ]; span[0] = (cam.T_SHEET - .05, cam.SEQ[0][3])
         al = max(env(t, a, b, .15, .3) for a, b in span)
-        put(val, 200, 'Black', 1380, al); put(lab, 48, 'Bold', 1600, al * .95); put(area, 40, 'SemiBold', 1666, al * .8)
+        put(val, 200, 'Black', 1410, al); put(lab, 48, 'Bold', 1630, al * .95); put(area, 40, 'SemiBold', 1696, al * .8)
     return np.asarray(lay, np.float32) / 255
 
 def do_frame(O, i):
@@ -130,7 +130,7 @@ def do_frames(O, part=0, parts=1):
 
 def events(O):
     ev = dict(dur=cam.DUR, sheet=cam.T_SHEET, moon=[float(ta) for _, ta in cam.MOON_SCHED], seq=[list(s[1:4]) for s in cam.SEQ],
-              end=cam.T_END, same=15.0, bhutan=22.6)
+              end=cam.T_END, same=15.25, bhutan=22.75, bpm=cam.BPM, beat0=cam.BEAT0)
     ticks = []
     for iso, a, b, *_ in cam.SEQ[1:]:
         n = min(int(cam.COUNT[iso]), 60); ts = np.linspace(a, b, 2000); fr = np.array([cam.wave_frac(x, a, b) for x in ts])
