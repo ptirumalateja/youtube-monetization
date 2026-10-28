@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import {Reflector} from 'three/addons/objects/Reflector.js';
 import * as SLD from './sld.js';
 import * as SETS from './sets.js';
+import {buildEye} from './eye.js';
 const {V,clamp,sstep,lerp,sm5,PAL}=SLD;
 const {M,B,C,S:SPH,P:PLN,canvasTex,rng}=SETS;
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
@@ -65,14 +66,15 @@ const irisTex=canvasTex(2048,1024,(g,w,h)=>{ // equirect with the iris around th
   for(let i=0;i<2600;i++){ const x=Rr()*w; g.strokeStyle=`rgba(${Rr()<0.55?'245,200,120':'30,16,8'},${0.08+Rr()*0.22})`; g.lineWidth=1+Rr()*4; g.beginPath(); g.moveTo(x,pR+2+Rr()*6); g.lineTo(x+(Rr()-0.5)*14,pR+(iR-pR)*(0.5+Rr()*0.5)); g.stroke(); }
   g.fillStyle='#050403'; g.fillRect(0,0,w,pR); });
 const eyeM=new THREE.MeshPhysicalMaterial({map:irisTex,roughness:0.3,clearcoat:1,clearcoatRoughness:0.04});
-const eyeBall=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),eyeM); eyeBall.rotation.x=Math.PI/2; const eyeRig=new THREE.Group(); eyeRig.add(eyeBall); EYE.add(eyeRig);
+const eyeBall=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),eyeM); eyeBall.rotation.x=Math.PI/2; const eyeRig=new THREE.Group(); eyeRig.add(eyeBall);
 const cornea=new THREE.Mesh(new THREE.SphereGeometry(0.62,64,32),new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:0.0,transparent:true,opacity:0.12,clearcoat:1,clearcoatRoughness:0})); cornea.position.z=0.47; eyeRig.add(cornea);
 const skinM=new THREE.MeshStandardMaterial({color:0x9a6a52,roughness:0.6}); const lidG=new THREE.SphereGeometry(1.06,96,48,0,Math.PI*2,0,Math.PI/2);
 const lidTop=new THREE.Group(), lidBot=new THREE.Group(); { const a=new THREE.Mesh(lidG,skinM); lidTop.add(a); const b=new THREE.Mesh(lidG,skinM); b.rotation.x=Math.PI; lidBot.add(b); }
 // lash line
 { const lm=new THREE.MeshStandardMaterial({color:0x1a0d08,roughness:0.8}); const lt=new THREE.Mesh(new THREE.TorusGeometry(1.06,0.03,8,96,Math.PI),lm); lt.rotation.x=Math.PI/2; lidTop.add(lt); const lb=lt.clone(); lb.rotation.set(Math.PI/2,0,0); lidBot.add(lb); }
-EYE.add(lidTop,lidBot);
-const face=new THREE.Mesh(new THREE.TorusGeometry(1.45,0.5,32,128),skinM); face.scale.set(1.35,0.95,0.7); face.position.z=0.1; EYE.add(face); const brow=new THREE.Mesh(new THREE.SphereGeometry(1.4,48,24),skinM); brow.scale.set(1.9,0.55,0.9); brow.position.set(0,1.55,0.05); EYE.add(brow);
+// V2.1: the old stylised eye stays built (shared helpers) but is replaced on screen by eye.js
+
+const face=new THREE.Mesh(new THREE.TorusGeometry(1.45,0.5,32,128),skinM); face.scale.set(1.35,0.95,0.7); face.position.z=0.1; const brow=new THREE.Mesh(new THREE.SphereGeometry(1.4,48,24),skinM); brow.scale.set(1.9,0.55,0.9); brow.position.set(0,1.55,0.05);
 const eyeLight=new THREE.PointLight(0xffc890,0,9,1.5); scene.add(eyeLight);
 function eyeLids(open){ // open 1 = wide (lids rotated off the cornea), 0 = shut
   lidTop.rotation.x=-lerp(0.0,0.82,open); lidBot.rotation.x=lerp(0.0,0.62,open); }
@@ -101,7 +103,7 @@ const brainU={uT:{value:0},uB:{value:1},uH:{value:H}};
     vertexShader:`attribute float along; attribute float seed; uniform float uT; varying float vL; varying float vS; varying float vD; void main(){ vL=along; vS=seed; vec4 mv=modelViewMatrix*vec4(position,1.0); vD=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`uniform float uT,uB; varying float vL; varying float vS; varying float vD; void main(){ float p=fract(uT*0.9+vS*7.0); float pulse=exp(-pow((vL-p)*7.0,2.0)); float fade=clamp(1.0-vD/20.0,0.0,1.0); gl_FragColor=vec4(vec3(1.0,0.74,0.4)*(0.05+0.6*pulse)*uB*fade,1.0); }`}));
   lm.frustumCulled=false; BRAIN.add(lm); }const eyeSpot=new THREE.SpotLight(0xffc890,0,14,0.5,0.7,1.2); eyeSpot.position.set(57.6,3.0,5.0); eyeSpot.target.position.set(60,0,0); scene.add(eyeSpot,eyeSpot.target);
-skinM.color.setHex(0x5a3e30);
+const EYEM=buildEye(ST.renderer); EYE.add(EYEM.group);
 
 // ---------------------------------------------------------------- hero poses, all inside the pool of light
 const sitP=(o={})=>({...R.P0,aL:1.5,aR:1.5,kL:1.5,kR:1.5,...o});
@@ -146,10 +148,9 @@ function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0
     const cm=CAMS[id]; const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
     ST.cam.fov=38; ST.cam.updateProjectionMatrix(); ST.cam.position.copy(pos); ST.cam.lookAt(look); return; }
   hero.all.forEach(m=>m.visible=false); eyes.forEach(e=>e.visible=false); scene.fog.density=0.012; ST.tick(t,0);
-  if(id==='eye'){ eyeSpot.intensity=60; eyeLight.position.set(62.2,0.8,3.2); eyeLight.color.setHex(0x9fb2d6); eyeLight.intensity=0.8;
-    const b=t-12.85; const shut=b<0||b>0.34?0:(b<0.09?sm5(b/0.09):(b<0.16?1:1-sm5((b-0.16)/0.18))); eyeLids(1-shut);
-    eyeRig.rotation.y=0.05*Math.sin(t*2.1); eyeRig.rotation.x=0.035*Math.sin(t*1.7);
-    const pu=sstep(13.15,13.8,t); const z=lerp(7.4,1.16,Math.pow(pu,1.5)); ST.cam.fov=lerp(34,26,pu); ST.cam.updateProjectionMatrix(); cornea.visible=pu<0.8; ST.cam.position.set(60,0.15*(1-pu),z); ST.cam.lookAt(60,0,0); return; }
+  if(id==='eye'){ eyeSpot.intensity=26; eyeLight.position.set(62.2,0.8,3.2); eyeLight.color.setHex(0x9fb2d6); eyeLight.intensity=0.8;
+    const b=t-12.85; const shut=b<0||b>0.34?0:(b<0.09?sm5(b/0.09):(b<0.16?1:1-sm5((b-0.16)/0.18))); EYEM.update(1-shut,t);
+    const pu=sstep(13.15,13.8,t); const z=lerp(+(window.EYEZ||9.5),1.16,Math.pow(pu,1.5)); ST.cam.fov=lerp(30,26,pu); ST.cam.updateProjectionMatrix(); EYEM.cornea.visible=pu<0.55&&shut<0.6; ST.cam.position.set(60,0.15*(1-pu),z); ST.cam.lookAt(60,0,0); return; }
   const dip=b=>{ const x=t-b; return x<-0.05||x>0.35?0:(x<0?sm5((x+0.05)/0.05):(x<0.15?1:1-sm5((x-0.15)/0.2))); };
   brainU.uT.value=t; brainU.uB.value=sstep(13.8,14.1,t)*(1-0.88*Math.max(dip(14.55),dip(15.45)));
   const v=(t-13.8)/2.2; ST.cam.fov=40; ST.cam.updateProjectionMatrix(); ST.cam.position.set(120+0.3*Math.sin(v*2),0.2*Math.cos(v*1.5),3.5-v*6.5); ST.cam.lookAt(120+0.2*Math.sin(v*2+0.5),0,-20); }
