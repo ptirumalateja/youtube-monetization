@@ -1,0 +1,186 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{margin:0;background:#000}canvas{display:block}</style></head>
+<body>
+<script>
+// 2D look test for You Were Blind for 20 Minutes: illustrated, cinematic, dark-warm. Three frames drawn on canvas:
+// eye (the hook), dusk (6 PM, phone on the bed by the window), mirror (the dare). window.draw(name) paints one 1080x1920 frame.
+const W=1080,H=1920;
+const cv=document.createElement('canvas'); cv.width=W; cv.height=H; document.body.appendChild(cv); const g=cv.getContext('2d');
+let seed=7; const R=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
+const lerp=(a,b,t)=>a+(b-a)*t, clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+function rad(x,y,r0,r1,stops){ const gr=g.createRadialGradient(x,y,r0,x,y,r1); stops.forEach(([o,c])=>gr.addColorStop(o,c)); return gr; }
+function lin(x0,y0,x1,y1,stops){ const gr=g.createLinearGradient(x0,y0,x1,y1); stops.forEach(([o,c])=>gr.addColorStop(o,c)); return gr; }
+function glow(fn,blur,op='lighter',alpha=1){ g.save(); g.globalCompositeOperation=op; g.globalAlpha=alpha; g.filter=`blur(${blur}px)`; fn(); g.restore(); }
+function grain(k=14){ const im=g.getImageData(0,0,W,H), d=im.data; for(let i=0;i<d.length;i+=4){ const n=(R()-0.5)*k; d[i]+=n; d[i+1]+=n; d[i+2]+=n; } g.putImageData(im,0,0); }
+function vignette(a=0.8,inner=0.35){ g.fillStyle=rad(W/2,H*0.48,H*inner,H*0.78,[[0,'rgba(0,0,0,0)'],[1,`rgba(0,0,0,${a})`]]); g.fillRect(0,0,W,H); }
+function taper(pts,w0,w1,col){ // a tapered stroke through points (hair, lash)
+  for(let i=0;i<pts.length-1;i++){ const t=i/(pts.length-1); g.strokeStyle=col; g.lineWidth=lerp(w0,w1,t); g.lineCap='round'; g.beginPath(); g.moveTo(...pts[i]); g.lineTo(...pts[i+1]); g.stroke(); } }
+function qpts(a,c,b,n=8){ const p=[]; for(let i=0;i<=n;i++){ const t=i/n; p.push([(1-t)*(1-t)*a[0]+2*(1-t)*t*c[0]+t*t*b[0],(1-t)*(1-t)*a[1]+2*(1-t)*t*c[1]+t*t*b[1]]); } return p; }
+function motes(n,x0,y0,x1,y1,col,maxr=3){ for(let i=0;i<n;i++){ const x=lerp(x0,x1,R()), y=lerp(y0,y1,R()), r=0.6+R()*maxr; g.fillStyle=col.replace('A',(0.15+0.6*R()).toFixed(2)); g.beginPath(); g.arc(x,y,r,0,7); g.fill(); } }
+
+function drawEye(dx,dy,sc,flip){ g.save(); g.translate(dx+(flip?W*sc:0),dy); g.scale(flip?-sc:sc,sc); const cx=540, cy=1010;
+  // the almond
+  const L=[105,1030], Rr=[985,985];
+  const upper=()=>{ g.moveTo(...L); g.bezierCurveTo(260,770,780,740,Rr[0],Rr[1]); };
+  const lower=()=>{ g.bezierCurveTo(800,1200,300,1215,L[0],L[1]); };
+  // lid fold + crease above the opening
+  glow(()=>{ g.strokeStyle='rgba(15,6,3,0.85)'; g.lineWidth=26; g.beginPath(); g.moveTo(140,930); g.bezierCurveTo(300,650,800,640,1000,900); g.stroke(); },18,'source-over');
+  glow(()=>{ g.fillStyle='rgba(255,200,160,0.2)'; g.beginPath(); g.ellipse(cx-30,800,330,55,-0.04,0,7); g.fill(); },30);
+  g.save(); g.beginPath(); upper(); lower(); g.closePath(); g.clip();
+  g.fillStyle=rad(cx+10,cy+10,40,520,[[0,'#f3ebe2'],[0.55,'#e2d4c6'],[1,'#8e7466']]); g.fillRect(0,600,W,700);
+  // sclera vessels toward the corners
+  for(let i=0;i<70;i++){ const side=R()<0.5?-1:1; let x=cx+side*(300+R()*180), y=cy+(R()-0.5)*140; g.strokeStyle=`rgba(${170+40*R()},50,50,${0.12+0.25*R()})`; g.lineWidth=0.8+1.4*R(); g.beginPath(); g.moveTo(x,y); for(let k=0;k<6;k++){ x-=side*(10+R()*24); y+=(R()-0.5)*20; g.lineTo(x,y); } g.stroke(); }
+  // iris
+  const ix=548, iy=995, IR=238, PR=86;
+  g.fillStyle=rad(ix,iy,PR,IR,[[0,'#d39340'],[0.25,'#b9772e'],[0.55,'#7e4a1f'],[0.85,'#4a2a12'],[1,'#1c0e06']]); g.beginPath(); g.arc(ix,iy,IR,0,7); g.fill();
+  for(let i=0;i<1600;i++){ const a=R()*Math.PI*2, r0=PR+R()*30, r1=lerp(r0+40,IR-6,R()); const bend=(R()-0.5)*0.12; const light=R()<0.5;
+    g.strokeStyle=light?`rgba(${235+20*R()},${170+60*R()},${90+60*R()},${0.08+0.22*R()})`:`rgba(${30+20*R()},${14+10*R()},6,${0.1+0.25*R()})`; g.lineWidth=0.8+2.2*R();
+    g.beginPath(); g.moveTo(ix+Math.cos(a)*r0,iy+Math.sin(a)*r0); g.quadraticCurveTo(ix+Math.cos(a+bend)*(r0+r1)/2,iy+Math.sin(a+bend)*(r0+r1)/2,ix+Math.cos(a)*r1,iy+Math.sin(a)*r1); g.stroke(); }
+  g.strokeStyle='rgba(240,190,110,0.45)'; g.lineWidth=5; g.beginPath(); for(let k=0;k<=360;k++){ const a=k/360*Math.PI*2, r=PR+52+9*Math.sin(a*11)+5*Math.sin(a*23); const x=ix+Math.cos(a)*r, y=iy+Math.sin(a)*r; k?g.lineTo(x,y):g.moveTo(x,y); } g.stroke();
+  for(let i=0;i<70;i++){ const a=R()*Math.PI*2, r=lerp(PR+60,IR-30,R()); g.save(); g.translate(ix+Math.cos(a)*r,iy+Math.sin(a)*r); g.rotate(a); g.fillStyle=`rgba(25,12,5,${0.35+0.35*R()})`; g.beginPath(); g.ellipse(0,0,10+R()*20,4+R()*6,0,0,7); g.fill(); g.restore(); }
+  glow(()=>{ g.strokeStyle='rgba(12,6,3,0.95)'; g.lineWidth=26; g.beginPath(); g.arc(ix,iy,IR-6,0,7); g.stroke(); },8,'source-over');
+  g.fillStyle=rad(ix,iy,PR-8,PR+8,[[0,'#020101'],[0.8,'#050302'],[1,'rgba(40,20,8,0)']]); g.beginPath(); g.arc(ix,iy,PR+8,0,7); g.fill();
+  // the upper lid's shadow across the top of the eye
+  g.fillStyle=lin(0,760,0,990,[[0,'rgba(10,4,2,0.95)'],[0.55,'rgba(10,4,2,0.35)'],[1,'rgba(10,4,2,0)']]); g.fillRect(0,700,W,300);
+  // catchlights: the lamp (a soft window) and a small spark
+  glow(()=>{ g.fillStyle='rgba(255,240,220,0.95)'; g.beginPath(); g.ellipse(470,915,34,24,-0.3,0,7); g.fill(); },6);
+  glow(()=>{ g.fillStyle='rgba(255,255,255,0.9)'; g.beginPath(); g.arc(640,1050,7,0,7); g.fill(); },2);
+  glow(()=>{ g.strokeStyle='rgba(255,230,210,0.5)'; g.lineWidth=4; g.beginPath(); g.moveTo(240,1140); g.bezierCurveTo(420,1190,700,1185,880,1120); g.stroke(); },3);
+  g.restore();
+  // lid margins: the dark upper lash line and the wet pink lower rim
+  glow(()=>{ g.strokeStyle='#120804'; g.lineWidth=16; g.beginPath(); upper(); g.stroke(); },3,'source-over');
+  g.strokeStyle='rgba(200,110,95,0.85)'; g.lineWidth=9; g.beginPath(); g.moveTo(...Rr); lower(); g.stroke();
+  glow(()=>{ g.strokeStyle='rgba(255,220,200,0.55)'; g.lineWidth=3; g.beginPath(); g.moveTo(Rr[0]-20,Rr[1]+16); g.bezierCurveTo(800,1215,300,1228,L[0]+30,L[1]+12); g.stroke(); },2);
+  // caruncle
+  g.fillStyle=rad(132,1028,2,26,[[0,'#e08f88'],[1,'rgba(150,60,55,0)']]); g.beginPath(); g.ellipse(132,1028,26,20,0,0,7); g.fill();
+  // upper lashes: tapered, curling up and out, clumped
+  const up=t=>{ const u=1-t; return [u*u*u*L[0]+3*u*u*t*260+3*u*t*t*780+t*t*t*Rr[0], u*u*u*L[1]+3*u*u*t*770+3*u*t*t*740+t*t*t*Rr[1]]; };
+  for(let i=0;i<190;i++){ const t=clamp(Math.floor(i/3)/63+R()*0.01); const [x,y]=up(t); const len=(60+70*Math.sin(Math.PI*clamp(t*1.1)))*(0.8+0.4*R()); const out=(t-0.42)*1.5+(R()-0.5)*0.2;
+    taper(qpts([x,y],[x+out*len*0.35,y-len*0.7],[x+out*len*0.9,y-len*0.95+len*0.25],9),5.5,0.6,`rgba(10,5,3,${0.85+0.15*R()})`); }
+  const lo=t=>{ const u=1-t; return [u*u*u*Rr[0]+3*u*u*t*800+3*u*t*t*300+t*t*t*L[0], u*u*u*Rr[1]+3*u*u*t*1200+3*u*t*t*1215+t*t*t*L[1]]; };
+  for(let i=0;i<70;i++){ const t=0.08+0.86*R(); const [x,y]=lo(t); const len=18+26*R(), out=(0.5-t)*1.2; taper(qpts([x,y+6],[x+out*len*0.3,y+len*0.6],[x+out*len*0.7,y+len]),3,0.5,'rgba(20,10,6,0.8)'); }
+  g.restore(); }
+
+// ---------------------------------------------------------------- 1. the eye (hook)
+function eye(){
+  seed=11; const cx=540, cy=1010;
+  g.fillStyle=rad(cx,cy-40,60,1100,[[0,'#7a4630'],[0.35,'#5a301f'],[0.7,'#2a140c'],[1,'#0a0504']]); g.fillRect(0,0,W,H);
+  // brow ridge + socket shading
+  glow(()=>{ g.fillStyle='rgba(10,4,2,0.75)'; g.beginPath(); g.ellipse(cx,760,560,90,-0.03,0,7); g.fill(); },60,'source-over');
+  glow(()=>{ g.fillStyle='rgba(255,190,140,0.18)'; g.beginPath(); g.ellipse(cx-60,610,420,60,-0.05,0,7); g.fill(); },50);
+  glow(()=>{ g.fillStyle='rgba(255,180,130,0.14)'; g.beginPath(); g.ellipse(cx+40,1330,380,90,0.04,0,7); g.fill(); },70);
+  // skin pores
+  for(let i=0;i<14000;i++){ const x=R()*W, y=R()*H; g.fillStyle=R()<0.5?'rgba(0,0,0,0.07)':'rgba(255,210,180,0.04)'; g.fillRect(x,y,1.6,1.6); }
+  // brow hairs
+  for(let i=0;i<900;i++){ const u=R(), x=lerp(90,1010,u), yb=600-90*Math.sin(Math.PI*clamp((u-0.05)/0.95))+ (R()-0.5)*70*(1-Math.abs(u-0.45)); const len=30+R()*40, a=lerp(-0.5,0.25,u)+(R()-0.5)*0.4;
+    taper(qpts([x,yb],[x+Math.cos(a)*len*0.5,yb-Math.sin(a+0.6)*len*0.35],[x+Math.cos(a)*len,yb-Math.sin(a)*len*0.3],5),2.6,0.4,`rgba(${20+20*R()},${12+10*R()},${8},${0.55+0.4*R()})`); }
+  drawEye(0,0,1,false);
+  // warm key from the top-left
+  glow(()=>{ g.fillStyle='rgba(255,170,100,0.10)'; g.beginPath(); g.ellipse(300,700,500,400,0,0,7); g.fill(); },120);
+  vignette(0.85,0.28); grain(12);
+}
+
+function mask(draw){ const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.fillStyle='#fff'; x.strokeStyle='#fff'; x.lineCap='round'; x.lineJoin='round'; draw(x); return c; }
+function tinted(m,col){ const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(m,0,0); x.globalCompositeOperation='source-in'; x.fillStyle=col; x.fillRect(0,0,W,H); return c; }
+function figure(m,col,rimCol,lx,ly,rimW=7,blur=2){ // fill the mask in col, with a rim of rimCol on the side facing (lx,ly)
+  const rim=tinted(m,rimCol), cut=document.createElement('canvas'); cut.width=W; cut.height=H; const x=cut.getContext('2d');
+  x.drawImage(rim,0,0); x.globalCompositeOperation='destination-out'; x.drawImage(m,-lx*rimW,-ly*rimW);
+  g.drawImage(tinted(m,col),0,0); g.save(); g.globalCompositeOperation='lighter'; g.filter=`blur(${blur}px)`; g.drawImage(cut,0,0); g.filter=`blur(${blur*6}px)`; g.globalAlpha=0.6; g.drawImage(cut,0,0); g.restore(); }
+function sitter(x){ // side profile on the bed edge, head bowed to the phone; hip at (0,0), standing height ~1000
+  const limb=(pts,w)=>{ x.lineWidth=w; x.beginPath(); x.moveTo(...pts[0]); for(const p of pts.slice(1)) x.lineTo(...p); x.stroke(); };
+  x.beginPath(); x.moveTo(-48,10); x.bezierCurveTo(-62,-110,-30,-230,40,-292); x.bezierCurveTo(80,-322,118,-330,140,-322); x.bezierCurveTo(160,-300,170,-240,160,-170); x.bezierCurveTo(150,-90,120,-30,60,10); x.closePath(); x.fill();   // torso
+  limb([[132,-318],[168,-352]],52);                                                                     // neck
+  x.save(); x.translate(196,-388); x.rotate(0.42); x.beginPath(); x.ellipse(0,0,56,68,0,0,7); x.fill(); x.beginPath(); x.moveTo(30,-30); x.quadraticCurveTo(70,-4,64,30); x.lineTo(44,52); x.lineTo(20,40); x.fill(); x.restore();   // head + nose/jaw
+  limb([[0,0],[230,-20],[244,232]],78); limb([[244,232],[290,236]],30);                                 // thigh, shin, foot
+  limb([[128,-292],[140,-148],[238,-228]],40); limb([[238,-228],[252,-246]],34);                       // arm to the hands
+}
+// ---------------------------------------------------------------- 2. dusk (6 PM): phone on the bed by the window
+function silhouetteSittingOld(x,y,s){ // side profile, sitting on the bed edge, head bowed to the phone in both hands; (x,y) = hip, s = scale
+  g.save(); g.translate(x,y); g.scale(s,s); g.beginPath();
+  g.moveTo(-40,0);                                   // seat, back of the hip
+  g.bezierCurveTo(-70,-90,-80,-210,-40,-330);        // lower back curving up
+  g.bezierCurveTo(-20,-390,10,-420,40,-440);         // upper back / shoulder blade
+  g.bezierCurveTo(70,-458,95,-462,112,-470);         // neck back
+  g.bezierCurveTo(118,-520,140,-560,185,-572);       // back of the head
+  g.bezierCurveTo(240,-585,282,-548,285,-500);       // crown to forehead
+  g.bezierCurveTo(288,-470,300,-458,302,-440);       // brow, nose
+  g.bezierCurveTo(296,-430,292,-420,290,-410);       // lips
+  g.bezierCurveTo(286,-396,272,-386,250,-388);       // chin
+  g.bezierCurveTo(232,-390,214,-396,200,-380);       // throat
+  g.bezierCurveTo(190,-360,196,-330,210,-300);       // chest
+  g.bezierCurveTo(240,-270,262,-250,270,-232);       // forearm up to the hands
+  g.lineTo(300,-262); g.lineTo(318,-252); g.lineTo(290,-210);   // phone in the hands
+  g.bezierCurveTo(250,-190,220,-160,200,-120);       // forearm down
+  g.bezierCurveTo(196,-80,240,-40,330,-30);          // thigh
+  g.bezierCurveTo(350,-28,362,-10,352,20);           // knee
+  g.bezierCurveTo(340,120,330,230,326,330);          // shin
+  g.bezierCurveTo(330,345,370,348,384,358); g.lineTo(300,362);   // foot
+  g.bezierCurveTo(296,250,300,120,290,40);           // back of the calf
+  g.bezierCurveTo(230,30,120,40,-40,0); g.closePath(); g.restore(); }
+function dusk(){
+  seed=21; g.fillStyle='#0b0709'; g.fillRect(0,0,W,H);
+  // the window: sky, sun, three layers of city, then the frame
+  const wx=150, wy=360, ww=800, wh=900;
+  g.save(); g.beginPath(); g.rect(wx,wy,ww,wh); g.clip();
+  g.fillStyle=lin(0,wy,0,wy+wh,[[0,'#241a3e'],[0.35,'#6a2f5a'],[0.62,'#c6544a'],[0.78,'#f08a48'],[1,'#ffc070']]); g.fillRect(wx,wy,ww,wh);
+  glow(()=>{ g.fillStyle='rgba(255,220,150,1)'; g.beginPath(); g.arc(700,1060,70,0,7); g.fill(); },4,'source-over');
+  glow(()=>{ g.fillStyle='rgba(255,180,90,0.6)'; g.beginPath(); g.arc(700,1060,220,0,7); g.fill(); },70);
+  for(let k=0;k<6;k++){ g.fillStyle=`rgba(255,${150+12*k},${120+10*k},0.12)`; g.beginPath(); g.ellipse(lerp(300,900,R()),lerp(520,860,R()),160+R()*160,14+R()*12,0,0,7); g.fill(); }
+  const city=(base,hmin,hmax,col,win,wl)=>{ let x=wx-20; while(x<wx+ww+20){ const w=40+R()*90, h=lerp(hmin,hmax,R()); g.fillStyle=col; g.fillRect(x,base-h,w,h+400);
+      if(R()<0.25){ g.fillRect(x+w*0.45,base-h-40-R()*40,3,60); }
+      for(let yy=base-h+14;yy<base;yy+=22) for(let xx=x+8;xx<x+w-8;xx+=16) if(R()<win) { g.fillStyle=`rgba(255,${190+40*R()},${110+50*R()},${0.5+0.4*R()})`; g.fillRect(xx,yy,wl,8); g.fillStyle=col; }
+      x+=w+2; } };
+  city(1120,60,190,'#3d2440',0.0,0); city(1180,90,300,'#24152b',0.12,6); city(1270,140,420,'#120a14',0.2,7);
+  for(let i=0;i<5;i++){ const bx=lerp(300,600,R()), by=lerp(600,760,R()); g.strokeStyle='rgba(30,15,25,0.8)'; g.lineWidth=2.5; g.beginPath(); g.moveTo(bx-10,by); g.quadraticCurveTo(bx-5,by-6,bx,by); g.quadraticCurveTo(bx+5,by-6,bx+10,by); g.stroke(); }
+  g.restore();
+  g.fillStyle='#07040a'; g.fillRect(wx-30,wy-30,ww+60,30); g.fillRect(wx-30,wy+wh,ww+60,40); g.fillRect(wx-30,wy,30,wh); g.fillRect(wx+ww,wy,30,wh); g.fillRect(wx+ww/2-9,wy,18,wh); g.fillRect(wx,wy+wh*0.42,ww,16);
+  // sunset light spilling into the room: shafts across the floor and the bed
+  glow(()=>{ g.fillStyle='rgba(255,140,70,0.32)'; g.beginPath(); g.moveTo(wx,wy+wh); g.lineTo(wx+ww,wy+wh); g.lineTo(W+200,H); g.lineTo(-100,H); g.closePath(); g.fill(); },60);
+  glow(()=>{ g.fillStyle='rgba(255,170,90,0.2)'; g.beginPath(); g.moveTo(wx+ww*0.55,wy); g.lineTo(wx+ww,wy); g.lineTo(W,H*0.9); g.lineTo(wx+ww*0.2,H*0.9); g.closePath(); g.fill(); },90);
+  // the bed, near and dark, warm rim on the blanket folds
+  g.fillStyle='#0f080a'; g.beginPath(); g.moveTo(-40,1420); g.bezierCurveTo(300,1380,700,1390,1120,1430); g.lineTo(1120,H); g.lineTo(-40,H); g.closePath(); g.fill();
+  for(let k=0;k<5;k++){ glow(()=>{ g.strokeStyle='rgba(255,150,80,0.35)'; g.lineWidth=5; g.beginPath(); const y=1430+k*70; g.moveTo(-20,y); g.bezierCurveTo(300,y-40-20*R(),640,y+30,1100,y-20); g.stroke(); },4); }
+  motes(220,wx,wy+wh*0.5,W,H*0.85,'rgba(255,200,140,A)',2.2);
+  // him: a silhouette rimmed by the sunset, the phone lighting his face blue
+  const S=1.25, hx=300, hy=1450; const m=mask(x=>{ x.translate(hx,hy); x.scale(S,S); sitter(x); });
+  figure(m,'#040205','rgba(255,150,80,1)',0.7,-0.7,6,2);
+  const px=hx+250*S, py=hy-244*S;
+  glow(()=>{ g.fillStyle='rgba(140,190,255,0.55)'; g.beginPath(); g.ellipse(px-30,py-60,120,130,0,0,7); g.fill(); },45);
+  g.save(); g.globalCompositeOperation='lighter'; g.filter='blur(6px)'; g.drawImage(tinted(mask(x=>{ x.drawImage(m,0,0); x.globalCompositeOperation='source-in'; x.fillStyle='#fff'; x.beginPath(); x.ellipse(px-50,py-130,80,100,0,0,7); x.fill(); }),'rgba(110,160,255,0.22)'),0,0); g.restore();
+  glow(()=>{ g.fillStyle='rgba(210,230,255,1)'; g.save(); g.translate(px,py); g.rotate(-0.9); g.fillRect(-9,-24,18,48); g.restore(); },2);
+  vignette(0.75,0.3); grain(12);
+}
+
+// ---------------------------------------------------------------- 3. the mirror (dare): we're over his shoulder; in the glass his face, eyes open
+function head(x,y,s,face){ g.save(); g.translate(x,y); g.scale(s,s); g.beginPath();
+  g.moveTo(-120,260); g.bezierCurveTo(-110,160,-150,90,-150,-10); g.bezierCurveTo(-150,-150,-70,-220,0,-220); g.bezierCurveTo(70,-220,150,-150,150,-10); g.bezierCurveTo(150,90,110,160,120,260);   // skull and jaw
+  g.bezierCurveTo(220,290,330,320,400,420); g.lineTo(-400,420); g.bezierCurveTo(-330,320,-220,290,-120,260); g.closePath(); g.restore(); }
+function mirror(){
+  seed=31; g.fillStyle='#070506'; g.fillRect(0,0,W,H);
+  // the lamp: a gold beam from above, dust in it
+  glow(()=>{ g.fillStyle='rgba(255,180,90,0.35)'; g.beginPath(); g.moveTo(500,-50); g.lineTo(640,-50); g.lineTo(980,H); g.lineTo(150,H); g.closePath(); g.fill(); },80);
+  motes(260,250,0,900,H,'rgba(255,210,150,A)',2.4);
+  // the mirror: frame, dim reflected room, reflected lamp, and his face lit from above
+  const mx=380, my=330, mw=520, mh=1250;
+  g.fillStyle=lin(mx,0,mx+mw,0,[[0,'#3a2a16'],[0.5,'#8a6a3a'],[1,'#2a1e10']]); g.fillRect(mx-26,my-26,mw+52,mh+52);
+  g.save(); g.beginPath(); g.rect(mx,my,mw,mh); g.clip();
+  g.fillStyle=lin(0,my,0,my+mh,[[0,'#1a1310'],[1,'#0a0707']]); g.fillRect(mx,my,mw,mh);
+  glow(()=>{ g.fillStyle='rgba(255,190,110,0.35)'; g.beginPath(); g.moveTo(mx+mw*0.62,my); g.lineTo(mx+mw*0.78,my); g.lineTo(mx+mw*0.95,my+mh); g.lineTo(mx+mw*0.25,my+mh); g.closePath(); g.fill(); },60);
+  // in the glass: a close crop of his face, a strip of lamp light across the eyes, both eyes open
+  g.fillStyle=rad(mx+mw*0.5,my+520,30,560,[[0,'#6a3e2a'],[0.5,'#3a2016'],[1,'#0c0605']]); g.fillRect(mx,my,mw,mh);
+  glow(()=>{ g.fillStyle='rgba(8,3,2,0.9)'; g.beginPath(); g.ellipse(mx+mw*0.5,my+150,mw*0.7,150,0,0,7); g.fill(); },40,'source-over');    // hairline shadow
+  glow(()=>{ g.fillStyle='rgba(20,9,5,0.7)'; g.fillRect(mx+mw*0.47,my+560,mw*0.07,330); },18,'source-over');                       // nose bridge shadow
+  { const sc=0.21, ey=my+540, put=(ex,flip)=>drawEye(flip?ex-W*sc+545*sc:ex-545*sc, ey-1000*sc, sc, flip); put(mx+mw*0.5-122,true); put(mx+mw*0.5+122,false); }
+  glow(()=>{ g.fillStyle='rgba(255,200,140,0.18)'; g.fillRect(mx,my+430,mw,170); },40);                                          // the light strip
+  g.fillStyle=lin(0,my,0,my+mh,[[0,'rgba(0,0,0,0.5)'],[0.3,'rgba(0,0,0,0)'],[0.55,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,0.85)']]); g.fillRect(mx,my,mw,mh);
+  glow(()=>{ g.fillStyle='rgba(255,240,220,0.12)'; g.beginPath(); g.moveTo(mx,my+mh*0.2); g.lineTo(mx+mw*0.35,my); g.lineTo(mx+mw*0.5,my); g.lineTo(mx,my+mh*0.45); g.closePath(); g.fill(); },20);   // a glint across the glass
+  g.restore();
+  // him, foreground: the back of his head and shoulder, soft, rimmed by the lamp
+  const hm=mask(x=>{ x.filter='blur(5px)'; x.beginPath(); x.ellipse(250,1300,230,280,0.1,0,7); x.fill(); x.beginPath(); x.ellipse(440,1290,40,80,0.2,0,7); x.fill(); x.fillRect(150,1450,220,300);
+    x.beginPath(); x.moveTo(-200,H); x.bezierCurveTo(-150,1700,60,1620,250,1620); x.bezierCurveTo(480,1620,700,1700,780,H); x.closePath(); x.fill(); });
+  figure(hm,'#030203','rgba(255,170,90,1)',0.55,-0.85,9,4);
+  vignette(0.8,0.3); grain(12);
+}
+window.draw=name=>{ g.setTransform(1,0,0,1,0,0); g.filter='none'; g.globalAlpha=1; g.globalCompositeOperation='source-over'; ({eye,dusk,mirror})[name](); return cv.toDataURL('image/png'); };
+window.ready=true;
+</script></body></html>
