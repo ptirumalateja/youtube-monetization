@@ -76,10 +76,25 @@ const mug=new THREE.Group(); C(mug,0.045,0.04,0.1,M(0xe8e1d4,{r:0.4}),0,0,0); sc
 const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.01}); B(phone,0.067,0.138,0.004,new THREE.MeshBasicMaterial({map:phoneTex,color:0x8a8a8a}),0,0,0.006,{cast:false}); } phone.scale.setScalar(1.4); scene.add(phone); const phoneLight=new THREE.PointLight(0xbcd4ff,0,2.2,2); scene.add(phoneLight);
 
 // ---------------------------------------------------------------- the hero: cream free-flowing stickman with two eye dots
-const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
-const eyeDotM=new THREE.MeshStandardMaterial({color:0x14151a,roughness:0.4}); const eyes=[0,1].map(()=>{ const e=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),eyeDotM); e.frustumCulled=false; scene.add(e); return e; });
+// V5: a solid pictogram figure (Teja's preferred stickman): near-black, warm lamp rim, tapered torso wide at the shoulders,
+// thick round-ended limbs, and a round head floating above a small gap. Only his eyes catch the light.
+const hero=R.makeFig(0x0d0b0a,'hero',{rim:0.55,rimCol:0xffc27a,lift:0.0});
+// Torso: one lathe body (meters, y normalised to the bone), round hips that swallow the thigh tops, square-ish rounded shoulders.
+const PT={len:0.66,hipR:0.128,shR:0.15,capB:0.07,capT:0.085,limb:0.068};
+hero.bones[0].geometry=(()=>{ const pts=[], L=PT.len, N=14;
+  for(let k=0;k<=N;k++){ const a=k/N*Math.PI/2; pts.push(new THREE.Vector2(PT.hipR*Math.sin(a), (PT.capB*(1-Math.cos(a)))/L-0.5)); }
+  for(let k=1;k<N;k++){ const u=k/N, y=PT.capB+u*(L-PT.capB-PT.capT); pts.push(new THREE.Vector2(PT.hipR+(PT.shR-PT.hipR)*Math.pow(u,1.4), y/L-0.5)); }
+  for(let k=0;k<=N;k++){ const a=k/N*Math.PI/2; pts.push(new THREE.Vector2(PT.shR*Math.cos(Math.pow(a/(Math.PI/2),1.0)*Math.PI/2)**0.6, (L-PT.capT+PT.capT*Math.sin(a))/L-0.5)); }
+  const g=new THREE.LatheGeometry(pts,40); g.computeVertexNormals(); return g; })();
+function pictogram(J){ const ax=J.neck.clone().sub(J.hip).normalize();
+  const a=J.hip.clone().addScaledVector(ax,-PT.capB), b=J.neck.clone().addScaledVector(ax,0.012), d=b.clone().sub(a), len=d.length();
+  const T=hero.bones[0]; T.position.copy(a).add(b).multiplyScalar(0.5); T.scale.set(1,len,1); T.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+  hero.bones.forEach((m,i)=>{ if(i>0){ m.scale.x=PT.limb; m.scale.z=PT.limb; } });
+  hero.joints.forEach((j,i)=>{ if(i>=12){ j.visible=false; } else j.scale.setScalar(PT.limb); });
+  hero.head.scale.setScalar(R.L.head*1.12); }
+const eyeDotM=new THREE.MeshBasicMaterial({color:0xffe9c8}); const eyes=[0,1].map(()=>{ const e=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),eyeDotM); e.frustumCulled=false; scene.add(e); return e; });
 function placeEyes(J,shut){ const hd=J.head, up=J.head.clone().sub(J.neck).normalize(); let f=J.fwd.clone().addScaledVector(up,-J.fwd.dot(up)).normalize(); const sd=f.clone().cross(up).normalize();
-  eyes.forEach((e,i)=>{ e.position.copy(hd).addScaledVector(f,0.118).addScaledVector(sd,(i?1:-1)*0.046).addScaledVector(up,0.018); e.scale.set(0.017,0.024*(shut?0.12:1),0.012); e.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(sd,up,f)); e.visible=true; }); }
+  eyes.forEach((e,i)=>{ e.position.copy(hd).addScaledVector(f,0.142).addScaledVector(sd,(i?1:-1)*0.046).addScaledVector(up,0.018); e.scale.set(0.017,0.024*(shut?0.12:1),0.012); e.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(sd,up,f)); e.visible=true; }); }
 const EYE=new THREE.Group(); EYE.position.set(60,0,0); scene.add(EYE);
 const irisTex=canvasTex(2048,1024,(g,w,h)=>{ // equirect with the iris around the top pole (v=0); the ball is turned so that pole faces the camera
   g.fillStyle='#eadfd2'; g.fillRect(0,0,w,h); const Rr=rng(8); g.strokeStyle='rgba(170,50,45,0.28)'; g.lineWidth=2; for(let i=0;i<90;i++){ let x=Rr()*w, y=h*(0.3+Rr()*0.45); g.beginPath(); g.moveTo(x,y); for(let k=0;k<7;k++){ x+=(Rr()-0.5)*50; y-=Rr()*28; g.lineTo(x,y); } g.stroke(); }
@@ -233,7 +248,7 @@ function setT(t){ ST.moteU.uOp.value=1; scene.fog.color.setHex(FOGC); const sh=s
       const a=TOD[cyc[i%4]], b=TOD[cyc[(i+1)%4]]; L={col:new THREE.Color(a.col).lerp(new THREE.Color(b.col),w).getHex(),k:lerp(a.k,b.k,w)}; if(t<11.35) L=TOD.night; }
     scene.fog.density=id==='life'?lerp(0.085,0.02,u):0.085; ST.spot.color.setHex(L.col); ST.beamU.uCol.value.setHex(L.col); ST.tick(t,0); ST.spot.intensity*=L.k; ST.beamU.uI.value*=L.k;
     if(id==='window') winLight.intensity=6; if(id==='desk'){ lapLight.position.set(0,0.95,-0.35); lapLight.intensity=0.6; }
-    const hp=heroPose(t,id); hero.all.forEach(m=>m.visible=true); R.poseFig(hero,hp.J); placeEyes(hp.J,id==='mirror'?false:lidAt(t)>0.45);
+    const hp=heroPose(t,id); hero.all.forEach(m=>m.visible=true); R.poseFig(hero,hp.J); pictogram(hp.J); placeEyes(hp.J,id==='mirror'?false:lidAt(t)>0.45);
     const e=hp.ex; if(e.book){ rbook.visible=true; rbook.position.copy(e.book.pos); rbook.lookAt(e.book.pos.clone().add(e.book.f.clone().multiplyScalar(-1)).add(V(0,0.9,0))); rbook.rotateX(-Math.PI/2); }
     if(e.mug){ mug.visible=true; mug.position.copy(e.mug).add(V(0,0.03,0)); }
     if(e.phone){ phone.visible=true; phone.position.copy(e.phone.pos); phone.lookAt(e.phone.pos.clone().addScaledVector(e.phone.f,-1).add(V(0,0.6,0))); phoneLight.position.copy(e.phone.pos).addScaledVector(e.phone.f,0.25); phoneLight.intensity=0.35; }
