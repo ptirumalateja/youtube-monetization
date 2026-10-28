@@ -54,26 +54,33 @@ function glow(x,y,r,c,a){ g.save(); g.globalCompositeOperation='lighter'; const 
 function curve(a,b,c,w,col){ g.strokeStyle=col; g.lineWidth=w; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(a[0],a[1]);
   // a smooth curve that passes through b (the joint): control point pushed past b so the stroke actually reaches it
   const cx=2*b[0]-(a[0]+c[0])/2, cy=2*b[1]-(a[1]+c[1])/2; g.quadraticCurveTo(cx,cy,c[0],c[1]); g.stroke(); }
-function figure(P,col,{glowA=0.35,order='default',skipArm=null}={}){
-  const legW=30, armW=24, torsoW=36, hr=48, OL='rgba(14,17,26,0.7)';
-  const hipL=[P.hip[0]-22,P.hip[1]], hipR=[P.hip[0]+22,P.hip[1]];
-  const shL=[P.neck[0]-46,P.neck[1]+20], shR=[P.neck[0]+46,P.neck[1]+20];
-  // every part is drawn twice: a thin dark outline, then the colour with a soft glow, so overlapping parts stay readable
-  const part=(fn)=>{ g.save(); g.shadowBlur=0; fn(OL,7); g.restore(); g.save(); g.shadowColor=`rgba(255,240,220,${glowA})`; g.shadowBlur=24; fn(col,0); g.restore(); };
-  const leg=(h,k,f)=>part((c,o)=>{ g.strokeStyle=c; g.lineWidth=legW+o; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(h[0],h[1]); g.lineTo(k[0],k[1]); g.quadraticCurveTo(k[0]+(f[0]-k[0])*0.2,k[1]+(f[1]-k[1])*0.5,f[0],f[1]); g.stroke();
-    g.fillStyle=c; g.beginPath(); g.ellipse(f[0]+(f[0]>P.hip[0]?6:-6),f[1]+2,26+o/2,15+o/2,0,0,7); g.fill(); });
-  leg(hipL,P.kL,P.fL); leg(hipR,P.kR,P.fR);
-  part((c,o)=>{ g.strokeStyle=c; g.lineCap='round'; g.lineWidth=torsoW+o; g.beginPath(); g.moveTo(P.hip[0],P.hip[1]); g.quadraticCurveTo(P.hip[0]+(P.bow||0),(P.hip[1]+P.neck[1])/2,P.neck[0],P.neck[1]); g.stroke();
-    g.lineWidth=armW*1.6+o; g.beginPath(); g.moveTo(shL[0],shL[1]); g.quadraticCurveTo(P.neck[0],P.neck[1]-6,shR[0],shR[1]); g.stroke(); });
-  const head=()=>part((c,o)=>{ g.fillStyle=c; g.beginPath(); g.arc(P.head[0],P.head[1],hr+o/2,0,7); g.fill(); });
-  const arm=(sh,e,h)=>part((c,o)=>{ g.strokeStyle=c; g.lineWidth=armW+o; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(sh[0],sh[1]); const cx=2*e[0]-(sh[0]+h[0])/2, cy=2*e[1]-(sh[1]+h[1])/2; g.quadraticCurveTo(cx,cy,h[0],h[1]); g.stroke(); });
+// Pictogram style (Teja's reference, 28 Oct): a solid tapered torso, thick limbs with round ends, a round head floating
+// a small gap above the shoulders, and dark "gap" cuts wherever one part crosses another. Cream on dark, soft glow.
+function figure(P,col,{glowA=0.3,order='default',skipArm=null}={}){
+  const legW=44, armW=34, hr=46, GAP='rgba(16,19,28,0.95)', gapW=10;
+  const up=[P.neck[0]-P.hip[0],P.neck[1]-P.hip[1]]; const L=Math.hypot(...up); const u=[up[0]/L,up[1]/L], n=[-u[1],u[0]];
+  const at=(p,a,b)=>[p[0]+n[0]*a+u[0]*b,p[1]+n[1]*a+u[1]*b];
+  const shL=at(P.neck,-50,-14), shR=at(P.neck,50,-14);
+  const lit=(fn)=>{ g.save(); g.shadowColor=`rgba(255,240,220,${glowA})`; g.shadowBlur=22; fn(col); g.restore(); };
+  const gap=(fn)=>{ g.save(); fn(GAP,gapW); g.restore(); };
+  const legPath=(h,k,f)=>{ g.beginPath(); g.moveTo(h[0],h[1]); g.lineTo(k[0],k[1]); g.lineTo(f[0],f[1]); };
+  const leg=(h,k,f,o)=>{ const draw=(c,w)=>{ g.strokeStyle=c; g.lineWidth=legW+w; g.lineCap='round'; g.lineJoin='round'; legPath(h,k,f); g.stroke();
+      g.fillStyle=c; g.beginPath(); g.ellipse(f[0]+o*10,f[1]+4,30+w/2,17+w/2,0,0,7); g.fill(); }; gap(draw); lit(c=>draw(c,0)); };
+  leg([P.hip[0]-20,P.hip[1]],P.kL,P.fL,-1); leg([P.hip[0]+20,P.hip[1]],P.kR,P.fR,1);
+  // torso: shoulders wide and rounded, tapering to the hips
+  const torso=(c,w)=>{ const sL=at(P.neck,-54-w/2,-6), sR=at(P.neck,54+w/2,-6), top=at(P.neck,0,6+w/2), hR=at(P.hip,36+w/2,0), hL=at(P.hip,-36-w/2,0), bot=at(P.hip,0,-14-w/2), mid=at([(P.hip[0]+P.neck[0])/2+(P.bow||0),(P.hip[1]+P.neck[1])/2],0,0);
+    g.fillStyle=c; g.beginPath(); g.moveTo(sL[0],sL[1]); g.quadraticCurveTo(top[0],top[1],sR[0],sR[1]); g.quadraticCurveTo(mid[0]+n[0]*(48+w/2),mid[1]+n[1]*(48+w/2),hR[0],hR[1]);
+    g.quadraticCurveTo(bot[0],bot[1],hL[0],hL[1]); g.quadraticCurveTo(mid[0]-n[0]*(48+w/2),mid[1]-n[1]*(48+w/2),sL[0],sL[1]); g.closePath(); g.fill(); };
+  gap(torso); lit(c=>torso(c,0));
+  const head=()=>{ const hd=(c,w)=>{ g.fillStyle=c; g.beginPath(); g.arc(P.head[0],P.head[1],hr+w/2,0,7); g.fill(); }; gap((c,w)=>hd(c,w+4)); lit(c=>hd(c,0)); };
+  const arm=(sh,e,h)=>{ const draw=(c,w)=>{ g.strokeStyle=c; g.lineWidth=armW+w; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(sh[0],sh[1]); g.lineTo(e[0],e[1]); g.lineTo(h[0],h[1]); g.stroke(); }; gap(draw); lit(c=>draw(c,0)); };
   const arms=()=>{ if(skipArm!=='L') arm(shL,P.eL,P.hL); if(skipArm!=='R') arm(shR,P.eR,P.hR); };
   if(order==='headFirst'){ head(); arms(); } else { arms(); head(); }
   return {shL,shR}; }
 // sitting on the bed edge, front view: short foreshortened thighs, shins down to the floor (like the bench in the reference)
 function seated(cx,o={}){ const hipY=SY-14;
-  const P={hip:[cx,hipY], kL:[cx-48,SY+24], kR:[cx+48,SY+24], fL:[cx-58,FY], fR:[cx+58,FY], bow:o.bow||0};
-  P.neck=o.neck?[cx+o.neck[0],SY+o.neck[1]]:[cx,SY-232]; P.head=o.head?[P.neck[0]+o.head[0],P.neck[1]+o.head[1]]:[P.neck[0],P.neck[1]-78];
+  const P={hip:[cx,hipY], kL:[cx-64,SY+46], kR:[cx+64,SY+46], fL:[cx-46,FY], fR:[cx+46,FY], bow:o.bow||0};
+  P.neck=o.neck?[cx+o.neck[0],SY+o.neck[1]]:[cx,SY-232]; P.head=o.head?[P.neck[0]+o.head[0],P.neck[1]+o.head[1]]:[P.neck[0],P.neck[1]-66];
   P.eL=o.eL||[cx-74,SY-70]; P.hL=o.hL||[cx-50,SY+16]; P.eR=o.eR||[cx+74,SY-70]; P.hR=o.hR||[cx+50,SY+16];
   return P; }
 
@@ -105,8 +112,8 @@ function render(t){
   const PH=[CX+108,SY-2];                                         // on the bed beside him
   if(SHOT==='hook'||SHOT==='count'){
     // elbows on knees, head hung, hands at his head
-    const P=seated(CX,{neck:[0,-200],head:[0,44],eL:[CX-80,SY+4],hL:[CX-44,SY-162],eR:[CX+80,SY+4],hR:[CX+44,SY-162]});
-    phone(...PH); figure(P,C.him,{glowA:0.25,order:'headFirst'});
+    const P=seated(CX,{neck:[0,-196],head:[0,40],eL:[CX-92,SY+20],hL:[CX-58,SY-150],eR:[CX+92,SY+20],hR:[CX+58,SY-150]});
+    phone(...PH); figure(P,C.him,{glowA:0.25});
     if(SHOT==='count') cards(PH[0]+30,PH[1]-40,6);
   }
   if(SHOT==='knock'){
@@ -129,7 +136,7 @@ function render(t){
       const P=seated(CX,{neck:[40,-206],head:[76,-26],eL:[CX-26,SY-84],hL:[CX-34,SY+14],eR:[CX+96,SY-84],hR:[CX+64,SY+16]});
       figure(F,C.friend,{glowA:0.35,skipArm:'L'});
       const fsh=[F.neck[0]-46,F.neck[1]+20]; g.save(); g.shadowColor='rgba(255,240,220,0.35)'; g.shadowBlur=26;
-      curve(fsh,[CX+80,P.neck[1]-14],[CX-2,P.neck[1]+22],24,C.friend); g.restore();     // his arm goes behind
+      curve(fsh,[CX+80,P.neck[1]-14],[CX-2,P.neck[1]+22],44,"rgba(16,19,28,0.95)"); curve(fsh,[CX+80,P.neck[1]-14],[CX-2,P.neck[1]+22],34,C.friend); g.restore();     // his arm goes behind
       figure(P,C.him,{glowA:0.25});
       g.save(); g.strokeStyle='rgba(14,17,26,0.7)'; g.lineWidth=5; g.fillStyle=C.friend; g.beginPath(); g.ellipse(CX-6,P.neck[1]+22,22,14,-0.4,0,7); g.fill(); g.stroke(); g.restore();   // his hand on the far shoulder
     }
