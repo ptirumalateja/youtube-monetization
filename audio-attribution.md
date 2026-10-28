@@ -41,7 +41,7 @@ Paste the exact line into the description of any reel that uses the file.
 | 869757 Dark Suspense Accent | mikiko850 | Night Sky, Scale Ladder |
 | 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | Night Sky, Scale Ladder |
 | 822420 Riser Hit sfx 120 | AudioPapkin | Night Sky, Scale Ladder, Roberto Carlos V2 |
-| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
+| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees, Blind for 20 Minutes |
 | 276871 Sword In Air | lucabia | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 768664 portal gate opening | berkup | Night Sky only |
 | 735062 Fast Warp In | GammaGool | Night Sky only |

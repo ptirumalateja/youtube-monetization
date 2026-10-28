@@ -32,6 +32,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [The Moon Never Loops](moon-never-loops.md) | Final (v2, cinematic) | `final-reels/moon-never-loops-v2.mp4` |
 | [The Shape of Flow (torus)](shape-of-flow.md) | Final (v2, kept by Teja) | `final-reels/shape-of-flow_v2.mp4` |
 | [The Ship Never Moves (warp drive)](the-ship-never-moves.md) | Final (v2) | `final-reels/the-ship-never-moves_master.mp4` (share: `the-ship-never-moves.mp4`) |
+| [You Were Blind for 20 Minutes Today (blinks)](blind-for-20-minutes.md) | V1, awaiting Teja's review; wordless | `final-reels/blind-for-20-minutes.mp4` (silent: `_music-ready.mp4`) |
 | [The Voice in Your Head (anendophasia)](the-voice-in-your-head.md) | V2 final (reach cut, scribble style), awaiting Teja's review; V1 kept; wordless | `final-reels/the-voice-in-your-head-v2.mp4` (silent: `_v2_silent.mp4`) |
 | [Three Answers to One Fall (gravity)](three-answers-to-one-fall.md) | Final (v2) | `final-reels/three-answers-to-one-fall.mp4` |
 | [What Andromeda Sees (alien perspective)](what-andromeda-sees.md) | Final (v1), awaiting Teja's review; mammoth claim corrected to early ancestors | `final-reels/what-andromeda-sees.mp4` (silent: `_music-ready.mp4`, drop on 8.6 s) |
