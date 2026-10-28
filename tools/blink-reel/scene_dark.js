@@ -39,8 +39,9 @@ const shotAt=t=>SHOTS.find(s=>t>=s.t0&&t<s.t1)||SHOTS[SHOTS.length-1];
 // ---------------------------------------------------------------- what he looks at (seen in the POV shots): page text, sunrise, laptop doc, phone feed
 const WORDS='the light had gone out of the room before she noticed it and the long hour after was only the slow return of things she had stopped seeing because she had stopped looking and the window held the last of the evening like water in a glass'.split(' ');
 const pageTex=sd=>canvasTex(512,768,(g,w,h)=>{ const r=rng(sd); g.fillStyle='#efe6d4'; g.fillRect(0,0,w,h); const gr=g.createLinearGradient(sd%2?w:0,0,sd%2?0:w,0); gr.addColorStop(0,'rgba(90,70,40,0.35)'); gr.addColorStop(0.12,'rgba(90,70,40,0)'); g.fillStyle=gr; g.fillRect(0,0,w,h);
-  g.fillStyle='#2a2420'; g.font='19px Georgia, serif'; let y=70; while(y<h-50){ let x=44, line=''; while(true){ const wd=WORDS[Math.floor(r()*WORDS.length)]; if(g.measureText(line+wd+' ').width>w-88) break; line+=wd+' '; } g.fillText(line,x,y); y+=30; }
-  g.font='15px Georgia, serif'; g.fillText(String(140+sd),w/2-12,h-24); });
+  g.filter='blur(7px)'; g.fillStyle='#6a5e54'; g.font='19px Georgia, serif'; let y=70;   // V7: soft, out-of-focus type, so the page never invites reading
+  while(y<h-50){ let x=44, line=''; while(true){ const wd=WORDS[Math.floor(r()*WORDS.length)]; if(g.measureText(line+wd+' ').width>w-88) break; line+=wd+' '; } g.fillText(line,x,y); y+=30; }
+  g.font='15px Georgia, serif'; g.fillText(String(140+sd),w/2-12,h-24); g.filter='none'; });
 const skyTex=canvasTex(1024,1280,(g,w,h)=>{ const r=rng(41); const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#7fa6d8'); gr.addColorStop(0.55,'#d8c8c4'); gr.addColorStop(0.75,'#ffd9a8'); gr.addColorStop(1,'#ffe8c8'); g.fillStyle=gr; g.fillRect(0,0,w,h);
   const sg=g.createRadialGradient(w*0.66,h*0.7,10,w*0.66,h*0.7,360); sg.addColorStop(0,'rgba(255,250,230,1)'); sg.addColorStop(0.15,'rgba(255,236,190,0.9)'); sg.addColorStop(1,'rgba(255,220,170,0)'); g.fillStyle=sg; g.fillRect(0,0,w,h);
   for(const [base,hm,col] of [[h*0.86,h*0.12,'rgba(150,150,175,0.55)'],[h*0.92,h*0.2,'rgba(95,95,120,0.8)'],[h,h*0.3,'#3a3a4a']]){ let x=-10; g.fillStyle=col; while(x<w){ const bw=40+r()*90, bh=hm*(0.3+0.7*r()); g.fillRect(x,base-bh,bw,h); x+=bw+3; } }

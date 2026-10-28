@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | V6 (mirror walk-up + palm on glass, new sound design with no music, 23.3 s) delivered 28 Oct 2026, re-review 89/100; V5 in final-reels/blink-v5/, V4 in blink-v4/ |
+| Status | V7 (V6 + slower laptop/phone stretch, blurred book pages, 23.8 s) delivered 28 Oct 2026, re-review 89/100; V6 in final-reels/blink-v6/, V5 in blink-v5/ |
 | Upload file | `final-reels/blind-for-20-minutes.mp4` (silent: `blind-for-20-minutes_music-ready.mp4`) |
 | Length | 23.3 s, loops (the last frame closes the lids, frame 0 opens the eye) |
 | Voice | None (wordless) |
