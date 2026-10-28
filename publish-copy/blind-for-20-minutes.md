@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | V3 (payoff-first, POV montage, 22 s) delivered 28 Oct 2026, re-review 81/100; V2 in final-reels/blink-v2/ |
+| Status | V4 (V3 + night-road danger beat, 23.3 s) delivered 28 Oct 2026, re-review 85/100; V3 in final-reels/blink-v3/, V2 in blink-v2/ |
 | Upload file | `final-reels/blind-for-20-minutes.mp4` (silent: `blind-for-20-minutes_music-ready.mp4`) |
-| Length | 22.0 s, loops (the last frame closes the lids, frame 0 opens the eye) |
+| Length | 23.3 s, loops (the last frame closes the lids, frame 0 opens the eye) |
 | Voice | None (wordless) |
 | Renderer | `tools/blink-reel` |
 
@@ -31,5 +31,6 @@
 - The math on screen: 10-15 blinks/min x 0.10-0.15 s x 960 waking minutes = 16-36 minutes; "20 minutes" is a typical value, and the description says "about". Blink rate drops when reading or looking at screens, so a screen-heavy day can be lower. Don't state 20 minutes as an exact figure in replies.
 - "10,000+ times a day" (V2) / "~12,000 times a day" (V3): 10-15/min x 960 min = 9,600-14,400. V3 uses ~12,000 so the on-screen math closes: 12,000 x 0.1 s = 1,200 s = 20:00.
 - "~1 YEAR" in a lifetime (V3): 20 min/day x 365 days x 72 years = 525,600 min, about 365 days. It is an order-of-magnitude figure that rests on the 20-minute typical day, so keep the "~".
+- "AT 100 km/h, EVERY BLINK = 3 METRES BLIND." (V4): 100 km/h = 27.8 m/s; x 0.10-0.15 s per blink = 2.8-4.2 m. "3 metres" sits at the low end, so it is safe.
 - "YOUR BRAIN EDITS OUT EVERY BLINK" (V3): blink suppression, as in Bristow et al. 2005 above.
 - The mirror test is commonly reported and matches blink suppression. On screen it is framed as an invitation ("try it"), not as a measurement.

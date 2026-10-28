@@ -10,16 +10,16 @@ import {buildEye} from './eye.js';
 const {V,clamp,sstep,lerp,sm5,PAL}=SLD;
 const {M,B,C,S:SPH,P:PLN,canvasTex,rng}=SETS;
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
-const DUR=22.0;
+const DUR=22.0;                // the reel; t 22.0-24.2 is the V4 danger shot, rendered on its own and spliced in after the lifetime beat
 const ST=SLD.createStage({W,H}); const scene=ST.scene; const R=SLD.createRig(scene);
 
 // ---------------------------------------------------------------- blinks (screen lids) and the shot list
 // V3 (payoff-first): the eye blinks in the hook; screen lids carry the day; the brain cuts out on each blink; the mirror dare; the CTA; lids close into the loop.
-const BLINKS=[3.3,4.75, 5.9,6.85,7.8,8.65, 9.05,9.3,9.5,9.66,9.8,9.9, 12.4, 18.6,19.75];
+const BLINKS=[3.3,4.75, 5.9,6.85,7.8,8.65, 9.05,9.3,9.5,9.66,9.8,9.9, 12.4, 18.6,19.75, 23.1];
 const EYEBLINKS=[-0.12,1.2, 13.45];           // real-lid blinks in the eye shots (the first one is already shut at frame 0)
 const BRAINBLINKS=[15.5,16.35];
 const lidOne=(t,b)=>{ const u=t-b; if(u<0||u>0.22) return 0; if(u<0.06) return sm5(u/0.06); if(u<0.13) return 1; return 1-sm5((u-0.13)/0.09); };
-function lidAt(t){ let l=0; if(t<0.14) l=1-sm5(clamp((t-0.03)/0.11)); if(t>21.82) l=Math.max(l,sm5(clamp((t-21.82)/0.08))); for(const b of BLINKS) l=Math.max(l,lidOne(t,b)); return l; }
+function lidAt(t){ let l=0; if(t<0.14) l=1-sm5(clamp((t-0.03)/0.11)); if(t>21.82&&t<22) l=Math.max(l,sm5(clamp((t-21.82)/0.08))); for(const b of BLINKS) l=Math.max(l,lidOne(t,b)); return l; }
 const SHOTS=[
   {id:'eyehook',t0:0.0, t1:2.4},
   {id:'read',   t0:2.4, t1:3.9,  tod:'night'},
@@ -32,7 +32,8 @@ const SHOTS=[
   {id:'life',   t0:11.2,t1:13.0, tod:'night'},
   {id:'eye',    t0:13.0,t1:14.6},
   {id:'brain',  t0:14.6,t1:17.0},
-  {id:'mirror', t0:17.0,t1:22.0, tod:'night'} ];
+  {id:'mirror', t0:17.0,t1:22.0, tod:'night'},
+  {id:'drive',  t0:22.0,t1:24.2} ];
 const shotAt=t=>SHOTS.find(s=>t>=s.t0&&t<s.t1)||SHOTS[SHOTS.length-1];
 
 // ---------------------------------------------------------------- what he looks at (seen in the POV shots): page text, sunrise, laptop doc, phone feed
@@ -128,6 +129,36 @@ const EYEM=buildEye(ST.renderer); EYE.add(EYEM.group);
 
 // ---------------------------------------------------------------- V3 brain: a glowing brain you can recognise (two hemispheres with gyri, cerebellum, stem).
 // The visual cortex at the back burns gold, fed by pulses running back from the eyes along the optic radiation; on a blink it all cuts out.
+// ---------------------------------------------------------------- V4 danger beat: night road from the driver's seat at 100 km/h (27.8 m/s).
+// Dashes are 3 m long with 9 m gaps, so one blink (0.1 s = 2.8 m) costs you about one whole dash.
+const ROAD=new THREE.Group(); ROAD.position.set(300,0,0); scene.add(ROAD);
+const asphaltTex=canvasTex(512,512,(g,w,h)=>{ const r=rng(61); g.fillStyle='#0f0f12'; g.fillRect(0,0,w,h); for(let i=0;i<9000;i++){ const v=12+r()*24; g.fillStyle=`rgb(${v},${v},${v+3})`; g.fillRect(r()*w,r()*h,1.5,1.5); } },true);
+asphaltTex.wrapS=asphaltTex.wrapT=THREE.RepeatWrapping; asphaltTex.repeat.set(4,120);
+{ const road=new THREE.Mesh(new THREE.PlaneGeometry(9,1200),new THREE.MeshStandardMaterial({map:asphaltTex,roughness:0.85,metalness:0.0})); road.rotation.x=-Math.PI/2; road.position.z=-560; ROAD.add(road);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,1200),new THREE.MeshStandardMaterial({color:0x0b0c0a,roughness:1})); ground.rotation.x=-Math.PI/2; ground.position.set(0,-0.02,-560); ROAD.add(ground);
+  const paint=new THREE.MeshStandardMaterial({color:0xe8e4d8,roughness:0.5,emissive:0x2a2822});
+  const dash=new THREE.InstancedMesh(new THREE.BoxGeometry(0.15,0.01,3.0),paint,100); for(let i=0;i<100;i++){ const m=new THREE.Matrix4().makeTranslation(0,0.006,-1.5-i*12); dash.setMatrixAt(i,m); } ROAD.add(dash);
+  for(const x of [-4.2,4.2]){ const e=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.01,1200),paint); e.position.set(x,0.006,-560); ROAD.add(e); }
+  const postM=new THREE.MeshStandardMaterial({color:0xdcdcdc,roughness:0.6}), refl=new THREE.MeshBasicMaterial({color:0xffa040});
+  for(let i=0;i<48;i++) for(const sx of [-1,1]){ const z=-8-i*25; const p=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.0,0.1),postM); p.position.set(sx*5.4,0.5,z); ROAD.add(p); const r=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.12,0.02),refl); r.position.set(sx*5.4,0.85,z+0.06); ROAD.add(r); }
+  // tree line silhouettes and a far town glow on the horizon
+  const treeM=new THREE.MeshBasicMaterial({color:0x050607,fog:true}); const Rr=rng(63); for(let i=0;i<220;i++){ const sx=Rr()<0.5?-1:1, z=-10-Rr()*900, h=4+Rr()*7; const tr=new THREE.Mesh(new THREE.ConeGeometry(1.2+Rr()*1.5,h,6),treeM); tr.position.set(sx*(9+Rr()*25),h/2,z); ROAD.add(tr); }
+  const glowT=canvasTex(512,256,(g,w,h)=>{ const gr=g.createRadialGradient(w/2,h,10,w/2,h,w*0.6); gr.addColorStop(0,'rgba(255,160,80,0.42)'); gr.addColorStop(1,'rgba(255,160,80,0)'); g.fillStyle=gr; g.fillRect(0,0,w,h); g.globalCompositeOperation='destination-in'; const v=g.createLinearGradient(0,0,0,h); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(0.75,'rgba(0,0,0,1)'); v.addColorStop(1,'rgba(0,0,0,1)'); g.fillStyle=v; g.fillRect(0,0,w,h); });
+  window.SKY=new THREE.Group(); const sky=new THREE.Mesh(new THREE.PlaneGeometry(260,60),new THREE.MeshBasicMaterial({map:glowT,transparent:true,fog:false,depthWrite:false,blending:THREE.AdditiveBlending})); sky.position.set(-30,8,0); SKY.add(sky);
+  const sp=[]; for(let i=0;i<900;i++){ sp.push((Rr()-0.5)*300,12+Rr()*120,(Rr()-0.5)*4); } const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+  SKY.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xbcc6e0,size:1.6,sizeAttenuation:false,fog:false,transparent:true,opacity:0.7}))); ROAD.add(SKY);
+  // far oncoming car: two small lamps
+  const lampM=new THREE.MeshBasicMaterial({color:0xfff2d8,fog:false}); window.ONC=new THREE.Group(); for(const sx of [-0.7,0.7]){ const l=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,8),lampM); l.position.x=sx; ONC.add(l); } ONC.position.set(-2.1,0.7,-400); ROAD.add(ONC); }
+// headlights ride with the camera
+const hlL=new THREE.SpotLight(0xfff0d8,0,140,0.42,0.55,1.2), hlR=hlL.clone(); scene.add(hlL,hlL.target,hlR,hlR.target);
+// the dashboard: a dark shape across the bottom of the frame, a soft speedo glow, the wheel's top arc (all parented to the camera)
+const DASH=new THREE.Group(); { const dm=new THREE.MeshStandardMaterial({color:0x07070a,roughness:0.6});
+  const d=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.5,0.6),dm); d.position.set(0,-0.53,-0.8); DASH.add(d);
+  const w=new THREE.Mesh(new THREE.TorusGeometry(0.19,0.025,10,48,Math.PI*1.1),new THREE.MeshStandardMaterial({color:0x0b0b0e,roughness:0.4})); w.position.set(-0.01,-0.47,-0.52); w.rotation.z=-0.05*Math.PI; DASH.add(w);
+  const spd=canvasTex(512,256,(g,w,h)=>{ g.fillStyle='rgba(0,0,0,0)'; g.clearRect(0,0,w,h); g.fillStyle='rgba(255,170,90,0.95)'; g.font='bold 120px Helvetica, Arial'; g.textAlign='center'; g.fillText('100',w/2,150); g.font='bold 40px Helvetica, Arial'; g.fillText('km/h',w/2,215); });
+  const sp=new THREE.Mesh(new THREE.PlaneGeometry(0.16,0.08),new THREE.MeshBasicMaterial({map:spd,transparent:true,fog:false})); sp.position.set(0.0,-0.222,-0.58); sp.rotation.x=-0.3; DASH.add(sp); }
+scene.add(DASH);
+
 const BRAIN2=new THREE.Group(); BRAIN2.position.set(180,0,0); scene.add(BRAIN2);
 const b2U={uT:{value:0},uB:{value:1},uOcc:{value:1},uH:{value:H}};
 { const Rr=rng(77), P=[], A=[]; // A: [kind, occipital weight, seed]
@@ -192,7 +223,8 @@ const CAMS={
 const POV={read:1,window:1,desk:1,bed:1};   // V3.1: these shots are what HE sees, so the blinks black out the viewer's own view
 const PROPS={read:'chair',read2:'chair',readn:'chair',wide:'chair',life:'chair',window:'window',desk:'desk',bed:'bed',mirror:'mirror'};
 
-function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0)/(sh.t1-sh.t0)));
+const FOGC=scene.fog.color.getHex();
+function setT(t){ ST.moteU.uOp.value=1; scene.fog.color.setHex(FOGC); const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0)/(sh.t1-sh.t0)));
   ST.GU.uLid.value=(id==='eye'||id==='brain')?0:(id==='eyehook'?(t<0.14?lidAt(t):0):lidAt(t));
   for(const k of ['chair','window','desk','bed','mirror']) G[k].visible=(PROPS[id]===k);
   rbook.visible=mug.visible=phone.visible=false; phoneLight.intensity=0; lapLight.intensity=0; winLight.intensity=0; eyeLight.intensity=0; eyeSpot.intensity=0;
@@ -214,6 +246,13 @@ function setT(t){ const sh=shotAt(t); const id=sh.id; const u=sm5(clamp((t-sh.t0
     const cm=CAMS[id]; const pos=V(...cm[0]).lerp(V(...cm[2]),u), look=V(...cm[1]).lerp(V(...cm[3]),u);
     ST.cam.fov=38; ST.cam.updateProjectionMatrix(); ST.cam.position.copy(pos); ST.cam.lookAt(look); return; }
   hero.all.forEach(m=>m.visible=false); eyes.forEach(e=>e.visible=false); scene.fog.density=0.012; ST.tick(t,0);
+  ROAD.visible=id==='drive'; DASH.visible=id==='drive'; hlL.intensity=hlR.intensity=0;
+  if(id==='drive'){ scene.fog.density=0.016; ST.spot.intensity=0; ST.beamU.uI.value=0; ST.moteU.uOp.value=0; const z=-27.8*(t-22.0); const bob=0.006*Math.sin(t*23)+0.004*Math.sin(t*9.1);
+    ST.cam.fov=50; ST.cam.far=400; ST.cam.updateProjectionMatrix(); ST.cam.far=60; ST.cam.position.set(300-0.95,1.2+bob,z); ST.cam.lookAt(300-0.95+0.15,1.05,z-40); ST.cam.updateMatrixWorld();
+    DASH.position.copy(ST.cam.position); DASH.quaternion.copy(ST.cam.quaternion);
+    SKY.position.z=z-160; scene.fog.color.setHex(0x030407);
+    for(const [h,sx] of [[hlL,-0.75],[hlR,0.75]]){ h.intensity=110; h.position.set(300-0.95+sx,0.7,z-1.5); h.target.position.set(300-0.95+sx*0.6,0,z-38); h.target.updateMatrixWorld(); }
+    ONC.position.z=-400+60*(t-22.0)-z*0; return; }
   if(id==='eye'||id==='eyehook'){ eyeSpot.intensity=26; eyeLight.position.set(62.2,0.8,3.2); eyeLight.color.setHex(0x9fb2d6); eyeLight.intensity=0.8;
     let shut=0; for(const e of EYEBLINKS){ const b=t-e; shut=Math.max(shut,b<0||b>0.34?0:(b<0.09?sm5(b/0.09):(b<0.16?1:1-sm5((b-0.16)/0.18)))); } EYEM.update(1-shut,t);
     if(id==='eyehook'){ const k=sm5(clamp(t/2.4)); ST.cam.fov=30; ST.cam.updateProjectionMatrix(); EYEM.cornea.visible=shut<0.6; ST.cam.position.set(60+lerp(0.25,-0.1,k),lerp(0.35,0.15,k),lerp(6.6,5.4,k)); ST.cam.lookAt(60,-0.05,0); return; }
