@@ -139,14 +139,15 @@ export function createStage(o={}){
   const composer=new EffectComposer(renderer); composer.setSize(W,H);
   composer.addPass(new RenderPass(scene,cam));
   const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.45,0.6,0.88); composer.addPass(bloom);
-  const gradePass=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uAsp:{value:W/H}},vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-   fragmentShader:`varying vec2 vU; uniform sampler2D tDiffuse; uniform float uT,uAsp;
+  const gradePass=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uAsp:{value:W/H},uLid:{value:0}},vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+   fragmentShader:`varying vec2 vU; uniform sampler2D tDiffuse; uniform float uT,uAsp,uLid;
     float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uT*37.0)*43758.5453); }
     void main(){ vec2 c=vU-0.5; float r2=dot(c*vec2(uAsp,1.0),c*vec2(uAsp,1.0));
      vec3 col=texture2D(tDiffuse,vU).rgb; col=vec3(1.0)-exp(-1.15*col);
      float vig=1.0-smoothstep(0.06,0.42,r2)*0.62; col*=vig;
      col+=vec3(0.0006,0.0010,0.0028)*smoothstep(0.08,0.45,r2);
      col+=(h(vU*vec2(uAsp,1.0)*900.0)-0.5)*0.006*(0.3+col);
+     if(uLid>0.0){ float ax=(vU.x-0.5)*uAsp; float edge=0.62*(1.0-uLid)*(1.0-0.5*uLid*ax*ax/0.08); float d=abs(vU.y-0.5)-edge; float m=smoothstep(-0.012,0.006,d); if(uLid>0.995) m=1.0; col*=1.0-smoothstep(-0.06,0.0,d)*(1.0-m)*0.6; col=mix(col,vec3(0.010,0.007,0.007),m); }
      gl_FragColor=vec4(max(col,0.0),1.0);} `});
   composer.addPass(gradePass); const GU=gradePass.uniforms;
   composer.addPass(new OutputPass());

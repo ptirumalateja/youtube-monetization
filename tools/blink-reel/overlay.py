@@ -44,7 +44,7 @@ def layer(t):
     # lock-in
     for k, (t0, txt, size, col) in enumerate([(2.55, 'YOU BLINK 10,000+', 54, CREAM), (2.55, 'TIMES A DAY.', 54, CREAM), (3.6, 'EACH ONE = 0.1 s', 54, CREAM), (3.6, 'OF DARKNESS.', 54, CREAM), (4.65, "YOU'VE NEVER", 70, GOLD), (4.65, 'SEEN ONE.', 70, GOLD)]):
         a = win(t, t0, 5.95)
-        if a: y = [1120, 1188, 1270, 1338, 1420, 1502][k]; tracked(d, txt, size, W / 2, y, 2, col + (int(255 * a),))
+        if a: y = [230, 298, 380, 448, 530, 612][k]; tracked(d, txt, size, W / 2, y, 2, col + (int(255 * a),))
     # counter + time-of-day chips
     a = win(t, 6.0, 12.0, 0.1, 0.2)
     if a:
@@ -64,9 +64,9 @@ def layer(t):
     if a: lines(['YOUR BRAIN', 'SWITCHES OFF', 'THE DARK.'], 92, 760, a, [CREAM, CREAM, GOLD])
     # mirror
     a = win(t, 16.05, 18.82)
-    if a: lines(['TRY IT IN', 'A MIRROR.'], 66, 300, a)
+    if a: lines(['TRY IT IN A MIRROR.'], 58, 230, a)
     a = win(t, 16.95, 18.82, 0.08, 0.1)
-    if a: lines(["YOU'LL NEVER", 'CATCH ONE.'], 96, 1300, a, [CREAM, GOLD])
+    if a: lines(["YOU'LL NEVER", 'CATCH ONE.'], 96, 340, a, [CREAM, GOLD])
     sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sh.putalpha(L.getchannel('A').point(lambda v: int(v * 0.75))); sh = sh.filter(ImageFilter.GaussianBlur(10))
     return L, sh
 
