@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 27 Oct 2026, awaiting Teja's review. Built from the VidIQ six-country plan, with two fact fixes (below). Replaces the planet-ladder idea of [11 Indias Fit on the Moon](eleven-indias-on-the-moon.md) as the one to post. |
-| Upload file | `final-reels/countries-on-the-moon.mp4` (with sound design) or `final-reels/countries-on-the-moon_music-ready.mp4` (silent; the music cut is at 24.0 s) |
+| Status | v2 delivered 28 Oct 2026 (VidIQ pre-publish notes: push-in from frame one, Moon nearly full width, every entrance and landing on a 120 BPM grid), awaiting Teja's review. v1 delivered 27 Oct. Built from the VidIQ six-country plan, with two fact fixes (below). Replaces the planet-ladder idea of [11 Indias Fit on the Moon](eleven-indias-on-the-moon.md) as the one to post. |
+| Upload file | `final-reels/countries-on-the-moon_v2.mp4` (with sound design) or `final-reels/countries-on-the-moon_v2_music-ready.mp4` (silent; 120 BPM, music cut at 24.25 s) |
 | Length | 26 s, loops (last frame matches frame one) |
 | Voice | None (on-screen text only) |
 | Source | `tools/countries-moon/` |
