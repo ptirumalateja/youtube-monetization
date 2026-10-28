@@ -8,7 +8,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import sld_sound as S
 from sld_sound import SR, place, write_wav
-DUR = 19.5
+DUR = 19.9
 SFX = os.path.join(HERE, 'sfx')
 
 def clip(name):
@@ -58,13 +58,14 @@ def build():
     put(fx, at_level(cut(clip('big_laugh'), 0.0, 1.3, 0.04), -13), 10.62, 'start')
     put(fx, at_level(cut(clip('muffled_laugh'), 0.0, 1.25, 0.08), -17), 11.68, 'start')
     # silence ... the crow
-    put(fx, at_level(clip('rooster'), -11), 13.42, 'start', -0.2)
+    put(fx, at_level(cut(clip('rooster'), 0.0, 1.2, 0.05), -11), 13.42, 'start', -0.2)
     # 5:00: shock, then the phone lands on his face
-    put(fx, hit * 0.8, 14.2, 'start'); put(fx, at_level(clip('shock_gasp'), -14), 14.24, 'start')
-    put(fx, at_level(clip('phone_on_face'), -13), 14.2 + 0.88, 'peak')
+    put(fx, hit * 0.8, 14.6, 'start'); put(fx, at_level(clip('shock_gasp'), -14), 14.64, 'start')
+    put(fx, at_level(cut(clip('phone_buzz'), 0.0, 0.58, 0.03), -15), 15.05, 'start', 0.1)   # the alarm screen, seen from his eyes
+    put(fx, at_level(clip('phone_on_face'), -13), 15.82, 'peak')
     # bolt upright, the alarm line holds in near silence; he flops back and the loop's first flop lands at 0.36
-    put(fx, at_level(cut(clip('blanket_kick'), 0.3, 1.1), -20), 15.72, 'peak', 0.1)
-    put(fx, at_level(cut(clip('roll_over'), 0.0, 1.0), -24), 18.6, 'start')
+    put(fx, at_level(cut(clip('blanket_kick'), 0.3, 1.1), -20), 16.12, 'peak', 0.1)
+    put(fx, at_level(cut(clip('roll_over'), 0.0, 1.0), -24), 19.0, 'start')
     # hard silences: room tone out before the crow and right on the slam
     g = np.ones(bed.shape[1]); t = np.arange(bed.shape[1]) / SR
     for a, b in [(10.48, 10.62), (12.85, 13.42)]:

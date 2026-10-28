@@ -35,7 +35,7 @@ def clock_at(t):
     elif t < 8.4: m = 23 * 60
     elif t < 10.5: u = min(1.0, (t - 8.4) / 2.15); m = 23 * 60 + int(u ** 1.8 * 240)
     elif t < 12.8: m = 27 * 60
-    elif t < 14.2: m = 28 * 60 + 59
+    elif t < 14.6: m = 28 * 60 + 59
     else: m = 29 * 60
     m %= 1440; h, mm = divmod(m, 60)
     return f'{(h % 12) or 12}:{mm:02d} {"AM" if h < 12 else "PM"}', m
@@ -52,9 +52,9 @@ def layer(t):
     if a: both('ME:', 120, 210, GOLD, a)
     # the HUD clock (hidden on the window insert and after the alarm line takes over)
     txt, m = clock_at(t)
-    show = (t < 13.4 or 14.2 <= t < 15.7)
+    show = (t < 13.4 or 14.6 <= t < 16.1)
     if show:
-        slam = 1.0 + 0.35 * (1 - sstep(10.5, 10.75, t)) * (t >= 10.5) + 0.35 * (1 - sstep(14.2, 14.45, t)) * (t >= 14.2)
+        slam = 1.0 + 0.35 * (1 - sstep(10.5, 10.75, t)) * (t >= 10.5) + 0.35 * (1 - sstep(14.6, 14.85, t)) * (t >= 14.6)
         size = int(150 * slam) if t >= 10.5 else 130
         y = 350 if t < 4.0 else 250
         col = LED if t >= 10.5 else (255, 140, 96)
@@ -62,9 +62,9 @@ def layer(t):
     # rehooks and lines
     a = win(t, 7.35, 8.4)
     if a: both('JUST ONE VIDEO.', 76, 1460, CREAM, a)
-    a = win(t, 15.75, 18.6, 0.06, 0.15)
+    a = win(t, 16.15, 19.0, 0.06, 0.15)
     if a: both('ALARM IN', 96, 250, CREAM, a); both('1 HOUR.', 150, 360, GOLD, a)
-    a = win(t, 17.3, 19.5, 0.12, 0.04)
+    a = win(t, 17.7, 19.9, 0.12, 0.04)
     if a: both('TAG YOUR', 70, 1470, CREAM, a); both('3 AM FRIEND.', 84, 1550, GOLD, a)
     return L, G
 

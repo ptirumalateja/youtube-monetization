@@ -9,7 +9,7 @@ import {createFace,EX,mix} from './face.js';
 const {V,clamp,sstep,lerp,sm5,keys}=SLD;
 const {M,B,C}=SETS;
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960;
-const DUR=19.5;
+const DUR=19.9;
 const ST=SLD.createStage({W,H,lamp:V(0.5,4.4,1.3),lampTarget:V(0.08,0.5,-0.3),cone:0.3,spot:30,beam:0.09});
 const scene=ST.scene; const R=SLD.createRig(scene);
 const canvasTex=(w,h,fn)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d'); fn(g,w,h); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.userData={c,g}; return t; };
@@ -25,16 +25,18 @@ const SHOTS=[
   {id:'lapse',  t0:8.4, t1:10.6},  // 11:00 -> 3:00 time-lapse
   {id:'laugh',  t0:10.6,t1:12.8},  // laughs out loud, then hand over the mouth
   {id:'rooster',t0:12.8,t1:13.4},  // silence: he freezes, eyes up to the window
-  {id:'window', t0:13.4,t1:14.2},  // the rooster crows on the fence
-  {id:'five',   t0:14.2,t1:15.7},  // 5:00, shock, the phone falls on his face
-  {id:'up',     t0:15.7,t1:19.5} ];// bolt upright: ALARM IN 1 HOUR, then flops back (= frame 0)
+  {id:'window', t0:13.4,t1:14.6},  // the rooster crows on the fence
+  {id:'five',   t0:14.6,t1:15.05}, // 5:00, shock
+  {id:'alarm',  t0:15.05,t1:15.6}, // POV from his eyes: the phone screen says ALARM 6:00 AM
+  {id:'fall',   t0:15.6,t1:16.1},  // the phone falls on his face
+  {id:'up',     t0:16.1,t1:19.9} ];// bolt upright: ALARM IN 1 HOUR, then flops back (= frame 0)
 const shotAt=t=>SHOTS.find(s=>t>=s.t0&&t<s.t1)||SHOTS[SHOTS.length-1];
 
 // ---------------------------------------------------------------- the room: back wall with a window, bed, nightstand, LED clock
 const WALL=M(0x1b1e27,{r:0.95}), WOOD=M(0x3a2a20,{r:0.65}), SHEET=M(0x8c867b,{r:0.95}), PILLOWM=M(0x9c968a,{r:0.95});
 { const w=new THREE.Mesh(new THREE.PlaneGeometry(9,4),WALL); w.position.set(0,2,-1.32); w.receiveShadow=true; scene.add(w); }
 const winTex=canvasTex(512,576,()=>{});
-function drawWindow(dawn,rooster){ const {g}=winTex.userData, w=512, h=576; const gr=g.createLinearGradient(0,0,0,h);
+function drawWindow(dawn,rooster,rb=0){ const {g}=winTex.userData, w=512, h=576; const gr=g.createLinearGradient(0,0,0,h);
   gr.addColorStop(0,`rgb(${lerp(10,96,dawn)|0},${lerp(14,122,dawn)|0},${lerp(32,168,dawn)|0})`); gr.addColorStop(0.75,`rgb(${lerp(16,214,dawn)|0},${lerp(22,170,dawn)|0},${lerp(44,150,dawn)|0})`); gr.addColorStop(1,`rgb(${lerp(20,250,dawn)|0},${lerp(24,196,dawn)|0},${lerp(40,140,dawn)|0})`);
   g.fillStyle=gr; g.fillRect(0,0,w,h);
   if(dawn<0.6){ const r=SLD.rng(5); g.fillStyle=`rgba(230,235,255,${0.8*(1-dawn/0.6)})`; for(let i=0;i<60;i++){ g.beginPath(); g.arc(r()*w,r()*h*0.7,0.6+r()*1.6,0,7); g.fill(); }
@@ -42,7 +44,7 @@ function drawWindow(dawn,rooster){ const {g}=winTex.userData, w=512, h=576; cons
   // rooftops and a fence line
   g.fillStyle=`rgb(${lerp(6,40,dawn)|0},${lerp(7,38,dawn)|0},${lerp(12,52,dawn)|0})`; g.beginPath(); g.moveTo(0,h); g.lineTo(0,430); g.lineTo(90,380); g.lineTo(180,430); g.lineTo(260,430); g.lineTo(260,400); g.lineTo(380,400); g.lineTo(380,440); g.lineTo(512,420); g.lineTo(512,h); g.fill();
   g.fillRect(0,500,w,h-500);
-  if(rooster){ g.save(); g.translate(372,505); g.scale(1.5,1.5); g.fillStyle='#07070a'; g.beginPath();   // rooster on the fence, beak open
+  if(rooster){ g.save(); g.translate(372,505); g.rotate(-0.06*Math.sin(rb*30)); g.scale(1.55,1.55*(1+0.05*Math.sin(rb*30))); g.fillStyle='#07070a'; g.beginPath();   // rooster on the fence, beak open
     g.moveTo(-40,0); g.quadraticCurveTo(-58,-40,-46,-78); g.quadraticCurveTo(-30,-58,-22,-44); g.quadraticCurveTo(-10,-56,6,-50); g.quadraticCurveTo(18,-66,22,-80);
     g.lineTo(30,-88); g.lineTo(36,-80); g.lineTo(50,-84); g.lineTo(40,-76); g.lineTo(52,-72); g.lineTo(38,-70); g.quadraticCurveTo(40,-50,30,-34); g.quadraticCurveTo(26,-6,6,0); g.closePath(); g.fill();
     g.fillStyle='#b8261c'; g.beginPath(); g.moveTo(22,-86); g.lineTo(26,-98); g.lineTo(30,-90); g.lineTo(34,-100); g.lineTo(36,-88); g.closePath(); g.fill();
@@ -72,7 +74,13 @@ function drawFeed(k,on){ const {g}=feedTex.userData; const r=SLD.rng(100+k); g.f
   g.fillStyle='rgba(255,255,255,0.85)'; g.beginPath(); g.arc(180,300,46,0,7); g.fill(); g.fillStyle=`hsl(${hue},60%,40%)`; g.beginPath(); g.moveTo(166,276); g.lineTo(200,300); g.lineTo(166,324); g.fill();
   g.fillStyle='#ddd'; g.beginPath(); g.arc(34,628,18,0,7); g.fill(); g.fillStyle='rgba(230,230,235,0.8)'; g.fillRect(64,616,150*(0.6+0.4*r()),10); g.fillStyle='rgba(230,230,235,0.5)'; g.fillRect(64,640,220*(0.5+0.5*r()),9);
   feedTex.needsUpdate=true; }
-const alarmTex=canvasTex(360,760,(g)=>{ g.fillStyle='#0e0f14'; g.fillRect(0,0,360,760); g.fillStyle='#ff9a3c'; g.font='bold 44px "DejaVu Sans", sans-serif'; g.textAlign='center'; g.fillText('ALARM',180,300); g.fillStyle='#fff'; g.font='bold 110px "DejaVu Sans", sans-serif'; g.fillText('6:00',180,420); g.fillStyle='rgba(255,255,255,0.6)'; g.font='32px "DejaVu Sans", sans-serif'; g.fillText('in 1 hour',180,480); });
+const alarmTex=canvasTex(360,760,()=>{});
+function drawAlarm(p){ const {g}=alarmTex.userData; g.fillStyle='#0b0c11'; g.fillRect(0,0,360,760); const r=g.createRadialGradient(180,330,10,180,330,300); r.addColorStop(0,`rgba(255,150,60,${0.28+0.18*p})`); r.addColorStop(1,'rgba(255,150,60,0)'); g.fillStyle=r; g.fillRect(0,0,360,760);
+  g.textAlign='center'; g.fillStyle='#ff9a3c'; g.font='bold 40px "DejaVu Sans", sans-serif'; g.fillText('ALARM',180,170);
+  g.save(); g.translate(180,260); g.rotate(0.14*Math.sin(p*Math.PI*2)); g.fillStyle='#ffd08a'; g.beginPath(); g.moveTo(-34,22); g.quadraticCurveTo(-34,-34,0,-38); g.quadraticCurveTo(34,-34,34,22); g.lineTo(42,32); g.lineTo(-42,32); g.closePath(); g.fill(); g.beginPath(); g.arc(0,40,9,0,7); g.fill(); g.restore();
+  g.fillStyle='#fff'; g.font='bold 120px "DejaVu Sans", sans-serif'; g.fillText('6:00',180,440); g.font='bold 54px "DejaVu Sans", sans-serif'; g.fillText('AM',180,510);
+  g.fillStyle='rgba(255,255,255,0.14)'; g.beginPath(); g.roundRect(40,620,280,76,38); g.fill(); g.fillStyle='rgba(255,255,255,0.8)'; g.font='28px "DejaVu Sans", sans-serif'; g.fillText('slide to stop',190,668); alarmTex.needsUpdate=true; }
+drawAlarm(0);
 const phoneScreenM=new THREE.MeshBasicMaterial({map:feedTex,fog:false,color:0xbdbdbd});
 const PHONE=new THREE.Group(); { B(PHONE,0.072,0.15,0.009,M(0x0d0e12,{r:0.3,m:0.4}),0,0,0,{round:0.004}); const s=new THREE.Mesh(new THREE.PlaneGeometry(0.064,0.138),phoneScreenM); s.position.z=0.0052; PHONE.add(s); } PHONE.scale.setScalar(1.3); scene.add(PHONE);
 const phoneLight=new THREE.PointLight(0x9cc0ff,0,1.6,1.6); scene.add(phoneLight);
@@ -166,12 +174,12 @@ function state(t){ const sh=shotAt(t), id=sh.id, lt=t-sh.t0; const S={id,legs:'h
     if(id==='normal'){ ex=EXK([[0,'sleepy'],[0.9,'sleepy'],[1.25,'content']],lt); S.clock=lt<1.45?'9:00':'9:05'; S.zzz=sstep(1.5,1.7,lt); cam=camLerp('top','topIn',sm5(clamp(lt/2.4))); }
     else { ex=lt<1.05?EXK([[0,'sleepy'],[0.6,'sleepy'],[0.85,'content']],lt):mix(EX.content,EX.wide,sstep(1.05,1.12,lt)); cam=camLerp('top','topIn',sm5(clamp(lt/1.6))); }
     if(id==='me'&&lt>1.05){ ex={...ex,px:0,py:0.6}; } }
-  else if(id==='turn1'){ S.clock='9:30'; o.roll=lerp(0.5,1.25,sm5(clamp(lt/0.3))); o.nod=0.1; ex=EXK([[0,'annoyed'],[0.35,'annoyed'],[0.5,'sigh'],[0.8,'sigh'],[0.95,'annoyed']],lt);
-    const J0=bodyJ(o); o.tR=J0.head.clone().addScaledVector(J0.f,0.16).addScaledVector(J0.hd,-0.12).add(V(0,-0.08,0)); o.pR=V(0,-0.5,1); o.tL=J0.hip.clone().addScaledVector(J0.d,0.1).add(V(0,0.2,0)).addScaledVector(J0.n,0.06); o.pL=V(0,1,0.5);
+  else if(id==='turn1'){ S.clock='9:30'; o.roll=lerp(0.0,0.8,sm5(clamp((lt-0.35)/0.45))); o.nod=0.2; ex=EXK([[0,'wide'],[0.12,'sigh'],[0.5,'sigh'],[0.7,'annoyed'],[1.0,'annoyed']],lt);
+    const J0=bodyJ(o); o.tR=J0.head.clone().addScaledVector(J0.f,0.1).addScaledVector(J0.hd,-0.14).addScaledVector(J0.l,-0.1).add(V(0,-0.06,0)); o.pR=V(0,-0.5,1);
     cam=camLerp('top','topIn',0.3+0.3*lt); }
   else if(id==='turn2'){ S.clock='10:00'; o.nod=0.2; const J0=bodyJ(o); const kick=Math.sin(lt*22)*sstep(0.2,0.3,lt)*(1-sstep(0.75,0.9,lt));
-    S.pillow={pos:J0.head.clone().addScaledVector(J0.f,0.2).add(V(0,0,0.01*kick)),rot:[0.25,0,0.06*kick]};
-    o.tL=S.pillow.pos.clone().add(V(0.28,-0.02,0)); o.tR=S.pillow.pos.clone().add(V(-0.28,-0.02,0)); o.pL=V(0.6,0.3,0.5); o.pR=V(-0.6,0.3,0.5); S.wob=Math.abs(kick); ex=EX.annoyed; o.face=false;
+    const lift=sstep(0.8,0.97,lt); S.pillow={pos:J0.head.clone().addScaledVector(J0.f,0.2+0.3*lift).add(V(0,0.28*lift,0.01*kick)),rot:[0.25+0.5*lift,0,0.06*kick+0.3*lift]};
+    o.tL=S.pillow.pos.clone().add(V(0.28,-0.02,0)); o.tR=S.pillow.pos.clone().add(V(-0.28,-0.02,0)); o.pL=V(0.6,0.3,0.5); o.pR=V(-0.6,0.3,0.5); S.wob=Math.abs(kick); ex=lt<0.84?EX.annoyed:mix(EX.annoyed,EX.glare,sstep(0.84,0.95,lt)); o.face=lt>0.84;
     cam=camLerp('top','topIn',0.4+0.2*lt); }
   else if(id==='turn3'){ S.clock='11:00'; o.nod=0.18; o.legs={spread:0.32}; S.zTop=0.78; const J0=bodyJ(o);
     o.tL=J0.shL.clone().addScaledVector(J0.l,0.5).addScaledVector(J0.d,0.22).add(V(0,-0.03,0)); o.tR=J0.shR.clone().addScaledVector(J0.l,-0.5).addScaledVector(J0.d,0.22).add(V(0,-0.03,0));
@@ -195,13 +203,18 @@ function state(t){ const sh=shotAt(t), id=sh.id, lt=t-sh.t0; const S={id,legs:'h
       ex={...mix(EX.muffled,EX.frozen,sstep(0.0,0.12,lt)),px:-0.1*look,py:0.85*look}; o.nod=0.36-0.12*look; const drop=sstep(0.05,0.3,lt);
       const J1=bodyJ(o); o.tL=J1.head.clone().addScaledVector(J1.f,HEADR*0.85+0.02).addScaledVector(J1.hd,-0.115).addScaledVector(J1.l,-0.02).lerp(J1.shL.clone().addScaledVector(J1.n,0.2),drop); o.mittL=lerp(0.068,PT.limb*1.45,drop); o.pL=V(1,0.2,0.4);
       cam=camLerp('ptopIn','ptopIn',0); }
-    else if(id==='window'){ S.clock='4:59'; S.phoneOn=true; S.feedK=31; S.dawn=0.55; S.rooster=true; ex=EX.frozen; cam=camLerp('win','winIn',sm5(clamp(lt/0.8))); }
-    else { S.clock='5:00'; S.dawn=0.75; S.phoneOn=true; S.alarm=true; const fall=sstep(0.75,0.88,lt); ex=EX.shock;
-      const J1=bodyJ(o); ph=hold.clone().lerp(J1.head.clone().addScaledVector(J1.f,HEADR+0.014),fall); pt=1;
-      if(fall>0.99) ex={...EX.shock,eo:0,ec:0,es:1,mo:0.3,mO:0,mc:-0.6,ba:0.8};
-      cam=camLerp('ptopIn','ptopIn',0); const punch=sstep(0,0.08,lt)*(1-sstep(0.08,0.5,lt)); cam[2]-=5*punch; if(fall>0.99){ cam[2]+=1.5*Math.sin((lt-0.88)*60)*Math.exp(-(lt-0.88)*10); } }
+    else if(id==='window'){ S.clock='4:59'; S.phoneOn=true; S.feedK=31; S.dawn=0.55; S.rooster=true; ex=EX.frozen; cam=camLerp('win','winIn',sm5(clamp(lt/1.2))); S.rb=lt; }
+    else if(id==='five'||id==='alarm'){ S.clock='5:00'; S.dawn=0.75; S.phoneOn=true; S.alarm=true; S.alarmP=(id==='alarm'?lt:lt+0.5)*2.2; ex=EX.shock;
+      cam=camLerp('ptopIn','ptopIn',0); const punch=sstep(0,0.08,lt)*(1-sstep(0.08,0.4,lt)); if(id==='five') cam[2]-=5*punch;
+      const buzz=0.003*Math.sin(t*95); ph=hold.clone().add(V(buzz,buzz,0)); S.phoneBuzz=id==='alarm'; }
+    else { S.clock='5:00'; S.dawn=0.75; S.phoneOn=true; S.alarm=true; S.alarmP=1; const u=clamp((lt-0.08)/0.14), fall=u*u; ex=lt<0.22?EX.shock:{...EX.shock,eo:0,ec:-1,es:1,mo:0.35,mO:0,mc:-0.7,ba:0.9};
+      const J1=bodyJ(o); const land=J1.head.clone().addScaledVector(J1.f,HEADR+0.014); const bounce=lt>0.22?0.012*Math.exp(-(lt-0.22)*12)*Math.abs(Math.sin((lt-0.22)*40)):0;
+      ph=hold.clone().lerp(land,fall).add(V(0,bounce,0)); pt=1;
+      const rest=J1.hip.clone().addScaledVector(J1.d,0.12).addScaledVector(J1.n,0.15); o.tL=J1.shL.clone().addScaledVector(J1.l,0.2).addScaledVector(J1.n,0.2).lerp(rest.clone().addScaledVector(J1.l,0.2),sstep(0.2,0.45,lt)); o.tR=J1.shR.clone().addScaledVector(J1.l,-0.2).addScaledVector(J1.n,0.2).lerp(rest.clone().addScaledVector(J1.l,-0.2),sstep(0.2,0.45,lt));
+      cam=camLerp('ptopIn','ptopIn',0); if(lt>0.22) cam[2]+=1.4*Math.sin((lt-0.22)*70)*Math.exp(-(lt-0.22)*11); }
     const J1=bodyJ(o); const toFace=J1.head.clone().sub(ph).normalize();
-    S.phone={pos:ph,dir:id==='five'&&sstep(0.75,0.88,lt)>0.5?J1.f.clone():toFace.lerp(V(0,1,0),1-pt).normalize(),up:J1.hd.clone().lerp(V(-0.3,0,-1),1-pt)};
+    S.phone={pos:ph,dir:id==='fall'&&lt>0.2?J1.f.clone().negate():toFace.lerp(V(0,1,0),1-pt).normalize(),up:J1.hd.clone().lerp(V(-0.3,0,-1),1-pt)};
+    if(id==='alarm'){ const d=S.phone.dir.clone(); cam=[ph.clone().addScaledVector(d,0.46),ph.clone(),30]; S.camUp=J1.hd.clone(); }
     if(id==='phone'&&pt<0.02){ /* reaching: phone still on the nightstand */ }
     else { const side=J1.l; if(!o.tL) o.tL=ph.clone().addScaledVector(side,0.05).addScaledVector(J1.hd,-0.07); if(!o.tR) o.tR=ph.clone().addScaledVector(side,-0.05).addScaledVector(J1.hd,-0.07); } }
   if(id==='up'){ // bolt upright, the alarm line, then flop back down to frame 0
@@ -223,13 +236,13 @@ function setT(t){ let {S,o,ex,cam,J}=state(t); const blink=blinkAt(t,[3.75,5.75,
   const E={...ex}; if(blink>0&&E.eo>0.1) E.eo=Math.min(E.eo,1-blink); FACE.draw(E);
   poseHero(J,o); drape(S.caps,S.zTop,S.wob,t);
   pillow.position.copy(PILLOW0); pillow.rotation.set(0,0,0); if(S.pillow){ pillow.position.copy(S.pillow.pos); pillow.rotation.set(...S.pillow.rot); }
-  drawClock(S.clock,1); drawWindow(S.dawn,S.rooster); dawnLight.intensity=S.dawn*5; winM.color.setScalar(lerp(0.48,0.8,S.dawn));
+  drawClock(S.clock,1); drawWindow(S.dawn,S.rooster,S.rb||0); dawnLight.intensity=S.dawn*5; winM.color.setScalar(lerp(0.48,0.8,S.dawn));
   PHONE.visible=!!S.phone; if(S.phone) placePhone(S.phone.pos,S.phone.dir,S.phone.up);
-  if(S.alarm) phoneScreenM.map=alarmTex; else { phoneScreenM.map=feedTex; drawFeed(S.feedK,S.phoneOn); }
+  if(S.alarm){ drawAlarm(S.alarmP||0); phoneScreenM.map=alarmTex; } else { phoneScreenM.map=feedTex; drawFeed(S.feedK,S.phoneOn); }
   phoneLight.intensity=S.phoneOn&&S.phone?(S.id==='turn3'?0.5:0.9):0; if(S.phone){ phoneLight.position.copy(S.phone.pos).addScaledVector(S.phone.dir,0.1); const hue=[0x9cc0ff,0xffa0d0,0xffc890,0xa0ffd0][S.feedK%4]; phoneLight.color.setHex(S.alarm?0xffc890:hue); }
   Zs.forEach((z,i)=>{ const u=((t*0.55+i/3)%1); z.visible=S.zzz>0; const base=J.head.clone().add(V(0.12,0.2,0)); z.position.copy(base).add(V(0.08*u+0.03*Math.sin(t*2+i),0.32*u,0)); z.scale.setScalar((0.06+0.07*u)); z.material.opacity=S.zzz*Math.sin(Math.PI*u); });
   ST.tick(t,0); const night=1-S.dawn*0.35; ST.spot.intensity*=night; ST.beamU.uI.value*=night*(S.id==='phone'||S.id==='lapse'||S.id==='laugh'?0.6:1);
-  if(window.DBG&&window.DBG.cam){ const c=window.DBG.cam; cam=[V(...c[0]),V(...c[1]),c[2]]; } ST.cam.position.copy(cam[0]); ST.cam.fov=cam[2]; ST.cam.updateProjectionMatrix(); ST.cam.lookAt(cam[1]); }
+  if(window.DBG&&window.DBG.cam){ const c=window.DBG.cam; cam=[V(...c[0]),V(...c[1]),c[2]]; } ST.cam.up.copy(S.camUp||V(0,1,0)); ST.cam.position.copy(cam[0]); ST.cam.fov=cam[2]; ST.cam.updateProjectionMatrix(); ST.cam.lookAt(cam[1]); }
 drawWindow(0,false);
 window.renderAt=(t,K=3)=>{ const sh=shotAt(t); return ST.renderAt(setT,t,K,{t0:sh.t0,t1:sh.t1,shutter:1/60}); };
 window.events={DUR,SHOTS}; window.ready=true;
