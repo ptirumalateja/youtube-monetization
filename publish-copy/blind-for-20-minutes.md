@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | V1 rendering 28 Oct 2026, awaiting Teja's review |
+| Status | V2 (full-dark, rebuilt eye) delivered 28 Oct 2026, awaiting Teja's review |
 | Upload file | `final-reels/blind-for-20-minutes.mp4` (silent: `blind-for-20-minutes_music-ready.mp4`) |
 | Length | 19.0 s, loops (frame 0 and the last frame are both shut eyelids) |
 | Voice | None (wordless) |
