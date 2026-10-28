@@ -130,7 +130,7 @@ def draw(img, t):
     fh = TL['falseHope']; fa = sstep(fh[0] + 0.12, fh[0] + 0.22, t) * (1 - sstep(fh[0] + 0.75, fh[0] + 0.9, t))
     card(layer, 1300, fa, 'debit', 'LOW BALANCE', '₹0', sub='DAY 27')
     # ---- the close
-    cl = sstep(15.5, 15.8, t) * (1 - sstep(17.3, 17.6, t))
+    cl = sstep(15.5, 15.8, t) * (1 - sstep(18.4, 18.7, t))
     big_lines(layer, mask, ["WHICH DAY", "BROKE YOU?"], 150, cl, size=88, cols=[CREAM, GOLD])
     wk = sstep(10.95, 11.15, t) * (1 - sstep(14.75, 14.95, t))
     big_lines(layer, mask, ["YOUR WORK", "LASTS ALL 30."], 150, wk, size=84, cols=[CREAM, GOLD])   # the payoff line, held over the time-lapse

@@ -102,7 +102,7 @@ function heroPose(t,sc){
   if(t>=10.8&&t<10.95) P.hy=-0.45*(1-sstep(10.8,10.95,t));
   const sl=sstep(15.75,16.7,t);   /* the end: the last X lands on 30, he shuts the laptop, hands drop to his lap, his head sags to his chest (nothing passes through the laptop) */
   const shut=sstep(15.3,15.7,t); tL=tL.clone().lerp(V(-0.05,0.9,-0.98),shut*(1-sl)); tRr=tRr.clone().lerp(V(0.08,0.9,-0.98),shut*(1-sl));
-  P.p-=0.04*sl; P.tilt+=0.3*sl; tL=tL.clone().lerp(V(-0.16,0.52,-1.12),sl); tRr=tRr.clone().lerp(V(0.16,0.52,-1.12),sl);
+  P.p-=0.12*sl; P.tilt+=0.22*sl; tL=tL.clone().lerp(V(-0.3,0.83,-0.98),sl); tRr=tRr.clone().lerp(V(0.45,0.83,-0.98),sl);   /* hands rest on the desk either side of the shut laptop: no arm goes through it */
   P.tL=tL; P.wL=1; P.pL=V(-0.35,-1,0.45); P.tR=tRr; P.wR=1; P.pR=V(-0.35,-1,-0.45);
   const J=R.skel(P,root,yaw);
   const phonePos=lift>0.01?J.hL.clone().add(V(0,0.03,0)):phoneDesk.clone().add(V(0.004*Math.sin(t*90)*buzzAt(t),0,0));
