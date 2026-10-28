@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | V5 (V4 with the solid pictogram hero, 23.3 s) delivered 28 Oct 2026, re-review 87/100; V4 in final-reels/blink-v4/, V3 in blink-v3/, V2 in blink-v2/ |
+| Status | V6 (mirror walk-up + palm on glass, new sound design with no music, 23.3 s) delivered 28 Oct 2026, re-review 89/100; V5 in final-reels/blink-v5/, V4 in blink-v4/ |
 | Upload file | `final-reels/blind-for-20-minutes.mp4` (silent: `blind-for-20-minutes_music-ready.mp4`) |
 | Length | 23.3 s, loops (the last frame closes the lids, frame 0 opens the eye) |
 | Voice | None (wordless) |

@@ -79,6 +79,8 @@ const phone=new THREE.Group(); { B(phone,0.075,0.15,0.01,M(0x0d0e12,{r:0.3,m:0.4
 // V5: a solid pictogram figure (Teja's preferred stickman): near-black, warm lamp rim, tapered torso wide at the shoulders,
 // thick round-ended limbs, and a round head floating above a small gap. Only his eyes catch the light.
 const hero=R.makeFig(0x0d0b0a,'hero',{rim:0.55,rimCol:0xffc27a,lift:0.0});
+const heroPow={value:2.6};   // rim falloff; the mirror close uses a tighter edge so the big torso reads as a clean silhouette, not a dark oval
+{ const ob=hero.mat.onBeforeCompile; hero.mat.onBeforeCompile=sh=>{ ob(sh); sh.uniforms.uPow=heroPow; sh.fragmentShader=sh.fragmentShader.replace('uniform float uRim;','uniform float uRim; uniform float uPow;').replace('0.0,1.0),2.6)','0.0,1.0),uPow)'); }; }
 // Torso: one lathe body (meters, y normalised to the bone), round hips that swallow the thigh tops, square-ish rounded shoulders.
 const PT={len:0.66,hipR:0.128,shR:0.15,capB:0.07,capT:0.085,limb:0.068};
 hero.bones[0].geometry=(()=>{ const pts=[], L=PT.len, N=14;
@@ -220,7 +222,15 @@ function heroPose(t,id){ const ex={}; let J,P,root,yaw;
     P.tL=V(-0.1,0.83+Math.max(0,Math.sin(ty))*0.014,-0.36); P.wL=1; P.pL=V(-0.3,-0.7,0.5); P.tR=V(0.12,0.83+Math.max(0,Math.sin(ty+2))*0.014,-0.36); P.wR=1; P.pR=V(-0.3,-0.7,-0.5); J=R.skel(P,root,yaw); }
   else if(id==='bed'){ root=V(0.1,0,0.42); yaw=SLD.yawOf(V(0.2,0,1)); P=sitP({p:0.42+breathe(t),tilt:0.55,eL:1.2,eR:1.2,dy:0.05}); const J0=R.skel(P,root,yaw); const pp=J0.neck.clone().addScaledVector(J0.fwd,0.28).add(V(0,-0.28,0));
     P.tL=pp.clone(); P.wL=1; P.pL=V(-0.3,-0.7,0.5); P.tR=pp.clone().add(V(0,0.02,0)); P.wR=1; P.pR=V(-0.3,-0.7,-0.5); J=R.skel(P,root,yaw); ex.phone={pos:pp.clone().add(V(0,0.04,0)),f:J.fwd}; }
-  else { root=V(0,0,-0.8); yaw=SLD.yawOf(V(0.03,0,-1)); const lean=sstep(17.2,18.4,t); P={...R.P0,p:0.04+0.07*lean+breathe(t),tilt:0.0,hy:0.08*Math.sin(t*0.7)}; J=R.skel(P,root,yaw); }
+  else { // V6 mirror: he walks up to the glass, leans in and presses his palm to it; the reflection's hand meets his
+    const walk=sstep(17.0,18.1,t), d=0.45*walk; root=V(-0.12,0,-0.55-d); yaw=SLD.yawOf(V(0.03,0,-1));
+    const lean=sstep(18.2,19.3,t), reach=sstep(18.45,19.35,t), cock=sstep(20.1,20.7,t);
+    P={...R.P0,p:0.04+0.09*lean+breathe(t),tilt:-0.04*lean,hy:0.06*Math.sin(t*0.7)+0.14*cock};
+    P=R.gait(P,d/1.3*2*Math.PI,Math.min(1,Math.sin(Math.PI*walk)*1.6),0.3,0.55,0.18);
+    P.tL=V(0.17,1.36+0.004*Math.sin(t*2.1),-1.515); P.wL=reach; P.pL=V(-0.4,-0.7,0.6);
+    { const J0=R.skel(P,root,yaw), out=J0.shR.clone().sub(J0.neck).setY(0).normalize();   // the hanging arm sits outside the wide torso, not through its back
+      P.tR=J0.shR.clone().addScaledVector(out,0.13).addScaledVector(J0.fwd,0.03).add(V(0,-0.56,0)); P.wR=1; P.pR=V(-0.3,0,-1); }
+    J=R.skel(P,root,yaw); }
   return {J,ex}; }
 
 // ---------------------------------------------------------------- light per time of day (the lamp changes colour; window / screen / phone add their own)
@@ -234,7 +244,7 @@ const CAMS={
   bed:[[-1.7,1.25,4.6],[0.1,0.7,0.1],[-1.4,1.22,4.2],[0.1,0.7,0.1]],
   read2:[[-0.5,1.9,3.5],[0,1.1,0.05],[-0.6,1.85,3.0],[0,1.12,0.05]],
   wide:[[0,1.7,6.2],[0,1.0,0],[0,2.1,8.8],[0,1.0,0]],
-  mirror:[[0.9,1.6,2.6],[-0.1,1.35,-1.55],[0.3,1.68,-0.22],[-0.06,1.64,-1.55]] };   // one slow push over his shoulder onto the reflection's open eyes
+  mirror:[[0.9,1.6,2.6],[-0.1,1.35,-1.55],[0.45,1.64,-0.3],[0.02,1.6,-1.55]] };   // one slow push over his shoulder onto the reflection's open eyes
 const POV={read:1,window:1,desk:1,bed:1};   // V3.1: these shots are what HE sees, so the blinks black out the viewer's own view
 const PROPS={read:'chair',read2:'chair',readn:'chair',wide:'chair',life:'chair',window:'window',desk:'desk',bed:'bed',mirror:'mirror'};
 
@@ -247,8 +257,9 @@ function setT(t){ ST.moteU.uOp.value=1; scene.fog.color.setHex(FOGC); const sh=s
   if(sh.tod){ let L=TOD[sh.tod]; if(id==='life'){ const cyc=['morning','noon','evening','night'], f=Math.pow(clamp((t-11.35)/1.4),1.6)*14, i=Math.floor(f), w=f-i;
       const a=TOD[cyc[i%4]], b=TOD[cyc[(i+1)%4]]; L={col:new THREE.Color(a.col).lerp(new THREE.Color(b.col),w).getHex(),k:lerp(a.k,b.k,w)}; if(t<11.35) L=TOD.night; }
     scene.fog.density=id==='life'?lerp(0.085,0.02,u):0.085; ST.spot.color.setHex(L.col); ST.beamU.uCol.value.setHex(L.col); ST.tick(t,0); ST.spot.intensity*=L.k; ST.beamU.uI.value*=L.k;
+    if(id==='mirror') ST.beamU.uI.value*=lerp(1,0.1,sstep(17.0,17.5,t));   // close in, the haze cone's edge cut a black oval into his back
     if(id==='window') winLight.intensity=6; if(id==='desk'){ lapLight.position.set(0,0.95,-0.35); lapLight.intensity=0.6; }
-    const hp=heroPose(t,id); hero.all.forEach(m=>m.visible=true); R.poseFig(hero,hp.J); pictogram(hp.J); placeEyes(hp.J,id==='mirror'?false:lidAt(t)>0.45);
+    heroPow.value=id==='mirror'?lerp(2.6,5.0,sstep(17.0,18.3,t)):2.6; const hp=heroPose(t,id); hero.all.forEach(m=>m.visible=true); R.poseFig(hero,hp.J); pictogram(hp.J); placeEyes(hp.J,id==='mirror'?false:lidAt(t)>0.45);
     const e=hp.ex; if(e.book){ rbook.visible=true; rbook.position.copy(e.book.pos); rbook.lookAt(e.book.pos.clone().add(e.book.f.clone().multiplyScalar(-1)).add(V(0,0.9,0))); rbook.rotateX(-Math.PI/2); }
     if(e.mug){ mug.visible=true; mug.position.copy(e.mug).add(V(0,0.03,0)); }
     if(e.phone){ phone.visible=true; phone.position.copy(e.phone.pos); phone.lookAt(e.phone.pos.clone().addScaledVector(e.phone.f,-1).add(V(0,0.6,0))); phoneLight.position.copy(e.phone.pos).addScaledVector(e.phone.f,0.25); phoneLight.intensity=0.35; }
