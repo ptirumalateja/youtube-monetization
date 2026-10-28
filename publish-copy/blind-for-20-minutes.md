@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | V3 (payoff-first re-cut, 22 s) rendering 28 Oct 2026; V2 kept in final-reels/blink-v2/ |
+| Status | V3 (payoff-first, POV montage, 22 s) delivered 28 Oct 2026, re-review 81/100; V2 in final-reels/blink-v2/ |
 | Upload file | `final-reels/blind-for-20-minutes.mp4` (silent: `blind-for-20-minutes_music-ready.mp4`) |
 | Length | 22.0 s, loops (the last frame closes the lids, frame 0 opens the eye) |
 | Voice | None (wordless) |

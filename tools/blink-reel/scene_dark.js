@@ -188,7 +188,7 @@ const CAMS={
   bed:[[-1.7,1.25,4.6],[0.1,0.7,0.1],[-1.4,1.22,4.2],[0.1,0.7,0.1]],
   read2:[[-0.5,1.9,3.5],[0,1.1,0.05],[-0.6,1.85,3.0],[0,1.12,0.05]],
   wide:[[0,1.7,6.2],[0,1.0,0],[0,2.1,8.8],[0,1.0,0]],
-  mirror:[[1.0,1.62,3.6],[-0.15,1.3,-1.55],[0.6,1.58,2.5],[-0.15,1.35,-1.55]] };
+  mirror:[[0.9,1.6,2.6],[-0.1,1.35,-1.55],[0.3,1.68,-0.22],[-0.06,1.64,-1.55]] };   // one slow push over his shoulder onto the reflection's open eyes
 const POV={read:1,window:1,desk:1,bed:1};   // V3.1: these shots are what HE sees, so the blinks black out the viewer's own view
 const PROPS={read:'chair',read2:'chair',readn:'chair',wide:'chair',life:'chair',window:'window',desk:'desk',bed:'bed',mirror:'mirror'};
 
