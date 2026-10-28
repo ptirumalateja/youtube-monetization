@@ -1,22 +1,22 @@
-# The Tic Tac UFO Was Never Filmed (USS Nimitz, 2004)
+# Pentagon UFO Files 2026: The Tic Tac Case Still Isn't Closed (USS Nimitz, 2004)
 
 | | |
 |---|---|
-| Status | v3 English master delivered 27 Oct 2026 (8:01). Opening A, three fact fixes, ElevenLabs BlackvieW voice throughout |
-| Upload file | `ufo-nimitz/v3/the-tic-tac-ufo-was-never-filmed_master.mp4` (1.2 GB). `..._review.mp4` is a 720p review copy |
-| Format | YouTube long-form, 16:9 1080p, 8:01, -14.6 LUFS, true peak -1.2 dBFS after AAC |
-| Voice | ElevenLabs "BlackvieW - Documentary Narator" (the 6 new lines were made on a second account with the same voice) |
+| Status | v3 English master, 28 Oct 2026 (7:58). Black-triangle cold open (Teja prefers it over the FLIR1 opening), three fact fixes, ElevenLabs v3 BlackvieW voice throughout. Awaiting Teja's review |
+| Upload file | `ufo-nimitz/v3/pentagon-ufo-files-2026-tic-tac_master.mp4` (1.2 GB). `..._review.mp4` is a 720p review copy |
+| Format | YouTube long-form, 16:9 1080p, 8:01, -15.1 LUFS, true peak -2.4 dBFS after AAC |
+| Voice | ElevenLabs "BlackvieW - Documentary Narator" (the 7 new lines were remade by Teja on a second account with ElevenLabs v3 to match the original takes) |
 | Languages | English only for now. Hindi/Telugu after the English is frozen; the v1.1 SRTs and dubs do not match this cut |
 | Source | `tools/ufo-nimitz/`, v3 script and fact table in `script_v2.md`, audit in the Claude Doc "Tic Tac UFO documentary: production audit" |
 
 ## Publish copy
 
-**YouTube title:** The Tic Tac UFO Was Never Filmed
+**YouTube title:** Pentagon UFO Files 2026: The Tic Tac Case Still Isn't Closed
 **Alt titles (A/B):**
-- Pentagon UFO Files 2026: The Tic Tac Case Still Isn't Closed
 - 60 Miles in Under a Minute: The 2004 Nimitz Tic Tac
+- The Tic Tac UFO Was Never Filmed (fits the FLIR1 opening better; with the triangle cold open it is a weaker match)
 
-**Thumbnail:** FLIR1 frame on the left, empty sea with whitewater on the right. Text: `NO VIDEO`. A/B test in Studio (Test & Compare) against `NOT THE ENCOUNTER` (FLIR1 centred, red ring) and `3,600 MPH?` (stopwatch 0:59 over a map line).
+**Thumbnail:** FLIR1 frame, target centred, red ring; text `NOT THE ENCOUNTER`. Or the black triangle over the ridge with text `2 REPORTS`. A/B test in Studio (Test & Compare), also `NO VIDEO` and `3,600 MPH?`.
 
 **YouTube description:**
 > The most famous Navy UFO video isn't the 2004 Tic Tac encounter. Four aviators saw the real thing, and nobody filmed it. This UFO documentary weighs every piece of evidence: the eyewitnesses, the radar, the videos, and the 2026 Pentagon UAP files.
@@ -28,14 +28,14 @@
 > Reconstructions are our own renders, based on witness testimony and documents. They are labelled on screen and are not footage of the event.
 >
 > CHAPTERS
-> 0:00 The video everyone knows
-> 0:32 What FLIR1 really shows
-> 1:12 November 2004
-> 2:44 60 miles in under a minute
-> 3:19 Four aviators, one radar
-> 4:25 How Go Fast fooled everyone
-> 5:34 The 2026 files
-> 7:08 Still unidentified
+> 0:00 Two reports, one black triangle
+> 1:01 What FLIR1 really shows
+> 1:52 November 2004
+> 3:24 60 miles in under a minute
+> 3:58 Four aviators, one radar
+> 5:01 How Go Fast fooled everyone
+> 6:10 The 2026 files
+> 7:05 Still unidentified
 >
 > SOURCES
 > - DoD, "Statement by the Department of Defense on the Release of Historical Navy Videos," 27 Apr 2020 (FLIR1, GIMBAL, GOFAST; NAVAIR FOIA reading room)

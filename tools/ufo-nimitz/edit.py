@@ -87,22 +87,33 @@ def LB(start, dur, src, t0, z0=1.0, z1=1.07, cx=.5, cy=.5, speed=1.0):
 for k, (num, title) in CHAPTERS.items():
     S(CARD_AT[k], T[k] - (.6 if k == 'b11' else 0) - CARD_AT[k], 'chapter', num=num, title=title)
 
-# --- 0 · HOOK (Opening A): the video everybody knows is not the encounter
-h = D['h01']
-S(0.0, at('h01', .29), 'video', src='flir1', t0=18.0, z0=1.0, z1=1.22, cy=.47)
-S(at('h01', .29), .21 * h, 'freeze', src='flir1', t0=27.0, z0=1.25, z1=1.4, cy=.47)
-S(at('h01', .5), .29 * h, 'recon', clip='n2_skim', t0=0.3, speed=.7, z0=1.0, z1=1.1)
-S(at('h01', .79), T['c04'] - at('h01', .79), 'scoreboard', bg=('src/DOD_112040853.mp4', 12.0, .4),
-  times=tuple(at('h01', f) - at('h01', .79) for f in (.83, .88, .925, .96)), verdicts=None)
-TAG(0.0, at('h01', .29), NAVY_TAG + ' · 2004')
-TAG(at('h01', .29), at('h01', .5), NAVY_TAG + ' · FLIR1', gfx.RED)
-O(0.0, at('h01', .29), lambda L, t, d: gfx.source_line(L, 'U.S. Navy · released by the Department of Defense, 27 Apr 2020'))
-HL('h01', .1, .26, 'STILL “UNIDENTIFIED”', y=880, size=104, sub='U.S. DEPARTMENT OF DEFENSE')
-HL('h01', .31, .49, 'A LATER FLIGHT', y=170, size=100, color=gfx.RED)
-TAG(at('h01', .5), at('h01', .79), REC_TAG)
-HL('h01', .57, .66, '4 AVIATORS · ABOUT 5 MINUTES', y=980, size=60)
-O(at('h01', .67), .12 * h, lambda L, t, d: (plate(L, 540, 760, 200, t, d), gfx.headline(L, 'NO VIDEO', t, d, size=150, color=gfx.RED)))
-# --- 1 · THE VIDEO EVERYBODY KNOWS
+# --- 0 · TWO DOCUMENTS: cold open on the 23 Oct 2026 release
+S(0.0, T['c02'], 't_recon', clip='t1_triangle', t0=0, speed=14.0 / T['c02'], z0=1.0, z1=1.1)
+TAG(0.0, at('c03', .24), TRI_TAG)
+O(0.0, T['c02'], lambda L, t, d: gfx.source_line(L, 'As described in AARO memo DOW-UAP-D176 and FBI report FBI-UAP-D043 · released 23 Oct 2026'))
+O(.15, 3.6, lambda L, t, d: gfx.headline(L, 'TWO GOVERNMENT REPORTS. ONE SIGHTING.', t, d, y=900, size=72))
+O(at('c01', .2), .25 * D['c01'], lambda L, t, d: gfx.lower_third(L, 'FEDERAL AGENTS', 'SENSITIVE SITE · WESTERN UNITED STATES', t, d))
+HL('c01', .47, .68, 'MATTE BLACK · UP TO 15 FT', y=980, size=64)
+O(at('c01', .88), T['c02'] - at('c01', .88), lambda L, t, d: gfx.headline(L, 'NO SOUND. NO EXHAUST.', t, d, y=980, size=64))
+S(T['c02'], T['c03'] - T['c02'], 'versus', bg=('clips/t1_triangle.mp4', 3.0, .45), a1=.4 * D['c02'], a2=.62 * D['c02'], a3=.84 * D['c02'],
+  drone=.72 * D['c02'], final='BOTH OFFICIAL. BOTH CAN’T BE RIGHT.', intro=None)
+O(T['c02'] + .2, .3 * D['c02'], lambda L, t, d: gfx.lower_third(L, 'AARO MEMO DOW-UAP-D176', 'VS. FBI REPORT · FBI-UAP-D043', t, d))
+S(T['c03'], .24 * D['c03'], 't_recon', clip='t1_triangle', t0=9.5, speed=.5, z0=1.1, z1=1.2)
+HL('c03', .13, .24, 'NO VIDEO EXISTS', size=110, color=gfx.RED)
+S(at('c03', .24), .31 * D['c03'], 'files', n=7, hl='last', bg=('src/DOD_111796027.mp4', 12.0, .38))
+TAG(at('c03', .24), at('c03', .55), 'WAR.GOV/UFO · RELEASE 7 · 23 OCT 2026')
+O(at('c03', .26), .26 * D['c03'], lambda L, t, d: (plate(L, 170, 560, 150, t, d), gfx.headline(L, '23 OCT 2026', t, d, y=170, size=96)))
+B(at('c03', .55), .29 * D['c03'], 'DOD_111585732', 6.0, 1.0, 1.1)
+TAG(at('c03', .55), at('c03', .84), 'U.S. NAVY FILE FOOTAGE · ILLUSTRATIVE')
+HL('c03', .71, .84, '22 YEARS EARLIER', size=110)
+# --- 1 · THE VIDEO EVERYBODY KNOWS (FLIR1, then the honesty, in the first minute)
+fs = at('c03', .84)
+S(fs, T['b01'] - .4 + 8.9 - fs, 'video', src='flir1', t0=66.0 - (T['b01'] - .4 - fs), z0=1.3, z1=1.6, cy=.47)
+LS(8.9, .25, 'black')
+LS(9.15, 2.15, 'video', src='flir1_rev', t0=76.27 - 75.0, speed=35.0, z0=1.4, z1=1.2, cy=.47)
+O(fs, T['b01'] + 10.9 - fs, lambda L, t, d: gfx.tag(L, NAVY_TAG + ' · 2004', clamp(t / .2)))
+O(fs, R(8.9) - fs, lambda L, t, d: gfx.source_line(L, 'U.S. Navy · released by the Department of Defense, 27 Apr 2020'))
+LO(5.6, 3.3, lambda L, t, d: gfx.headline(L, 'STILL “UNIDENTIFIED”', t, d, y=880, size=104, sub='U.S. DEPARTMENT OF DEFENSE'))
 c4 = D['c04']
 S(T['c04'], .25 * c4, 'video', src='flir1', t0=0.0, z0=1.0, z1=1.2, cy=.47)
 S(at('c04', .25), .22 * c4, 'split', left=('video', 'flir1', .25 * c4, 1.0, 1.0, 1.15, .47), right=('panel', 'eye'), labels=('', 'ILLUSTRATIVE'))
@@ -245,24 +256,10 @@ LS(249.4, 23.0, 'files', n=7, hl='all', bg=('src/DOD_111796027.mp4', 0.5, .38))
 LO(249.4, 23.0, lambda L, t, d: gfx.tag(L, 'WAR.GOV/UFO · 7 RELEASES · MAY–OCT 2026', 1, gfx.CREAM))
 LO(262.0, 4.0, lambda L, t, d: (plate(L, 170, 560, 150, t, d), gfx.headline(L, '23 OCT 2026', t, d, y=170, size=96)))
 LO(266.4, 5.8, lambda L, t, d: gfx.headline(L, 'DOCUMENTS ONLY. NO NEW VIDEO.', t, d, y=980, size=70))
-# the black triangle: moved here from the cold open, it is the 2026 payoff
-c1 = D['c01']
-S(T['c01'] - .5, T['c02'] - T['c01'] + .5, 't_recon', clip='t1_triangle', t0=0, speed=14.0 / (T['c02'] - T['c01'] + .5), z0=1.0, z1=1.1)
-TAG(T['c01'] - .5, T['c02'], TRI_TAG)
-O(T['c01'] - .5, T['c10'] - T['c01'] + .5, lambda L, t, d: gfx.source_line(L, 'As described in AARO memo DOW-UAP-D176 and FBI report FBI-UAP-D043 · released 23 Oct 2026'))
-O(T['c01'] - .3, 3.6, lambda L, t, d: gfx.headline(L, 'TWO GOVERNMENT REPORTS. ONE SIGHTING.', t, d, y=900, size=72))
-O(at('c01', .2), .25 * c1, lambda L, t, d: gfx.lower_third(L, 'FEDERAL AGENTS', 'SENSITIVE SITE · WESTERN UNITED STATES', t, d))
-HL('c01', .47, .68, 'MATTE BLACK · UP TO 15 FT', y=980, size=64)
-O(at('c01', .88), T['c02'] - at('c01', .88), lambda L, t, d: gfx.headline(L, 'NO SOUND. NO EXHAUST.', t, d, y=980, size=64))
-S(T['c02'], T['c10'] - T['c02'], 'versus', bg=('clips/t1_triangle.mp4', 2.0, .4), a1=.4 * D['c02'], a2=.62 * D['c02'], a3=.84 * D['c02'],
-  drone=.72 * D['c02'], final='BOTH OFFICIAL. BOTH CAN’T BE RIGHT.', intro=None)
-TAG(T['c02'], T['c10'], TRI_TAG)
-O(T['c02'] + .2, .3 * D['c02'], lambda L, t, d: gfx.lower_third(L, 'AARO MEMO DOW-UAP-D176', 'VS. FBI REPORT · FBI-UAP-D043', t, d))
 c10 = D['c10']
-S(T['c10'], CARD_AT['c11'] - T['c10'], 'versus', bg=('clips/t1_triangle.mp4', 6.0, .5), a1=0, a2=0, a3=.6 * c10, drone=0,
-  final='AND NO FOOTAGE TO CHECK.', intro=None)
+S(T['c10'], CARD_AT['c11'] - T['c10'], 'versus', bg=('clips/t1_triangle.mp4', 0.0, .7),
+  a1=.4 * c10, a2=.6 * c10, a3=.87 * c10, final='AND NO FOOTAGE TO CHECK.', intro='THE BLACK TRIANGLE')
 TAG(T['c10'], CARD_AT['c11'], TRI_TAG)
-HL('c10', .0, .22, 'THE NEXT MORNING: NOTHING', y=900, size=60)
 # --- 7 · STILL UNIDENTIFIED
 c11 = D['c11']
 S(T['c11'], .46 * c11, 'split', left=('recon', 'e4_close', 1.0, 1.0, 1.0, 1.08, .5), right=('recon', 't1_triangle', 3.0, 1.0, 1.0, 1.08, .5),

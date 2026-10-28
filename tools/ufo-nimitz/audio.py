@@ -183,15 +183,24 @@ L(sfx, 298.4, boom(2.5), .6)
 
 
 # ---------------- v2 sections
-# 0 hook: FLIR1, the reversal, the evidence cards. One soft hit at frame 0, one on the freeze, nothing else; music enters at 0:20
-put(sfx, 0.0, lp_fast(rng.normal(0, 1, int(at('h01', .5) * SR)), 180) * .2)
-put(sfx, 0.0, hit(), .3)
-put(sfx, at('h01', .29), hit(1.2), .3)                             # freeze: "it isn't the encounter"
-put(music, at('h01', .5), pad(T['c04'] - at('h01', .5) + 1.0, [D2, A2, E3], .09, 400))
-put(sfx, at('h01', .5), wind(T['c04'] - at('h01', .5) + 1.0), .45)
-put(sfx, at('h01', .5) - .2, whoosh(.8), .25)                       # cut to the reconstruction
-put(sfx, at('h01', .79) - .2, whoosh(.7), .25)
-for f in (.83, .88, .925, .96): put(sfx, at('h01', f), snap(), .3)  # EYES · RADAR · VIDEO · DOCUMENTS
+# 0 cold open: the black triangle files
+put(music, 0.0, pad(T['c02'] + 1.0, [D2, A2, E3], .09, 380))
+put(sfx, 0.0, wind(T['c02'] + 1.5), .5)
+put(sfx, 0.3, boom(3.0), .35)
+put(sfx, at('c01', .55), whoosh(1.2, up=False), .22)              # drops into a canyon
+put(sfx, at('c01', .86), hit(), .3)                               # no sound, no exhaust
+put(music, T['c02'], pad(D['c02'] + 1.5, [D2, F2, A2, C3], .10, 500))
+put(music, T['c02'], pulse(D['c02'], 90, g=.22))
+for f in (.4, .62): put(sfx, at('c02', f), hit(1.2), .32)          # 30 s vs 3 s
+put(sfx, at('c02', .84), boom(2.5), .4)                            # both can't be right
+fs = at('c03', .84)
+put(music, T['c03'], pad(fs - T['c03'] + 1.5, [Bb2, D3, F3], .09, 420))
+put(sfx, at('c03', .13), hit(), .38)                                # no video exists
+put(sfx, at('c03', .24), snap(), .38)
+put(sfx, at('c03', .26), hit(1.2), .28)                             # 23 Oct 2026
+put(sfx, at('c03', .53), whoosh(1.0), .25)
+put(sfx, at('c03', .71), boom(3.0, 60, 30), .35)                    # 22 years earlier
+put(sfx, fs, lp_fast(rng.normal(0, 1, int((R(0.0) - fs) * SR)), 180) * .25)   # sensor hum into the FLIR1 tail
 # 1 FLIR1 honesty
 c4 = T['b02'] - T['c04']
 put(music, T['c04'], pad(c4 + 1.0, [D2, A2, D3, F3], .09, 450))
@@ -243,18 +252,12 @@ put(music, T['c08'], pad(c8 + 1.0, [D2, A2, D3, F3, A3], .11, 900))
 put(music, T['c08'], pulse(c8, 104, g=.3))
 for f in (.4, .52): put(sfx, at('c08', f), hit(), .7)              # people / and radar
 put(sfx, at('c08', .63), whoosh(.8), .6)
-# 6 the black triangle, now the 2026 payoff
-put(music, T['c01'] - .5, pad(T['c10'] - T['c01'] + 1.5, [D2, F2, A2, C3], .10, 500))
-put(music, T['c01'], pulse(T['c10'] - T['c01'], 90, g=.2))
-put(sfx, T['c01'] - .5, wind(T['c02'] - T['c01'] + 1.5), .5)
-put(sfx, at('c01', .55), whoosh(1.2, up=False), .22)              # drops into a canyon
-put(sfx, at('c01', .86), hit(), .3)                               # no sound, no exhaust
-for f in (.4, .62): put(sfx, at('c02', f), hit(1.2), .3)          # 30 s vs 3 s
-put(sfx, at('c02', .84), boom(2.5), .4)                           # both can't be right
+# 6 back to the black triangle
 c10 = CARD_AT['c11'] - T['c10']
-put(sfx, T['c10'], wind(c10 + 1.0), .5)
-put(sfx, at('c10', .6), hit(1.2), .5)
-put(sfx, at('c10', .87), boom(2.5), .6)
+put(music, T['c10'], pad(c10 + 1.0, [D2, Bb2, E3], .08, 300))
+put(sfx, T['c10'], wind(c10 + 1.0), .6)
+for f in (.4, .6): put(sfx, at('c10', f), hit(1.2), .6)
+put(sfx, at('c10', .87), boom(2.5), .7)
 # 7 still unidentified, then the end screen
 put(music, T['c11'], pad(T['b14'] - T['c11'] + 1.0, [D2, A2, E3], .09, 450))
 for k_, f in enumerate((.3, 1.2, 2.1, 3.0)): put(sfx, at('c11', .46) + f, snap(), .45)   # scoreboard cards
@@ -292,7 +295,7 @@ else:
 # sidechain-ish duck for music/sfx under VO
 venv = lp_fast(np.abs(vo), 4.0); venv = np.clip(venv / (venv.max() * .25 + 1e-9), 0, 1)
 duck = 1 - .55 * venv
-sduck = np.full(N, .35); sduck[:int(T['c04'] * SR)] = .6   # cold open: effects sit further under the voice
+sduck = np.full(N, .35); sduck[:int(T['b01'] * SR)] = .6   # cold open: effects sit further under the voice
 mix_l = reverb(music, 3.0, .35) * duck * .9 + sfx * (1 - sduck * venv) + vo * 1.0
 mix = np.stack([mix_l, mix_l], 1)
 # a touch of stereo width on the score
@@ -304,5 +307,5 @@ SUF = f'_{DUB}' if DUB else ''
 with wave.open(f'out/film_audio{SUF}_raw.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
     w.writeframes((np.clip(mix, -1, 1) * 32767).astype(np.int16).tobytes())
-subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'out/film_audio{SUF}_raw.wav', '-af', 'loudnorm=I=-14:TP=-2.5:LRA=11', '-ar', '48000', f'out/film_audio{SUF}.wav'])
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f'out/film_audio{SUF}_raw.wav', '-af', 'loudnorm=I=-14:TP=-4.0:LRA=11', '-ar', '48000', f'out/film_audio{SUF}.wav'])
 print('audio done')
