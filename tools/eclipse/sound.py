@@ -67,5 +67,5 @@ mix[-int(.01 * SR):] *= np.linspace(1, 0, int(.01 * SR))[:, None]
 pk = np.abs(mix).max(); mix = np.tanh(mix / pk * 1.6) / np.tanh(1.6) * .89
 out = sys.argv[1]
 raw = out + '.raw.wav'
-subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'f32le', '-ar', str(SR), '-ac', '2', '-i', '-', raw], input=mix.tobytes(), check=True)
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'f32le', '-ar', str(SR), '-ac', '2', '-i', '-', raw], input=mix.astype(np.float32).tobytes(), check=True)
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', raw, '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', str(SR), out], check=True)

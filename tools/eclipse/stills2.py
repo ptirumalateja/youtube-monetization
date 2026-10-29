@@ -9,7 +9,7 @@ def ll2p(lon, lat, rot):
     la, lo = math.radians(lat), math.radians(lon)
     X, Z = math.cos(la) * math.sin(lo), math.cos(la) * math.cos(lo)
     return np.array([X * math.cos(rot) + Z * math.sin(rot), math.sin(la), -X * math.sin(rot) + Z * math.cos(rot)])
-BASE = dict(uT=3., uShot=0, uZoom=1, uMR=1, uExp=1, uDark=0, uFov=.5, uA=0, uB=0, uC=0, uD=0, uE=0, uSky=0, uPhot=1,
+BASE = dict(uT=3., uShot=0, uZoom=1, uMR=1, uExp=1, uDark=0, uFov=.5, uA=0, uB=0, uC=0, uD=0, uE=0, uL=[0, 0, 0, 0], uSky=0, uPhot=1,
             uMoonC=[0, 0, 0], uBead=[0, 0, 0], uCamP=[0, 0, 5], uCamT=[0, 0, 0], uSun=[1, 0, 0], uCen=[0, 0, 0])
 def sh(k, **kw):
     kw = {**BASE, **kw}
@@ -22,6 +22,9 @@ jobs = [
   sh('b_spec_zoom', uShot=10, uZoom=42., uA=588., uB=1., uC=0., uD=1.),
   sh('c_obs', uShot=11, uZoom=1.5, uExp=1., uMoonC=[0, 0, 0]),
   sh('d_prom', uShot=12, uZoom=.5, uCen=[.18, .93, 0], uPhot=1.3, uA=1.38, uB=.2, uC=.15, uE=620.),
+  sh('f_lab_cold', uShot=14, uA=0., uC=1.),
+  sh('g_lab_lit', uShot=14, uA=1., uC=1.),
+  sh('h_balloon', uShot=15, uA=.3, uB=.38, uC=1.),
   sh('e_letters', uShot=13, uFov=.62, uA=.8, uB=1., uSun=sun.tolist(), uCamP=cam.tolist(), uCamT=[0, 0, 0]),
 ]
 json.dump(jobs, open(f'{O}/jobs.json', 'w'))

@@ -6,6 +6,7 @@
 precision highp float;
 uniform vec2 R;
 uniform float uC, uD, uE;
+uniform vec4 uL;
 uniform float uT, uShot, uZoom, uMR, uExp, uDark, uFov, uA, uB, uSky, uPhot;
 uniform vec3 uMoonC, uBead, uCamP, uCamT, uSun, uCen;
 uniform sampler2D tEarth, tSpec, tCloud, tLights, tMoon;
@@ -411,20 +412,20 @@ vec3 shotSpec(vec2 frag) {
   vec2 c = uv - vec2(0., .02);
   float rad = .485, r = length(c);
   float span = uZoom;                           // nm across the field diameter
-  float lam = uA + c.x / (2. * rad) * span;     // uA = centre wavelength
+  float lam = uA + (c.x - uCen.x) / (2. * rad) * span;     // uA = centre wavelength
   float wid = max(span * .0058, .85);
   vec3 col = vec3(.0025, .002, .004);
   // slit image of the prominence: lines bend and flicker along the slit
-  float yy = c.y;
+  float yy = c.y - uCen.y;
   float bend = (.55 + .9 * sin(yy * 5. + 1.)) * span * .0012;
   float fl = .55 + .6 * fbm(vec3(lam * .08, yy * 4., uT * .25));
   float prof = smoothstep(.5, .12, abs(yy + .02)) * fl;
   float lm = lam + bend;
   vec3 e = vec3(0.);
-  e += wl2rgb(656.28) * emis(lm, 656.28, wid) * 1.15 * (.7 + .5 * fbm(vec3(yy * 3., 4., uT * .2)));    // H-alpha
-  e += wl2rgb(486.13) * emis(lm, 486.13, wid) * .8;
-  e += wl2rgb(434.05) * emis(lm, 434.05, wid) * .55;
-  e += wl2rgb(410.17) * emis(lm, 410.17, wid) * .3;
+  e += wl2rgb(656.28) * emis(lm, 656.28, wid) * 1.15 * uL.x * (.7 + .5 * fbm(vec3(yy * 3., 4., uT * .2)));    // H-alpha
+  e += wl2rgb(486.13) * emis(lm, 486.13, wid) * .8 * uL.y;
+  e += wl2rgb(434.05) * emis(lm, 434.05, wid) * .55 * uL.z;
+  e += wl2rgb(410.17) * emis(lm, 410.17, wid) * .3 * uL.w;
   e += wl2rgb(501.57) * emis(lm, 501.57, wid) * .2 * uC;
   e += wl2rgb(667.82) * emis(lm, 667.82, wid) * .22 * uC;
   vec3 yel = vec3(1., .86, .12) * emis(lm, 587.56, wid * 1.05) * 1.7 * uB;                  // D3, the line that matches nothing
@@ -472,6 +473,7 @@ float palm(vec2 p, vec2 o, float ang, float L, float droop) {
 }
 vec3 shotObs(vec2 frag) {
   vec2 uv = frag / R.y; float ax = R.x / R.y;
+  if (uD > 0.) { vec2 pc0 = vec2(.5 * ax, .55); uv = (uv - pc0) / uD + pc0; }
   vec3 c = mix(vec3(.03, .05, .13), vec3(.004, .009, .03), smoothstep(.15, .95, uv.y));
   c += vec3(1., .42, .13) * exp(-max(uv.y - .06, 0.) * 8.) * .55 + vec3(.9, .5, .3) * exp(-max(uv.y - .03, 0.) * 22.) * .3;
   c += stars(frag, .3) * .25;
@@ -612,6 +614,96 @@ vec3 shotLetters(vec2 frag) {
   return c;
 }
 
+
+// ---------- 1895: the glass tube ----------
+vec3 shotLab(vec2 frag) {
+  vec2 uv = frag / R.y; float ax = R.x / R.y; vec2 pc = vec2(.5 * ax, .5);
+  if (uC > 0.) uv = (uv - pc) / uC + pc;
+  float glow = uA;                                         // 0 = cold glass, 1 = lit
+  vec3 gcol = mix(vec3(1., .45, .1), vec3(1., .92, .55), .5);
+  vec3 c = mix(vec3(.01, .007, .006), vec3(.028, .018, .014), smoothstep(.15, .9, uv.y));
+  for (int i = 0; i < 10; i++) {                           // out-of-focus lamps and windows behind the bench
+    float fi = float(i);
+    vec2 bp = vec2((.1 + .85 * h21(vec2(fi, 1.))) * ax, .58 + .38 * h21(vec2(fi, 2.)));
+    float br = .02 + .045 * h21(vec2(fi, 3.)), d = length(uv - bp);
+    vec3 bc = h21(vec2(fi, 4.)) > .78 ? vec3(.45, .55, 1.) : vec3(1., .55, .2);
+    c += bc * smoothstep(br, br * .8, d) * (.04 + .06 * h21(vec2(fi, 5.))) * (.85 + .15 * sin(uT * .7 + fi));
+  }
+  // bench: dark wood with a glossy pool of the tube's light
+  float bench = smoothstep(.34, .32, uv.y);
+  c = mix(c, vec3(.012, .008, .006) + vec3(.02, .01, .006) * vn(vec3(uv * vec2(3., 60.), 1.)), bench);
+  c += gcol * exp(-pow((uv.x - pc.x) / .3, 2.) - pow((uv.y - .3) / .05, 2.)) * glow * .3 * bench;
+  c += gcol * exp(-pow((uv.x - pc.x) / .6, 2.) - pow((uv.y - .4) / .25, 2.)) * glow * .08;
+  // the tube, tilted slightly
+  float an = -.12; mat2 ro = mat2(cos(an), sin(an), -sin(an), cos(an));
+  vec2 p = ro * (uv - pc - vec2(0., .06));
+  float Lh = .17, Rr = .05;
+  float dT = sdCapsule(p, vec2(-Lh, 0.), vec2(Lh, 0.), Rr);
+  float ins = smoothstep(.0015, -.0015, dT);
+  float yn = abs(p.y) / Rr;
+  vec3 tc = vec3(.006, .007, .01) + vec3(.05, .06, .08) * (1. - yn) * .25;    // cold glass interior
+  // narrow capillary in the middle, bulbs at the ends, like a Pluecker tube
+  float cap = smoothstep(.014, .012, abs(p.y)) * smoothstep(.06, .1, abs(p.x));
+  float colm = mix(1. - yn * yn, 1., cap);
+  float stri = .85 + .15 * sin(p.x * 120. - uT * 4.) * (1. - cap);
+  vec3 gas = mix(vec3(1., .32, .05), vec3(1., .8, .3), pow(max(colm, 0.), 4.)) * pow(max(colm, 0.), .8) * stri * (.9 + .12 * sin(uT * 31.));
+  tc += gas * glow * 1.05;
+  // glass reflections: two long highlights and a fresnel edge
+  tc += vec3(.8, .85, 1.) * (exp(-abs(p.y - .62 * Rr) * 260.) * .22 + exp(-abs(p.y + .5 * Rr) * 320.) * .08) * smoothstep(-Lh, -Lh * .6, p.x) * smoothstep(Lh, Lh * .6, p.x);
+  c = mix(c, tc, ins);
+  c += (vec3(.9, .8, .7) * .45 + gcol * glow) * exp(-abs(dT) * 380.) * .35 * smoothstep(.01, -.01, dT + .002);
+  c += gcol * glow * exp(-max(dT, 0.) * 22.) * .22 * (1. - ins);
+  // brass end caps and wires
+  float capL = max(abs(p.x + Lh + Rr + .03) - .035, abs(p.y) - .034);
+  float capR = max(abs(p.x - Lh - Rr - .03) - .035, abs(p.y) - .034);
+  float wire = min(sdSeg(p, vec2(-Lh - Rr - .065, 0.), vec2(-1., -.05)), sdSeg(p, vec2(Lh + Rr + .065, 0.), vec2(1., -.05))) - .004;
+  float br = min(capL, capR);
+  vec3 brass = vec3(.55, .38, .16) * (.25 + .9 * smoothstep(-.03, .03, -p.y - .004)) * (.35 + .4 * glow);
+  c = mix(c, brass, smoothstep(.0015, -.0015, br));
+  c = mix(c, vec3(.03, .02, .015), smoothstep(.0015, -.0015, wire));
+  // a lump of cleveite in the foreground, dark, rim-lit by the tube
+  vec2 rq = uv - vec2(.07 * ax, .12);
+  float rock = length(rq * vec2(1., 1.25)) - (.15 + .035 * (fbm3(vec3(rq * 9., 3.)) - .5) * 2.);
+  float rs = smoothstep(.004, -.004, rock);
+  vec3 rc = vec3(.012, .01, .012) + gcol * glow * .1 * pow(max(dot(normalize(rq + 1e-4), normalize(vec2(1., .25))), 0.), 2.) * (.35 + 1.3 * fbm(vec3(rq * 22., 2.)));
+  c = mix(c, rc, rs);
+  return c;
+}
+
+// ---------- the balloon crosses the Sun ----------
+vec3 shotBalloon(vec2 frag) {
+  vec2 uv = frag / R.y; float ax = R.x / R.y; vec2 pc = vec2(.5 * ax, .5);
+  if (uC > 0.) uv = (uv - pc) / uC + pc;
+  vec2 sp = vec2(.5 * ax, .55);
+  float ds = length(uv - sp);
+  vec3 c = mix(vec3(.95, .36, .1), vec3(.08, .09, .26), smoothstep(.15, .85, uv.y));
+  c = mix(c, vec3(.03, .04, .12), smoothstep(.6, 1., uv.y));
+  float cl = fbm(vec3(uv * vec2(2.5, 11.), uT * .03 + 2.));
+  c = mix(c, vec3(.35, .1, .1), smoothstep(.5, .78, cl) * smoothstep(.15, .4, uv.y) * smoothstep(.8, .45, uv.y) * .55);
+  float a = atan(uv.y - sp.y, uv.x - sp.x);
+  c += vec3(1., .5, .16) * exp(-ds * 4.5) * 1.1 + vec3(1., .8, .5) * exp(-ds * 13.) * 1.8;
+  c += vec3(1., .7, .35) * pow(abs(sin(a * 6. + fbm3(vec3(a * 2., 1., uT * .1)) * 3.)), 14.) * exp(-ds * 6.) * .4;
+  c = mix(c, vec3(1., .95, .8) * 3.2, smoothstep(.092, .088, ds));
+  float hl = .1 + .03 * sin(uv.x * 4.5) + .015 * fbm3(vec3(uv.x * 8., 0., 0.));
+  if (uv.y < hl) c = vec3(.012, .009, .014);
+  // balloon (egg, translucent in the Sun's light), string below
+  vec2 bp = vec2(uA, uB);
+  vec2 q = uv - bp; q.x -= .02 * sin(uT * 2.3) * (q.y + .2);
+  float ry = q.y > 0. ? .15 : .175;
+  float e = length(q / vec2(.115, ry));
+  float inb = smoothstep(1., .985, e);
+  float sunBehind = exp(-pow(length(bp - sp) / .16, 2.));
+  vec3 base = vec3(.85, .07, .05);
+  vec3 bc = base * (.22 + 1.7 * sunBehind) * (.55 + .45 * pow(1. - e, .4)) + vec3(1., .45, .15) * pow(e, 5.) * (.15 + .9 * max(dot(normalize(q + 1e-4), normalize(sp - bp)), 0.));
+  bc += vec3(1., .8, .6) * exp(-pow(length((q - vec2(-.04, .07)) * vec2(1., 1.6)) / .03, 2.)) * .35;
+  float knot = smoothstep(.012, .0, abs(q.x) - (.014 - (q.y + .175) * .3)) * smoothstep(.0, .01, q.y + .205) * smoothstep(.01, .0, q.y + .17);
+  float stg = smoothstep(.0016, .0004, abs(q.x - .03 * sin(q.y * 11. + uT * 1.6) * (-q.y - .18))) * step(q.y, -.19) * step(-.62, q.y);
+  c = mix(c, bc, inb);
+  c = mix(c, vec3(.5, .05, .04), knot);
+  c = mix(c, vec3(.06, .03, .03), stg * .8);
+  return c;
+}
+
 void main() {
   vec2 f = gl_FragCoord.xy;
   vec3 c;
@@ -625,7 +717,9 @@ void main() {
   else if (uShot < 10.5) c = shotSpec(f);
   else if (uShot < 11.5) c = shotObs(f);
   else if (uShot < 12.5) c = shotProm(f);
-  else c = shotLetters(f);
+  else if (uShot < 13.5) c = shotLetters(f);
+  else if (uShot < 14.5) c = shotLab(f);
+  else c = shotBalloon(f);
   c = (c * (2.51 * c + .03)) / (c * (2.43 * c + .59) + .14);
   c = pow(clamp(c, 0., 1.), vec3(1. / 2.2));
   o = vec4(c, 1.);
