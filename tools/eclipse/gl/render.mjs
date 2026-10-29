@@ -3,7 +3,7 @@ import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
 import fs from 'fs';
 import path from 'path';
 const dir = path.dirname(new URL(import.meta.url).pathname);
-const frag = fs.readFileSync(path.join(dir, 'scene.glsl'), 'utf8');
+const frag = fs.readFileSync(path.join(dir, process.env.FRAG || 'scene.glsl'), 'utf8');
 const jobs = JSON.parse(fs.readFileSync(process.argv[2], 'utf8')).filter(j => !fs.existsSync(j.out));
 if (!jobs.length) process.exit(0);
 const texs = { tEarth: 'earth_atmos_2048.jpg', tSpec: 'earth_specular_2048.jpg', tCloud: 'earth_clouds_2048.png', tLights: 'earth_lights_2048.png', tMoon: 'moon_1024.jpg' };
