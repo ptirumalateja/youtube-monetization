@@ -8,7 +8,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import sld_sound as S
 from sld_sound import SR, place, write_wav
-DUR = 19.9
+DUR = 20.3
 SFX = os.path.join(HERE, 'sfx')
 
 def clip(name):
@@ -41,11 +41,9 @@ def build():
     hit = S.load('822420__audiopapkin__riser-hit-sfx-120.wav'); hp = peak_t(hit); hit = at_level(hit[max(0, hp - int(0.02 * SR)):hp + int(1.6 * SR)], -15)
     flop = at_level(clip('flop_on_bed'), -18); swish = at_level(cut(clip('blanket_kick'), 0.3, 1.1), -26)
     # NORMAL: flop, blanket up, one snore
-    soft = at_level(clip('flop_on_bed'), -23); whoosh = at_level(cut(S.load('175183__tomlija__5-everyday-whooshes.wav'), 8.0, 8.9, 0.1), -24)
-    put(fx, soft, 0.95, 'peak'); put(fx, swish, 1.15, 'peak', 0.2); put(fx, at_level(clip('snore'), -24), 1.75, 'start')
-    put(fx, whoosh, 2.14, 'start')                                 # the swipe from NORMAL to ME
-    # ME: the same routine; the eyes close, then snap open into silence
-    put(fx, soft, 2.4 + 0.95, 'peak'); put(fx, swish, 2.4 + 1.15, 'peak', 0.2)
+    put(fx, flop, 0.36, 'peak'); put(fx, swish, 0.75, 'peak', 0.2); put(fx, at_level(clip('snore'), -24), 1.85, 'start')
+    # ME: the same flop; then the eyes snap open into silence
+    put(fx, flop, 2.4 + 0.36, 'peak'); put(fx, swish, 2.4 + 0.75, 'peak', 0.2)
     # the three turns
     put(fx, at_level(clip('roll_over'), -20), 4.0, 'start', -0.15)
     put(fx, at_level(clip('pillow_groan'), -18), 5.02, 'start')
@@ -60,14 +58,16 @@ def build():
     put(fx, at_level(cut(clip('big_laugh'), 0.0, 1.3, 0.04), -13), 10.62, 'start')
     put(fx, at_level(cut(clip('muffled_laugh'), 0.0, 1.25, 0.08), -17), 11.68, 'start')
     # silence ... the crow
-    put(fx, at_level(cut(clip('rooster'), 0.0, 1.2, 0.05), -11), 13.42, 'start', -0.2)
+    put(fx, at_level(cut(clip('rooster'), 0.0, 2.38, 0.7), -11), 13.42, 'start', -0.2)
+    echo = S.convolve(S.lp(cut(clip('rooster'), 0.0, 2.0, 0.3), 3200), S.reverb_ir(1.1, 3500, 5)); put(fx, at_level(echo, -22), 13.85, 'start', 0.3)   # the distant, mocking answer
     # 5:00: shock, then the phone lands on his face
     put(fx, hit * 0.8, 14.6, 'start'); put(fx, at_level(clip('shock_gasp'), -14), 14.64, 'start')
-    put(fx, at_level(cut(clip('phone_buzz'), 0.0, 0.58, 0.03), -15), 15.05, 'start', 0.1)   # the alarm screen, seen from his eyes
-    put(fx, at_level(clip('phone_on_face'), -13), 15.82, 'peak')
+    for tb in (14.72, 15.3): put(fx, at_level(cut(clip('phone_buzz'), 0.0, 0.58, 0.03), -17), tb, 'start', 0.1)   # the alarm card pops: the phone buzzes twice in his hand
+    put(fx, at_level(clip('phone_on_face'), -13), 15.9, 'peak')
     # bolt upright, the alarm line holds in near silence; he flops back and the loop's first flop lands at 0.36
     put(fx, at_level(cut(clip('blanket_kick'), 0.3, 1.1), -20), 16.12, 'peak', 0.1)
-    put(fx, at_level(cut(clip('roll_over'), 0.0, 1.0), -24), 19.0, 'start')
+    put(fx, at_level(clip('roll_over'), -19), 18.45, 'start')                                   # the deadpan sigh (people comment "literal me")
+    put(fx, at_level(cut(clip('blanket_kick'), 0.3, 1.1), -24), 19.85, 'peak', 0.1); put(fx, at_level(clip('flop_on_bed'), -23), 20.08, 'peak')
     # hard silences: room tone out before the crow and right on the slam
     g = np.ones(bed.shape[1]); t = np.arange(bed.shape[1]) / SR
     for a, b in [(10.48, 10.62), (12.85, 13.42)]:
@@ -80,5 +80,12 @@ def build():
     mix = fx + bed + np.stack([room, room])[:, :fx.shape[1]]
     return mix[:, :int(DUR * SR)]
 
+def build_full():
+    """Title card (0.8 s) + the scene: a low hit as ME pops in, a soft whoosh into the bedroom."""
+    sc = build(); T = int(0.8 * SR); full = np.zeros((2, sc.shape[1] + T)); full[:, T:] = sc
+    hit = S.load('822420__audiopapkin__riser-hit-sfx-120.wav'); hp = peak_t(hit); hit = at_level(hit[max(0, hp - int(0.02 * SR)):hp + int(1.2 * SR)], -19)
+    whoosh = at_level(cut(S.load('175183__tomlija__5-everyday-whooshes.wav'), 8.0, 8.9, 0.1), -24)
+    place(full, hit, 0.3, 1.0, 0.0); place(full, whoosh, 0.5, 1.0, 0.0); return full
+
 if __name__ == '__main__':
-    write_wav(build() * 0.9, sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'output', 'mix.wav'))
+    write_wav(build_full() * 0.9, sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'output', 'mix.wav'))

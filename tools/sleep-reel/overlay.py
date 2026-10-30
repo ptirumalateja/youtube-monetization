@@ -40,6 +40,22 @@ def clock_at(t):
     m %= 1440; h, mm = divmod(m, 60)
     return f'{(h % 12) or 12}:{mm:02d} {"AM" if h < 12 else "PM"}', m
 
+_card = None
+def alarm_card():
+    global _card
+    if _card: return _card
+    c = Image.new('RGBA', (600, 270), (0, 0, 0, 0)); d = ImageDraw.Draw(c)
+    d.rounded_rectangle((0, 0, 599, 269), 44, fill=(14, 12, 18, 238), outline=(255, 154, 60, 255), width=5)
+    d.polygon([(70, 120), (74, 90), (96, 74), (118, 90), (122, 120), (132, 134), (60, 134)], fill=(255, 208, 138, 255)); d.ellipse((88, 136, 104, 150), fill=(255, 208, 138, 255))
+    d.text((165, 56), 'ALARM', font=font(40), fill=(255, 154, 60, 255)); d.text((165, 118), '6:00 AM', font=font(92), fill=(255, 255, 255, 255))
+    _card = c; return c
+def typed(d, text, size, y, col, t, t0, dur):
+    if t < t0: return
+    n = min(len(text), int(len(text) * (t - t0) / dur) + 1); f = font(size); ws = [d.textlength(ch, font=f) for ch in text]; tot = sum(ws) + 3 * (len(text) - 1); x = W / 2 - tot / 2
+    for i, (ch, w) in enumerate(zip(text, ws)):
+        if i < n: d.text((x, y), ch, font=f, fill=col + (255,))
+        x += w + 3
+
 def layer(t):
     L = Image.new('RGBA', (W, H), (0, 0, 0, 0)); G = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(L); g = ImageDraw.Draw(G)
     def both(text, size, y, col, a, track=4, glow=None):
@@ -47,31 +63,38 @@ def layer(t):
         tracked(g, text, size, W / 2, y, track, (glow or col) + (int(200 * a),))
     # label
     a = win(t, 0, 2.38, 0, 0.04)
-    if a: both('NORMAL PEOPLE:', 84, 120, CREAM, a)
+    if a: both('NORMAL PEOPLE:', 84, 230, CREAM, a)
     a = win(t, 2.4, 4.0, 0.0, 0.08)
-    if a: both('ME:', 120, 100, GOLD, a)
+    if a: both('ME:', 120, 210, GOLD, a)
     # the HUD clock (hidden on the window insert and after the alarm line takes over)
     txt, m = clock_at(t)
     show = (t < 13.4 or 14.6 <= t < 16.1)
     if show:
         slam = 1.0 + 0.35 * (1 - sstep(10.5, 10.75, t)) * (t >= 10.5) + 0.35 * (1 - sstep(14.6, 14.85, t)) * (t >= 14.6)
         size = int(150 * slam) if t >= 10.5 else 130
-        y = 235 if t < 4.0 else 250
+        y = 350 if t < 4.0 else 250
         col = LED if t >= 10.5 else (255, 140, 96)
         both(txt, size, y - (size - 130) // 2, col, 1.0, 2, LED)
-    # sleep math: the relatable countdown (what you'd get if you slept RIGHT NOW), 7.0 hrs at 11 PM down to 3.0 at the 3 AM slam
-    a = win(t, 6.2, 11.0, 0.1, 0.25)
-    if a:
-        raw = 23 * 60 if t < 8.4 else (23 * 60 + (min(1.0, (t - 8.4) / 2.15) ** 1.8) * 240 if t < 10.5 else 27 * 60)
-        hrs = (30 * 60 - raw) / 60; k = min(1.0, max(0.0, (7.0 - hrs) / 4.0)); col = tuple(int(CREAM[i] + (LED[i] - CREAM[i]) * k) for i in range(3))
-        both(f'SLEEP NOW = {hrs:.1f} HRS', 66, 1590, col, a, 3, LED if k > 0.5 else None)
     # rehooks and lines
     a = win(t, 7.35, 8.4)
     if a: both('JUST ONE VIDEO.', 76, 1460, CREAM, a)
-    a = win(t, 16.15, 19.0, 0.06, 0.15)
+    a = win(t, 16.15, 18.9, 0.06, 0.15)
     if a: both('ALARM IN', 96, 250, CREAM, a); both('1 HOUR.', 150, 360, GOLD, a)
-    a = win(t, 17.7, 19.9, 0.12, 0.04)
-    if a: both('TAG YOUR', 70, 1470, CREAM, a); both('3 AM FRIEND.', 84, 1550, GOLD, a)
+    a = win(t, 17.3, 19.0, 0.3, 0.15)
+    if a: tracked(d, "we've all been there.", 46, W / 2, 560, 3, DIM + (int(235 * a),), 'Medium')
+    # the alarm card pops in over the blanket as the phone goes off (no camera cut to the screen)
+    if 14.72 <= t < 16.1:
+        u = (t - 14.72) / 0.28; sc = 0.55 + 0.55 * sstep(0, 1, u) if u < 1 else 1.0
+        if u < 1 and u > 0.6: sc = 1.1 - 0.1 * sstep(0.6, 1, u)
+        al = min(1.0, (t - 14.72) / 0.1) * (1 - sstep(15.95, 16.1, t)); card = alarm_card()
+        w, h = int(card.width * sc), int(card.height * sc); c2 = card.resize((w, h), Image.LANCZOS)
+        c2.putalpha(c2.split()[3].point(lambda v: int(v * al)))
+        L.alpha_composite(c2, (int(W / 2 - w / 2), int(1190 + (card.height - h) / 2 + 3 * __import__('math').sin(t * 60) * (t < 15.4))))
+    # ending text: typewriter, in the middle of the blanket, "send" (people send, they don't tag)
+    typed(d, 'SEND THIS TO YOUR', 66, 1240, CREAM, t, 18.55, 0.6)
+    typed(d, '3 AM FRIEND.', 100, 1320, GOLD, t, 19.1, 0.5)
+    a = sstep(19.65, 19.95, t)
+    if a: tracked(d, "(they're awake too)", 40, W / 2, 1450, 3, DIM + (int(220 * a),), 'Medium')
     return L, G
 
 def compose(img, t):
