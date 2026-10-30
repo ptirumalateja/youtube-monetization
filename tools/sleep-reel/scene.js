@@ -162,18 +162,21 @@ const CAM={
   winIn: [[0.25,1.15,0.2],[0.02,1.42,-1.29],32],
   ptop:  [[0.45,2.35,0.95],[0.06,0.74,-0.6],36],
   ptopIn:[[0.36,2.2,0.62],[0.05,0.72,-0.66],32],
-  front: [[0.5,1.65,2.35],[0.04,1.22,-0.25],38] };
+  front: [[0.5,1.65,2.35],[0.04,1.22,-0.25],38],
+  open:  [[0.42,1.95,1.7],[0.05,1.12,-0.55],34] };
 function camLerp(a,b,u){ const A=CAM[a], Bc=CAM[b]; return [V(...A[0]).lerp(V(...Bc[0]),u),V(...A[1]).lerp(V(...Bc[1]),u),lerp(A[2],Bc[2],u)]; }
 
 function state(t){ const sh=shotAt(t), id=sh.id, lt=t-sh.t0; const S={id,legs:'hidden',caps:null,zTop:-0.42,wob:0,phone:null,phoneOn:false,clock:'9:00',zzz:0,dawn:0,rooster:false,feedK:0,alarm:false,pillow:null};
   let o={hip:HIP.clone(),pitch:1.5,roll:0,nod:0.32,turn:0}; let ex=EX.neutral, cam;
-  if(id==='normal'||id==='me'){ o.pitch=flopPitch(lt); o.nod=lerp(0.05,0.32,sstep(0,0.5,lt));
-    const fl=sstep(0.0,0.42,lt); const up=1-sstep(0.25,0.8,lt);   // arms fling up on the way down, then settle on the belly
-    const J0=bodyJ(o); for(const [s,sg] of [['L',1],['R',-1]]) o['t'+s]=J0.neck.clone().addScaledVector(J0.d,0.25*up).addScaledVector(J0.l,sg*(0.42*up+0.05)).addScaledVector(J0.n,0.1).lerp(J0.hip.clone().addScaledVector(J0.d,0.12).addScaledVector(J0.n,0.15).addScaledVector(J0.l,sg*0.2),1-up);
-    S.zTop=lerp(0.05,-0.42,sstep(0.45,0.95,lt));
-    if(id==='normal'){ ex=EXK([[0,'sleepy'],[0.9,'sleepy'],[1.25,'content']],lt); S.clock=lt<1.45?'9:00':'9:05'; S.zzz=sstep(1.5,1.7,lt); cam=camLerp('top','topIn',sm5(clamp(lt/2.4))); }
-    else { ex=lt<1.05?EXK([[0,'sleepy'],[0.6,'sleepy'],[0.85,'content']],lt):mix(EX.content,EX.wide,sstep(1.05,1.12,lt)); cam=camLerp('top','topIn',sm5(clamp(lt/1.6))); }
-    if(id==='me'&&lt>1.05){ ex={...ex,px:0,py:0.6}; } }
+  if(id==='normal'||id==='me'){ // calm bedtime routine: a yawn, lie back, pull the blanket up. NORMAL falls asleep; ME's eyes stay open (match cut)
+    const lie=sm5(clamp((lt-0.12)/0.8)); o.pitch=lerp(0.6,1.5,lie)-0.025*Math.sin(Math.min(1,Math.max(0,(lt-0.9)/0.35))*Math.PI); o.nod=lerp(0.05,0.32,sstep(0.2,1.0,lt));
+    const J0=bodyJ(o); const hand=sg=>{ const belly=J0.hip.clone().addScaledVector(J0.d,0.12).addScaledVector(J0.n,0.15).addScaledVector(J0.l,sg*0.2);
+      const chest=J0.neck.clone().addScaledVector(J0.d,-0.14).addScaledVector(J0.n,0.17).addScaledVector(J0.l,sg*0.17);
+      return belly.clone().lerp(chest,sstep(0.75,1.25,lt)).lerp(belly,sstep(1.5,1.9,lt)); };
+    o.tL=hand(1); o.tR=hand(-1); o.pL=V(0.25,-1,0.1); o.pR=V(-0.25,-1,0.1);
+    S.zTop=lerp(0.05,-0.42,sstep(0.8,1.35,lt));
+    if(id==='normal'){ ex=EXK([[0,'yawn'],[0.45,'yawn'],[0.8,'sleepy'],[1.3,'content']],lt); S.clock=lt<1.45?'9:00':'9:05'; S.zzz=sstep(1.6,1.8,lt); cam=camLerp('open','topIn',sm5(clamp(lt/2.4))); }
+    else { ex=lt<1.15?EXK([[0,'yawn'],[0.45,'yawn'],[0.8,'sleepy'],[1.1,'content']],lt):mix(EX.content,EX.wide,sstep(1.15,1.22,lt)); cam=camLerp('open','topIn',sm5(clamp(lt/1.6))); if(lt>1.15) ex={...ex,px:0,py:0.6}; } }
   else if(id==='turn1'){ S.clock='9:30'; o.roll=lerp(0.0,0.8,sm5(clamp((lt-0.35)/0.45))); o.nod=0.2; ex=EXK([[0,'wide'],[0.12,'sigh'],[0.5,'sigh'],[0.7,'annoyed'],[1.0,'annoyed']],lt);
     const J0=bodyJ(o); o.tR=J0.head.clone().addScaledVector(J0.f,0.1).addScaledVector(J0.hd,-0.14).addScaledVector(J0.l,-0.1).add(V(0,-0.06,0)); o.pR=V(0,-0.5,1);
     cam=camLerp('top','topIn',0.3+0.3*lt); }
@@ -214,7 +217,11 @@ function state(t){ const sh=shotAt(t), id=sh.id, lt=t-sh.t0; const S={id,legs:'h
       cam=camLerp('ptopIn','ptopIn',0); if(lt>0.22) cam[2]+=1.4*Math.sin((lt-0.22)*70)*Math.exp(-(lt-0.22)*11); }
     const J1=bodyJ(o); const toFace=J1.head.clone().sub(ph).normalize();
     S.phone={pos:ph,dir:id==='fall'&&lt>0.2?J1.f.clone().negate():toFace.lerp(V(0,1,0),1-pt).normalize(),up:J1.hd.clone().lerp(V(-0.3,0,-1),1-pt)};
-    if(id==='alarm'){ const d=S.phone.dir.clone(); cam=[ph.clone().addScaledVector(d,0.46),ph.clone(),30]; S.camUp=J1.hd.clone(); }
+    if(id==='five'||id==='alarm'||id==='fall'){ // one continuous move: from the shock face, round to his eyes so the screen reads, then back out as the phone drops
+      const hDir=J1.head.clone().sub(hold).normalize(); const Pc=[hold.clone().addScaledVector(hDir,0.46),hold.clone(),30], A0=camLerp('ptopIn','ptopIn',0);
+      const u1=sm5(clamp((t-14.68)/0.82)), u2=sm5(clamp((t-15.64)/0.3)), uu=u1*(1-u2);
+      cam=[A0[0].clone().lerp(Pc[0],uu).addScaledVector(J1.l,-0.24*Math.sin(Math.PI*uu)),A0[1].clone().lerp(Pc[1],uu),lerp(A0[2],Pc[2],uu)]; S.camUp=V(0,1,0).lerp(J1.hd,uu).normalize();
+      if(id==='five') cam[2]-=5*sstep(0,0.08,lt)*(1-sstep(0.08,0.4,lt)); if(id==='fall'&&lt>0.22) cam[2]+=1.4*Math.sin((lt-0.22)*70)*Math.exp(-(lt-0.22)*11); }
     if(id==='phone'&&pt<0.02){ /* reaching: phone still on the nightstand */ }
     else { const side=J1.l; if(!o.tL) o.tL=ph.clone().addScaledVector(side,0.05).addScaledVector(J1.hd,-0.07); if(!o.tR) o.tR=ph.clone().addScaledVector(side,-0.05).addScaledVector(J1.hd,-0.07); } }
   if(id==='up'){ // bolt upright, the alarm line, then flop back down to frame 0

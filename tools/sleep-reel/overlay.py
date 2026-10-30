@@ -47,18 +47,24 @@ def layer(t):
         tracked(g, text, size, W / 2, y, track, (glow or col) + (int(200 * a),))
     # label
     a = win(t, 0, 2.38, 0, 0.04)
-    if a: both('NORMAL PEOPLE:', 84, 230, CREAM, a)
+    if a: both('NORMAL PEOPLE:', 84, 120, CREAM, a)
     a = win(t, 2.4, 4.0, 0.0, 0.08)
-    if a: both('ME:', 120, 210, GOLD, a)
+    if a: both('ME:', 120, 100, GOLD, a)
     # the HUD clock (hidden on the window insert and after the alarm line takes over)
     txt, m = clock_at(t)
     show = (t < 13.4 or 14.6 <= t < 16.1)
     if show:
         slam = 1.0 + 0.35 * (1 - sstep(10.5, 10.75, t)) * (t >= 10.5) + 0.35 * (1 - sstep(14.6, 14.85, t)) * (t >= 14.6)
         size = int(150 * slam) if t >= 10.5 else 130
-        y = 350 if t < 4.0 else 250
+        y = 235 if t < 4.0 else 250
         col = LED if t >= 10.5 else (255, 140, 96)
         both(txt, size, y - (size - 130) // 2, col, 1.0, 2, LED)
+    # sleep math: the relatable countdown (what you'd get if you slept RIGHT NOW), 7.0 hrs at 11 PM down to 3.0 at the 3 AM slam
+    a = win(t, 6.2, 11.0, 0.1, 0.25)
+    if a:
+        raw = 23 * 60 if t < 8.4 else (23 * 60 + (min(1.0, (t - 8.4) / 2.15) ** 1.8) * 240 if t < 10.5 else 27 * 60)
+        hrs = (30 * 60 - raw) / 60; k = min(1.0, max(0.0, (7.0 - hrs) / 4.0)); col = tuple(int(CREAM[i] + (LED[i] - CREAM[i]) * k) for i in range(3))
+        both(f'SLEEP NOW = {hrs:.1f} HRS', 66, 1590, col, a, 3, LED if k > 0.5 else None)
     # rehooks and lines
     a = win(t, 7.35, 8.4)
     if a: both('JUST ONE VIDEO.', 76, 1460, CREAM, a)

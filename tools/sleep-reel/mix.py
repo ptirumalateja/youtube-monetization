@@ -41,9 +41,11 @@ def build():
     hit = S.load('822420__audiopapkin__riser-hit-sfx-120.wav'); hp = peak_t(hit); hit = at_level(hit[max(0, hp - int(0.02 * SR)):hp + int(1.6 * SR)], -15)
     flop = at_level(clip('flop_on_bed'), -18); swish = at_level(cut(clip('blanket_kick'), 0.3, 1.1), -26)
     # NORMAL: flop, blanket up, one snore
-    put(fx, flop, 0.36, 'peak'); put(fx, swish, 0.75, 'peak', 0.2); put(fx, at_level(clip('snore'), -24), 1.85, 'start')
-    # ME: the same flop; then the eyes snap open into silence
-    put(fx, flop, 2.4 + 0.36, 'peak'); put(fx, swish, 2.4 + 0.75, 'peak', 0.2)
+    soft = at_level(clip('flop_on_bed'), -23); whoosh = at_level(cut(S.load('175183__tomlija__5-everyday-whooshes.wav'), 8.0, 8.9, 0.1), -24)
+    put(fx, soft, 0.95, 'peak'); put(fx, swish, 1.15, 'peak', 0.2); put(fx, at_level(clip('snore'), -24), 1.75, 'start')
+    put(fx, whoosh, 2.14, 'start')                                 # the swipe from NORMAL to ME
+    # ME: the same routine; the eyes close, then snap open into silence
+    put(fx, soft, 2.4 + 0.95, 'peak'); put(fx, swish, 2.4 + 1.15, 'peak', 0.2)
     # the three turns
     put(fx, at_level(clip('roll_over'), -20), 4.0, 'start', -0.15)
     put(fx, at_level(clip('pillow_groan'), -18), 5.02, 'start')

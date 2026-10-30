@@ -12,7 +12,7 @@ export const EX={
   neutral:X({}),
   content:X({eo:0,ec:-1,mc:0.7,mw:0.75,by:0.1}),
   sleepy:X({eo:0.35,mc:0.4,mw:0.6,by:-0.1}),
-  yawn:X({eo:0,ec:0,mo:0.95,mO:0.55,mw:0.9,by:0.35,ba:0.3}),
+  yawn:X({eo:0,ec:0,mo:1,mO:0.3,mw:1.15,by:0.4,ba:0.3,tear:0.5}),
   wide:X({es:1.12,pr:0.3,by:0.35,mc:-0.05,mw:0.45}),
   annoyed:X({eo:0.5,ba:-0.55,by:-0.1,mc:-0.45,mw:0.7}),
   sigh:X({eo:0.15,ec:0,ba:0.5,by:0.2,mo:0.35,mO:0.8,mw:0.55}),
