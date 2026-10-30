@@ -61,6 +61,9 @@ def layer(t):
     def both(text, size, y, col, a, track=4, glow=None):
         tracked(d, text, size, W / 2, y, track, col + (int(255 * a),))
         tracked(g, text, size, W / 2, y, track, (glow or col) + (int(200 * a),))
+    # tiny header on the first shot, ~40% opacity, fades out
+    a = 0.4 * win(t, 0, 1.5, 0, 0.35)
+    if a: tracked(d, 'HOW NORMAL PEOPLE SLEEP vs ME', 30, W / 2, 130, 3, CREAM + (int(255 * a),), 'Medium')
     # label
     a = win(t, 0, 2.38, 0, 0.04)
     if a: both('NORMAL PEOPLE:', 84, 230, CREAM, a)
@@ -78,10 +81,10 @@ def layer(t):
     # rehooks and lines
     a = win(t, 7.35, 8.4)
     if a: both('JUST ONE VIDEO.', 76, 1460, CREAM, a)
-    a = win(t, 16.15, 18.9, 0.06, 0.15)
-    if a: both('ALARM IN', 96, 250, CREAM, a); both('1 HOUR.', 150, 360, GOLD, a)
-    a = win(t, 17.3, 19.0, 0.3, 0.15)
-    if a: tracked(d, "we've all been there.", 46, W / 2, 560, 3, DIM + (int(235 * a),), 'Medium')
+    a = win(t, 16.6, 99, 0.25, 0)
+    if a: both('ALARM IN 1 HOUR.', 84, 250, GOLD, a)
+    a = win(t, 17.7, 99, 0.3, 0)
+    if a: tracked(d, 'Send this to your 3am friend.', 50, W / 2, 1300, 2, CREAM + (int(255 * a),), 'Bold')
     # the alarm card pops in over the blanket as the phone goes off (no camera cut to the screen)
     if 14.72 <= t < 16.1:
         u = (t - 14.72) / 0.28; sc = 0.55 + 0.55 * sstep(0, 1, u) if u < 1 else 1.0
@@ -90,11 +93,6 @@ def layer(t):
         w, h = int(card.width * sc), int(card.height * sc); c2 = card.resize((w, h), Image.LANCZOS)
         c2.putalpha(c2.split()[3].point(lambda v: int(v * al)))
         L.alpha_composite(c2, (int(W / 2 - w / 2), int(1190 + (card.height - h) / 2 + 3 * __import__('math').sin(t * 60) * (t < 15.4))))
-    # ending text: typewriter, in the middle of the blanket, "send" (people send, they don't tag)
-    typed(d, 'SEND THIS TO YOUR', 66, 1240, CREAM, t, 18.55, 0.6)
-    typed(d, '3 AM FRIEND.', 100, 1320, GOLD, t, 19.1, 0.5)
-    a = sstep(19.65, 19.95, t)
-    if a: tracked(d, "(they're awake too)", 40, W / 2, 1450, 3, DIM + (int(220 * a),), 'Medium')
     return L, G
 
 def compose(img, t):

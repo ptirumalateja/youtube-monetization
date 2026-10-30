@@ -23,6 +23,7 @@ export const EX={
   laugh:X({eo:0,ec:1,mo:1,mc:1,mw:1.25,by:0.45,ba:0.55,tear:1,blush:1}),
   muffled:X({eo:0,ec:1,mo:0.2,mc:0.8,mw:0.9,by:0.5,ba:0.7,tear:1,blush:1}),
   whisper:X({es:1.2,pr:0.22,by:0.9,ba:0.7,mo:0.45,mO:0.8,mw:0.5,sweat:1}),
+  dead:X({eo:0.4,pr:0.3,py:-0.35,by:-0.2,ba:0.3,mc:-0.2,mw:0.55}),
   frozen:X({es:1.15,pr:0.26,mo:0.55,mc:0.35,mw:1.0,by:0.55,ba:0.2}),
   shock:X({es:1.42,pr:0.2,by:1,ba:0.55,mo:0.95,mO:1,mw:0.65,sweat:1}),
 };

@@ -8,7 +8,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import sld_sound as S
 from sld_sound import SR, place, write_wav
-DUR = 20.3
+DUR = 19.6
 SFX = os.path.join(HERE, 'sfx')
 
 def clip(name):
@@ -63,29 +63,28 @@ def build():
     # 5:00: shock, then the phone lands on his face
     put(fx, hit * 0.8, 14.6, 'start'); put(fx, at_level(clip('shock_gasp'), -14), 14.64, 'start')
     for tb in (14.72, 15.3): put(fx, at_level(cut(clip('phone_buzz'), 0.0, 0.58, 0.03), -17), tb, 'start', 0.1)   # the alarm card pops: the phone buzzes twice in his hand
-    put(fx, at_level(clip('phone_on_face'), -13), 15.9, 'peak')
-    # bolt upright, the alarm line holds in near silence; he flops back and the loop's first flop lands at 0.36
-    put(fx, at_level(cut(clip('blanket_kick'), 0.3, 1.1), -20), 16.12, 'peak', 0.1)
-    put(fx, at_level(clip('roll_over'), -19), 18.45, 'start')                                   # the deadpan sigh (people comment "literal me")
-    put(fx, at_level(cut(clip('blanket_kick'), 0.3, 1.1), -24), 19.85, 'peak', 0.1); put(fx, at_level(clip('flop_on_bed'), -23), 20.08, 'peak')
+    tickbus = np.zeros_like(fx)
+    # 5:00: dead silence after the crow (room tone gated), then a soft alarm tick-tick on the clock until the end
+    rtk = clip('room_tone'); tk = rtk[int(0.845 * SR):int(0.905 * SR)].copy(); tk = tk - np.concatenate([[0], tk[:-1]]) * 0.97   # high-passed, one clock tick
+    tk *= np.concatenate([np.linspace(0, 1, 40), np.ones(len(tk) - 440), np.linspace(1, 0, 400)]); tk = tk / (np.abs(tk).max() + 1e-9) * 0.13
+    for k in range(0, 8):
+        for off in (0.0, 0.26): put(tickbus, tk, 16.7 + k * 0.62 + off, 'start', 0.0)
     # hard silences: room tone out before the crow and right on the slam
     g = np.ones(bed.shape[1]); t = np.arange(bed.shape[1]) / SR
-    for a, b in [(10.48, 10.62), (12.85, 13.42)]:
+    for a, b in [(10.48, 10.62), (12.85, 13.42), (15.9, 16.6)]:
         g *= 1 - np.clip(np.minimum((t - a) / 0.04, (b - t) / 0.04), 0, 1)
     bed *= g
     fxg = np.ones_like(g)
     fxg *= 1 - np.clip(np.minimum((t - 12.88) / 0.05, (13.40 - t) / 0.02), 0, 1)   # the laugh tail is cut to nothing before the crow
-    fx *= fxg
+    fxg *= 1 - np.clip((t - 15.9) / 0.2, 0, 1) * (t < 16.65)   # everything fades out: dead silence under the sit-up
+    fx *= fxg; fx += tickbus
     room = S.convolve(fx[0] + fx[1], S.reverb_ir(0.45, 5000, 3)) * 0.06
     mix = fx + bed + np.stack([room, room])[:, :fx.shape[1]]
     return mix[:, :int(DUR * SR)]
 
 def build_full():
     """Title card (0.8 s) + the scene: a low hit as ME pops in, a soft whoosh into the bedroom."""
-    sc = build(); T = int(0.8 * SR); full = np.zeros((2, sc.shape[1] + T)); full[:, T:] = sc
-    hit = S.load('822420__audiopapkin__riser-hit-sfx-120.wav'); hp = peak_t(hit); hit = at_level(hit[max(0, hp - int(0.02 * SR)):hp + int(1.2 * SR)], -19)
-    whoosh = at_level(cut(S.load('175183__tomlija__5-everyday-whooshes.wav'), 8.0, 8.9, 0.1), -24)
-    place(full, hit, 0.3, 1.0, 0.0); place(full, whoosh, 0.5, 1.0, 0.0); return full
+    return build()
 
 if __name__ == '__main__':
     write_wav(build_full() * 0.9, sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'output', 'mix.wav'))
