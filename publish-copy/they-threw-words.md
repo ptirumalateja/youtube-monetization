@@ -4,7 +4,7 @@
 |---|---|
 | Status | v1 (first full render), awaiting Teja's review |
 | Upload file | `final-reels/they-threw-words/they-threw-words.mp4` (master with sound); `they-threw-words_music-ready.mp4` (silent: red block hits the floor at 12.40 s) |
-| Length | 18.0 s, one continuous shot, clean end hold |
+| Length | 18.0 s, one continuous shot, clean end hold; master -16.1 LUFS, -3.1 dBTP after AAC |
 | Voice | None (wordless) |
 | Build | `tools/words-to-stairs/` (three.js scene, PIL text, numpy mix) |
 | Based on | An Instagram reel Teja shared on 3 Nov 2026 (grey stickmen throw insult bricks; a yellow stickman builds a wall; caption "Let their words become the bricks of your success"). Same idea, our own picture, story and sound. Breakdown: `concepts/words-to-stairs-breakdown.md` in the project files |

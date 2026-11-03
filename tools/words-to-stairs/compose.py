@@ -25,5 +25,5 @@ for f, path in enumerate(frames):
     enc.stdin.write(overlay.draw(Image.open(path).convert('RGB'), f / fps).tobytes())
 enc.stdin.close(); assert enc.wait() == 0
 print('video ok')
-lufs, tp = master_to_mp4(silent, os.path.join(src, 'mix.wav'), os.path.join(out, 'they-threw-words.mp4'))
+lufs, tp = master_to_mp4(silent, os.path.join(src, 'mix.wav'), os.path.join(out, 'they-threw-words.mp4'), limit=0.4)
 print(f'master after AAC: {lufs:.1f} LUFS, true peak {tp:.1f} dBTP')

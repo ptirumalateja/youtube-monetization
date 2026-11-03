@@ -193,14 +193,14 @@ def write_wav(mix, path):
         wv.setnchannels(2); wv.setsampwidth(2); wv.setframerate(SR); wv.writeframes(pcm.tobytes())
 
 
-def master_to_mp4(video, wav, out, target=-15.0):
+def master_to_mp4(video, wav, out, target=-15.0, limit=0.75):
     """Mux wav onto a silent video: gain to target LUFS + look-ahead limiter; returns (LUFS, true peak) measured after AAC."""
     def meas(path, af=None):
         r = subprocess.run(['ffmpeg', '-hide_banner', '-i', path, '-af', (af + ',' if af else '') + 'ebur128=peak=true', '-f', 'null', '-'], capture_output=True, text=True).stderr
         s = r[r.rindex('Summary:'):]; return float(re.search(r'I:\s+(\S+) LUFS', s).group(1)), float(re.search(r'Peak:\s+(\S+) dBFS', s).group(1))
     g = target - meas(wav)[0]
     for _ in range(3):
-        af = f"volume={g:.2f}dB,alimiter=limit=0.75:attack=4:release=60:level=false,aresample=48000"; g += target - meas(wav, af)[0]
+        af = f"volume={g:.2f}dB,alimiter=limit={limit}:attack=4:release=60:level=false,aresample=48000"; g += target - meas(wav, af)[0]
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', video, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-af', af,
                     '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', out], check=True)
     return meas(out)
