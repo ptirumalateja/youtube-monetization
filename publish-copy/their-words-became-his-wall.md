@@ -2,21 +2,21 @@
 
 | | |
 |---|---|
-| Status | v2 (the wall version Teja asked for on 3 Nov 2026), awaiting review. Replaces the stairs V1 ([they-threw-words.md](they-threw-words.md)), which was too close to One Step a Day |
-| Upload file | `final-reels/their-words-wall/their-words-wall.mp4` (master with sound); `their-words-wall_music-ready.mp4` (silent: red block hits the wall at 5.75 s) |
-| Length | 10 s, one wide side-on shot like the reference (small figures, big wall, lots of floor and dark), clean end hold; master -16.2 LUFS, -5.0 dBTP after AAC |
+| Status | v3 (rebuilt from a frame-by-frame read of the reference, 3 Nov 2026), awaiting review. Replaces the 10 x 5 cut and the stairs V1 ([they-threw-words.md](they-threw-words.md)) |
+| Upload file | `final-reels/their-words-wall/their-words-wall.mp4` (master with sound); `their-words-wall_music-ready.mp4` (silent: red brick hits his hands at 5.85 s, capstone set at 6.85 s) |
+| Length | 10 s, one side-angled wide shot like the reference (men, wall and hero all in frame, clean grey studio backdrop) |
 | Voice | None. No jeers (Teja's note on 3 Nov: brick-throwing sounds only) |
-| Build | `tools/words-wall/` (three.js scene, PIL text, numpy mix, `voices/`) |
-| Based on | An Instagram reel Teja shared (grey stickmen throw insult bricks; a yellow stickman builds a wall). Breakdown: `concepts/words-to-stairs-breakdown.md` in the project files |
+| Build | `tools/words-wall/` (three.js scene, PIL text, numpy mix) |
+| Based on | An Instagram reel Teja shared (grey stickmen throw insult bricks; a yellow stickman builds a wall). Frame read: `concepts/wall-reel-frame-read.md` in the project files |
 
 ## On screen
 | Time | Line |
 |---|---|
 | 0.0-2.6 s (on frame 0) | THEY THREW WORDS / AT HIM. |
-| 2.7-4.9 s | HE KEPT / EVERY ONE. |
-| 6.7 s to the end | THEIR WORDS / BECAME HIS WALL. |
+| 2.7-5.0 s | HE KEPT / EVERY ONE. |
+| 7.0 s to the end | THEIR WORDS / BECAME HIS WALL. |
 
-The wall is 10 x 5 blocks and is almost finished on frame 0; each block carries an older insult, dimly lit. He catches and sets the last 6 blocks of the top row: GIVE UP, LOSER, NOT ENOUGH, YOU'LL FAIL, TOO LATE and QUIT. The red block says YOU'LL NEVER MAKE IT. It smashes into the wall and drops back at the feet of the men who threw it.
+The wall is 16 x 6 plain bricks (clean, no words on it) and is standing on frame 0 except the last 6 bricks of the top row. Four slate men at the left throw bricks straight at his face, each with a floating word: YOU CAN'T, GIVE UP, LOSER, NOT ENOUGH, YOU'LL FAIL, QUIT. He catches each one in front of his face and sets it into the gap beside him. The last throw is the big red YOU'LL NEVER MAKE IT, held low by the front man from frame 0. It's big enough to cover his whole face when he catches it, and it knocks him back a step. He holds it, then sets it on top of the wall's end as the capstone. The men fade out.
 
 ## Publish copy
 
@@ -25,7 +25,7 @@ The wall is 10 x 5 blocks and is almost finished on frame 0; each block carries 
 **YouTube description:**
 > YOU CAN'T. GIVE UP. LOSER. QUIT.
 > He caught every word they threw and kept it.
-> The last one hit the wall they built for him.
+> The biggest one became the top of his wall.
 >
 > A Slow Light parable, made in code (three.js, rendered frame by frame). No music. Whooshes: "5 Everyday Whooshes" by Tomlija (freesound.org/people/Tomlija/sounds/175183, CC BY 3.0). Room tone by sleepCircle and an explosion by qubodup (both CC0, Freesound). Everything else was synthesised for this reel.
 >
@@ -38,13 +38,13 @@ The wall is 10 x 5 blocks and is almost finished on frame 0; each block carries 
 > YOU CAN'T. GIVE UP. LOSER. QUIT.
 > Brick by brick.
 >
-> The last one never got through. 🧱
+> The biggest one? He put it on top. 🧱
 >
 > Which word did someone throw at you? 👇
 >
 > #motivation #mindset #neverquit #stickman #reels
 
-**Pinned comment:** Watch the red one. He held it from the very first second. Which word did they throw at you?
+**Pinned comment:** Watch the red one. That man held it from the very first second. Which word did they throw at you?
 
 **Hashtags:** #motivation #mindset #haters #neverquit #discipline #stickman #animation #parable #slowlight #shorts
 

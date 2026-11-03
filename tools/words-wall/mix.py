@@ -6,9 +6,9 @@
 - Each throw: a recorded whoosh (CC0 tomlija 175183, one of its five takes per throw) peaking mid-flight.
 - Each catch: a stone slap into his hands (low thud + grit). Each placement: stone set on stone, a heavy clack,
   and a short dry ember crackle as the word burns into the face (no tone, no chime). Each step up: a footfall.
-- Red block: bigger whoosh, then everything ducks for ~0.25 s, then the only big hit: a heavy stone slam on the floor
-  (sub_boom + the CC0 qubodup 814046 explosion two octaves down, low-passed) and gravel settling.
-- After it: room tone only, the drone thins out, one slow exhale from him.
+- Red brick (V3): bigger whoosh, everything ducks for the held breath, then the big hit as it slams into his hands in
+  front of his face (sub_boom + the CC0 qubodup 814046 explosion two octaves down + heavy stone slap), then the
+  capstone: a deep stone-on-stone set on the wall's end with grit settling. One slow exhale after.
 """
 import json, os, sys
 import numpy as np
@@ -19,7 +19,7 @@ from sld_sound import SR, lp, hp, bp, env, noise, place, curve, thud, breath, su
 
 TL = json.load(open(os.path.join(HERE, 'timeline.json')))
 DUR = TL['duration']; N = int(DUR * SR); t = np.arange(N) / SR
-C = TL['catches']; FL = TL['flight']; PL = TL['place']; RR, RH, RL = TL['redRelease'], TL['redHit'], TL['redLand']
+C = TL['catches']; FL = TL['flight']; PL = TL['place']; RR, RC, RP = TL['redRelease'], TL['redCatch'], TL['redPlace']
 
 
 def stone_hit(seed, weight=1.0, bright=1.0):
@@ -69,12 +69,12 @@ def whoosh(bus, k, t_peak, gain, pan):
     s, pk = WH[k % len(WH)]; place(bus, hp(s, 160), t_peak - pk / SR, gain, pan)
 
 
-PAN = {0: -0.5, 1: -0.7, 2: -0.85}
+PAN = {0: -0.5, 1: -0.65, 2: -0.8, 3: -0.4}
 
 bus = K.new_buses(N)
-room_g = curve(N, [(0, 0.45), (RH, 0.45), (RH + 0.6, 0.55), (DUR, 0.55)])
-drone_g = curve(N, [(0, 0.12), (2, 0.2), (C[-1], 0.7), (RR, 0.85), (RH, 0.85), (RH + 2.5, 0.35), (DUR, 0.25)])
-duck = curve(N, [(0, 1), (TL['silence0'], 1), (TL['silence0'] + 0.05, 0.04), (RH - 0.01, 0.04), (RH, 1), (DUR, 1)])
+room_g = curve(N, [(0, 0.45), (RC, 0.45), (RC + 0.6, 0.55), (DUR, 0.55)])
+drone_g = curve(N, [(0, 0.12), (2, 0.2), (C[-1], 0.7), (RR, 0.85), (RC, 0.85), (RP + 1.5, 0.35), (DUR, 0.25)])
+duck = curve(N, [(0, 1), (TL['silence0'], 1), (TL['silence0'] + 0.05, 0.04), (RC - 0.01, 0.04), (RC, 1), (DUR, 1)])
 K.bed(bus, room_g, drone_g, duck)
 
 for k, c in enumerate(C):
@@ -92,24 +92,26 @@ for k, c in enumerate(C):
     # a shuffle step to the next column
     place(bus['fol'], thud(300 + k, f=90, dec=0.05, gain=0.16), c + PL + 0.3, 1.0, 0.3)
 
-# the red block: the big man's line, the throw, the held breath, the slam into the wall, then the drop at their feet
-whoosh(bus['air'], 2, RR + (RH - RR) * 0.5, 0.55, -0.4)
-place(bus['fol'], thud(500, f=70, dec=0.1, gain=0.3), RR, 1.0, -0.8)
-boom = sub_boom(4.0) * 1.1
+# the red brick: the throw, the held breath, the slam into his hands over his face, then the capstone
+whoosh(bus['air'], 2, RR + (RC - RR) * 0.5, 0.6, 0.0)
+place(bus['fol'], thud(500, f=70, dec=0.1, gain=0.3), RR, 1.0, PAN[3])
+boom = sub_boom(3.0) * 1.0
 ex = K.load('814046__qubodup__explosion-from-another-dimension.wav'); ex = np.interp(np.arange(0, len(ex) - 1, 0.25), np.arange(len(ex)), ex)
-ex = lp(ex, 2200) / np.abs(ex).max(); ne = int(3.5 * SR)
-place(bus['hit'], boom, RH, 1.0, -0.2)
-place(bus['hit'], ex[:ne] * env(ne, 0.002, 1.1)[:len(ex[:ne])], RH, 0.55, -0.2)
-place(bus['hit'], stone_hit(999, 1.7), RH, 1.0, -0.25)
-place(bus['hit'], stone_hit(997, 1.3), RH + 0.006, 0.7, -0.1)
-place(bus['fol'], gravel_rain(1.2, 90, 4, 0.5), RH + 0.03, 1.0, -0.2)
-place(bus['hit'], stone_hit(998, 1.1), RL, 0.55, -0.6)          # it drops at their feet
-place(bus['fol'], gravel_rain(1.6, 70, 5, 0.45), RL + 0.05, 1.0, -0.6)
-# afterwards: one slow exhale from him
-place(bus['fol'], breath(1.3, 'out', 61, 0.22), TL['lookOver'] + 0.2, 1.0, 0.3)
+ex = lp(ex, 2200) / np.abs(ex).max(); ne = int(2.5 * SR)
+place(bus['hit'], boom, RC, 1.0, 0.35)
+place(bus['hit'], ex[:ne] * env(ne, 0.002, 0.8)[:len(ex[:ne])], RC, 0.5, 0.35)
+place(bus['fol'], thud(990, f=80, dec=0.12, gain=0.9), RC, 1.0, 0.4)
+place(bus['hit'], stone_hit(999, 1.4), RC, 0.8, 0.4)
+place(bus['fol'], thud(991, f=70, dec=0.08, gain=0.35), RC + 0.12, 1.0, 0.45)   # his heel catching the knock-back
+# the capstone: deep stone set on stone, grit settling
+place(bus['hit'], stone_hit(998, 1.6), RP, 1.0, 0.35)
+place(bus['hit'], sub_boom(2.0) * 0.55, RP, 1.0, 0.3)
+place(bus['fol'], gravel_rain(1.0, 70, 5, 0.35), RP + 0.03, 1.0, 0.35)
+place(bus['air'], sizzle(1.0, 777, 0.35), RP + 0.08, 1.0, 0.35)
+place(bus['fol'], breath(1.3, 'out', 61, 0.22), RP + 0.7, 1.0, 0.4)
 
 mix = K.finish(bus, duck)
 write_wav(mix, sys.argv[1])
 def db(a, b):
     s = mix[:, int(a * SR):int(b * SR)]; return 20 * np.log10(np.sqrt((s ** 2).mean()) + 1e-12)
-print(f'rms build 2-10 s {db(2, 10):.1f} dB | held breath {db(TL["silence0"] + 0.08, RH - 0.02):.1f} dB | slam {db(RH, RH + 1):.1f} dB | tail {db(DUR - 2, DUR):.1f} dB')
+print(f'rms build 2-10 s {db(2, 10):.1f} dB | held breath {db(TL["silence0"] + 0.08, RC - 0.02):.1f} dB | catch {db(RC, RC + 0.6):.1f} dB | cap {db(RP, RP + 0.8):.1f} dB | tail {db(DUR - 2, DUR):.1f} dB')
