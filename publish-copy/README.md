@@ -26,7 +26,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [The Deepest Hole (Kola)](the-deepest-hole.md) | Final (v2 of reel #16) | `final-reels/the-deepest-hole.mp4` |
 | [The Dipper Is Melting](the-dipper-is-melting.md) | Final | `final-reels/the-dipper-is-melting.mp4` |
 | [The Edge of the Wind (Voyager 1)](edge-of-the-wind.md) | Final (v1) | `final-reels/edge-of-the-wind-hq.mp4` for YouTube (share: `edge-of-the-wind.mp4`) |
-| [Their Words Became His Wall (stickman)](their-words-became-his-wall.md) | v3 (side-angled, clean 16 x 6 wall, red brick becomes the capstone) delivered 3 Nov 2026, awaiting Teja's review; no voices, no music. Replaces the stairs V1 ([they-threw-words.md](they-threw-words.md)) | `final-reels/their-words-wall/their-words-wall.mp4` (silent: `_music-ready.mp4`, red brick caught at 5.85 s) |
+| [Their Words Became His Wall (stickman)](their-words-became-his-wall.md) | v3 (side-angled, clean 16 x 6 wall, men in front, red brick bounces off) delivered 3 Nov 2026, awaiting Teja's review; no voices, no music. Replaces the stairs V1 ([they-threw-words.md](they-threw-words.md)) | `final-reels/their-words-wall/their-words-wall.mp4` (silent: `_music-ready.mp4`, red brick hits the wall at 5.85 s) |
 | [The Higher He Got (stickman)](the-higher-he-got.md) | Final (v1) | `final-reels/the-higher-he-got.mp4` (share: `the-higher-he-got-share.mp4`) |
 | [The Jam Is Made of Phones (Google Maps)](jam-made-of-phones.md) | Final (voiced v2) | `final-reels/jam-made-of-phones-vo.mp4` |
 | [The Photon That Made Your Eye](the-photon-that-made-your-eye.md) | v1 delivered, awaiting Teja's review | `final-reels/the-photon-that-made-your-eye.mp4` (master: `_master.mp4`; silent: `_music-ready.mp4`, drop on 10.0 s) |

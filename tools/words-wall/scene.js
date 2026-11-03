@@ -19,13 +19,14 @@ const END=X0+(NC-1)*BW+BW/2, START=X0-BW/2, TOP=NR*BH;
 const offRow=r=>(NR-1-r)%2===1;                                   // running bond; the top row is a full row
 const slotTop=c=>V(X0+c*BW,BH/2+(NR-1)*BH,0);
 const slot=k=>slotTop(NC-NB+k);                                   // thrown brick k fills top-row column 10+k
-const HZ=-0.30, FACE_H=1.66;
-const hx=k=>Math.min(slot(Math.min(k,NB-1)).x+0.42,END+0.34);
-const HX_END=END+0.34;
-const HP=[V(-3.15,0,0.15),V(-3.5,0,-0.35),V(-3.85,0,0.3),V(-2.95,0,0.85)];
+const HZ=-0.45, FACE_H=1.66;                                      // he stands BEHIND the wall's right end
+const hx=k=>Math.min(slot(Math.min(k,NB-1)).x+0.3,END-0.25);
+const HX_END=hx(NB);
+// the men stand out in FRONT of the wall (Teja's arrows, 3 Nov), well clear of it, looking at its front face and at him
+const HP=[V(-1.1,0,1.35),V(-0.5,0,1.95),V(0.1,0,1.5),V(0.5,0,2.15)];
 const RED=3;                                                      // the front man holds the red brick low from frame 0
 const RW=0.46, RH=0.32, RD=0.28;
-const CAP=V(END-RW/2+0.01,TOP+RH/2+0.003,0);
+const IMP=V(HX_END-0.05,TOP-0.16,BD/2+RD/2+0.005);          // the red brick hits the wall's face right in front of him
 
 // ---------------------------------------------------------------- stage: clean studio light over the series lamp
 const S=SLD.createStage({W,H,lamp:V(END+0.1,6.4,-0.5),lampTarget:V(END-0.2,0,-0.1),cone:0.2,spot:42,beam:0.06,fov:+(q.get('fov')||44),motes:900});
@@ -97,19 +98,16 @@ const PLACED=k=>TL.catches[k]+TL.place;
 // ---------------------------------------------------------------- hero
 const XK=(()=>{ const K=[[0,hx(0)]]; TL.catches.forEach((c,k)=>{ const b=k<NB-1?hx(k+1):HX_END; K.push([PLACED(k)+0.05,hx(k)],[PLACED(k)+0.32,b]); }); return K; })();
 function heroRoot(t){ let x=keys(XK,t), mv=0; TL.catches.forEach((c,k)=>{ const a=PLACED(k)+0.05,b=PLACED(k)+0.32; if(t>a&&t<b) mv=(t-a)/(b-a); });
-  const kb=TL.redCatch; x+=0.14*sstep(kb,kb+0.12,t)*(1-sstep(kb+0.25,TL.redHold,t));      // knocked back by the red brick
   return {root:V(x,0,HZ),mv}; }
-const Y0=yawOf(V(-1,0,0.25));
+const Y0=yawOf(V(-1,0,0.9));
 const faceYaw=(root,i)=>yawOf(HP[i].clone().sub(root).setY(0));
 const facePt=(root,yaw,d=0.26)=>root.clone().addScaledVector(fwdOf(yaw),d).add(V(0,FACE_H,0));
 function heroYaw(t){ const {root}=heroRoot(t); let y=Y0;
   TL.catches.forEach((c,k)=>{ const wc=sstep(c-0.45,c-0.15,t)*(1-sstep(c+0.02,c+0.14,t)); if(wc>0) y=angLerp(y,faceYaw(V(hx(k),0,HZ),TL.throwers[k]),wc);
     const wp=sstep(c+0.04,c+0.2,t)*(1-sstep(PLACED(k)+0.02,PLACED(k)+0.25,t)); if(wp>0) y=angLerp(y,yawOf(slot(k).sub(root).setY(0)),wp); });
-  const r=TL.redRelease; const wr=sstep(r-0.3,r+0.05,t)*(1-sstep(TL.redHold,TL.redHold+0.25,t)); if(wr>0) y=angLerp(y,faceYaw(V(HX_END,0,HZ),RED),wr);
-  const wcap=sstep(TL.redHold,TL.redHold+0.3,t); if(wcap>0) y=angLerp(y,yawOf(CAP.clone().sub(root).setY(0)),wcap*(1-0.6*sstep(TL.redPlace+0.3,TL.redPlace+1.2,t)));
+  const r=TL.redRelease; const wr=sstep(r-0.3,r+0.05,t); if(wr>0) y=angLerp(y,faceYaw(V(HX_END,0,HZ),RED),wr);
   return y; }
 const catchPt=k=>{ const r=V(hx(k),0,HZ); return facePt(r,faceYaw(r,TL.throwers[k])); };
-const redCatchPt=()=>{ const r=V(HX_END,0,HZ); return facePt(r,faceYaw(r,RED),0.24); };
 
 // ---------------------------------------------------------------- men
 const holdPt=(hp,yaw,kind)=>{ const f=fwdOf(yaw); const o={hold:[0.32,1.05],low:[0.34,0.82],wind:[-0.14,1.98],rel:[0.38,1.88]}[kind]; return hp.clone().addScaledVector(f,o[0]).add(V(0,o[1],0)); };
@@ -130,14 +128,17 @@ function brickState(k,t){
     const p=hold.lerp(slot(k),u); p.y+=0.08*Math.sin(Math.PI*u); return {pos:p,yaw:angLerp(yw+Math.PI/2,0,u),flip:0,a:1}; }
   return {pos:slot(k),yaw:0,flip:0,a:1,placed:t-pl}; }
 function redState(t){
-  const r=TL.redRelease, C=TL.redCatch, Hd=TL.redHold, P=TL.redPlace, hy=haterYaw(RED,Math.min(t,r));
+  // thrown at his face, but the wall he built is in the way: it slams into the wall's face and bounces back at them
+  const r=TL.redRelease, Hh=TL.redHit, L=TL.redLand, hy=haterYaw(RED,Math.min(t,r));
   if(t<r) return {pos:inHands(RED,hy,t-r,t<r-0.5),yaw:hy+Math.PI/2,flip:0};
-  if(t<C){ const u=(t-r)/(C-r); const cy=faceYaw(V(HX_END,0,HZ),RED);
-    return {pos:ballistic(holdPt(HP[RED],hy,'rel'),redCatchPt(),C-r,u),yaw:angLerp(hy+Math.PI/2,cy+Math.PI/2,sm5(u)),flip:2*Math.PI*sm5(u)}; }
-  const {root}=heroRoot(t), yw=heroYaw(t);
-  if(t<Hd){ const p=facePt(root,yw,0.24); p.y-=0.03*Math.exp(-Math.pow((t-C-0.06)/0.06,2)); return {pos:p,yaw:yw+Math.PI/2,flip:0,caught:t-C}; }
-  if(t<P){ const u=sm5(sstep(Hd,P,t)); const p=facePt(root,yw,0.24).lerp(CAP,u); p.y+=0.14*Math.sin(Math.PI*u); return {pos:p,yaw:angLerp(yw+Math.PI/2,0,u),flip:0,caught:t-C}; }
-  return {pos:CAP.clone(),yaw:0,flip:0,caught:t-C,placed:t-P}; }
+  if(t<Hh){ const u=(t-r)/(Hh-r); const cy=faceYaw(V(HX_END,0,HZ),RED);
+    return {pos:ballistic(holdPt(HP[RED],hy,'rel'),IMP,Hh-r,u),yaw:angLerp(hy+Math.PI/2,cy+Math.PI/2,sm5(u)),flip:2*Math.PI*sm5(u)}; }
+  const back=HP[RED].clone().sub(IMP).setY(0).normalize(), T=L-Hh, D=1.25;
+  const yaw0=faceYaw(V(HX_END,0,HZ),RED)+Math.PI/2;
+  if(t<L){ const s=t-Hh; const vy=(RH/2-IMP.y+0.5*9.8*T*T)/T; const p=IMP.clone().addScaledVector(back,D*s/T); p.y=IMP.y+vy*s-0.5*9.8*s*s;
+    return {pos:p,yaw:yaw0+0.6*s,flip:-Math.PI*1.1*(s/T),hit:s}; }
+  const s=t-L; const p=IMP.clone().addScaledVector(back,D+0.3*sm5(clamp(s/0.5))); p.y=RH/2+0.06*Math.max(0,Math.sin(Math.PI*clamp(s/0.2)));
+  return {pos:p,yaw:yaw0+0.6*T+0.2*sm5(clamp(s/0.5)),flip:-Math.PI*lerp(1.1,1.0,sm5(clamp(s/0.3))),hit:t-Hh,landed:s}; }
 const grips=(st,half)=>{ const ax=rotY(V(1,0,0),st.yaw); return [st.pos.clone().addScaledVector(ax,half),st.pos.clone().addScaledVector(ax,-half)]; };
 
 // ---------------------------------------------------------------- poses
@@ -153,13 +154,13 @@ function heroPose(t){
     if(t>=c-0.5&&t<c){ ready=grips({pos:catchPt(k),yaw:faceYaw(V(hx(k),0,HZ),TL.throwers[k])+Math.PI/2},BW/2-0.03); wReady=sstep(c-0.5,c-0.12,t); }
     if(t>=c&&t<pl+0.22){ hold=grips(brickState(k,Math.min(t,pl)),BW/2-0.03); wHold=1-sstep(pl,pl+0.2,t); } }
   if(mv>0) P=R.gait(P,2*Math.PI*mv,Math.sin(Math.PI*mv)*0.6,0.25,0.5,0.06);
-  // the red brick: ready, caught over his face (knocked back), held, set on the wall's end; then he stands tall
-  const r=TL.redRelease, C=TL.redCatch, Pl=TL.redPlace;
-  if(t>=r-0.4&&t<C){ ready=grips({pos:redCatchPt(),yaw:faceYaw(V(HX_END,0,HZ),RED)+Math.PI/2},RW/2-0.03); wReady=sstep(r-0.4,r+0.1,t); }
-  if(t>=C&&t<Pl+0.3){ hold=grips(redState(Math.min(t,Pl)),RW/2-0.03); wHold=1-sstep(Pl,Pl+0.28,t); }
-  const kb=Math.exp(-Math.pow((t-C-0.09)/0.12,2)); P.p-=0.24*kb; P.tilt-=0.2*kb; P.dy-=0.05*kb; P.kL+=0.25*kb; P.kR+=0.25*kb;
-  P.p+=0.2*sstep(TL.redHold,Pl,t)*(1-sstep(Pl,Pl+0.35,t));
-  const tall=sstep(Pl+0.3,Pl+1.0,t); P.tilt-=0.12*tall; P.p-=0.04*tall;
+  // the red brick: he sees it coming and braces behind his wall; it bounces off; then he stands tall, hands on the wall, safe
+  const r=TL.redRelease, Hh=TL.redHit;
+  const br=sstep(r-0.1,Hh-0.1,t)*(1-sstep(Hh+0.15,Hh+0.7,t)); P.p+=0.12*br; P.tilt+=0.1*br; P.dy-=0.05*br; P.kL+=0.25*br; P.kR+=0.25*br;
+  const fl=Math.exp(-Math.pow((t-Hh-0.06)/0.1,2)); P.p-=0.1*fl; P.dy-=0.03*fl;
+  const lk=sstep(TL.lookOver-0.2,TL.lookOver+0.5,t); P.tilt+=0.18*lk*(1-sstep(TL.pay0+0.5,TL.pay1+0.6,t)); P.p+=0.12*lk;
+  if(lk>0&&!hold){ const f=fwdOf(yaw), sd=rotY(V(0,0,1),yaw); const c0=root.clone().addScaledVector(f,0.3).setY(TOP+0.035); c0.z=Math.min(c0.z,-0.02);
+    hold=[c0.clone().addScaledVector(sd,-0.24),c0.clone().addScaledVector(sd,0.24)]; wHold=lk; }
   P.p+=Math.sin(t*2.1)*0.01;
   if(hold&&wHold>0) Object.assign(P,{tL:hold[1],tR:hold[0],wL:wHold,wR:wHold},POLES);
   else if(ready&&wReady>0) Object.assign(P,{tL:ready[1],tR:ready[0],wL:wReady,wR:wReady},POLES);
@@ -174,7 +175,7 @@ function haterPose(i,t){
     if(rel>=0&&rel<0.5){ const f=fwdOf(yaw), side=rotY(V(0,0,1),yaw); const tip=holdPt(HP[i],yaw,'rel').addScaledVector(f,0.15).add(V(0,-0.35*sstep(0,0.5,rel),0));
       hand=[tip.clone().addScaledVector(side,-0.2),tip.clone().addScaledVector(side,0.2)]; w=1-sstep(0.05,0.5,rel); }
     if(rel>-0.6&&rel<0.9){ P.p+=keys([[-0.5,0],[-0.18,-0.3],[0.0,0.38],[0.3,0.3],[0.85,0]],rel); P.aL+=0.24*sstep(-0.3,0.0,rel)*(1-sstep(0.4,0.85,rel)); P.kR+=0.2*sstep(-0.3,0,rel)*(1-sstep(0.4,0.85,rel)); P.tilt+=keys([[-0.5,0],[-0.18,-0.2],[0,0.12],[0.85,0]],rel); } }
-  const dn=sstep(TL.redPlace+0.1,TL.redPlace+0.9,t); P.tilt+=0.4*dn; P.p+=(i===RED?0.22:0.13)*dn;
+  const dn=sstep(TL.redLand+0.2,TL.redLand+1.1,t); P.tilt+=0.4*dn; P.p+=(i===RED?0.22:0.13)*dn;
   if(hand&&w>0) Object.assign(P,{tR:hand[0],tL:hand[1],wL:w,wR:w,pL:V(-0.3,-0.5,0.9),pR:V(-0.3,-0.5,-0.9)});
   return {P,yaw}; }
 
@@ -188,10 +189,9 @@ function setBrick(B,st,t,k){
   let sa, em=0, gl=0;
   if(!B.red){ const c=TL.catches[k]; sa=(st.a??1)*(1-sstep(c+0.05,c+0.3,t));
     if(st.placed!==undefined){ em=0.9*Math.exp(-st.placed/0.3)*sstep(0,0.06,st.placed); gl=0.35*Math.exp(-Math.pow((st.placed-0.08)/0.14,2)); } }
-  else { const r=TL.redRelease, C=TL.redCatch; sa=sstep(r-0.6,r-0.3,t)*(1-sstep(C+0.25,C+0.6,t));
+  else { const r=TL.redRelease; sa=sstep(r-0.6,r-0.3,t);
     em=0.12+0.25*sstep(r-0.5,r,t); gl=0.12*sstep(r-0.5,r,t);
-    if(st.caught!==undefined) gl+=0.5*Math.exp(-st.caught/0.12);
-    if(st.placed!==undefined){ em=0.37+0.9*Math.exp(-st.placed/0.35)+0.15*sstep(TL.pay0,TL.pay1,t); gl=0.12+0.7*Math.exp(-st.placed/0.25); } }
+    if(st.hit!==undefined){ gl+=0.7*Math.exp(-st.hit/0.12); sa*=1-sstep(0.1,0.9,st.hit); em=0.12+0.4*Math.exp(-st.hit/0.3)-0.08*sstep(0.5,1.5,st.hit); } }
   B.spr.visible=sa>0.01; B.spr.material.opacity=sa; B.spr.position.copy(st.pos).add(V(0,B.red?0.36:0.27,0)); B.spr.scale.set(B.sw,B.sh,1);
   B.mat.emissiveIntensity=em;
   B.glow.position.copy(st.pos).add(V(0,0,0.12)); B.glow.scale.setScalar(B.red?1.1:0.6); B.glow.material.opacity=gl; }
@@ -201,18 +201,18 @@ function setSparks(t){
     for(let j=0;j<30;j++,n++){ const r=SPR[n]; const life=0.6+0.8*r[2], u=s/life; if(s<0||u>1){ spA[n]=0; continue; }
       const p=fc.clone().add(V((r[0]-0.5)*BW,s*(0.15+0.3*r[3]),(r[1]-0.5)*BD+s*0.1));
       spPos.set([p.x,p.y,p.z],n*3); spA[n]=(1-u)*(1-u)*(0.4+0.6*r[3]); } }
-  for(let j=0;j<90;j++,n++){ const r=SPR[n], s=t-TL.redPlace; if(s<0||s>2.0){ spA[n]=0; continue; }
+  for(let j=0;j<90;j++,n++){ const r=SPR[n], s=t-TL.redHit; if(s<0||s>2.0){ spA[n]=0; continue; }      // stone dust off the wall face
     const a=r[0]*6.283, d=(0.2+0.6*r[1])*(1-Math.exp(-s*3));
-    const p=CAP.clone().add(V(Math.cos(a)*d*0.8,RH/2+s*(0.2+0.4*r[2]),Math.sin(a)*d*0.5));
+    const p=IMP.clone().add(V(Math.cos(a)*d*0.8,Math.sin(a)*d*0.5-0.12*s*s,0.05+d*0.6*r[2]));
     spPos.set([p.x,p.y,p.z],n*3); spA[n]=0.6*Math.exp(-s/0.6)*(0.3+0.7*r[3]); }
   spGeo.attributes.position.needsUpdate=true; spGeo.attributes.a.needsUpdate=true; }
 
 // ---------------------------------------------------------------- camera: side view from the front-right, slightly high (as the reference)
 const CB=V(9.7,3.4,5.5), CL=V(0.3,1.0,0.0), CD=CB.clone().sub(CL);
-const CAMK=[[0.0,0.93],[1.1,1.0],[8.4,1.0],[DUR,0.93]];
+const CAMK=[[0.0,1.0],[8.4,1.0],[DUR,0.95]];
 function camAt(t){ const d=keys(CAMK,t); const pc=CL.clone().addScaledVector(CD,d), lk=CL.clone().add(V(0.2*(1-d)/0.07,0,0)); const P=[pc.x,pc.y,pc.z], L=[lk.x,lk.y,lk.z];
   if(q.get('cam')){ const c=q.get('cam').split(',').map(Number); P[0]=c[0];P[1]=c[1];P[2]=c[2];L[0]=c[3];L[1]=c[4];L[2]=c[5]; }
-  const j=jolt(t,TL.redCatch)+0.6*jolt(t,TL.redPlace); cam.position.set(P[0]+0.005*j,P[1]+0.014*j,P[2]); cam.lookAt(L[0],L[1],L[2]); }
+  const j=jolt(t,TL.redHit); cam.position.set(P[0]+0.005*j,P[1]+0.014*j,P[2]); cam.lookAt(L[0],L[1],L[2]); }
 
 // ---------------------------------------------------------------- frame
 function setT(t){

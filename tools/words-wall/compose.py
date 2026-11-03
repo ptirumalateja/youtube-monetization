@@ -4,7 +4,7 @@
 
 RENDER_DIR holds frames/f00000.jpg.. (render.cjs frames) and mix.wav (mix.py). Writes:
   their-words-wall.mp4               master, 1080x1920 30 fps, -15 LUFS, true peak checked after AAC
-  their-words-wall_music-ready.mp4   same picture, silent (red brick caught at redCatch, capstone at redPlace in timeline.json)
+  their-words-wall_music-ready.mp4   same picture, silent (red brick hits the wall at redHit in timeline.json)
 """
 import glob, os, subprocess, sys
 from PIL import Image

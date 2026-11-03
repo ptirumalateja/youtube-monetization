@@ -1,25 +1,56 @@
 {
   "duration": 10.0,
   "fps": 30,
-  "_comment": "Seconds. Layout read off the reference frame by frame (concepts/wall-reel-frame-read.md in the project files). Wall 16 x 6 plain bricks, the last 6 of the top row missing on frame 0. catches[k] = when thrown brick k reaches his face and he catches it; he sets it into the top row (left to right, toward the wall's end) at catches[k] + place. throwers[k] = which grey man throws it (3 = the red one's holder). The big red brick is thrown at redRelease, caught in front of his face at redCatch (it covers his face), held, then set on top of the wall's end at redPlace.",
-  "words": ["YOU CAN'T", "GIVE UP", "LOSER", "NOT ENOUGH", "YOU'LL FAIL", "QUIT"],
+  "_comment": "Seconds. Layout read off the reference frame by frame (concepts/wall-reel-frame-read.md in the project files). Wall 16 x 6 plain bricks, the last 6 of the top row missing on frame 0. catches[k] = when thrown brick k reaches his face and he catches it; he sets it into the top row (left to right, toward the wall's end) at catches[k] + place. throwers[k] = which grey man throws it (3 = the red one's holder). The men stand in front of the wall (z > 0); he stands behind its right end. The big red brick is thrown at his face at redRelease, slams into the wall's face in front of him at redHit and bounces back to land at redLand: the wall keeps him safe.",
+  "words": [
+    "YOU CAN'T",
+    "GIVE UP",
+    "LOSER",
+    "NOT ENOUGH",
+    "YOU'LL FAIL",
+    "QUIT"
+  ],
   "red": "YOU'LL NEVER MAKE IT",
-  "catches": [0.55, 1.35, 2.15, 2.95, 3.75, 4.55],
-  "throwers": [0, 1, 2, 0, 1, 2],
+  "catches": [
+    0.55,
+    1.35,
+    2.15,
+    2.95,
+    3.75,
+    4.55
+  ],
+  "throwers": [
+    0,
+    1,
+    2,
+    0,
+    1,
+    2
+  ],
   "flight": 0.55,
   "place": 0.38,
   "redRelease": 5.25,
-  "redCatch": 5.85,
-  "redHold": 6.3,
-  "redPlace": 6.85,
   "silence0": 5.6,
-  "pay0": 6.85,
-  "pay1": 7.9,
+  "pay0": 6.6,
+  "pay1": 7.8,
   "fade0": 7.2,
   "fade1": 9.0,
   "hookOut": 2.3,
   "rehook0": 2.7,
   "rehook1": 4.7,
   "endText": 7.0,
-  "reviewTimes": [0.0, 0.5, 1.0, 2.6, 4.9, 5.6, 5.95, 6.9, 9.8]
+  "reviewTimes": [
+    0.0,
+    1.0,
+    2.6,
+    4.9,
+    5.6,
+    5.85,
+    6.2,
+    7.0,
+    9.8
+  ],
+  "redHit": 5.85,
+  "redLand": 6.4,
+  "lookOver": 6.7
 }
