@@ -144,7 +144,7 @@ export function createStage(o={}){
     float h(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233))+uT*37.0)*43758.5453); }
     void main(){ vec2 c=vU-0.5; float r2=dot(c*vec2(uAsp,1.0),c*vec2(uAsp,1.0));
      vec3 col=texture2D(tDiffuse,vU).rgb; col=vec3(1.0)-exp(-1.15*col);
-     float vig=1.0-smoothstep(0.06,0.42,r2)*0.62; col*=vig;
+     float vig=1.0-smoothstep(0.06,0.42,r2)*${(o.vig??0.62).toFixed(3)}; col*=vig;
      col+=vec3(0.0006,0.0010,0.0028)*smoothstep(0.08,0.45,r2);
      col+=(h(vU*vec2(uAsp,1.0)*900.0)-0.5)*0.006*(0.3+col);
      gl_FragColor=vec4(max(col,0.0),1.0);} `});

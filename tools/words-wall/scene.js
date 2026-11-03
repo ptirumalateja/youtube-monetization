@@ -23,23 +23,24 @@ const HZ=-0.45, FACE_H=1.66;                                      // he stands B
 const hx=k=>Math.min(slot(Math.min(k,NB-1)).x+0.3,END-0.25);
 const HX_END=hx(NB);
 // the men stand out in FRONT of the wall (Teja's arrows, 3 Nov), well clear of it, looking at its front face and at him
-const HP=[V(-1.1,0,1.35),V(-0.5,0,1.95),V(0.1,0,1.5),V(0.5,0,2.15)];
+const GAP=k=>0.11+2.5*(k-0.11);                                   // 3 Nov late: 2.5x the earlier gap from the wall's face
+const HP=[V(-1.25,0,5.2),V(-0.75,0,4.45),V(-0.3,0,3.75),V(0.05,0,3.2)];   // spread across the frame so all four read separately
 const RED=3;                                                      // the front man holds the red brick low from frame 0
 const RW=0.46, RH=0.32, RD=0.28;
 const IMP=V(HX_END-0.05,TOP-0.16,BD/2+RD/2+0.005);          // the red brick hits the wall's face right in front of him
 
 // ---------------------------------------------------------------- stage: clean studio light over the series lamp
-const S=SLD.createStage({W,H,lamp:V(END+0.1,6.4,-0.5),lampTarget:V(END-0.2,0,-0.1),cone:0.2,spot:42,beam:0.06,fov:+(q.get('fov')||44),motes:900});
+const S=SLD.createStage({W,H,lamp:V(END+0.1,6.4,-0.5),lampTarget:V(END-0.2,0,-0.1),cone:0.2,spot:42,beam:0.0,fov:+(q.get('fov')||44),motes:300,vig:0.1});
 const {scene,cam}=S;
-scene.background=new THREE.Color(0x23262e); S.renderer.toneMappingExposure=1.12;
+scene.background=new THREE.Color(0x2b2b2e); S.renderer.toneMappingExposure=1.12;
 S.floor.scale.set(3,3,1); S.refl.scale.set(3,3,1);
-scene.fog=new THREE.FogExp2(0x23262e,0.045);
-scene.add(new THREE.HemisphereLight(0x8d98b0,0x2a2622,0.4));
+scene.fog=new THREE.FogExp2(0x3a3a3e,0.03);
+scene.add(new THREE.HemisphereLight(0xb8bcc8,0x3a3632,0.55));
 const key=new THREE.DirectionalLight(0xfff0dc,1.25); key.position.set(4.5,6.5,6.5); key.target.position.set(-0.5,0.6,0);
 key.castShadow=true; key.shadow.mapSize.set(2048,2048); Object.assign(key.shadow.camera,{left:-6,right:6,top:5,bottom:-3,near:1,far:20}); key.shadow.bias=-0.0003; key.shadow.normalBias=0.02;
 scene.add(key,key.target);
 const rim=new THREE.DirectionalLight(0x9fb4e0,0.6); rim.position.set(-3,3.5,-5); scene.add(rim);
-S.floor.material.color.set(0x36363c); S.floor.material.opacity=0.9;
+S.floor.material.color.set(0x5c5c62); S.floor.material.opacity=0.72;
 const R=SLD.createRig(scene);
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
 const haters=HP.map((p,i)=>R.makeFig(PAL.SLATE,'hater'+i,{rim:0.24,rimCol:0x9fb2d6,lift:0.035}));
@@ -208,9 +209,9 @@ function setSparks(t){
   spGeo.attributes.position.needsUpdate=true; spGeo.attributes.a.needsUpdate=true; }
 
 // ---------------------------------------------------------------- camera: side view from the front-right, slightly high (as the reference)
-const CB=V(9.7,3.4,5.5), CL=V(0.3,1.0,0.0), CD=CB.clone().sub(CL);
+const CL=V(0.6,1.0,2.25), CD=V(9.7,3.4,5.5).sub(V(0.3,1.0,0.0)).multiplyScalar(1.75);   // same angle as approved, pulled back for the wider gap + edge padding
 const CAMK=[[0.0,1.0],[8.4,1.0],[DUR,0.95]];
-function camAt(t){ const d=keys(CAMK,t); const pc=CL.clone().addScaledVector(CD,d), lk=CL.clone().add(V(0.2*(1-d)/0.07,0,0)); const P=[pc.x,pc.y,pc.z], L=[lk.x,lk.y,lk.z];
+function camAt(t){ const d=keys(CAMK,t); const pc=CL.clone().addScaledVector(CD,d), lk=CL.clone(); const P=[pc.x,pc.y,pc.z], L=[lk.x,lk.y,lk.z];
   if(q.get('cam')){ const c=q.get('cam').split(',').map(Number); P[0]=c[0];P[1]=c[1];P[2]=c[2];L[0]=c[3];L[1]=c[4];L[2]=c[5]; }
   const j=jolt(t,TL.redHit); cam.position.set(P[0]+0.005*j,P[1]+0.014*j,P[2]); cam.lookAt(L[0],L[1],L[2]); }
 

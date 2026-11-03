@@ -4,19 +4,15 @@
 |---|---|
 | Status | v3 (rebuilt from a frame-by-frame read of the reference, 3 Nov 2026), awaiting review. Replaces the 10 x 5 cut and the stairs V1 ([they-threw-words.md](they-threw-words.md)) |
 | Upload file | `final-reels/their-words-wall/their-words-wall.mp4` (master with sound); `their-words-wall_music-ready.mp4` (silent: red brick hits the wall at 5.85 s, lands at 6.4 s) |
-| Length | 10 s, one side-angled wide shot like the reference (men, wall and hero all in frame, clean grey studio backdrop) |
+| Length | 10 s, one side-angled wide shot like the reference (men, wall and hero all in frame with edge padding, clean light-grey backdrop, no dark vignette) |
 | Voice | None. No jeers (Teja's note on 3 Nov: brick-throwing sounds only) |
 | Build | `tools/words-wall/` (three.js scene, PIL text, numpy mix) |
 | Based on | An Instagram reel Teja shared (grey stickmen throw insult bricks; a yellow stickman builds a wall). Frame read: `concepts/wall-reel-frame-read.md` in the project files |
 
 ## On screen
-| Time | Line |
-|---|---|
-| 0.0-2.6 s (on frame 0) | THEY THREW WORDS / AT HIM. |
-| 2.7-5.0 s | HE KEPT / EVERY ONE. |
-| 7.0 s to the end | THEIR WORDS / BECAME HIS WALL. |
+One caption for the whole reel, unchanged from frame 0 to the end (Teja, 3 Nov): **Let their words become / the bricks of your success** (sentence case, Inter, centred above the scene).
 
-The wall is 16 x 6 plain bricks (clean, no words on it) and is standing on frame 0 except the last 6 bricks of the top row. Four slate men stand out in front of the wall, well clear of it, and throw bricks straight at his face, each with a floating word: YOU CAN'T, GIVE UP, LOSER, NOT ENOUGH, YOU'LL FAIL, QUIT. He stands behind the wall's right end, catches each one in front of his face and sets it into the gap beside him. The last throw is the big red YOU'LL NEVER MAKE IT, held low by the front man from frame 0. It's aimed at his face, but it slams into the wall he just finished and bounces back at their feet. He's safe. He rests his hands on top of his wall, and the men fade out.
+The wall is 16 x 6 plain bricks (clean, no words on it) and is standing on frame 0 except the last 6 bricks of the top row. Four slate men stand well out in front of the wall, spread apart, about 3-5 m clear of it, and throw bricks straight at his face, each with a floating word: YOU CAN'T, GIVE UP, LOSER, NOT ENOUGH, YOU'LL FAIL, QUIT. He stands behind the wall's right end, catches each one in front of his face and sets it into the gap beside him. The last throw is the big red YOU'LL NEVER MAKE IT, held low by the front man from frame 0. It's aimed at his face, but it slams into the wall he just finished and bounces back at their feet. He's safe. He rests his hands on top of his wall, and the men fade out.
 
 ## Publish copy
 
