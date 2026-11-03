@@ -11,7 +11,7 @@ Paste the exact line into the description of any reel that uses the file.
 |---|---|---|
 | 849772 Electric Sparks | Night Sky, Scale Ladder | "Electric Sparks" by mikiko850, https://freesound.org/people/mikiko850/sounds/849772/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 | 19487 JacobsLadderSingle2.flac | Night Sky only | "JacobsLadderSingle2.flac" by Halleck, https://freesound.org/people/Halleck/sounds/19487/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
-| 175183 5 Everyday Whooshes | Night Sky only | "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) |
+| 175183 5 Everyday Whooshes | Night Sky, They Threw Words | "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/) |
 | 115555 synth_jet.wav | Night Sky, Scale Ladder | "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 | 722633 Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer) | Scale Ladder only | "Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer)" by chakong, https://freesound.org/people/chakong/sounds/722633/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
 
@@ -28,20 +28,25 @@ Paste the exact line into the description of any reel that uses the file.
 > - "synth_jet.wav" by vartioh, https://freesound.org/people/vartioh/sounds/115555/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 > - "Cinematic Sound Braaam Sample (Chakongaudio, Brass, Trailer)" by chakong, https://freesound.org/people/chakong/sounds/722633/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
+### Description block: They Threw Words
+> Sound credits (from Freesound). Changes were made: trimmed, layered and mixed with other sounds. All other sounds used are CC0 or synthesised.
+> - "5 Everyday Whooshes" by Tomlija, https://freesound.org/people/Tomlija/sounds/175183/ , CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+
 ### Short form (Instagram / Facebook caption)
 - Night Sky: "Sound: mikiko850, Halleck, Tomlija and vartioh via Freesound (CC BY 4.0 / 3.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube."
+- They Threw Words: "Whooshes: Tomlija via Freesound (CC BY 3.0), changes made; other sounds CC0 or synthesised."
 - Scale Ladder: "Sound: mikiko850, vartioh and chakong via Freesound (CC BY 4.0), changes made (trimmed, layered, processed), plus CC0 sounds. Full credits on YouTube."
 
 ## 2. CC0 files (no credit required; optional courtesy line)
 
 | File | Author | Used in |
 |---|---|---|
-| 814046 Explosion From Another Dimension | qubodup | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
+| 814046 Explosion From Another Dimension | qubodup | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees, They Threw Words |
 | 814047 Fantasy Implosion | qubodup | Night Sky, Scale Ladder, Roberto Carlos V2 |
 | 869757 Dark Suspense Accent | mikiko850 | Night Sky, Scale Ladder |
 | 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | Night Sky, Scale Ladder |
 | 822420 Riser Hit sfx 120 | AudioPapkin | Night Sky, Scale Ladder, Roberto Carlos V2 |
-| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
+| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees, They Threw Words |
 | 276871 Sword In Air | lucabia | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 768664 portal gate opening | berkup | Night Sky only |
 | 735062 Fast Warp In | GammaGool | Night Sky only |
