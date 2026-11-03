@@ -146,6 +146,13 @@ Iteration history (why it ended up here):
 - Camera: log-Z keys (e.g. Z 9 -> 128 at the Sun, 6,500-8,200 at the Solar System, 120k-146k at the Milky Way, 2.2M-3.9M at the web), orbit keys per stop, a plunge from 22.5 s to Earth at 24.1 s.
 - Hooks: A "EARTH IS A DOT." (YouTube) / B "1.3 MILLION EARTHS FIT INSIDE THE SUN." (IG/FB).
 
+### 5.3 The Sun's Shield (heliosphere, 26 s, v15 FROZEN)
+- Idea: the Sun's bubble (heliosphere) is its shield, it flies through the galaxy, and it ends on the question "Does every star have a bubble like this?". Captions (no voiceover), Teja's own Freesound sounds.
+- Camera grammar C (new): **hook on the whole, then zoom to the subject.** Frame 0 shows the whole galaxy with the Sun system scaled up (3.8x) so the subject is visible immediately; hold about 2 s; log-distance zoom into the heliosphere while the scale eases back to 1x; side-on camera so the planet helices read; dive to Earth for the smaller shield; pull back to the wide bubble for the question. Full scene map and constants in `tools/heliosphere/README.md`.
+- Sound: braam on frame 0, dance bass only the first 3 s, transition hit on the zoom, riser + hit into Earth, heartbeat and distorted unnerve for the question, deep-space ambience under everything.
+- Delivered at -17.1 LUFS / -1.0 dBFS peak (a little quiet vs the -15 target; raise the final `loudnorm` if you re-mix).
+- Copy: `publish-copy/the-suns-shield.md`.
+
 ## 6. Pipeline and tooling
 
 - **Plates:** RunPod REST API (`https://rest.runpod.io/v1/pods`, send `User-Agent: curl/8.5.0`). Old pods rarely restart; create a new pod on the network volume with the saved spec. ComfyUI proxy `https://<podid>-8188.proxy.runpod.net`; scripts for Wan 2.2 I2V, SeedVR2 upscale and Qwen Image Edit. Stop pods when done.
@@ -173,6 +180,9 @@ Iteration history (why it ended up here):
 - **Tooling hygiene:** `pkill -f` matches the invoking shell's own command line (use a bracket pattern); local test servers die between sessions (restart before blaming the scene); a `rm` with a relative glob after `cd` is blocked, use fresh directories.
 - **Process:** polish passes do not fix a spatial-logic problem; when the audience cannot decode the journey, freeze the shot plan (camera, angles, what the viewer perceives) first, build once, check frames against the plan, then deliver. Ask for the reference sound when the owner says a version "was good enough".
 
+- **Fake parallax on a screen-attached backdrop reads as a still image.** Put the background in the world and move the camera (Heliosphere reel v7 -> v8).
+- **Synthetic whooshes and a thin pad were "inaudible and irritating" on a phone.** Real hits plus a mid-range ambience bed, and ask the owner for sounds he likes (he chose them himself) rather than guessing.
+
 ## 9. Decision log (chronological)
 | Decision | Why |
 |---|---|
@@ -192,6 +202,9 @@ Iteration history (why it ended up here):
 | Two-node + beam pull-back instead of a face-on galaxy | avoids the "shuriken" and explains the paradox |
 | Dissolve of the single star into the stargazer plate | no flash, no visual reset |
 | Freeze the plan before each big build; one contact-sheet check per stage | stop endless polish loops |
+| Heliosphere reel: open on the whole galaxy with the Sun system enlarged, then zoom in | the subject must be visible at frame 0 ("otherwise the reel is pointless") |
+| Heliosphere reel: planets in long helices behind a leading Sun, side-on camera, faster orbits, 26 s | v7 looked like a still image |
+| Heliosphere reel: sound = Teja's Freesound picks, dance bass limited to 3 s | synthetic sound rejected; he liked the bass for the hook only |
 
 ## 10. Backlog and open questions
 - Night Sky hook B ("THIS LIGHT IS OLD.") for v8.1 is overlay-only if we want to A/B.

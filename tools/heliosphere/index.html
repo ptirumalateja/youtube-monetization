@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1080, height=1920" />
+<script src="assets/gsap.min.js"></script>
+<script type="importmap">{"imports":{"three":"./assets/three.module.js"}}</script>
+<style>
+  :root { --ink:#f3ead6; --gold:#e3b765; --dim:rgba(243,234,214,.62); --serif:"Playfair Display","EB Garamond",Georgia,serif; --mono:"JetBrains Mono","DejaVu Sans Mono",monospace; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1080px; height:1920px; overflow:hidden; background:#020307; }
+  #root { position:relative; width:1080px; height:1920px; overflow:hidden; background:#020307; }
+  #gl canvas { position:absolute; left:0; top:0; }
+  #grain { position:absolute; left:0; top:0; width:1080px; height:1920px; z-index:6; pointer-events:none; mix-blend-mode:overlay; opacity:.1; }
+  #vig { position:absolute; inset:0; z-index:5; pointer-events:none; background:radial-gradient(ellipse at 50% 38%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%); }
+  /* SAFE ZONE: all text between y=300 and y=1440 */
+  #hud { position:absolute; left:0; width:1080px; top:312px; text-align:center; z-index:10; text-shadow:0 2px 18px rgba(0,0,0,.95); }
+  #hud .k { font:500 20px var(--mono); letter-spacing:.34em; color:var(--dim); text-transform:uppercase; }
+  #hud .v { font:700 44px/1.1 var(--serif); color:var(--ink); margin-top:8px; letter-spacing:.02em; }
+  #hud .v em { font-style:normal; color:var(--gold); }
+  #svg { position:absolute; left:0; top:0; width:1080px; height:1920px; z-index:8; pointer-events:none; }
+  .lab { position:absolute; z-index:9; font:500 22px/1 var(--mono); letter-spacing:.08em; color:var(--ink); white-space:nowrap; opacity:0; text-shadow:0 2px 12px rgba(0,0,0,.95), 0 0 4px rgba(0,0,0,.9); }
+  .lab.L { text-align:left; } .lab.R { text-align:right; }
+  .lab.layer { color:#ffd88f; font-weight:700; font-size:22px; }
+  .lab.arrow { color:#ffe9a0; }
+  #counter { position:absolute; left:64px; top:1376px; z-index:10; font:500 19px/1.55 var(--mono); letter-spacing:.1em; color:rgba(220,232,255,.78); text-shadow:0 2px 12px rgba(0,0,0,.95); }
+  #counter b { color:#ffe9a0; font-weight:700; }
+  #dash { position:absolute; left:50px; width:980px; top:1300px; z-index:10; display:flex; justify-content:space-between; text-align:center; opacity:0; }
+  #dash div { width:230px; } #dash b { display:block; font:700 46px/1 var(--serif); color:#9fdcff; text-shadow:0 2px 16px rgba(0,0,0,.9); } #dash span { display:block; margin-top:8px; font:500 15px var(--mono); letter-spacing:.2em; color:var(--dim); }
+  #dash small { position:absolute; left:0; width:100%; top:-34px; text-align:center; font:500 15px var(--mono); letter-spacing:.2em; color:rgba(243,234,214,.4); }
+  .cap { position:absolute; left:0; width:1080px; top:1205px; padding:0 70px; text-align:center; color:var(--ink); z-index:10; text-shadow:0 3px 26px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.8); }
+  .cap .med { font:600 56px/1.14 var(--serif); }
+  .cap .med em { font-style:normal; color:var(--gold); }
+  .cap .sub { font:500 22px var(--mono); letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-top:14px; }
+  #brand { position:absolute; left:0; width:1080px; top:1412px; text-align:center; font:500 22px var(--mono); letter-spacing:.42em; text-transform:uppercase; color:var(--ink); opacity:.3; z-index:10; }
+  #lap { position:absolute; left:0; width:1080px; top:1262px; text-align:center; font:500 22px/1.7 var(--mono); letter-spacing:.14em; color:rgba(220,232,255,.8); opacity:0; z-index:10; text-shadow:0 2px 12px rgba(0,0,0,.95); }
+  #lap b { color:#ffe9a0; font-size:34px; }
+  #disc { position:absolute; left:0; width:1080px; top:1440px; text-align:center; font:500 14px var(--mono); letter-spacing:.2em; color:rgba(220,232,255,.42); z-index:10; }
+  #tag { position:absolute; left:0; width:1080px; top:1355px; text-align:center; font:italic 500 28px var(--serif); color:var(--gold); opacity:0; z-index:10; letter-spacing:.04em; }
+  #dip { position:absolute; inset:0; background:#020307; opacity:0; z-index:20; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="34" data-width="1080" data-height="1920">
+  <div id="gl"></div>
+  <div id="vig"></div>
+  <canvas id="grain" width="270" height="480"></canvas>
+  <svg id="svg" viewBox="0 0 1080 1920"></svg>
+  <div id="labs"></div>
+
+  <div id="hud"><div class="k" id="hk">Heliosphere</div><div class="v" id="hv">The Sun’s <em>shield</em></div></div>
+  <div id="counter"><div>ELAPSED (time-lapse) &nbsp;<b id="el">0.0</b> yr</div><div>SUN TRAVELLED &nbsp;<b id="au">0</b> AU</div></div>
+  <div id="dash"><small>R = EARTH RADIUS</small><div><b>23.93 h</b><span>ROTATION</span></div><div><b>~11°</b><span>DIPOLE TILT</span></div><div><b>~10 R</b><span>MAGNETOPAUSE</span></div><div><b>~13 R</b><span>BOW SHOCK</span></div></div>
+
+  <div id="c0" class="clip cap" data-start="0" data-duration="6"><div class="med">A shield the Sun built<br/>around us: <em>the heliosphere.</em></div></div>
+  <div id="c1" class="clip cap" data-start="6" data-duration="8"><div class="med">Solar wind carries the Sun’s<br/>magnetic field <em>billions of km out.</em></div></div>
+  <div id="c2" class="clip cap" data-start="14" data-duration="9"><div class="med">It blocks or deflects part of<br/>the <em>cosmic radiation</em> from outside.</div></div>
+  <div id="c3" class="clip cap" data-start="23" data-duration="4"><div class="med">But here’s the <em>question…</em></div></div>
+  <div id="c4" class="clip cap" data-start="27" data-duration="3.5"><div class="med">Does every star have<br/><em>a bubble like this?</em></div><div class="sub">Tell me in the comments</div></div>
+
+  <div id="lap"><div>ONE LAP AROUND THE GALAXY</div><div><b id="lapn">0</b> MILLION YEARS</div></div>
+  <div id="disc">DISTANCES COMPRESSED · SIZES ENLARGED · NOT TO SCALE</div>
+  <div id="tag">Stories worth slowing down for.</div>
+  <div id="brand">Slow Light</div>
+  <div id="dip"></div>
+</div>
+
+<script type="module">
+import { createScene, T } from "./assets/scene.js";
+const $ = (id) => document.getElementById(id);
+const S = createScene($("gl"));
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({ paused: true });
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const sm = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+const win = (t, a, b, f = 0.3) => sm(seg(t, a, a + f)) * (1 - sm(seg(t, b - f, b)));
+
+const HV = [[8.0, 11.4], [28.6, 30]], LY = [[6.9, 14.5], [30, 31.4]];
+const CALL = [
+  ["Sun", "SUN", "Sun", "L", "", HV, 0.5], ["Mercury", "MERCURY", "Mercury", "L", "", HV, 0.6], ["Venus", "VENUS", "Venus", "R", "", HV, 0.7], ["Earth", "EARTH · 29.8 km/s", "Earth", "L", "", HV, 0.8],
+  ["Mars", "MARS", "Mars", "R", "", HV, 0.9], ["Jupiter", "JUPITER", "Jupiter", "L", "", HV, 1.0], ["Saturn", "SATURN", "Saturn", "R", "", HV, 1.1], ["Uranus", "URANUS", "Uranus", "L", "", HV, 1.2], ["Neptune", "NEPTUNE", "Neptune", "R", "", HV, 1.3],
+  ["hp", "HELIOPAUSE · ~120 AU", "Heliopause", "R", "layer", [[6.9, 19], [30, 31.4]], 6.9], ["ts", "TERMINATION SHOCK · ~90 AU", "Termination shock", "L", "layer", LY, 7.1],
+  ["hw", "HYDROGEN WALL", "Hydrogen wall", "R", "layer", [[7.3, 19], [30, 31.4]], 7.3], ["arr", "DIRECTION OF THE SUN’S MOTION", "Arrow", "R", "arrow", [[7.5, 14.5], [30, 31.4]], 7.5], ["bh", "SAGITTARIUS A* · GALACTIC CENTRE", "Sagittarius A*", "R", "layer", [[0.9, 13.5], [30, 31.4]], 0.9], ["mw", "MILKY WAY", "MilkyWay", "L", "layer", [[0.6, 13.5], [30, 31.4]], 0.6], ["so", "THE SUN’S ORBIT · 230 MILLION YEARS", "SunOrbit", "L", "layer", [[1.4, 13.5], [30, 31.4]], 1.4], ["dot", "THE ENTIRE HELIOSPHERE · 0.002 LIGHT-YEARS", "SunDot", "L", "layer", [[0, 0.01]], 99], ["tail", "HELIOTAIL", "Heliotail", "L", "layer", [[7.7, 14.5], [30, 31.4]], 7.7],
+  ["bow", "BOW SHOCK", "Bow shock", "R", "layer", [[23.4, 27]], 23.4], ["mp", "MAGNETOPAUSE", "Magnetopause", "R", "layer", [[23.6, 27]], 23.6], ["mt", "MAGNETOTAIL", "Magnetotail", "L", "layer", [[23.8, 27]], 23.8], ["e", "EARTH", "Earth", "L", "", [[23.4, 27]], 23.4], ["es", "SUN", "Sun ", "R", "", [[23.4, 27]], 23.4],
+].map((c) => { const el = document.createElement("div"); el.className = "lab " + c[3] + " " + c[4]; el.textContent = c[1]; $("labs").appendChild(el); return { id: c[0], el, anchor: c[2], side: c[3], wins: c[5], t0: c[6] + (c[5] === HV ? 7.5 : 0), y: 0, op: 0 }; });
+const svg = $("svg"); const NS = "http://www.w3.org/2000/svg";
+CALL.forEach((c) => { c.line = document.createElementNS(NS, "polyline"); c.dot = document.createElementNS(NS, "circle"); c.line.setAttribute("fill", "none"); c.line.setAttribute("stroke", c.el.classList.contains("layer") ? "rgba(255,216,143,.7)" : "rgba(220,232,255,.5)"); c.line.setAttribute("stroke-width", "1.5"); c.dot.setAttribute("r", "4"); c.dot.setAttribute("fill", c.el.classList.contains("layer") ? "#ffd88f" : "#dce8ff"); svg.appendChild(c.line); svg.appendChild(c.dot); });
+
+function callouts(t) {
+  CALL.forEach((c) => { c.op = c.wins.reduce((m, w) => Math.max(m, win(t, w[0], w[1], 0.28)), 0) * sm(seg(t, c.t0 - 0.01, c.t0 + 0.3) + (t > c.t0 + 0.4 ? 1 : 0)); });
+  CALL.forEach((c) => { if (c.op > 0.01) { const a = S.anchors[c.anchor], pj = a && S.proj(a); if (!pj || !(pj[0] > 30 && pj[0] < 1050 && pj[1] > 20 && pj[1] < 1900)) c.op = 0; } });
+  for (const side of ["L", "R"]) {
+    const list = CALL.filter((c) => c.side === side && c.op > 0.01).map((c) => { c.p = S.proj(S.anchors[c.anchor]); return c; }).sort((a, b) => a.p[1] - b.p[1]);
+    let last = 400; list.forEach((c) => { c.y = Math.max(c.p[1] - 10, last); last = c.y + 40; });
+    let cap = 1170; for (let i = list.length - 1; i >= 0; i--) { if (list[i].y > cap) list[i].y = cap; cap = list[i].y - 36; }
+  }
+  CALL.forEach((c) => {
+    c.el.style.opacity = c.op; c.line.style.opacity = c.op; c.dot.style.opacity = c.op;
+    if (c.op <= 0.01) return;
+    const [px, py] = c.p, ly = c.y + 10, left = c.side === "L";
+    c.el.style.top = Math.round(c.y) + "px";
+    if (left) { c.el.style.left = "48px"; c.el.style.right = "auto"; } else { c.el.style.right = "48px"; c.el.style.left = "auto"; }
+    const w = c.el.offsetWidth, ex = left ? 48 + w + 12 : 1080 - 48 - w - 12;
+    c.line.setAttribute("points", `${px},${py} ${ex},${ly}`); c.dot.setAttribute("cx", px); c.dot.setAttribute("cy", py);
+  });
+}
+
+const cuts = [];
+function ui(t) {
+  const earth = t >= T.earthIn && t < T.earthOut;
+  $("hk").textContent = earth ? "Earth" : "Heliosphere"; $("hv").innerHTML = earth ? "A smaller <em>magnetic shield</em>" : "The Sun’s <em>shield</em>";
+  const el = (t < T.earthIn ? t : t < T.earthOut ? T.earthIn : T.earthIn + (t - T.earthOut)) * 30;
+  $("el").textContent = el.toFixed(1); $("au").textContent = Math.round(el * 48.5).toLocaleString("en-US");
+  $("counter").style.opacity = earth ? 0 : (t >= 31.2 ? Math.max(0, 1 - (t - 31.2) / 0.4) : 1);
+  $("dash").style.opacity = earth ? win(t, T.earthIn + 0.2, T.earthOut, 0.3) : 0;
+  { const lk = sm(seg(t, 31.4, 33.9)); $("lapn").textContent = Math.round(230 * lk); $("lap").style.opacity = 0; }
+  callouts(t);
+  let d = 0; cuts.forEach((b) => { d = Math.max(d, clamp(1 - Math.abs(t - b) / 0.07) * 0.75); }); $("dip").style.opacity = d;
+  $("hud").style.opacity = t >= 31.2 ? Math.max(0, 1 - (t - 31.2) / 0.4) : 1;
+  $("tag").style.opacity = sm(seg(t, 31.6, 32.1)) * (1 - sm(seg(t, 33.8, 34)));
+  $("brand").style.opacity = t > 31.6 ? 0.6 : 0.3;
+}
+const st = { v: 0 };
+const gcv = $("grain"), gctx = gcv.getContext("2d"), gimg = gctx.createImageData(270, 480);
+function grain(t) { let s = (Math.floor(t * 30) * 2654435761 + 12345) >>> 0; const d = gimg.data; for (let i = 0; i < d.length; i += 4) { s = (s ^ (s << 13)) >>> 0; s = (s ^ (s >>> 17)) >>> 0; s = (s ^ (s << 5)) >>> 0; const v = s & 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } gctx.putImageData(gimg, 0, 0); }
+function draw(t) { S.render(t); ui(t); grain(t); }
+tl.to(st, { v: 1, duration: 34, ease: "none", onUpdate: () => draw(tl.time()) }, 0);
+tl.to("#root", { opacity: 0, duration: 0.2, ease: "power1.in" }, 33.8);
+document.querySelectorAll(".cap").forEach((c) => {
+  const st0 = parseFloat(c.dataset.start), du = parseFloat(c.dataset.duration), k = c.firstElementChild;
+  tl.fromTo(k, { opacity: 0, y: 22, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.26, ease: "power3.out" }, st0);
+  tl.to(k, { opacity: 0, filter: "blur(6px)", duration: 0.12, ease: "power2.in" }, st0 + du - 0.13);
+});
+window.__timelines["main"] = tl;
+draw(0);
+</script>
+</body>
+</html>

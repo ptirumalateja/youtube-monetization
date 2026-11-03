@@ -71,3 +71,22 @@ Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, 
 2. Update the tables above (add or remove the credit lines).
 3. Update the matching `*-publish-copy.md` credit block and its licence table.
 4. Keep "Changes were made" in the block.
+
+
+## Heliosphere reel (The Sun's Shield, v15): files Teja picked himself on Freesound
+
+**Licences NOT verified from the sandbox (freesound.org is blocked there). Teja's rule is CC0 only; open each page and confirm before upload. If a page says CC BY, paste the credit line below; if CC BY-NC, do not use the file.** "Changes were made": trimmed, layered, faded and mixed.
+
+| Freesound id | Name | Creator | Used for | Page |
+|---|---|---|---|---|
+| 856173 | apocalyptic cinematic brass braam impact | brktkrgll | hook hit at 0 s | https://freesound.org/s/856173/ |
+| 251462 | sick dance bass | staticpony1 | first 3 s only | https://freesound.org/s/251462/ |
+| 648534 | transition hit sfx 001 | audiopapkin | zoom start (0.6 s) and Earth cut (13 s) | https://freesound.org/s/648534/ |
+| 321723 | deep space vibrations ambience loop | rhodesmas | bed, whole reel | https://freesound.org/s/321723/ |
+| 758584 | distorted unnerve | magnuswaker | question reveal (20.6 s) | https://freesound.org/s/758584/ |
+| 32424 | hypnotic heartbeat atmosphere | hello_flowers | fades in 17.3 s | https://freesound.org/s/32424/ |
+| 494981 | risers horror whooshes tension builder 1 | original_sound | riser into the Earth cut (11.2 s) | https://freesound.org/s/494981/ |
+
+Credit line template (only for files that turn out to be CC BY): "<title>" by <creator>, https://freesound.org/s/<id>/ , CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes were made.
+
+Not used: 25932 daveincamas "20061111bucket1-fx11" (tried, left out).
