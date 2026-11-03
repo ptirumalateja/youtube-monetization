@@ -1,4 +1,4 @@
-"""Sound for Their Words Became His Wall (Slow Light Dark, V2 of They Threw Words). No music; every sound has a visible cause.
+"""Sound for Their Words Became His Wall (Slow Light Dark, V2 of They Threw Words). No music and no voices (Teja, 3 Nov: just brick-throwing sounds); every sound has a visible cause.
 
   python3 mix.py OUT.wav
 
@@ -69,24 +69,6 @@ def whoosh(bus, k, t_peak, gain, pan):
     s, pk = WH[k % len(WH)]; place(bus, hp(s, 160), t_peak - pk / SR, gain, pan)
 
 
-VOX = os.path.join(HERE, 'voices')
-
-
-def shout(name, pitch, drive=2.6, seed=0):
-    """A Kokoro line roughed into a jeer: pitched down, saturated, chesty mids, presence bite, a little room."""
-    import soundfile as sf
-    x, sr = sf.read(os.path.join(VOX, name + '.wav')); x = x if x.ndim == 1 else x.mean(1)
-    idx = np.arange(0, len(x) - 1, sr / SR * pitch); y = np.interp(idx, np.arange(len(x)), x)
-    y = y / (np.abs(y).max() + 1e-9)
-    y = np.tanh(drive * y) / np.tanh(drive)
-    y = hp(y, 140) + bp(y, 1900, 1.2) * 0.6 + bp(y, 320, 1.4) * 0.35
-    y = y / (np.abs(y).max() + 1e-9)
-    wet = K.convolve(y, K.reverb_ir(0.7, 3000, 50 + seed))[:len(y) + int(0.5 * SR)]
-    out = np.zeros(len(wet)); out[:len(y)] += y; out += wet * 0.25
-    return out
-
-
-PITCH = {0: 0.93, 1: 0.97, 2: 0.86}
 PAN = {0: -0.5, 1: -0.7, 2: -0.85}
 
 bus = K.new_buses(N)
@@ -97,10 +79,10 @@ K.bed(bus, room_g, drone_g, duck)
 
 for k, c in enumerate(C):
     rel = c - FL; th = TL['throwers'][k]
-    # the jeer on the wind-up, then the throw
-    place(bus['air'], shout(f'w{k:02d}', PITCH[th], seed=k), max(0.0, rel - TL['shoutLead']), 0.62, PAN[th])
+    # the throw: wind-up cloth swish, release footfall, the block's whoosh
+    place(bus['air'], bp(noise(int(0.25 * SR)), 1200, 1.0) * np.sin(np.pi * np.arange(int(0.25 * SR)) / int(0.25 * SR)) ** 2 * 0.12, max(0.0, rel - 0.3), 1.0, PAN[th])
     whoosh(bus['air'], k, rel + FL * 0.55, 0.3 + 0.015 * k, PAN[th] * 0.4)
-    place(bus['fol'], thud(400 + k, f=75, dec=0.08, gain=0.2), rel, 1.0, PAN[th])
+    place(bus['fol'], thud(400 + k, f=75, dec=0.08, gain=0.3), rel, 1.0, PAN[th])
     # catch: slap into the hands
     place(bus['fol'], thud(10 + k, f=95, dec=0.07, gain=0.45), c, 1.0, 0.25)
     place(bus['fol'], bp(noise(int(0.05 * SR)), 1800, 1.5) * env(int(0.05 * SR), 0.0005, 0.01) * 0.25, c, 1.0, 0.25)
@@ -110,14 +92,7 @@ for k, c in enumerate(C):
     # a shuffle step to the next column
     place(bus['fol'], thud(300 + k, f=90, dec=0.05, gain=0.16), c + PL + 0.3, 1.0, 0.3)
 
-# crowd colour: mocking laughs between throws (stop well before the red block)
-place(bus['air'], shout('laugh0', 0.93, 2.0, 90), 1.15, 0.5, -0.55)
-place(bus['air'], shout('laugh1', 0.97, 2.0, 91), 4.05, 0.45, -0.7)
-place(bus['air'], shout('look', 0.93, 2.2, 92), 7.4, 0.55, -0.5)
-place(bus['air'], shout('laugh0', 0.9, 2.0, 93), 9.6, 0.4, -0.6)
-
 # the red block: the big man's line, the throw, the held breath, the slam into the wall, then the drop at their feet
-place(bus['air'], shout('red', PITCH[2], 3.0, 99), RR - 1.25, 0.8, PAN[2])
 whoosh(bus['air'], 2, RR + (RH - RR) * 0.5, 0.55, -0.4)
 place(bus['fol'], thud(500, f=70, dec=0.1, gain=0.3), RR, 1.0, -0.8)
 boom = sub_boom(4.0) * 1.1
@@ -137,4 +112,4 @@ mix = K.finish(bus, duck)
 write_wav(mix, sys.argv[1])
 def db(a, b):
     s = mix[:, int(a * SR):int(b * SR)]; return 20 * np.log10(np.sqrt((s ** 2).mean()) + 1e-12)
-print(f'rms build 2-10 s {db(2, 10):.1f} dB | held breath {db(TL["silence0"] + 0.08, RH - 0.02):.1f} dB | slam {db(RH, RH + 1):.1f} dB | tail {db(14, DUR):.1f} dB')
+print(f'rms build 2-10 s {db(2, 10):.1f} dB | held breath {db(TL["silence0"] + 0.08, RH - 0.02):.1f} dB | slam {db(RH, RH + 1):.1f} dB | tail {db(DUR - 2, DUR):.1f} dB')

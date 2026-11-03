@@ -13,19 +13,22 @@ const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get
 await Promise.all([['SL','fonts/JetBrainsMono-SemiBold.ttf'],['SLB','fonts/JetBrainsMono-Bold.ttf']].map(async([n,u])=>{ const f=new FontFace(n,`url(${u})`); await f.load(); document.fonts.add(f); }));
 
 // ---------------------------------------------------------------- layout (wall along x at z = 0, text faces +z / camera / the men)
-const BW=0.50, BH=0.26, BD=0.30, G=9.8, NC=3;
+const BW=0.28, BH=0.22, BD=0.24, G=9.8, NC=10, NR=5;
+const NPRE=NC*NR-TL.words.length, X0=-1.20;
 const NB=TL.words.length;
 const colOf=k=>k%NC, rowOf=k=>Math.floor(k/NC);
-const slot=k=>V((colOf(k)-1)*BW*1.005+(rowOf(k)%2?0.03:-0.02),BH/2+rowOf(k)*BH*1.003,0);
-const WALL_TOP=Math.ceil(NB/NC)*BH;
+const slotI=i=>V(X0+colOf(i)*BW*1.006+(rowOf(i)%2?BW/2:0),BH/2+rowOf(i)*BH*1.003,0);
+const SI=k=>NPRE+k;               // thrown block k fills slot NPRE+k (the last gaps of the top row)
+const slot=k=>slotI(SI(k));
+const WALL_TOP=NR*BH;
 const Y0=yawOf(V(0,0,1));                          // facing +z (toward the men / camera)
-const HZ=-0.50;                                    // he stands behind the wall
-const hx=k=>k>=NB?0:(colOf(k)-1)*0.36;
-const HP=[V(-1.42,0,0.25),V(-1.70,0,-0.30),V(-2.0,0,0.50)];
+const HZ=-0.38;                                    // he stands behind the wall
+const hx=k=>Math.min(slot(Math.min(k,NB-1)).x-0.02,slot(NB-1).x-0.1);
+const HP=[V(-2.2,0,0.25),V(-2.47,0,-0.30),V(-2.72,0,0.40)];
 const RED=2;
 
 // ---------------------------------------------------------------- stage
-const S=SLD.createStage({W,H,lamp:V(-0.1,6.6,-0.95),lampTarget:V(-0.15,0,-0.2),cone:0.22,spot:64,fov:38});
+const S=SLD.createStage({W,H,lamp:V(0.2,7.4,-1.0),lampTarget:V(0.1,0,-0.15),cone:0.25,spot:70,fov:38});
 const {scene,cam}=S;
 const R=SLD.createRig(scene);
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
@@ -58,6 +61,8 @@ function makeBlock(word,i,red=false){
   const glow=SLD.glowSprite(scene,red?PAL.RED:PAL.GOLD,0);
   return {m,face,side,spr,glow,word,red,sw:red?1.25:0.85,sh:red?0.25:0.21}; }
 const blocks=TL.words.map((w,i)=>makeBlock(w,i));
+// the wall already standing on frame 0: their older words, dimly lit
+const pre=[...Array(NPRE)].map((_,i)=>{ const B=makeBlock(TL.prebuilt[i%TL.prebuilt.length],200+i); B.m.position.copy(slotI(i)); B.face.emissiveIntensity=0.2+0.08*((i*7)%5)/4; B.spr.visible=false; return B; });
 const redB=makeBlock(TL.red,99,true);
 
 // sparks: gold motes lifting off a face when its word burns in; dust at the red impact and where it lands
@@ -93,7 +98,7 @@ function inHands(i,yaw,rel,low=false){
   const A=holdPt(HP[i],yaw,low?'low':'hold'), B=holdPt(HP[i],yaw,'wind'), C=holdPt(HP[i],yaw,'rel');
   if(rel<-0.55) return A; if(rel<-0.2) return A.clone().lerp(B,sm5(sstep(-0.55,-0.2,rel)));
   return B.clone().lerp(C,sstep(-0.2,0,rel)); }
-const IMP=V(-BW*1.5-BW/2-0.03,0.82,0.05);
+const IMP=V(X0-BW-0.03,0.66,0.05);
 function blockState(k,t){
   const c=TL.catches[k], r=REL(k), th=TL.throwers[k];
   if(t<r-0.95) return null;
@@ -103,7 +108,7 @@ function blockState(k,t){
   const pl=c+TL.place;
   if(t<pl){ const {root}=heroRoot(t), yw=heroYaw(t); const u=sm5(sstep(c+0.06,pl,t)); const p=heldPoint(root,yw).lerp(slot(k),u); p.y+=0.10*Math.sin(Math.PI*u);
     return {pos:p,yaw:angLerp(yw+Math.PI/2,0,u),flip:0,a:1}; }
-  const p=slot(k); p.z+=0.012*shake(t)*(1-rowOf(k)*0.1); p.x+=0.004*shake(t+0.01);
+  const p=slot(k); p.z+=0.010*shake(t); p.x+=0.003*shake(t+0.01);
   return {pos:p,yaw:0,flip:0,a:1,placed:t-pl}; }
 function redState(t){
   const r=TL.redRelease, Hh=TL.redHit, L=TL.redLand, hy=haterYaw(RED,Math.min(t,r));
@@ -123,7 +128,7 @@ function heroPose(t){
   const {root,mv}=heroRoot(t), yaw=heroYaw(t);
   let P={...P_STAND,p:0.06+0.015*Math.sin(t*1.9)};
   let cr=0, absorb=0, hold=null, wHold=0, ready=null, wReady=0;
-  for(let k=0;k<NB;k++){ const c=TL.catches[k], depth=[1,0.62,0.28,0.05][rowOf(k)];
+  for(let k=0;k<NB;k++){ const c=TL.catches[k], depth=[1,0.7,0.45,0.25,0.08][rowOf(SI(k))];
     cr=Math.max(cr,depth*sstep(c+0.06,c+0.32,t)*(1-sstep(c+TL.place,c+TL.place+0.2,t)));
     absorb=Math.max(absorb,Math.exp(-Math.pow((t-c-0.05)/0.07,2)));
     if(t>=c-0.5&&t<c){ ready=grips({pos:catchPoint(k),yaw:catchYaw(k)+Math.PI/2}); wReady=sstep(c-0.5,c-0.1,t); }
@@ -192,7 +197,7 @@ function setSparks(t){
   spGeo.attributes.position.needsUpdate=true; spGeo.attributes.a.needsUpdate=true; }
 
 // ---------------------------------------------------------------- camera: behind the men, a slow push-in as the wall rises, a jolt on the red hit
-const CAMK=[[0.0,[-0.66,1.62,9.2],[-0.66,1.42,0.0]],[11.4,[-0.63,1.62,8.8],[-0.63,1.42,0.0]],[DUR,[-0.6,1.62,8.45],[-0.6,1.42,0.0]]];
+const CAMK=[[0.0,[-0.62,1.6,14.2],[-0.62,1.2,0.0]],[5.6,[-0.6,1.6,13.9],[-0.6,1.2,0.0]],[6.6,[-0.58,1.6,13.8],[-0.58,1.2,0.0]],[DUR,[0.0,1.6,13.1],[0.0,1.22,0.0]]];
 function camAt(t){ const P=[0,1,2].map(i=>keys(CAMK.map(k=>[k[0],k[1][i]]),t)), L=[0,1,2].map(i=>keys(CAMK.map(k=>[k[0],k[2][i]]),t));
   const j=shake(t); cam.position.set(P[0]+0.004*j,P[1]+0.012*j,P[2]); cam.lookAt(L[0],L[1]+0.006*shake(t+0.02),L[2]); }
 
@@ -202,6 +207,7 @@ function setT(t){
   const fade=1-sstep(TL.fade0,TL.fade1,t);
   haters.forEach((F,i)=>{ const p=haterPose(i,t); R.poseFig(F,R.skel(p.P,HP[i],p.yaw)); F.setAlpha(fade); });
   blocks.forEach((B,k)=>setBlock(B,blockState(k,t),t));
+  pre.forEach((B,i)=>{ const p=slotI(i); p.z+=0.010*shake(t)*(rowOf(i)+1)/NR; B.m.position.copy(p); });
   setBlock(redB,redState(t),t);
   setSparks(t); camAt(t);
   S.tick(t,0.14*sstep(TL.pay0,TL.pay1,t)); }
