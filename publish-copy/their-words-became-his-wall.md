@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v3 (rebuilt from a frame-by-frame read of the reference, 3 Nov 2026), awaiting review. Replaces the 10 x 5 cut and the stairs V1 ([they-threw-words.md](they-threw-words.md)) |
+| Status | v3 (rebuilt from a frame-by-frame read of the reference), approved by Teja 3 Nov 2026. Replaces the 10 x 5 cut and the stairs V1 ([they-threw-words.md](they-threw-words.md)) |
 | Upload file | `final-reels/their-words-wall/their-words-wall.mp4` (master with sound); `their-words-wall_music-ready.mp4` (silent: red brick hits the wall at 5.85 s, lands at 6.4 s) |
 | Length | 10 s, one side-angled wide shot like the reference (men, wall and hero all in frame with edge padding, clean light-grey backdrop, no dark vignette) |
 | Voice | None. No jeers (Teja's note on 3 Nov: brick-throwing sounds only) |
