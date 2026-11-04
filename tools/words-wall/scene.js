@@ -65,17 +65,17 @@ const coreTop=new THREE.Mesh(new THREE.BoxGeometry((NC-NB)*BW-0.02,BH-0.01,BD-0.
 // ---------------------------------------------------------------- thrown bricks + floating words
 function wordCanvas(word,col){
   const c=document.createElement('canvas'); c.width=1024; c.height=256; const g=c.getContext('2d');
-  let fs=128; g.font=`700 ${fs}px SLB`; while(g.measureText(word).width>c.width*0.92&&fs>10){ fs-=4; g.font=`700 ${fs}px SLB`; }
+  let fs=128; g.font=`600 ${fs}px SL`; while(g.measureText(word).width>c.width*0.92&&fs>10){ fs-=4; g.font=`600 ${fs}px SL`; }
   g.textAlign='center'; g.textBaseline='middle'; g.shadowColor='rgba(0,0,0,0.9)'; g.shadowBlur=24;
-  g.fillStyle=col; g.fillText(word,512,132); g.shadowBlur=0; g.lineWidth=7; g.lineJoin='round'; g.strokeStyle=col; g.strokeText(word,512,132); g.fillText(word,512,132);   // dark, heavy word on the light background
+  g.fillStyle=col; g.fillText(word,512,132); g.shadowBlur=0; g.fillText(word,512,132);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; }
 function makeBrick(word,red=false){
   const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:red?0xc0392b:0xa4a6ae,roughness:red?0.6:0.8,metalness:0,map:stoneTex,emissive:red?PAL.RED:PAL.GOLD,emissiveIntensity:0}),red?0xff9a80:0xdfe6f5,0.06,red?'red':'b'+word);
   const m=new THREE.Mesh(new THREE.BoxGeometry(red?RW:BW-0.012,red?RH:BH-0.012,red?RD:BD),mat); m.castShadow=true; m.receiveShadow=true; scene.add(m);
-  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:wordCanvas(word,red?'#FF5A44':'#F4ECDD'),transparent:true,depthWrite:false,depthTest:false,fog:false}));
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:wordCanvas(word,red?'#FF5A44':'#FFB13B'),transparent:true,depthWrite:false,depthTest:false,fog:false}));
   spr.renderOrder=20; scene.add(spr); S.NOREFL.push(spr);   // labels always on top, never mirrored in the floor
   const glow=SLD.glowSprite(scene,red?PAL.RED:PAL.GOLD,0);
-  return {m,mat,spr,glow,red,sw:red?2.9:2.5,sh:red?0.725:0.625}; }
+  return {m,mat,spr,glow,red,sw:red?2.5:2.1,sh:red?0.625:0.525}; }
 const bricks=TL.words.map(w=>makeBrick(w));
 const redB=makeBrick(TL.red,true);
 const dodgeB=makeBrick(TL.dodge);
