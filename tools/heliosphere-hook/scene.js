@@ -617,7 +617,10 @@ const WIND = (() => { const N = 5000, pos = [], a = []; for (let i = 0; i < N; i
 
 const HOOK_DUR = 19;
 const r0 = 0.03, r1 = 0.2;      // years per second: slow on Earth, then the planets race
-const yAt = t => { if (t < 1) return Y_TODAY + r0 * t; if (t < 3) { const S = (t - 1) / 2; return Y_TODAY + r0 * t + (r1 - r0) * 2 * (S ** 3 - S ** 4 / 2); } return Y_TODAY + r0 * t + (r1 - r0) * (1 + (t - 3)); };
+const yAt0 = t => { if (t < 1) return Y_TODAY + r0 * t; if (t < 3) { const S = (t - 1) / 2; return Y_TODAY + r0 * t + (r1 - r0) * 2 * (S ** 3 - S ** 4 / 2); } return Y_TODAY + r0 * t + (r1 - r0) * (1 + (t - 3)); };
+// loop: from 19 s the clocks ease so that at 25 s Earth is back where it was at 0 s (5 whole orbits, 3 whole turns, the Moon round 12 times)
+const T_END = 25, sLoopC = t => smooth(19, T_END, t), DY = 5 - (yAt0(T_END) - yAt0(0));
+const yAt = t => yAt0(t) + DY * sLoopC(t);
 const eio = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const Ew = y => e2g(posD(2, y));
 function hookPose(t) {
@@ -658,7 +661,15 @@ function hookOverlay(t, E2, S2) {
   richLine([['Voyager 1 has been flying', W1]], 1330, 66, a6); richLine([['since ', W1], ['1977.', GOLD]], 1406, 66, a6);
   const a7 = fadeIO(t, 17.05, 19.3);
   richLine([['It took ', W1], ['35 years', GOLD]], 1330, 66, a7); richLine([['to get out.', W1]], 1406, 66, a7);
+  const a8 = fadeIO(t, 19.35, 21.8);
+  richLine([["Right now it's almost", W1]], 1330, 66, a8); richLine([['1 light-day', GOLD], [' from home.', W1]], 1406, 66, a8);
+  const a9 = fadeIO(t, 21.95, 24.3), pop9 = 1 + 0.06 * Math.exp(-Math.max(0, t - 22.55) * 9) * (t > 22.55 ? 1 : 0);
+  richLine([['One seat. You never come back.', W1]], 1290, 60, a9);
+  ctx.save(); ctx.translate(540, 1390); ctx.scale(pop9, pop9); ctx.translate(-540, -1390); richLine([['Would you go?', GOLD]], 1400, 92, a9 * smooth(22.5, 22.62, t), 600); ctx.restore();
+  text('YES  or  NO', 540, 1500, 34, '#f4e6c8', { alpha: a9 * smooth(23.0, 23.15, t), spacing: 6 });
   const lv = fadeIO(t, 13.65, 14.35, 0.15);
+  const lw = fadeIO(t, 20.2, 21.8, 0.3);
+  if (lw > 0 && E2.v1 && E2.v1[2]) text('VOYAGER 1', clamp(E2.v1[0], 170, 910), E2.v1[1] - 40, 28, '#ffe2a6', { alpha: lw, spacing: 4 });
   if (lv > 0 && E2.v1 && E2.v1[2]) text('VOYAGER 1', clamp(E2.v1[0], 170, 910), E2.v1[1] - 40, 28, '#ffe2a6', { alpha: lv, spacing: 4 });
   if (lv > 0 && E2.v2 && E2.v2[2]) text('VOYAGER 2', clamp(E2.v2[0], 170, 910), E2.v2[1] + 44, 28, '#bff0ff', { alpha: lv * (1 - smooth(13.9, 14.3, t)), spacing: 4 });
   const lc2 = fadeIO(t, 15.0, 18.6, 0.3);
@@ -733,7 +744,12 @@ voyGlow1.renderOrder = voyGlow2.renderOrder = 9;
 const ENV = new T.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 const stdM = (color, metal, rough, env = 0.35, extra = {}) => new T.MeshStandardMaterial({ color, metalness: metal, roughness: rough, envMap: ENV, envMapIntensity: env, ...extra });
 const VOY = new T.Group(); HELI.add(VOY);
-const VM = { dish: stdM('#aaa498', 0.1, 0.55, 0.25, { side: T.DoubleSide }), white: stdM('#e8e4dc', 0.1, 0.5), bus: stdM('#7b7d84', 0.75, 0.38, 0.6), foil: stdM('#c69a4c', 0.95, 0.3, 0.8),
+const dishTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, 512, 512);
+  x.fillStyle = 'rgba(70,64,56,0.55)'; for (const v of [0.18, 0.36, 0.55, 0.74, 0.9]) x.fillRect(0, v * 512 - 2, 512, 4);       // panel rings
+  for (let k = 0; k < 24; k++) x.fillRect(k / 24 * 512 - 1, 0, 2, 512);                                                          // radial seams
+  x.fillStyle = 'rgba(40,36,30,0.85)'; x.fillRect(0, 497, 512, 15);                                                              // dark rim band
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; return t; })();
+const VM = { dish: stdM('#9d978b', 0.15, 0.6, 0.22, { side: T.DoubleSide, map: dishTex }), white: stdM('#e8e4dc', 0.1, 0.5), bus: stdM('#7b7d84', 0.75, 0.38, 0.6), foil: stdM('#c69a4c', 0.95, 0.3, 0.8),
   dark: stdM('#2b2c31', 0.5, 0.55, 0.4), gold: stdM('#e3b553', 1.0, 0.22, 1.1), boom: stdM('#b9b6ae', 0.6, 0.45, 0.5) };
 { const add = (geo, mat, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); VOY.add(m); return m; };
   const rod = (a, b, r, mat) => { const d = b.clone().sub(a), m = new T.Mesh(new T.CylinderGeometry(r, r, d.length(), 8), mat); m.position.copy(a).add(b).multiplyScalar(0.5);
@@ -801,6 +817,12 @@ function voyPoseL(t) {
   const pos = pv.clone().addScaledVector(dir, d), vd = look.clone().sub(pos).normalize(), up = U1.clone().addScaledVector(vd, -U1.dot(vd)).normalize();
   return { pos, look, up };
 }
+// block 4 wide: side-on to Voyager 1's line of flight, the whole bubble and the probe beyond its wall, still circling
+function widePoseL(t) { const az = 0.55 + 0.3 * (t - 14.6), rad = E1.clone().multiplyScalar(Math.cos(az)).addScaledVector(E2, Math.sin(az));
+  const look = U1.clone().multiplyScalar(mixv(14, 9, smooth(19, 24, t))), D = mixv(62, 88, smooth(19.5, 24, t));
+  const pos = look.clone().addScaledVector(rad.clone().multiplyScalar(0.93).addScaledVector(U1, 0.36).normalize(), D), vd = look.clone().sub(pos).normalize();
+  return { pos, look, up: U1.clone().addScaledVector(vd, -U1.dot(vd)).normalize() }; }
+function widePose(t) { const p = widePoseL(t), o = hl(V3()); return { pos: hl(p.pos), look: hl(p.look), up: hl(p.up).sub(o).normalize() }; }
 function voyPose(t) { const p = voyPoseL(t), o = hl(V3()); return { pos: hl(p.pos), look: hl(p.look), up: hl(p.up).sub(o).normalize() }; }
 window.renderAt = function (t, frame = Math.round(t * 30)) {
   const y = yAt(t); U.uTime.value = t;
@@ -810,10 +832,14 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   HELI.scale.setScalar(mixv(1, 0.8, smooth(9.5, 10.05, t)) * (1 - inflate) + inflate * (1 + 0.07 * Math.sin(Math.PI * smooth(10.4, 11.3, t)))); HELI.updateMatrixWorld(true);
   let pS = hookPose(t);
   // block 3: dive from the bubble view onto Voyager 1 and ride with it (dS keeps the hook's value: it drives what is shown, not the lens)
-  const sV = eio(seg2(t, 13.5, 15.0));
+  const sV = eio(seg2(t, 13.45, 14.75));
   if (sV > 0) { const b = blendPose(pS, voyPose(t), sV, 0, 0.45); pS = { ...b, dS: pS.dS }; }
+  // block 4: rise back out to the whole bubble (Voyager a spark beyond its wall), then the dive home into Earth's shield, frame 0
+  const sW = eio(seg2(t, 19.0, 21.8)), sL = eio(seg2(t, 23.75, T_END));
+  if (sW > 0) { const h = widePose(t), b = blendPose(pS, h, sW, 0, 0.6); pS = { ...b, dS: hookPose(t).dS }; }
+  if (sL > 0) { const h0 = hookPose(0), b = blendPose(pS, h0, sL, 0, 0.5); pS = { ...b, dS: Math.exp(mixv(Math.log(pS.dS), Math.log(h0.dS), sL)) }; }
   // galaxy layer: the solar camera's view, scaled up by K, so the backdrop turns with the camera
-  const K = mixv(9000, 21000, smooth(0.3, 4.6, t)) / pS.pos.length();
+  const K = mixv(9000, 21000, smooth(0.3, 4.6, t) * (1 - sL)) / pS.pos.length();
   const gA = { pos: pS.pos.clone().multiplyScalar(K), look: pS.look.clone().multiplyScalar(K), up: pS.up.clone() };
   // the galaxy round trip: out to the whole spiral (the Sun's bubble is a point on its gold orbit), then back down into the bubble
   const sOut = smooth(6.4, 7.6, t), sIn = smooth(9.45, 10.5, t), sG = sOut * (1 - sIn), phi = phiAt(t);
@@ -823,7 +849,7 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   if (sG > 0) { const ratio = gP.pos.length() / gA.pos.length(), dSt = pS.dS * Math.pow(ratio, 2.6), Kp = Math.pow(ratio, 1.6) / K;
     pS = { pos: gP.pos.clone().multiplyScalar(Kp), look: gP.look.clone().multiplyScalar(Kp), up: gP.up.clone(), dS: dSt }; }
   const dS = pS.dS;
-  galSky.position.copy(camG.position); galaxy.rotation.z = 0.5 * phi;
+  galSky.position.copy(camG.position); galaxy.rotation.z = 0.5 * phi * (1 - sL);
   plateMat.uniforms.uA.value = 0.92; galStars.material.uniforms.uA.value = 0.95; neighbourhood.material.uniforms.uA.value = 0.3 * (1 - smooth(0.1, 0.5, sG));
   bulge.scale.setScalar(26000); bulge.material.uniforms.uA.value = 0.4; bh.scale.setScalar(5200); bh.material.uniforms.uA.value = smooth(0.15, 0.6, sG); bh.visible = sG > 0.01;
   lapTrail.uniforms.uStart.value = -Math.max(0.05, phi - phiAt(6.3)); lapTrail.uniforms.uNow.value = 0; lapTrail.uniforms.uWidth.value = 6; lapTrail.uniforms.uHead.value = 0.02; lapTrail.uniforms.uA.value = sG * 1.2;
@@ -834,13 +860,13 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   setCam(camS, pS, sV > 0 ? mixv(Math.min(dS * 2e-3, 0.004), 2e-4, sV) : Math.max(1e-3, Math.min(dS * 2e-3, 0.004)));
   sky.visible = false;
   bodies.forEach((b, i) => { const pe = posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(1); b.group.visible = i === 2 || ((i > 1 || dS > 8) && camS.position.distanceTo(e2g(pe)) > 1.2 + 6 * PL[i].R);
-    b.spin.rotation.y = spinHours(t * 0.6) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3 + (i === 2 ? 2.2 : 0);
+    b.spin.rotation.y = spinHours((t + 5 * sLoopC(t)) * 0.6) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3 + (i === 2 ? 2.2 : 0);
     glows[i].position.copy(pe); glows[i].material.uniforms.uA.value = smooth(30, 120, dS) * 0.9; glows[i].material.uniforms.uPx.value = 9 + 1.5 * Math.sqrt(i); });
   for (const m of [...mats, ringMat, uRingMat, ...moonBodies.map(mb => mb.mat)]) m.uniforms.uSunPos.value.set(0, 0, 0);
   mats[5].uniforms.uCtr.value.copy(e2g(posD(5, y))); mats[5].uniforms.uRad.value = PL[5].R; mats[5].uniforms.uRingN.value.copy(e2g(bodies[5].pole));
   ringU.uCtr.value.copy(mats[5].uniforms.uCtr.value); ringU.uRad.value = PL[5].R; uRingMat.uniforms.uCtr.value.copy(e2g(posD(6, y))); uRingMat.uniforms.uRad.value = PL[6].R;
-  EU.uCloudShift.value = t * 0.004;
-  moonBodies.forEach((mb, k) => { mb.mesh.position.copy(moonPos(mb, t, y)); mb.mesh.visible = dS < 100; moonGlows[k].material.uniforms.uA.value = 0; });
+  EU.uCloudShift.value = t * 0.004 * (1 - smooth(23.6, 24.6, t));
+  moonBodies.forEach((mb, k) => { mb.mesh.position.copy(moonPos(mb, t + 2 * sLoopC(t), y)); mb.mesh.visible = dS < 100; moonGlows[k].material.uniforms.uA.value = 0; });
   const sunS = R_SUN_D / R_SUN; sunMesh.scale.setScalar(sunS); corona.scale.setScalar(sunS); sunMesh.visible = true;
   const gk = smooth(1.0, 3.0, camS.position.length()); corona.visible = dS < 90; corona.material.uniforms.uA.value = 0.85 * mixv(0.4, 1, gk);
   sunGlare.visible = true; sunGlare.scale.setScalar(Math.max(R_SUN_D * 8, dS * 0.075)); sunGlare.material.uniforms.uA.value = 0.6 * mixv(0.2, 1, gk);
@@ -860,12 +886,12 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   WIND.uniforms.uSz.value = 1 + 1.3 * wB; tsMat.uniforms.uS.value = 0.38 + 0.5 * wB * (0.6 + 0.4 * Math.sin(t * 9));
   WIND.uniforms.uA.value = (0.8 + 1.4 * fadeIO(t, 9.9, 11.5, 0.35)) * smooth(3, 14, dS); updateRays(t);
   // block 3
-  const vOn = t > 12.9; VOY.visible = vOn && sV > 0.05; PLASMA.uniforms.uA.value = smooth(13.9, 14.8, t); PLASMA.uniforms.uT.value = t;
+  const vOn = t > 12.9 && t < 24.6; VOY.visible = vOn && sV > 0.05 && sW < 0.9; PLASMA.uniforms.uA.value = smooth(13.9, 14.8, t) * (1 - smooth(19.4, 21.0, t)); PLASMA.uniforms.uT.value = t;
   const r1 = rv1(t), r2 = rv2(t), tA = smooth(13.0, 13.25, t);
-  voyTrail1.uniforms.uStart.value = 0.9; voyTrail1.uniforms.uNow.value = r1; voyTrail1.uniforms.uWidth.value = mixv(4.2, 1.8, sV); voyTrail1.uniforms.uHead.value = 0.6; voyTrail1.uniforms.uA.value = tA * mixv(1.2, 0.55, sV);
+  voyTrail1.uniforms.uStart.value = 0.9; voyTrail1.uniforms.uNow.value = r1; voyTrail1.uniforms.uWidth.value = mixv(4.2, 1.8, sV); voyTrail1.uniforms.uHead.value = 0.6; voyTrail1.uniforms.uA.value = tA * mixv(1.2, 0.55, sV * (1 - sW)) * (1 - smooth(23.8, 24.5, t));
   voyTrail2.uniforms.uStart.value = 0.9; voyTrail2.uniforms.uNow.value = r2; voyTrail2.uniforms.uWidth.value = 4.2; voyTrail2.uniforms.uHead.value = 0.6; voyTrail2.uniforms.uA.value = tA * 1.1 * (1 - smooth(13.9, 14.6, t));
   voyGlow1.position.copy(U1).multiplyScalar(r1); voyGlow2.position.copy(V2X.U).multiplyScalar(r2);
-  voyGlow1.material.uniforms.uPx.value = 22; voyGlow1.material.uniforms.uA.value = tA * (1 - smooth(14.6, 15.0, t)); voyGlow2.material.uniforms.uPx.value = 20; voyGlow2.material.uniforms.uA.value = tA * (1 - smooth(13.9, 14.6, t));
+  voyGlow1.material.uniforms.uPx.value = 22; voyGlow1.material.uniforms.uA.value = tA * Math.max(1 - smooth(14.6, 15.0, t), smooth(19.6, 20.6, t) * (1 - smooth(23.8, 24.4, t))); voyGlow2.material.uniforms.uPx.value = 20; voyGlow2.material.uniforms.uA.value = tA * (1 - smooth(13.9, 14.6, t));
   if (vOn) { VOY.position.copy(U1).multiplyScalar(r1);
     // dish faces home (+y of the model to the Sun), slow roll for life
     VOY.quaternion.setFromUnitVectors(V3(0, 1, 0), U1.clone().negate()).multiply(new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), 0.9 + 0.05 * t));
@@ -874,7 +900,7 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
     // outside the wall the Sun is a star: less light, more of the wall's glow
     const out = smooth(T_X - 0.1, T_X + 0.6, t); sunLight.intensity = mixv(1.6, 1.3, out); wallLight.intensity = mixv(0.9, 1.5, out); }
   helioMat.uniforms.uFc.value = 0.6 * fadeIO(t, 14.2, 18.9, 0.8) * (1 + 0.5 * Math.exp(-Math.abs(t - T_X) * 4)); helioMat.uniforms.uNr.value = tsMat.uniforms.uNr.value = smooth(14.0, 14.8, t); helioMat.uniforms.uK.value *= 1 - 0.5 * fadeIO(t, 17.15, 18.75, 0.45);
-  CR.m.uniforms.uA.value *= 1 - 0.75 * fadeIO(t, 14.2, 17.0, 0.5);
+  CR.m.uniforms.uA.value *= (1 - 0.75 * fadeIO(t, 14.2, 17.0, 0.5)) * (1 - smooth(23.9, 24.6, t)) * (1 - 0.6 * smooth(19.5, 20.5, t) * (1 - smooth(23.4, 23.9, t)));
   renderer.render(sSolar, camS);
   drawFilm();
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 560, 540, 960, 1250); v.addColorStop(0, 'rgba(4,8,18,0)'); v.addColorStop(1, 'rgba(4,8,18,0.3)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
