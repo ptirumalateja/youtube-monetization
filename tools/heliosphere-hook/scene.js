@@ -632,6 +632,8 @@ function hookPose(t) {
   const spin = new T.Quaternion().setFromAxisAngle(VG, 0.09 * Math.max(0, Math.min(t, 6.6) - 3.2) ** 1.3 + 0.05 * Math.max(0, t - 6.6) + 0.07 * Math.max(0, t - 10.6));
   const dir = dirE.clone().lerp(RIDE_DIR, kr).addScaledVector(ECL_N, 0.9 * Math.sin(Math.PI * seg2(t, 0.8, 3.2))).normalize().applyQuaternion(spin), up = ECL_N.clone().lerp(RIDE_UP, smooth(0.7, 3.2, t)).normalize().applyQuaternion(spin);
   const look = E.clone().addScaledVector(up, -0.06).lerp(VG.clone().multiplyScalar(-0.2 * dS), kl);
+  const arc = 0.5 * smooth(3.3, 5.05, t) - 0.18 * smooth(10.2, 13.0, t), right = dir.clone().cross(up).normalize(), qa = new T.Quaternion().setFromAxisAngle(right, arc);
+  dir.applyQuaternion(qa); up.applyQuaternion(qa);
   return { pos: look.clone().addScaledVector(dir, dS), look, up, dS };
 }
 const seg2 = (t, a, b) => clamp((t - a) / (b - a));
@@ -647,26 +649,26 @@ function hookOverlay(t, E2, S2) {
   ctx.save(); ctx.translate(540, 1420); ctx.scale(pop, pop); ctx.translate(-540, -1420); hookText('INSIDE THIS', 540, 1368, 104, W1, ab); hookText('BUBBLE.', 540, 1474, 104, GOLD, ab); ctx.restore();
   const a1 = fadeIO(t, 3.38, 5.0);
   richLine([['So did all ', W1], ['117 billion', GOLD]], 1360, 66, a1); richLine([['humans before you.', W1]], 1436, 66, a1);
-  const a2 = fadeIO(t, 5.05, 8.4);
+  const a2 = fadeIO(TN, 6.2, 9.35);
   richLine([["And you're flying around", W1]], 1330, 66, a2); richLine([['the galaxy at ', W1], ['830,000 km/h.', GOLD]], 1406, 66, a2);
-  const a3 = fadeIO(t, 10.0, 11.45);
+  const a3 = 0;
   richLine([["The Sun's wind", W1]], 1330, 66, a3); richLine([['blows it up.', GOLD]], 1406, 66, a3);
-  const a4 = fadeIO(t, 11.5, 13.2);
-  richLine([['Outside: ', W1], ['cosmic rays', GOLD]], 1330, 66, a4); richLine([['from exploding stars.', W1]], 1406, 66, a4);
+  const a4 = fadeIO(TN, 9.45, 11.68);
+  richLine([['Outside, dead stars', W1]], 1330, 66, a4); richLine([['are shooting at you.', GOLD]], 1406, 66, a4);
   // block 3: the rehook, then Voyager 1
   const a5 = fadeIO(t, 13.15, 14.95, 0.1), pop5 = 1 + 0.07 * Math.exp(-Math.max(0, t - 13.15) * 9);
   ctx.save(); ctx.translate(540, 1370); ctx.scale(pop5, pop5); ctx.translate(-540, -1370);
   richLine([['ONLY ', W1], ['2 MACHINES', GOLD]], 1350, 84, a5, 600); richLine([['HAVE EVER LEFT.', W1]], 1446, 84, a5, 600); ctx.restore();
   const a6 = fadeIO(t, 15.0, 16.95);
   richLine([['Voyager 1 has been flying', W1]], 1330, 66, a6); richLine([['since ', W1], ['1977.', GOLD]], 1406, 66, a6);
-  const a7 = fadeIO(t, 17.05, 19.3);
+  const a7 = fadeIO(TN, 16.85, 19.1);
   richLine([['It took ', W1], ['35 years', GOLD]], 1330, 66, a7); richLine([['to get out.', W1]], 1406, 66, a7);
-  const a8 = fadeIO(t, 19.35, 21.8);
+  const a8 = fadeIO(TN, 19.15, 21.1);
   richLine([["Right now it's almost", W1]], 1330, 66, a8); richLine([['1 light-day', GOLD], [' from home.', W1]], 1406, 66, a8);
-  const a9 = fadeIO(t, 21.95, 24.3), pop9 = 1 + 0.06 * Math.exp(-Math.max(0, t - 22.55) * 9) * (t > 22.55 ? 1 : 0);
+  const a9 = fadeIO(TN, 21.15, 24.25), pop9 = 1 + 0.06 * Math.exp(-Math.max(0, TN - 21.65) * 9) * (TN > 21.65 ? 1 : 0);
   richLine([['One seat. You never come back.', W1]], 1290, 60, a9);
-  ctx.save(); ctx.translate(540, 1390); ctx.scale(pop9, pop9); ctx.translate(-540, -1390); richLine([['Would you go?', GOLD]], 1400, 92, a9 * smooth(22.5, 22.62, t), 600); ctx.restore();
-  text('YES  or  NO', 540, 1500, 34, '#f4e6c8', { alpha: a9 * smooth(23.0, 23.15, t), spacing: 6 });
+  ctx.save(); ctx.translate(540, 1390); ctx.scale(pop9, pop9); ctx.translate(-540, -1390); richLine([['Would you go?', GOLD]], 1400, 92, a9 * smooth(21.6, 21.72, TN), 600); ctx.restore();
+  text('YES  or  NO', 540, 1500, 34, '#f4e6c8', { alpha: a9 * smooth(22.05, 22.2, TN), spacing: 6 });
   const lv = fadeIO(t, 13.65, 14.35, 0.15);
   const lw = fadeIO(t, 20.2, 21.8, 0.3);
   if (lw > 0 && E2.v1 && E2.v1[2]) text('VOYAGER 1', clamp(E2.v1[0], 170, 910), E2.v1[1] - 40, 28, '#ffe2a6', { alpha: lw, spacing: 4 });
@@ -824,7 +826,17 @@ function widePoseL(t) { const az = 0.55 + 0.3 * (t - 14.6), rad = E1.clone().mul
   return { pos, look, up: U1.clone().addScaledVector(vd, -U1.dot(vd)).normalize() }; }
 function widePose(t) { const p = widePoseL(t), o = hl(V3()); return { pos: hl(p.pos), look: hl(p.look), up: hl(p.up).sub(o).normalize() }; }
 function voyPose(t) { const p = voyPoseL(t), o = hl(V3()); return { pos: hl(p.pos), look: hl(p.look), up: hl(p.up).sub(o).normalize() }; }
-window.renderAt = function (t, frame = Math.round(t * 30)) {
+// v20 retime: picture time (old) as a smooth monotone function of reel time (new); see README
+const RMAP = [[0, 0], [3.4, 3.4], [6.2, 5.05], [6.7, 6.4], [9.4, 10.2], [11.6, 13.0], [13.6, 15.0], [16.8, 17.0], [18.8, 19.0], [21.0, 21.8], [24.2, 24.3], [25, 25]];
+const srcT = (() => { const n = RMAP.length, x = RMAP.map(k => k[0]), y = RMAP.map(k => k[1]), d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d.push((y[i + 1] - y[i]) / (x[i + 1] - x[i]));
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  // Fritsch-Carlson: harmonic-mean slopes keep the map monotone with a continuous speed
+  for (let i = 1; i < n - 1; i++) m[i] = 2 / (1 / d[i - 1] + 1 / d[i]);
+  return tn => { tn = clamp(tn, 0, x[n - 1]); let i = 0; while (i < n - 2 && tn > x[i + 1]) i++; const h = x[i + 1] - x[i], s = (tn - x[i]) / h, s2 = s * s, s3 = s2 * s;
+    return (2 * s3 - 3 * s2 + 1) * y[i] + (s3 - 2 * s2 + s) * h * m[i] + (-2 * s3 + 3 * s2) * y[i + 1] + (s3 - s2) * h * m[i + 1]; }; })();
+window.srcT = srcT; let TN = 0;
+window.renderAt = function (tn, frame = Math.round(tn * 30)) { TN = tn; const t = srcT(tn);
   const y = yAt(t); U.uTime.value = t;
   renderer.setClearColor('#050914', 1); renderer.clear();
   // the bubble's scale first (the Voyager cameras live in its frame)
