@@ -22,12 +22,14 @@ def bronze_mat():
     """Dark patinated bronze; scales via voronoi bump; polished where hands have touched (front highs)."""
     m, N, L, b = lib.mat('bronze')
     tc = N.new('ShaderNodeTexCoord')
-    vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'F1'; vo.inputs['Scale'].default_value = 70; vo.inputs['Randomness'].default_value = 0.35
+    vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'F1'; vo.inputs['Scale'].default_value = 115; vo.inputs['Randomness'].default_value = 0.35
     L.new(tc.outputs['Object'], vo.inputs['Vector'])
     nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 6; nz.inputs['Detail'].default_value = 10; L.new(tc.outputs['Object'], nz.inputs['Vector'])
     ramp = N.new('ShaderNodeValToRGB'); L.new(nz.outputs['Fac'], ramp.inputs['Fac'])
-    e = ramp.color_ramp.elements; e[0].position = 0.42; e[0].color = (0.05, 0.035, 0.022, 1); e[1].position = 0.66; e[1].color = (0.62, 0.38, 0.16, 1)
-    L.new(ramp.outputs[0], b.inputs['Base Color'])
+    e = ramp.color_ramp.elements; e[0].position = 0.3; e[0].color = (0.2, 0.12, 0.055, 1); e[1].position = 0.7; e[1].color = (0.62, 0.4, 0.17, 1)
+    ao = N.new('ShaderNodeAmbientOcclusion'); ao.inputs['Distance'].default_value = 0.03
+    mx = N.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 0.85
+    L.new(ramp.outputs[0], mx.inputs['A']); L.new(ao.outputs['AO'], mx.inputs['B']); L.new(mx.outputs['Result'], b.inputs['Base Color'])
     b.inputs['Metallic'].default_value = 0.95
     rr = N.new('ShaderNodeMapRange'); rr.inputs['From Min'].default_value = 0.4; rr.inputs['From Max'].default_value = 0.7; rr.inputs['To Min'].default_value = 0.6; rr.inputs['To Max'].default_value = 0.22
     L.new(nz.outputs['Fac'], rr.inputs['Value']); L.new(rr.outputs[0], b.inputs['Roughness'])
@@ -78,16 +80,16 @@ block_wall(-DW / 2 - 0.3, DW / 2 + 0.3, DH + 0.4, 3.6, 0.12, seed=3)
 block_wall(-7, 0.3, 0, 3.6, -1.6, along='y', seed=4)
 block_wall(-7, 0.3, 0, 3.6, 1.6, along='y', seed=5)
 floor(-1.6, 1.6, -7, 0.3)
-bpy.ops.mesh.primitive_plane_add(size=1, location=(0, -3.4, 3.45)); c = bpy.context.object; c.scale = (3.4, 7.6, 1); c.data.materials.append(stone)
+bpy.ops.mesh.primitive_plane_add(size=1, location=(0, -3.4, 3.45)); c = bpy.context.object; c.scale = (3.4, 7.6, 1); bpy.ops.object.transform_apply(scale=True); c.data.materials.append(stone)
 
 # door frame: two jambs + lintel, carved granite
 for sx in (-1, 1):
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(sx * (DW / 2 + 0.15), 0.05, DH / 2 + 0.2)); j = bpy.context.object; j.scale = (0.3, 0.42, DH + 0.4); j.data.materials.append(stone)
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(sx * (DW / 2 + 0.15), 0.05, DH / 2 + 0.2)); j = bpy.context.object; j.scale = (0.3, 0.42, DH + 0.4); bpy.ops.object.transform_apply(scale=True); j.data.materials.append(stone)
     bv = j.modifiers.new('bev', 'BEVEL'); bv.width = 0.02; bv.segments = 3
-bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0.05, DH + 0.2)); li = bpy.context.object; li.scale = (DW + 0.9, 0.46, 0.4); li.data.materials.append(stone); bv = li.modifiers.new('bev', 'BEVEL'); bv.width = 0.02; bv.segments = 3
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0.05, DH + 0.2)); li = bpy.context.object; li.scale = (DW + 0.9, 0.46, 0.4); bpy.ops.object.transform_apply(scale=True); li.data.materials.append(stone); bv = li.modifiers.new('bev', 'BEVEL'); bv.width = 0.02; bv.segments = 3
 
 # iron leaf with bands and rivets
-bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0.1, DH / 2)); leaf = bpy.context.object; leaf.scale = (DW, 0.12, DH); leaf.data.materials.append(iron)
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0.1, DH / 2)); leaf = bpy.context.object; leaf.scale = (DW, 0.12, DH); bpy.ops.object.transform_apply(scale=True); leaf.data.materials.append(iron)
 bv = leaf.modifiers.new('bev', 'BEVEL'); bv.width = 0.01; bv.segments = 2
 riv = bpy.data.meshes.new('riv'); bm = bmesh.new(); bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.022); bm.to_mesh(riv); bm.free()
 for p in riv.polygons: p.use_smooth = True
@@ -125,42 +127,61 @@ def cobra(cx, flip):
     for bp, co in zip(s2.bezier_points, [(0, 0.15, 0), (0.5, 0.85, 0), (1, 1.05, 0)]): bp.co = co; bp.handle_left_type = bp.handle_right_type = 'AUTO'
     to = bpy.data.objects.new('taperobj', tp); lib.link(to); cu.taper_object = to; to.hide_render = True
     bo = bpy.data.objects.new('body', cu); lib.link(bo); cu.materials.append(bronze)
-    # hood
-    outline = []
-    for i in range(64):
-        t = i / 64 * math.tau
-        # wide hood: narrow at neck (bottom), widest 60% up, rounded top
-        x = math.sin(t); y = -math.cos(t)
-        k = 0.17 * (0.55 + 0.45 * (1 + y) / 2) if y < 0 else 0.17
-        u = (y + 1) / 2; base = math.sin(min(1.0, u ** 1.15) * math.pi) ** 0.55; wid = 0.24 * max(0.22 if u < 0.5 else 0.36, base)
-        outline.append((x * wid, y * 0.27))
-    bm = bmesh.new(); vs = [bm.verts.new((x, 0, z)) for x, z in outline]; f = bm.faces.new(vs)
-    bmesh.ops.triangulate(bm, faces=[f]); bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=6, use_grid_fill=True)
-    for v in bm.verts:
-        r = min(1, (v.co.x / 0.23) ** 2 + (v.co.z / 0.27) ** 2); v.co.y = -0.07 * (1 - r) ** 0.7
-    ho = lib.mesh_obj('hood', bm, bronze)
-    so = ho.modifiers.new('sol', 'SOLIDIFY'); so.thickness = 0.03; so.offset = 1
-    lib.add_mod_subsurf(ho, 2)
-    ho.location = (cx + flip * -0.02, -0.04, base_z + 1.12)
-    # spectacle mark on the hood back is hidden; front shows ventral scutes: raised bars down the middle
-    for i in range(9):
-        bpy.ops.mesh.primitive_cube_add(size=1, location=(cx + flip * -0.02, -0.15, base_z + 0.92 + i * 0.038)); sc_ = bpy.context.object
-        sc_.scale = (0.075 * (1 - abs(i - 4) / 10), 0.02, 0.028); sc_.data.materials.append(bronze); bv = sc_.modifiers.new('bev', 'BEVEL'); bv.width = 0.005; bv.segments = 2
-    # head: metaballs (skull + snout + brow), turned toward the other cobra
-    hz = base_z + 1.42; hx = cx + flip * -0.02; d = -flip
-    def blob(co, sz, rot=(0, 0, 0)):
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=1, location=co); o = bpy.context.object; o.scale = sz; o.rotation_euler = rot
-        bpy.ops.object.transform_apply(scale=True, rotation=False, location=False)
-        o.data.materials.append(bronze); bpy.ops.object.shade_smooth(); return o
-    # head faces out of the door, tilted down; eyes on the sides, snout toward the viewer
-    blob((hx, -0.17, hz - 0.01), (0.062, 0.07, 0.03), (0.45, 0, 0))
-    blob((hx, -0.215, hz - 0.03), (0.04, 0.045, 0.022), (0.5, 0, 0))
-    blob((hx, -0.13, hz - 0.06), (0.05, 0.04, 0.07))
-    # garnet eye on the visible (front) side
-    eye = lib.gem_mat('eye', (0.6, 0.02, 0.03))
-    [bpy.ops.mesh.primitive_uv_sphere_add(radius=0.011, location=(hx + sx_ * 0.05, -0.19, hz + 0.008)) or bpy.context.object.data.materials.append(eye) for sx_ in (-1, 1)]
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.011, location=(hx + 0.05, -0.19, hz + 0.008)); ey = bpy.context.object; ey.data.materials.append(eye); bpy.ops.object.shade_smooth()
-    return (hx, -0.19, hz + 0.008)
+    # ---- hood + head: one lofted surface along a spine that rises, then bends forward out of the door ----
+    nx0 = cx - 0.02 * flip; z0 = base_z + 0.96
+    def spine(t):
+        if t <= 0.78:
+            u = t / 0.78; return Vector((nx0, -0.07 - 0.03 * math.sin(u * math.pi), z0 + u * 0.72))
+        u = (t - 0.78) / 0.22; ang = u * 1.25  # bend from up toward the viewer (-y)
+        R_ = 0.1; return Vector((nx0, -0.07 - R_ * (1 - math.cos(ang)) - u * 0.06, z0 + 0.72 + R_ * math.sin(ang) * 0.75))
+    def half_w(t):  # sideways half-width
+        if t < 0.08: return 0.045 + 0.01 * t / 0.08
+        if t <= 0.78:
+            u = (t - 0.08) / 0.7
+            return 0.05 + 0.15 * math.sin(min(1, u ** 1.35) * math.pi) ** 0.8 if u < 0.94 else 0.07 + 0.08 * (1 - (u - 0.94) / 0.06) * 0
+        u = (t - 0.78) / 0.22
+        return 0.088 + 0.02 * math.sin(u * math.pi) - 0.066 * u ** 2.2
+    def half_d(t):  # front-back half-thickness
+        if t < 0.08: return 0.045
+        if t <= 0.78:
+            u = (t - 0.08) / 0.7; return 0.045 - 0.022 * math.sin(min(1, u) * math.pi) ** 0.5
+        u = (t - 0.78) / 0.22; return 0.034 - 0.016 * u ** 1.6
+    NT, NS = 140, 48
+    bm = bmesh.new(); rows = []
+    for i in range(NT + 1):
+        t = i / NT; p = spine(t); tg = (spine(min(1, t + 1e-3)) - spine(max(0, t - 1e-3))).normalized()
+        side = Vector((1, 0, 0)); nrm = side.cross(tg).normalized()  # 'front' axis of the section
+        aw, ad = half_w(t), half_d(t)
+        row = []
+        for j in range(NS):
+            th = j / NS * math.tau; cx_, cy_ = math.cos(th), math.sin(th)
+            # superellipse: flatter edges on the hood
+            ex = 2.6 if 0.15 < t < 0.75 else 2.0
+            sx = math.copysign(abs(cx_) ** (2 / ex), cx_); sy = math.copysign(abs(cy_) ** (2 / ex), cy_)
+            off = side * (sx * aw) + nrm * (sy * ad)
+            # belly scutes: ridges down the front centre of the hood and neck
+            if t < 0.76 and sy > 0.6 and abs(sx) < 0.35:
+                off += nrm * (0.007 * max(0.0, math.sin(t * 170)) ** 0.5 * (1 - abs(sx) / 0.35))
+            row.append(bm.verts.new(p + off))
+        rows.append(row)
+    for i in range(NT):
+        for j in range(NS):
+            bm.faces.new((rows[i][j], rows[i][(j + 1) % NS], rows[i + 1][(j + 1) % NS], rows[i + 1][j]))
+    tip = bm.verts.new(spine(1.0) + (spine(1.0) - spine(0.99)).normalized() * 0.012)
+    for j in range(NS): bm.faces.new((rows[NT][j], rows[NT][(j + 1) % NS], tip))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ho = lib.mesh_obj('hoodhead', bm, bronze); lib.add_mod_subsurf(ho, 1)
+    # front of the body is -y: make the section 'front' face the viewer (nrm points -y when the spine is vertical)
+    # eyes on both sides of the head, with brow ridges
+    eye = lib.gem_mat('eye', (0.55, 0.02, 0.03)); _b = eye.node_tree.nodes['Principled BSDF']; _b.inputs['Emission Color'].default_value = (1, 0.05, 0.03, 1); _b.inputs['Emission Strength'].default_value = 1.5
+    te = 0.9; pe = spine(te); tge = (spine(te + 0.01) - spine(te - 0.01)).normalized(); up = tge.cross(Vector((1, 0, 0))).normalized()
+    eyes = []
+    for sx_ in (-1, 1):
+        ep = pe + Vector((sx_ * (half_w(te) * 0.9 + 0.004), 0, 0)) + Vector((0, -0.004, 0.016))
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.0115, location=ep); e_ = bpy.context.object; e_.data.materials.append(eye); bpy.ops.object.shade_smooth()
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=ep + Vector((0, 0.002, 0.009))); br = bpy.context.object; br.scale = (0.016, 0.014, 0.006); br.data.materials.append(bronze); bpy.ops.object.shade_smooth()
+        eyes.append(ep)
+    return tuple(eyes[0 if flip < 0 else 1])
 
 eyeL = cobra(-0.34, 1)
 eyeR = cobra(0.34, -1)
@@ -171,7 +192,7 @@ for sx in (-1, 1):
     o, wicks = lib.nilavilakku((sx * 1.15, -0.55, 0), 1.0, brass)
     for w in wicks: lib.flame(w, 1.25, lean=(-sx * lean, 0))
 # warm fill from the stairwell behind camera; keeps the frame lifted
-lib.spot((0.2, -6.5, 3.0), (0, 0, 1.4), 380, angle=0.5, blend=0.9, color=(1, 0.72, 0.45), radius=0.6)
+lib.spot((0.2, -6.5, 3.0), (0, 0, 1.4), 230, angle=0.5, blend=0.9, color=(1, 0.72, 0.45), radius=0.6)
 lib.point((0, -1.2, 2.9), 25, (1, 0.66, 0.36), 0.2)
 wn = sc.world.node_tree.nodes; wn['Background'].inputs['Color'].default_value = (0.08, 0.045, 0.025, 1); wn['Background'].inputs['Strength'].default_value = 0.3
 lib.volume_box((0, -3.2, 1.7), (3.1, 7.0, 3.4), density=0.03, color=(1, 0.82, 0.62), aniso=0.55)
@@ -181,7 +202,7 @@ if SHOT == 'wide':
     lib.camera((0.1, -4.3, 1.05), (0, 0, 1.5), lens=30, fstop=8, focus=4.3)
 elif SHOT == 'heads':
     m = Vector(eyeL).lerp(Vector(eyeR), 0.5)
-    lib.camera((m.x + 0.1, -1.5, m.z - 0.2), (m.x, 0, m.z - 0.16), lens=38, fstop=2.8, focus=1.32)
+    lib.camera((m.x + 0.1, -1.5, m.z - 0.2), (m.x, 0, m.z - 0.16), lens=30, fstop=2.8, focus=1.32)
 elif SHOT == 'lamp':
     lib.camera((1.9, -3.2, 1.25), (0.5, 0, 1.15), lens=40, fstop=2.8, focus=3.0)
 sc.render.filepath = out

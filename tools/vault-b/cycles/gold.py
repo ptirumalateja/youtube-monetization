@@ -81,10 +81,10 @@ def heap(cx, cy, rad, height, n, seed):
         s = random.uniform(0.92, 1.08); o.scale = (s, s, s)
     return h
 
-h0 = heap(0.0, 0.0, 0.24, 0.13, 3400, 1)
-heap(-0.34, 0.32, 0.26, 0.2, 2200, 2)
-heap(0.36, 0.42, 0.3, 0.24, 2200, 3)
-heap(0.05, 0.8, 0.4, 0.3, 1600, 4)
+h0 = heap(0.0, 0.0, 0.24, 0.13, 4400, 1)
+heap(-0.34, 0.32, 0.26, 0.2, 4200, 2)
+heap(0.36, 0.42, 0.3, 0.24, 4200, 3)
+heap(0.05, 0.8, 0.4, 0.3, 3000, 4)
 
 # ---------- treasures ----------
 gold = lib.gold_mat('gold', 0.12, (1.0, 0.74, 0.32))
@@ -158,6 +158,12 @@ def chain(points, link_r=0.006, n=160):
 
 chain([(-0.16, -0.1, h0(-0.16, -0.1) + 0.004), (-0.05, -0.05, h0(-0.05, -0.05) + 0.004), (0.06, -0.03, h0(0.06, -0.03) + 0.005), (0.15, -0.09, h0(0.15, -0.09) + 0.004), (0.22, -0.18, h0(0.22, -0.18) + 0.003)])
 
+# loose rubies scattered on the heap in front of the kalasam
+random.seed(5)
+for i in range(18):
+    x, y = random.uniform(-0.08, 0.2), random.uniform(0.0, 0.14)
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=random.uniform(0.006, 0.01), location=(x, y, h0(x, y) + 0.004)); gm_ = bpy.context.object
+    gm_.data.materials.append([ruby, ruby, emer, dia][i % 4]); gm_.rotation_euler = (random.random() * 3, random.random() * 3, 0)
 # tumbling coins in the air (frozen mid-fall)
 random.seed(9)
 for i in range(30):

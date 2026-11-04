@@ -69,6 +69,8 @@ def text_layer(img, text, f, cy, fill='gold', track=0, glow=(255, 170, 60), glow
 
 def tag(img):
     """PADMANABHASWAMY TEMPLE · KERALA, engraved gold, top third, with thin rules."""
+    sh = Image.new('L', (W, H), 0); ds = ImageDraw.Draw(sh); ds.ellipse((60, 200, 1020, 530), fill=150); sh = sh.filter(ImageFilter.GaussianBlur(70))
+    img.paste(Image.new('RGB', (W, H), (26, 14, 5)), (0, 0), sh)
     f = font(62, 800)
     text_layer(img, 'PADMANABHASWAMY', f, 330, track=4, glow_r=16, glow_a=0.4, shadow=0.95)
     f2 = font(38, 700)
