@@ -608,10 +608,10 @@ for (const L of [0.85, 1.1, 1.4, 1.8]) for (let k = 0; k < 10; k++) { const ph =
   MAG.add(new T.Line(new T.BufferGeometry().setFromPoints(pts), fieldMat)); }
 // solar wind: sparks streaming out from the Sun, slowing at the termination shock
 const WIND = (() => { const N = 5000, pos = [], a = []; for (let i = 0; i < N; i++) { const u = rnd() * 2 - 1, ph = rnd() * 6.2832, s = Math.sqrt(1 - u * u); pos.push(s * Math.cos(ph), s * Math.sin(ph), u); a.push(rnd()); }
-  const m = pointsMat('wind', `${LOGV[0]} uniform float uTime; attribute float aR; varying float vA; void main(){ float u = fract(aR + uTime*.16); float r = 1.2 + 19.5*pow(u, .7);
+  const m = pointsMat('wind', `${LOGV[0]} uniform float uTime; uniform float uSz; attribute float aR; varying float vA; void main(){ float u = fract(aR + uTime*.16); float r = 1.2 + 19.5*pow(u, .7);
       vec3 p = position*r; vA = sin(3.14159*u)*(.4 + .6*fract(aR*7.3)); vec4 mv = modelViewMatrix*vec4(p,1.); gl_Position = projectionMatrix*mv;
-      gl_PointSize = clamp(40./max(-mv.z,.5)*uH/1280., 1., 3.2); ${LOGV[1]} }`,
-    `${LOGF[0]} uniform float uA; varying float vA; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(vec3(1.,.86,.62)*vA*(1.-r)*uA, 1.); }`);
+      gl_PointSize = clamp(40.*uSz/max(-mv.z,.5)*uH/1280., 1., 3.2*uSz); ${LOGV[1]} }`,
+    `${LOGF[0]} uniform float uA; varying float vA; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(vec3(1.,.86,.62)*vA*(1.-r)*uA, 1.); }`, { uSz: { value: 1 } });
   const p = pointCloud(HELI, pos, { aR: [a, 1] }, m); return m; })();
 
 const HOOK_DUR = 13;
@@ -623,9 +623,9 @@ function hookPose(t) {
   const y = yAt(t), E = Ew(y), toSun = E.clone().negate().normalize(), side = toSun.clone().cross(ECL_N).normalize();
   const dirE = toSun.clone().multiplyScalar(0.45).addScaledVector(side, -0.8).addScaledVector(ECL_N, 0.42).normalize().applyQuaternion(new T.Quaternion().setFromAxisAngle(ECL_N, -0.1 * Math.min(t, 1.2)));
   const kd = eio(seg2(t, 0.55, 3.6)), kr = smooth(0.7, 3.4, t);
-  const dS = Math.exp(mixv(Math.log(1.3), Math.log(92), kd)) * (1 + 0.075 * Math.min(Math.max(0, t - 3.6), 3)) * (1 - 0.05 * smooth(0, 0.6, t)) * (1 - 0.12 * smooth(9.0, 12.5, t));
+  const dS = Math.exp(mixv(Math.log(1.3), Math.log(92), kd)) * (1 + 0.075 * Math.min(Math.max(0, t - 3.6), 3)) * (1 - 0.05 * smooth(0, 0.6, t)) * (1 - 0.36 * smooth(10.3, 13.0, t));
   const kl = smooth(Math.log(1.6), Math.log(14), Math.log(dS));
-  const spin = new T.Quaternion().setFromAxisAngle(VG, 0.09 * Math.max(0, Math.min(t, 6.6) - 3.2) ** 1.3 + 0.05 * Math.max(0, t - 6.6));
+  const spin = new T.Quaternion().setFromAxisAngle(VG, 0.09 * Math.max(0, Math.min(t, 6.6) - 3.2) ** 1.3 + 0.05 * Math.max(0, t - 6.6) + 0.06 * Math.max(0, t - 10.3));
   const dir = dirE.clone().lerp(RIDE_DIR, kr).addScaledVector(ECL_N, 0.9 * Math.sin(Math.PI * seg2(t, 0.8, 3.2))).normalize().applyQuaternion(spin), up = ECL_N.clone().lerp(RIDE_UP, smooth(0.7, 3.2, t)).normalize().applyQuaternion(spin);
   const look = E.clone().addScaledVector(up, -0.06).lerp(VG.clone().multiplyScalar(-0.2 * dS), kl);
   return { pos: look.clone().addScaledVector(dir, dS), look, up, dS };
@@ -730,7 +730,11 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   const E = Ew(y); MAG.position.copy(E); MAG.lookAt(0, 0, 0);
   const magK = 1 - smooth(4, 13, dS); magMat.uniforms.uK.value = magMat2.uniforms.uK.value = magK; fieldMat.uniforms.uA.value = 0.34 * (1 - smooth(4, 12, dS)); MAG.visible = magK > 0.01;
   const hk = smooth(3, 14, dS); helioMat.uniforms.uK.value = hk; tsMat.uniforms.uK.value = hk * smooth(14, 60, dS); HELI.visible = hk > 0.01;
-  WIND.uniforms.uA.value = (0.8 + 0.7 * fadeIO(t, 8.8, 10.6, 0.4)) * smooth(3, 14, dS); updateRays(t);
+  // "The Sun's wind blows it up": the bubble sags during the dive back in, then the wind inflates it (with an overshoot)
+  const wB = fadeIO(t, 8.8, 10.6, 0.4), inflate = smooth(9.0, 9.8, t);
+  HELI.scale.setScalar(mixv(1, 0.8, smooth(8.2, 8.95, t)) * (1 - inflate) + inflate * (1 + 0.06 * Math.sin(Math.PI * smooth(9.4, 10.4, t))));
+  WIND.uniforms.uSz.value = 1 + 1.3 * wB; tsMat.uniforms.uS.value = 0.38 + 0.5 * wB * (0.6 + 0.4 * Math.sin(t * 9));
+  WIND.uniforms.uA.value = (0.8 + 1.4 * fadeIO(t, 8.8, 10.6, 0.4)) * smooth(3, 14, dS); updateRays(t);
   renderer.render(sSolar, camS);
   drawFilm();
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 560, 540, 960, 1250); v.addColorStop(0, 'rgba(4,8,18,0)'); v.addColorStop(1, 'rgba(4,8,18,0.3)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);

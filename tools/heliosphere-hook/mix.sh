@@ -2,7 +2,7 @@
 # Heliosphere v18 sound, 0-13 s: library hits from tools/sfxlib cut to the picture (credits in /audio-attribution.md). No music.
 # Hook: 0.1 braam on frame 0 | 1.8 woosh as the camera lifts past the Sun | 2.55 riser-hit + deep boom + shimmer as the Sun's bubble lands
 #       3.4 swish on the caption change | 5.05 subby whoosh on the speed line | wind, sparks, plasma, jet texture
-# Block 2: 6.6 warp + 7.0 whoosh out to the galaxy | 7.3 gateway swell on the spiral | 8.8 woosh back into the bubble + swish on the caption
+# Block 2 (also 9.6 portal swell as the wind inflates the bubble): 6.6 warp + 7.0 whoosh out to the galaxy | 7.3 gateway swell on the spiral | 8.8 woosh back into the bubble + swish on the caption
 #       8.8-10.6 sparks for the solar wind | 10.5 boom + zap + plasma as the cosmic rays hit, crackle to 13 s
 set -euo pipefail
 L=../sfxlib; OUT=${1:-output/hook.wav}; D=${DUR:-13}
@@ -21,7 +21,9 @@ ffmpeg -y -v error \
 [3]aformat=sample_rates=48000:channel_layouts=stereo,asplit=2[x1][x2];
 [x1]atrim=0:3.5,afade=t=out:st=2.4:d=1.1,volume=0.75,adelay=2200|2200[boom];
 [x2]atrim=0:3.0,afade=t=out:st=2.0:d=1.0,volume=0.55,adelay=10150|10150[boom2];
-[4]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:3.0,afade=t=out:st=2.0:d=1.0,volume=0.35,adelay=1150|1150[shim];
+[4]aformat=sample_rates=48000:channel_layouts=stereo,asplit=2[g1][g2];
+[g1]atrim=0:3.0,afade=t=out:st=2.0:d=1.0,volume=0.35,adelay=1150|1150[shim];
+[g2]atrim=0:2.6,afade=t=out:st=1.8:d=0.8,volume=0.4,adelay=8130|8130[inflate];
 [5]aformat=sample_rates=48000:channel_layouts=stereo,asplit=2[s1][s2];
 [s1]volume=0.45,adelay=1370|1370[swish];
 [s2]volume=0.4,adelay=6850|6850[swish2];
@@ -40,7 +42,7 @@ ffmpeg -y -v error \
 [11]aformat=sample_rates=48000:channel_layouts=stereo,volume=0.6,adelay=6450|6450[warp];
 [12]aformat=sample_rates=48000:channel_layouts=stereo,volume=0.45,adelay=7300|7300[gate];
 [13]aformat=sample_rates=48000:channel_layouts=stereo,volume=0.5,adelay=10500|10500[zap];
-[braam][woosh][woosh2][rhit][boom][boom2][shim][swish][swish2][sub][sub2][jet][spark][spark2][spark3][plasma][plasma2][bed][warp][gate][zap]amix=inputs=21:normalize=0:duration=longest,
+[braam][woosh][woosh2][rhit][boom][boom2][shim][swish][swish2][sub][sub2][jet][spark][spark2][spark3][plasma][plasma2][bed][warp][gate][zap][inflate]amix=inputs=22:normalize=0:duration=longest,
 atrim=0:$D,highpass=f=35,equalizer=f=2200:t=q:w=1.2:g=3,extrastereo=m=0.55,afade=t=out:st=$(echo "$D-0.2"|bc):d=0.2,loudnorm=I=-14:TP=-1.5:LRA=11,volume=1.6dB,alimiter=limit=0.80:level=false,aresample=48000[o]" \
  -map "[o]" -ar 48000 "$OUT"
 echo wrote $OUT
