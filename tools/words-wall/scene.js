@@ -99,8 +99,10 @@ const PLACED=k=>TL.catches[k]+TL.place;
 
 // ---------------------------------------------------------------- hero
 const XK=(()=>{ const K=[[0,hx(0)]]; TL.catches.forEach((c,k)=>{ const b=k<NB-1?hx(k+1):HX_END; K.push([PLACED(k)+0.05,hx(k)],[PLACED(k)+0.32,b]); }); return K; })();
+const slipW=t=>sstep(TL.dodgeAt-0.2,TL.dodgeAt-0.06,t)*(1-sstep(TL.dodgeAt+0.15,TL.dodgeAt+0.45,t));
 function heroRoot(t){ let x=keys(XK,t), mv=0; TL.catches.forEach((c,k)=>{ const a=PLACED(k)+0.05,b=PLACED(k)+0.32; if(t>a&&t<b) mv=(t-a)/(b-a); });
   let y=0, z=HZ;
+  { const w=slipW(t); if(w>0){ const r0=V(hx(0),0,HZ), f=fwdOf(faceYaw(r0,TL.dodgeThrower)); let sd=V(f.z,0,-f.x); if(sd.z>0) sd.negate(); x+=0.22*w*sd.x; z+=0.22*w*sd.z; } }
   const h0=TL.hop0, hl=TL.hopLand;                                    // payoff: he hops up onto his own wall
   if(t>h0+0.12){ const u=clamp((t-h0-0.12)/(hl-h0-0.12)); const e=sm5(u); z=lerp(HZ,0,e); y=TOP*e+0.32*Math.sin(Math.PI*u); }
   return {root:V(x,y,z),mv}; }
@@ -137,7 +139,7 @@ function brickState(k,t){
 function dodgeState(t){
   // the first brick: thrown straight at his face; he ducks; it flies on over him and smashes on the floor behind him
   const th=TL.dodgeThrower, r=TL.dodgeRel, T1=TL.dodgeAt-r, hy=haterYaw(th,r);
-  const P0=holdPt(HP[th],hy,'rel'), r0=V(hx(0),0,HZ), P1=facePt(r0,faceYaw(r0,th),0.05);
+  const P0=holdPt(HP[th],hy,'rel'), r0=V(hx(0),0,HZ), P1=facePt(r0,faceYaw(r0,th),0.05); { const f=fwdOf(faceYaw(r0,th)); let sd=V(f.z,0,-f.x); if(sd.z>0) sd.negate(); P1.addScaledVector(sd,0.0); P1.y+=0.3; }  // passes just beside the spot his head slipped from
   const GD=5;                                                          // a flat, fast line straight at his face
   const v=P1.clone().sub(P0).multiplyScalar(1/T1); const vy=(P1.y-P0.y)/T1+0.5*GD*T1; v.y=0;
   const yAt=s=>P0.y+vy*s-0.5*GD*s*s;
@@ -177,9 +179,8 @@ function heroPose(t){
   const r=TL.redRelease, Hh=TL.redHit;
   const br=sstep(r-0.1,Hh-0.1,t)*(1-sstep(Hh+0.15,Hh+0.7,t)); P.p+=0.12*br; P.tilt+=0.1*br; P.dy-=0.05*br; P.kL+=0.25*br; P.kR+=0.25*br;
   const fl=Math.exp(-Math.pow((t-Hh-0.06)/0.1,2)); P.p-=0.1*fl; P.dy-=0.03*fl;
-  // the dodge: a big fast full-body duck under the first brick
-  const dk=sstep(TL.dodgeAt-0.3,TL.dodgeAt-0.1,t)*(1-sstep(TL.dodgeAt+0.2,TL.dodgeAt+0.55,t));
-  if(dk>0){ P=R.blend(P,{...R.POSES.crouch,p:1.15,tilt:0.25,sL:1.6,sR:1.6,eL:1.4,eR:1.4},dk); P.dy-=0.12*dk; }
+  // the dodge (Teja, 4 Nov): no bend, just a small quick slip of the head to one side; the brick passes where his face was
+  const dk=slipW(t); P.tilt+=0.12*dk; P.kL+=0.08*dk; P.kR+=0.08*dk;
   // the hop up onto the wall: crouch, spring, tuck, land with an absorb, then stand tall looking down at them
   const h0=TL.hop0, hl=TL.hopLand;
   const pre=sstep(h0-0.15,h0+0.1,t)*(1-sstep(h0+0.12,h0+0.25,t)); const air=sstep(h0+0.12,h0+0.25,t)*(1-sstep(hl-0.1,hl,t));

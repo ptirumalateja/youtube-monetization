@@ -117,7 +117,7 @@ place(bus['air'], sw * 0.55, 0.0, 1.0, -0.2)
 place(bus['fol'], thud(401, f=75, dec=0.08, gain=0.5), 0.0, 1.0, -0.5)
 # the dodge: a close whoosh right past his head, then it smashes on the floor behind him
 whoosh(bus['air'], 3, TL['dodgeAt'], 0.75, 0.3)
-DL = TL['dodgeRel'] + 1.06                                           # landing time (same flat arc as dodgeState in scene.js)
+DL = TL['dodgeRel'] + 1.21                                           # landing time (same flat arc as dodgeState in scene.js)
 place(bus['hit'], stone_hit(620, 1.3), DL, 0.85, 0.45)
 place(bus['fol'], gravel_rain(0.8, 80, 6, 0.4), DL + 0.02, 1.0, 0.45)
 mix = K.finish(bus, duck)
