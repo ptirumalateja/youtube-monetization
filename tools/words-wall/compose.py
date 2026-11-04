@@ -20,7 +20,7 @@ frames = sorted(glob.glob(os.path.join(src, 'frames', 'f*.jpg')))
 assert len(frames) == total, f'{len(frames)} frames, expected {total}'
 silent = os.path.join(out, 'their-words-wall_music-ready.mp4')
 enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', '1080x1920', '-r', str(fps), '-i', '-',
-                        '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], stdin=subprocess.PIPE)
+                        '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-tune', 'film', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], stdin=subprocess.PIPE)
 for f, path in enumerate(frames):
     enc.stdin.write(overlay.draw(Image.open(path).convert('RGB'), f / fps).tobytes())
 enc.stdin.close(); assert enc.wait() == 0
