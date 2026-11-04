@@ -13,7 +13,7 @@ npm i -g hyperframes@0.9.10
 # Copy it next to index.html with: bash tools/setup/hf-gsap.sh <project-dir>
 
 echo "== yt-dlp + faster-whisper"
-pip install -q -U yt-dlp faster-whisper
+pip install -q -U "yt-dlp[default]" faster-whisper   # [default] adds yt-dlp-ejs, the YouTube JS challenge solver (run with --js-runtimes node)
 
 echo "== whisper base.en model (GitHub mirror: jianchang512/stt; HF is blocked)"
 if [ ! -s "$MODELS/whisper/base.en/model.bin" ]; then
@@ -36,8 +36,9 @@ if [ ! -s "$MODELS/whisper/base.en/model.bin" ]; then
 fi
 
 if [ "$1" != "core" ]; then
-  echo "== earshot (Leonxlnx/earshot: hear/measure/make SFX; model commands need HF, offline ones work)"
-  pip install -q torch --index-url https://download.pytorch.org/whl/cpu   # CPU wheel, avoids the huge CUDA one
+  echo "== earshot (Leonxlnx/earshot: hear/measure/make SFX; describe/match fetch CLAP models from HF on first use)"
+  # CPU wheel avoids the huge CUDA one; download.pytorch.org is blocked in the cloud, so fall back to PyPI there
+  python3 -c "import torch" 2>/dev/null || pip install -q torch --index-url https://download.pytorch.org/whl/cpu || pip install -q torch
   pip install -q "git+https://github.com/Leonxlnx/earshot.git"
   echo "== real SFX skill (vibe-motion/sound: Freesound search+download)"
   [ -d "$GH/sound" ] || git clone --depth 1 https://github.com/vibe-motion/sound.git "$GH/sound"
