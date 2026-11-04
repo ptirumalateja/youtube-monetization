@@ -36,7 +36,11 @@ def bronze_mat():
     # scale relief: distance to cell centre gives domed scales
     pw = N.new('ShaderNodeMath'); pw.operation = 'POWER'; pw.inputs[1].default_value = 0.6; L.new(vo.outputs['Distance'], pw.inputs[0])
     bm = N.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = 0.55; bm.inputs['Distance'].default_value = 0.004; bm.invert = True
-    L.new(pw.outputs[0], bm.inputs['Height']); L.new(bm.outputs['Normal'], b.inputs['Normal'])
+    # hammered dents + scales
+    vh = N.new('ShaderNodeTexVoronoi'); vh.feature = 'SMOOTH_F1'; vh.inputs['Scale'].default_value = 16; L.new(tc.outputs['Object'], vh.inputs['Vector'])
+    mh = N.new('ShaderNodeMath'); mh.operation = 'MULTIPLY_ADD'; L.new(vh.outputs['Distance'], mh.inputs[0]); mh.inputs[1].default_value = 1.6; L.new(pw.outputs[0], mh.inputs[2])
+    L.new(mh.outputs[0], bm.inputs['Height']); L.new(bm.outputs['Normal'], b.inputs['Normal'])
+    b.inputs['Coat Weight'].default_value = 0.0
     return m
 bronze = bronze_mat()
 
@@ -202,12 +206,28 @@ lib.volume_box((0, -3.2, 1.7), (3.1, 7.0, 3.4), density=0.03, color=(1, 0.82, 0.
 lib.dust((0, -1.6, 1.5), (1.2, 1.4, 1.2), 260, radius=0.0022, strength=2.2, seed=7)
 
 if SHOT == 'wide':
-    lib.camera((0.1, -4.3, 1.05), (0, 0, 1.5), lens=30, fstop=8, focus=4.3)
+    cam = lib.camera((0.1, -4.3, 1.05), (0, 0, 1.5), lens=30, fstop=8, focus=4.3)
 elif SHOT == 'heads':
     m = Vector(eyeL).lerp(Vector(eyeR), 0.5)
     lib.camera((m.x + 0.1, -1.5, m.z - 0.2), (m.x, 0, m.z - 0.16), lens=30, fstop=2.8, focus=1.32)
 elif SHOT == 'lamp':
     lib.camera((1.9, -3.2, 1.25), (0.5, 0, 1.15), lens=40, fstop=2.8, focus=3.0)
-sc.render.filepath = out
-bpy.ops.render.render(write_still=True)
-print('done', out)
+ANIM = os.environ.get('ANIM')
+if not ANIM:
+    sc.render.filepath = out
+    bpy.ops.render.render(write_still=True)
+else:
+    a0, n, total = [int(v) for v in ANIM.split(',')]
+    os.makedirs(out, exist_ok=True)
+    eyes_m = [m for m in bpy.data.materials if m.name.startswith('eye')]
+    p0 = Vector((0.1, -4.3, 1.05)); p1 = Vector((0.06, -3.55, 1.12)); look = Vector((0, 0, 1.5))
+    for f in range(a0, min(total, a0 + n)):
+        fn = os.path.join(out, 'f%04d.png' % f)
+        if os.path.exists(fn): continue
+        t = f / max(1, total - 1); e = t * t * (3 - 2 * t)
+        cam.location = p0.lerp(p1, e); cam.rotation_euler = (look - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.dof.focus_distance = (look - cam.location).length
+        glow = 1.5 + 7.0 * max(0.0, (t - 0.55) / 0.45) ** 2
+        for m in eyes_m: m.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = glow
+        sc.render.filepath = fn
+        bpy.ops.render.render(write_still=True)
+        print('frame', f, flush=True)

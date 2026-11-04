@@ -165,10 +165,11 @@ for i in range(18):
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=random.uniform(0.006, 0.01), location=(x, y, h0(x, y) + 0.004)); gm_ = bpy.context.object
     gm_.data.materials.append([ruby, ruby, emer, dia][i % 4]); gm_.rotation_euler = (random.random() * 3, random.random() * 3, 0)
 # tumbling coins in the air (frozen mid-fall)
-random.seed(9)
+random.seed(9); FALL = []
 for i in range(30):
     o = bpy.data.objects.new('fall', random.choice(coins)); lib.link(o)
     o.location = (random.uniform(-0.15, 0.22), random.uniform(-0.05, 0.3), random.uniform(0.16, 0.36)); o.rotation_euler = (random.uniform(0, 6), random.uniform(0, 6), random.uniform(0, 6))
+    FALL.append((o, Vector(o.location), Vector(o.rotation_euler), Vector((random.uniform(-3, 3), random.uniform(-3, 3), random.uniform(-2, 2))), random.uniform(0.5, 1.0)))
 
 # ---------- vault: granite walls, lamps ----------
 stone = lib.stone_mat('granite', (0.2, 0.14, 0.1), scale=2.5)
@@ -190,7 +191,28 @@ wn = sc.world.node_tree.nodes; wn['Background'].inputs['Color'].default_value = 
 lib.volume_box((0, 0.5, 0.6), (4, 4, 1.4), density=0.012, color=(1, 0.8, 0.6), aniso=0.6)
 lib.dust((0.05, 0.25, 0.3), (0.4, 0.4, 0.25), 500, radius=0.0012, strength=6, seed=4)
 
-lib.camera((-0.02, -0.34, 0.25), (0.08, 0.16, 0.1), lens=40, fstop=4.0, focus=0.56)
-sc.render.filepath = out
-bpy.ops.render.render(write_still=True)
-print('done', out)
+cam = lib.camera((-0.02, -0.34, 0.25), (0.08, 0.16, 0.1), lens=40, fstop=4.0, focus=0.56)
+ANIM = os.environ.get('ANIM')
+if not ANIM:
+    sc.render.filepath = out
+    bpy.ops.render.render(write_still=True)
+    print('done', out)
+else:
+    # push-in through the gold: 2.5 s at 24 fps; coins keep falling in slow motion
+    a0, n, total = [int(v) for v in ANIM.split(',')]
+    os.makedirs(out, exist_ok=True)
+    look = Vector((0.08, 0.16, 0.1)); p0 = Vector((-0.02, -0.42, 0.29)); p1 = Vector((-0.01, -0.30, 0.235))
+    for f in range(a0, min(total, a0 + n)):
+        fn = os.path.join(out, 'f%04d.png' % f)
+        if os.path.exists(fn): continue
+        t = f / max(1, total - 1); e = 1 - (1 - t) ** 2.2
+        cam.location = p0.lerp(p1, e); cam.rotation_euler = (look - cam.location).to_track_quat('-Z', 'Y').to_euler()
+        cam.data.dof.focus_distance = (Vector((0.1, 0.16, 0.09)) - cam.location).length
+        sec = f / 24
+        for o, l0, r0, w, sp in FALL:
+            z = l0.z - 0.5 * 0.35 * sp * sec * sec - 0.02 * sec
+            if z < 0.02: z = 0.02 + (z % 0.34)
+            o.location = (l0.x, l0.y, z); o.rotation_euler = r0 + w * sec
+        sc.render.filepath = fn
+        bpy.ops.render.render(write_still=True)
+        print('frame', f, flush=True)
