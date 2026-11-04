@@ -192,8 +192,11 @@ for sx in (-1, 1):
     o, wicks = lib.nilavilakku((sx * 1.15, -0.55, 0), 1.0, brass)
     for w in wicks: lib.flame(w, 1.25, lean=(-sx * lean, 0))
 # warm fill from the stairwell behind camera; keeps the frame lifted
-lib.spot((0.2, -6.5, 3.0), (0, 0, 1.4), 230, angle=0.5, blend=0.9, color=(1, 0.72, 0.45), radius=0.6)
-lib.point((0, -1.2, 2.9), 25, (1, 0.66, 0.36), 0.2)
+lib.spot((0.2, -6.5, 3.0), (0, 0, 1.4), 150, angle=0.5, blend=0.9, color=(1, 0.72, 0.45), radius=0.6)
+lib.point((0, -1.2, 2.9), 12, (1, 0.66, 0.36), 0.2)
+# grazing light across the door from low left: makes the cobra relief and rivets pop
+lib.spot((-1.45, -0.9, 0.5), (0.2, 0.0, 1.7), 140, angle=0.7, blend=0.8, color=(1, 0.62, 0.3), radius=0.04)
+lib.spot((1.45, -0.9, 0.5), (-0.2, 0.0, 1.7), 90, angle=0.7, blend=0.8, color=(1, 0.62, 0.3), radius=0.04)
 wn = sc.world.node_tree.nodes; wn['Background'].inputs['Color'].default_value = (0.08, 0.045, 0.025, 1); wn['Background'].inputs['Strength'].default_value = 0.3
 lib.volume_box((0, -3.2, 1.7), (3.1, 7.0, 3.4), density=0.03, color=(1, 0.82, 0.62), aniso=0.55)
 lib.dust((0, -1.6, 1.5), (1.2, 1.4, 1.2), 260, radius=0.0022, strength=2.2, seed=7)

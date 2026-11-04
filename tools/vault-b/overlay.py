@@ -101,7 +101,7 @@ def small(img, lines, cy=1460, size=50):
 
 PLAN = [
     ('gold', lambda im: big(tag(im), ['THEY OPENED', 'FIVE DOORS.'])),
-    ('door', lambda im: big(tag(im), ['THIS ONE,', 'THEY LEFT SHUT.'], size=84)),
+    ('door', lambda im: big(tag(im), ['THIS ONE,', 'THEY LEFT SHUT.'], cy=1520, size=84)),
     ('tower', lambda im: small(im, ['Beneath Padmanabhaswamy.', "India's richest room."], cy=1250, size=54)),
     ('vaults', lambda im: im),
     ('lamp', lambda im: big(im, ['THEN THEY', 'REACHED B.'], cy=1240)),
