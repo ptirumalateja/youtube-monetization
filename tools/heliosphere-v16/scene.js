@@ -75,7 +75,7 @@ void main(){ vec3 d=normalize(vD);
 sky.frustumCulled = false; sky.renderOrder = -10; scene.add(sky);
 
 // ---------- light ----------
-const sunLight = new THREE.PointLight(0xfff1dc, 3.2, 0, 0); scene.add(sunLight); scene.add(new THREE.AmbientLight(0x8fa4c8, 0.07));
+const sunLight = new THREE.PointLight(0xfff1dc, 4.0, 0, 0); scene.add(sunLight); scene.add(new THREE.AmbientLight(0x8fa4c8, 0.07));
 
 // ---------- the Sun: boiling granulation, sunspots, limb darkening, corona, rays ----------
 const SUNR = 2.0;
@@ -177,7 +177,7 @@ void main(){ vec3 N=normalize(vWN), V=normalize(cameraPosition-vWP); float f=1.-
  float fl=fbm(vec2(ang*4.,along*uF*.06+uT*.45)); float fil=pow(1.-abs(2.*fbm(vec2(ang*9.+1.7,along*uF*.14+uT*.8))-1.),4.);
  vec3 col=mix(cF,cN,smoothstep(.1,.9,c)); col=mix(col,cT,smoothstep(-.2,-.9,c));
  col+=vec3(.25,.1,.3)*pow(f,5.);           // iridescent edge
- float a=(fr*(.55+.9*fl)+fil*.35*fr+.035*(.5+fl))*uS*uK;
+ float a=(fr*(.55+.9*fl)+fil*.35*fr+.010*(.5+fl))*uS*uK;
  gl_FragColor=vec4(col*a*1.3,a); }` }); }
 const HELI = new THREE.Group(); SOL.add(HELI);
 const helioMat = shellMat([0xff7a4a, 0x4f8dff, 0x9a6bff], 0.95, 1.0), tsMat = shellMat([0xffd2a0, 0x7fc8ff, 0x8f9dff], 0.42, 1.6);
@@ -236,23 +236,83 @@ marker.scale.setScalar(0.05); scene.add(marker);
 
 // ---------- camera path ----------
 const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
-function cameraAt(t) {
+function camOpen(t, earthOnly = false) {
   const S = sunAt(t), E = planetAt(2, t);
   const toSun = tmp.copy(S).sub(E).normalize();
   const side = new THREE.Vector3().crossVectors(toSun, NE).normalize();
   const dE = toSun.clone().multiplyScalar(0.5).addScaledVector(side, 0.82).addScaledVector(NE, 0.3).normalize();
   const dW = v3(0.82, 0.42, -0.2).normalize(), dG = v3(-0.42, 0.72, -0.55).normalize();
-  const kT = sm(seg(t, 0.2, 1.7)), k1 = eio(seg(t, 0.25, 2.6)), k3 = eio(seg(t, 2.5, 3.5)), k2 = eio(seg(t, 3.5, 6.8));
+  const kT = earthOnly ? 0 : sm(seg(t, 0.2, 1.7)), k1 = earthOnly ? 0 : eio(seg(t, 0.25, 2.6)), k3 = earthOnly ? 0 : eio(seg(t, 2.5, 3.5)), k2 = earthOnly ? 0 : eio(seg(t, 3.5, 6.8));
   const target = E.clone().lerp(S.clone().addScaledVector(v3(0, 0, 1), -6), kT).lerp(S.clone().addScaledVector(v3(0, 0, 1), -45), k3).lerp(S.clone().lerp(GC, 0.42), Math.pow(k2, 3));
   const d = Math.exp(lerp(lerp(lerp(Math.log(3.4), Math.log(150), k1), Math.log(380), k3), Math.log(36000), k2));
   const dir = dE.clone().lerp(dW, k1).lerp(dG, k2).normalize();
-  camera.position.copy(target).addScaledVector(dir, d);
-  const up = NE.clone().lerp(v3(0, 0, 1), k1).lerp(v3(1, 0, 0), k2).normalize(); camera.up.copy(up);
-  camera.lookAt(target);
-  if (k1 < 1) { camera.updateMatrixWorld(); const offY = (1 - kT) * 0.6; camera.position.addScaledVector(new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1), -offY); camera.lookAt(target.clone().addScaledVector(new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1), -offY)); }
-  camera.updateMatrixWorld(true); return d;
+  const up = NE.clone().lerp(v3(0, 0, 1), k1).lerp(v3(1, 0, 0), k2).normalize();
+  return { T: target, dir, d, up, off: (1 - kT) * 0.6 };
 }
 
+const ZZ = v3(0, 0, 1);
+const dV1 = v3(0.3, 0.5, 0.81).normalize(), dV2 = v3(-0.35, -0.55, 0.76).normalize();
+const voyR = (t, a, b) => lerp(a, b, seg(t, 11.0, 18.0));
+const V1at = (t) => sunAt(t).addScaledVector(dV1, voyR(t, 20, 95)), V2at = (t) => sunAt(t).addScaledVector(dV2, voyR(t, 14, 72));
+const POSES = {
+  rays: (t) => ({ T: sunAt(t).addScaledVector(ZZ, 8), dir: v3(0.8, 0.3, 0.52).normalize(), d: 300 - 40 * seg(t, 9.2, 11.5), up: ZZ.clone() }),
+  voy: (t) => ({ T: V1at(t).addScaledVector(dV1, 3 * (1 - seg(t, 13.5, 15))), dir: v3(0.86, 0.22, -0.46).normalize(), d: 20 + 14 * seg(t, 14.6, 16.5), up: ZZ.clone() }),
+  light: (t) => { const E = planetAt(2, t), V = V1at(t); return { T: E.clone().lerp(V, 0.5), dir: v3(0.92, 0.3, 0.1).normalize(), d: 1.25 * E.distanceTo(V) + 20, up: ZZ.clone() }; },
+};
+const SEGS = [[7.3, 8.5, "open", "rays"], [11.5, 12.4, "rays", "voy"], [16.5, 17.6, "voy", "light"], [18.6, 23.0, "light", "earth"]];
+function poseOf(name, t) { if (name === "open") return camOpen(t); if (name === "earth") return camOpen(t, true); const p = POSES[name](t); p.off = 0; return p; }
+function cameraAt(t) {
+  let A = poseOf("open", t), B = null, k = 0;
+  for (const [a, b, n0, n1] of SEGS) { if (t >= a) { A = poseOf(n0, t); B = poseOf(n1, t); k = eio(seg(t, a, b)); } }
+  const P = B ? { T: A.T.clone().lerp(B.T, k), dir: A.dir.clone().lerp(B.dir, k).normalize(), d: Math.exp(lerp(Math.log(A.d), Math.log(B.d), k)), up: A.up.clone().lerp(B.up, k).normalize(), off: lerp(A.off, B.off, k) } : A;
+  camera.position.copy(P.T).addScaledVector(P.dir, P.d); camera.up.copy(P.up); camera.lookAt(P.T);
+  if (P.off > 0) { camera.updateMatrixWorld(); const ax = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1); camera.position.addScaledVector(ax, -P.off); camera.lookAt(P.T.clone().addScaledVector(ax, -P.off)); }
+  camera.updateMatrixWorld(true); return P.d;
+}
+
+// ---------- act 2-4 props: cosmic rays, Voyager 1 & 2, the light-day pulse ----------
+const shellPt = (u) => v3(u.x * 66, u.y * 66, u.z * 66 * (u.z > 0 ? 1 - 0.14 * u.z : 1 + 1.4 * Math.pow(-u.z, 2.0)));
+const CR = (() => { const N = 420, M = 16, r = rng(2024), dat = [];
+  for (let i = 0; i < N; i++) { let z = r() * 2 - 1; if (r() < 0.55) z = Math.abs(z); const a = r() * 6.2832, q = Math.sqrt(1 - z * z), u = v3(q * Math.cos(a), q * Math.sin(a), z);
+    const gt = ZZ.clone().negate().addScaledVector(u, z), g = gt.length() > 0.05 ? gt.normalize() : v3(1, 0, 0); dat.push({ u, g, P: shellPt(u), ph: r(), pass: r() < 0.18 }); }
+  const pos = new Float32Array(N * M * 3), aA = new Float32Array(N * M), geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("aA", new THREE.BufferAttribute(aA, 1));
+  const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `attribute float aA; varying float vA; void main(){ vA=aA; vec4 mv=modelViewMatrix*vec4(position,1.); gl_PointSize=clamp(2200./-mv.z,2.,8.); gl_Position=projectionMatrix*mv; }`,
+    fragmentShader: `varying float vA; void main(){ vec2 d=gl_PointCoord-.5; float k=dot(d,d)*4.; if(k>1.) discard; gl_FragColor=vec4(mix(vec3(.55,.85,1.),vec3(1.),vA*.6),vA*exp(-k*2.)); }` });
+  const p = new THREE.Points(geo, m); p.frustumCulled = false; scene.add(p); return { N, M, dat, pos, aA, geo, p }; })();
+function updateRays(t, S, I) {
+  const CY = 2.4, TI = 1.0;
+  CR.dat.forEach((c, i) => { for (let j = 0; j < CR.M; j++) { const tau = ((t + c.ph * CY) % CY) - j * 0.022, idx = i * CR.M + j; let a = 0;
+    if (tau < 0) { CR.aA[idx] = 0; continue; }
+    if (tau < TI) { tmp.copy(c.P).addScaledVector(c.u, 160 * (TI - tau)); a = sm(tau / 0.25); }
+    else if (c.pass) { tmp.copy(c.P).addScaledVector(c.u, -110 * (tau - TI)); a = 0.55 * (1 - sm(seg(tau, TI, TI + 0.7))); }
+    else { tmp.copy(c.P).addScaledVector(c.g, 95 * (tau - TI)).addScaledVector(c.u, 6 * (tau - TI)); a = (1 + 1.5 * Math.exp(-(tau - TI) * 14)) * (1 - sm(seg(tau, TI, TI + 1.1))); }
+    tmp.add(S); CR.pos.set([tmp.x, tmp.y, tmp.z], idx * 3); CR.aA[idx] = a * (1 - j / CR.M) * I; } });
+  CR.geo.attributes.position.needsUpdate = CR.geo.attributes.aA.needsUpdate = true; CR.p.visible = I > 0.01; }
+function probe() { const g = new THREE.Group(), w = new THREE.MeshStandardMaterial({ color: 0xf2eee6, emissive: 0x8a8f98, roughness: 0.5, metalness: 0.2, side: THREE.DoubleSide }), gold = new THREE.MeshStandardMaterial({ color: 0xd9a441, emissive: 0x6a4a18, roughness: 0.4, metalness: 0.5 });
+  const body = new THREE.Group(); g.add(body);
+  const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.08, 0.16, 48, 1, true), w); body.add(dish);
+  const bus = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.22, 10), gold); bus.position.y = -0.2; body.add(bus);
+  const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.9, 6), w); boom.rotation.z = Math.PI / 2; boom.position.set(0.75, -0.25, 0); body.add(boom);
+  const rtg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4, 8), gold); rtg.rotation.z = Math.PI / 2; rtg.position.set(-0.6, -0.25, 0); body.add(rtg);
+  const gl = spr(glowTex([[0, "rgba(255,255,255,.9)"], [0.2, "rgba(180,230,255,.35)"], [1, "rgba(120,200,255,0)"]]), 3.2, 0.8); g.add(gl); g.userData.glow = gl; g.userData.body = body; scene.add(g); return g; }
+const VOY1 = probe(), VOY2 = probe();
+const pathMat = new THREE.PointsMaterial({ color: 0xffe2a6, size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0.6, depthWrite: false });
+const mkPath = () => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(160 * 3), 3)); const p = new THREE.Points(g, pathMat); p.frustumCulled = false; scene.add(p); return p; };
+const PATH1 = mkPath(), PATH2 = mkPath();
+const flash = spr(glowTex([[0, "rgba(255,255,255,1)"], [0.1, "rgba(170,235,255,.8)"], [0.4, "rgba(120,190,255,.2)"], [1, "rgba(90,160,255,0)"]]), 20, 0); scene.add(flash);
+const pulse = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: { uA: { value: 0 } },
+  vertexShader: `varying vec3 vWN, vWP; void main(){ vWN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.); vWP=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `uniform float uA; varying vec3 vWN, vWP; void main(){ vec3 V=normalize(cameraPosition-vWP); float f=pow(1.-abs(dot(normalize(vWN),V)),3.5); gl_FragColor=vec4(vec3(1.,.95,.82)*f*uA,f*uA); }` })); scene.add(pulse);
+function updateVoy(t, S) {
+  const vis = sm(seg(t, 11.2, 11.8)) * (1 - sm(seg(t, 21.5, 22.4)));
+  [[VOY1, V1at, dV1, PATH1, 20, 95], [VOY2, V2at, dV2, PATH2, 14, 72]].forEach(([g, f, dv, path, a, b]) => { g.visible = vis > 0.01; path.visible = g.visible; if (!g.visible) return;
+    g.position.copy(f(t)); g.userData.body.lookAt(S); g.userData.body.rotateX(Math.PI / 2); g.userData.glow.material.opacity = 0.8 * vis;
+    const r1 = voyR(t, a, b), pa = path.geometry.attributes.position; for (let k = 0; k < 160; k++) { tmp.copy(S).addScaledVector(dv, 3 + (r1 - 3) * k / 159); pa.setXYZ(k, tmp.x, tmp.y, tmp.z); } pa.needsUpdate = true; });
+  pathMat.opacity = 0.55 * vis;
+  const cross = Math.exp(-Math.pow((t - 14.75) / 0.18, 2)); flash.position.copy(S).add(shellPt(dV1)); flash.material.opacity = cross; flash.scale.setScalar(10 + 30 * sm(seg(t, 14.5, 15.3))); flash.visible = cross > 0.005;
+  const E = planetAt(2, t), kp = seg(t, 16.6, 18.3); pulse.position.copy(E); pulse.scale.setScalar(Math.max(0.01, kp * E.distanceTo(V1at(t)))); pulse.material.uniforms.uA.value = (kp > 0 && kp < 1 ? 1 : kp >= 1 ? 1 - sm(seg(t, 18.3, 18.9)) : 0) * 0.9; pulse.visible = pulse.material.uniforms.uA.value > 0.01;
+}
 // ---------- frame ----------
 const proj = (p) => { const v = p.clone().project(camera); return [(v.x * 0.5 + 0.5) * W, (-v.y * 0.5 + 0.5) * H, v.z]; };
 const $ = (id) => document.getElementById(id);
@@ -261,7 +321,7 @@ function renderAt(t) {
   U.t.value = t;
   const S = sunAt(t); sunG.position.copy(S); sunLight.position.copy(S); earthMat.uniforms.uSun.value.copy(S);
   sunBody.rotation.y = t * 0.15; rays.material.rotation = t * 0.05;
-  bodies.forEach((b, i) => { planetAt(i, t, b.g.position); b.m.rotation.y = t * (b.name === "Earth" ? 0.9 : 0.5) + (b.name === "Earth" ? EARTH_ROT : 0); const dc = b.g.position.distanceTo(camera.position); b.g.visible = b.name === "Earth" || dc > 30; if (b.clouds) b.clouds.rotation.y = t * 1.0; });
+  bodies.forEach((b, i) => { planetAt(i, t, b.g.position); b.m.rotation.y = t * (b.name === "Earth" ? 0.9 : 0.5) + (b.name === "Earth" ? EARTH_ROT : 0); if (b.clouds) b.clouds.rotation.y = t * 1.0; });
   { const E = bodies[2].g.position, mth = 1.1 + t * 2.4; bodies[2].moon.position.copy(E).addScaledVector(EU, Math.cos(mth) * 1.6).addScaledVector(EW, Math.sin(mth) * 1.6); }
   // magnetosphere: nose to the Sun, tail away
   { const E = bodies[2].g.position; MAG.position.copy(E); MAG.lookAt(S); }
@@ -280,12 +340,16 @@ function renderAt(t) {
   wind.g.attributes.position.needsUpdate = wind.g.attributes.aA.needsUpdate = true;
 
   const d = cameraAt(t);
-  { const ds = camera.position.distanceTo(S); const k = sm(seg(ds, 25, 90)); corona2.material.opacity = 0.7 * k; rays.material.opacity = 0.55 * k; corona1.material.opacity = 0.35 + 0.55 * k; }
+  const enl = clamp(d / 70, 1, 2.2); bodies.forEach((b) => { const dc = b.g.position.distanceTo(camera.position); b.g.visible = b.name === "Earth" || dc > 30; b.g.scale.setScalar(enl); });
+  updateRays(t, S, sm(seg(t, 7.6, 8.4)) * (1 - 0.5 * sm(seg(t, 11.4, 12.0))) * (1 + 0.8 * sm(seg(t, 14.75, 15.2)) * (1 - sm(seg(t, 16.4, 17)))) * (1 - sm(seg(t, 20.5, 22))));
+  updateVoy(t, S);
+  { const ds = camera.position.distanceTo(S); const k = sm(seg(ds, 25, 90)); corona2.material.opacity = 0.4 * k; rays.material.opacity = 0.55 * k; corona1.material.opacity = 0.35 + 0.55 * k; }
   sky.position.copy(camera.position); sky.scale.setScalar(1e5); skyU.uOut.value = sm(seg(Math.abs(camera.position.y), 1200, 4000));
   // what is visible at each scale
   const close = 1 - sm(seg(d, 5, 30));
-  MAG.children.forEach((c) => { if (c.material.uniforms) c.material.uniforms.uK.value = close; else c.material.opacity = 0.16 * close; });
-  MAG.visible = close > 0.01;
+  const magK = Math.max(close, 0.9 * (1 - sm(seg(Math.log(d), Math.log(420), Math.log(1100))))); MAG.scale.setScalar(clamp(d / 22, 1, 3.4));
+  MAG.children.forEach((c) => { if (c.material.uniforms) c.material.uniforms.uK.value = magK; else c.material.opacity = 0.16 * close; });
+  MAG.visible = magK > 0.01;
   const g = sm(seg(Math.log(d), Math.log(450), Math.log(4000))); U.gal.value = g; U.galT.value = t * 1.2;
   SOL.visible = d < 9000; sunG.visible = d < 20000;
   helioMat.uniforms.uK.value = 1 - sm(seg(Math.log(d), Math.log(1500), Math.log(6000)));
@@ -294,10 +358,10 @@ function renderAt(t) {
   marker.position.copy(S); marker.material.opacity = sm(seg(Math.log(d), Math.log(700), Math.log(2500))); marker.scale.setScalar(0.045);
   renderer.render(scene, camera);
   // captions
-  $("big").style.opacity = fade(t, -1, 2.65, 0.2);
-  $("l1").style.opacity = fade(t, 2.7, 3.7, 0.18);
-  $("l2").style.opacity = fade(t, 4.4, 99, 0.25);
-  const lab = $("lab"), lo = sm(seg(t, 5.2, 5.6)); lab.style.opacity = lo; if (lo > 0) { const [x, y] = proj(S); lab.style.left = (x + 26) + "px"; lab.style.top = (y - 11) + "px"; }
+  const C = [["big", -1, 2.65], ["l1", 2.7, 3.7], ["l2", 4.4, 7.4], ["b1", 8.3, 9.6], ["b2", 9.65, 11.35], ["r1", 11.5, 13.2], ["b3", 13.25, 14.9], ["b4", 14.95, 16.45], ["r2", 16.5, 18.5], ["c1", 18.6, 20.6], ["c2", 20.65, 99]];
+  C.forEach(([id, a, b]) => { $(id).style.opacity = fade(t, a, b, 0.16); });
+  const lab = $("lab"), lo = fade(t, 5.2, 7.3, 0.3); lab.style.opacity = lo; if (lo > 0) { const [x, y] = proj(S); lab.style.left = (x + 26) + "px"; lab.style.top = (y - 11) + "px"; }
+  const vl = $("vlab"), vo = fade(t, 12.0, 18.4, 0.3); vl.style.opacity = vo; if (vo > 0) { const [x, y] = proj(VOY1.position); vl.style.left = (x + 30) + "px"; vl.style.top = (y - 11) + "px"; }
   $("note").style.opacity = 0.8;
 }
 window.renderAt = renderAt;
