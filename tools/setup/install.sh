@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Reinstall the video/audio toolkit in a fresh cloud session (or on a Mac).
-# Usage: bash tools/setup/install.sh          (everything)
+# Usage: bash tools/setup/install.sh          (everything; Teja approved earshot + sound on 4 Nov 2026)
 #        bash tools/setup/install.sh core     (skip earshot + sfx skill)
 set -e
 MODELS=${MODELS:-/opt/models}
@@ -37,6 +37,7 @@ fi
 
 if [ "$1" != "core" ]; then
   echo "== earshot (Leonxlnx/earshot: hear/measure/make SFX; model commands need HF, offline ones work)"
+  pip install -q torch --index-url https://download.pytorch.org/whl/cpu   # CPU wheel, avoids the huge CUDA one
   pip install -q "git+https://github.com/Leonxlnx/earshot.git"
   echo "== real SFX skill (vibe-motion/sound: Freesound search+download)"
   [ -d "$GH/sound" ] || git clone --depth 1 https://github.com/vibe-motion/sound.git "$GH/sound"
