@@ -43,7 +43,7 @@ const rim=new THREE.DirectionalLight(0x9fb4e0,0.45); rim.position.set(-3,3.5,-5)
 S.floor.material.color.set(0x4a4a50); S.floor.material.opacity=0.9;
 const R=SLD.createRig(scene);
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
-const haters=HP.map((p,i)=>R.makeFig(PAL.SLATE,'hater'+i,{rim:0.24,rimCol:0x9fb2d6,lift:0.035}));
+const haters=HP.map((p,i)=>R.makeFig(PAL.SLATE,'hater'+i,{rim:0.55,rimCol:0xa8c0ec,lift:0.08}));
 
 // ---------------------------------------------------------------- the wall already standing (clean, plain bricks)
 const stoneTex=SLD.noiseTex(256,13,128,46,60,0.12);
@@ -220,7 +220,7 @@ function setBrick(B,st,t,k){
   else { const r=TL.redRelease; sa=sstep(r-0.6,r-0.3,t);
     em=0.12+0.25*sstep(r-0.5,r,t); gl=0.12*sstep(r-0.5,r,t);
     if(st.hit!==undefined){ gl+=0.7*Math.exp(-st.hit/0.12); sa*=1-sstep(0.1,0.9,st.hit); em=0.12+0.4*Math.exp(-st.hit/0.3)-0.08*sstep(0.5,1.5,st.hit); } }
-  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; const ks=Math.min(1,cam.position.distanceTo(st.pos)/18); B.spr.position.copy(st.pos).add(V(0,(B.red?0.42:0.45)*ks,0));   // offset shrinks with the label so it sits right on its brick in the close-ups
+  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; const ks=Math.min(1,cam.position.distanceTo(st.pos)/18); B.spr.position.copy(st.pos).add(V(0,(B.red?0.42+0.5*(1-ks):0.45)*ks,0));   // offset shrinks with the label so it sits right on its brick in the close-ups
   { cam.updateMatrixWorld(); const nb=st.pos.clone().project(cam); const off=Math.max(Math.abs(nb.x),Math.abs(nb.y)); const k=1-sstep(0.85,0.98,off); B.spr.material.opacity*=k; B.spr.visible=B.spr.visible&&k>0.01; }   // brick out of shot -> no stray label
   B.spr.scale.set(B.sw*ks,B.sh*ks,1);   // same on-screen size in the close-ups
   { cam.updateMatrixWorld(); const n=B.spr.position.clone().project(cam);           // keep every label fully inside the frame
@@ -241,7 +241,7 @@ function setSparks(t){
   spGeo.attributes.position.needsUpdate=true; spGeo.attributes.a.needsUpdate=true; }
 
 // ---------------------------------------------------------------- camera: side view from the front-right, slightly high (as the reference)
-const CL=V(0.6,1.0,2.25), CD=V(9.7,3.4,5.5).sub(V(0.3,1.0,0.0)).multiplyScalar(1.7);   // same angle as approved, pulled back for the wider gap + edge padding
+const CL=V(0.6,1.25,2.25), CD=V(9.7,3.4,5.5).sub(V(0.3,1.0,0.0)).multiplyScalar(1.5);   // same angle as approved, pulled back for the wider gap + edge padding
 const CAMK=[[0.0,1.0],[DUR,0.97]];
 const CDN=CD.clone().normalize();
 function shotCU(t){ if(t>=TL.cu1[0]&&t<TL.cu1[1]){ const u=(t-TL.cu1[0])/(TL.cu1[1]-TL.cu1[0]); return {lk:V(hx(0)-1.0,1.15,0.5),d:8.2-0.6*u}; }
