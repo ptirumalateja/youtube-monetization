@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { RoomEnvironment } from './node_modules/three/examples/jsm/environments/RoomEnvironment.js';
 // Not a Vortex. Open on the viral "solar system is a vortex" picture and call it wrong, then one continuous move:
 // the real solar system (today's planet positions, every planet orbiting and spinning) in front of the Milky Way,
 // the Sun starts moving at its real 230 km/s and the orbits become long stretched waves, the camera pulls back
@@ -574,16 +575,16 @@ const FBM2 = `float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.
  float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*vn(p);p=mat2(1.6,1.2,-1.2,1.6)*p;a*=.5;}return s;}`;
 function shellMat(key, cNose, cSide, cTail, strength, flow) {
   const m = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
-    uniforms: { ...U, uS: { value: strength }, uF: { value: flow }, uK: { value: 1 }, cN: { value: new T.Color(...cNose) }, cF: { value: new T.Color(...cSide) }, cT: { value: new T.Color(...cTail) } },
+    uniforms: { ...U, uS: { value: strength }, uF: { value: flow }, uK: { value: 1 }, uFc: { value: 0 }, uNr: { value: 0 }, cN: { value: new T.Color(...cNose) }, cF: { value: new T.Color(...cSide) }, cT: { value: new T.Color(...cTail) } },
     vertexShader: `${LOGV[0]} varying vec3 vP; varying vec3 vWN; varying vec3 vWP; void main(){ vP = position; vWN = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.); vWP = w.xyz;
       gl_Position = projectionMatrix*viewMatrix*w; ${LOGV[1]} }`,
-    fragmentShader: `${LOGF[0]} uniform float uTime, uS, uF, uK; uniform vec3 cN, cF, cT; varying vec3 vP; varying vec3 vWN; varying vec3 vWP; ${FBM2}
+    fragmentShader: `${LOGF[0]} uniform float uTime, uS, uF, uK, uFc, uNr; uniform vec3 cN, cF, cT; varying vec3 vP; varying vec3 vWN; varying vec3 vWP; ${FBM2}
       void main(){ ${LOGF[1]} vec3 N = normalize(vWN), V = normalize(cameraPosition - vWP); float f = 1. - abs(dot(N, V)); float fr = pow(f, 2.6);
         vec3 q = normalize(vP); float c = q.z, ang = atan(q.y, q.x);
         float fl = fbm(vec2(ang*4., vP.z*uF*.06 + uTime*.5));
         float fil = pow(1. - abs(2.*fbm(vec2(ang*9. + 1.7, vP.z*uF*.15 + uTime*.9)) - 1.), 5.);
         vec3 col = mix(cF, cN, smoothstep(.15, .95, c)); col = mix(col, cT, smoothstep(-.2, -.9, c));
-        float a = (fr*(.5 + .9*fl) + fil*.55*fr + pow(f, 8.)*.6)*uS*uK;
+        float a = (fr*(.5 + .9*fl) + fil*.55*fr + pow(f, 8.)*.6 + uFc*(.16*fl + .75*fil)*(1. - fr))*uS*uK*mix(1., 0.12 + 0.88*smoothstep(0.2, 4., distance(cameraPosition, vWP)), uNr);
         gl_FragColor = vec4(col*a, 1.); }` });
   m.customProgramCacheKey = () => key; return m; }
 const qFromZ = d => new T.Quaternion().setFromUnitVectors(V3(0, 0, 1), d.clone().normalize());
@@ -614,7 +615,7 @@ const WIND = (() => { const N = 5000, pos = [], a = []; for (let i = 0; i < N; i
     `${LOGF[0]} uniform float uA; varying float vA; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(vec3(1.,.86,.62)*vA*(1.-r)*uA, 1.); }`, { uSz: { value: 1 } });
   const p = pointCloud(HELI, pos, { aR: [a, 1] }, m); return m; })();
 
-const HOOK_DUR = 13;
+const HOOK_DUR = 19;
 const r0 = 0.03, r1 = 0.2;      // years per second: slow on Earth, then the planets race
 const yAt = t => { if (t < 1) return Y_TODAY + r0 * t; if (t < 3) { const S = (t - 1) / 2; return Y_TODAY + r0 * t + (r1 - r0) * 2 * (S ** 3 - S ** 4 / 2); } return Y_TODAY + r0 * t + (r1 - r0) * (1 + (t - 3)); };
 const eio = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
@@ -649,12 +650,27 @@ function hookOverlay(t, E2, S2) {
   richLine([["The Sun's wind", W1]], 1330, 66, a3); richLine([['blows it up.', GOLD]], 1406, 66, a3);
   const a4 = fadeIO(t, 11.5, 13.2);
   richLine([['Outside: ', W1], ['cosmic rays', GOLD]], 1330, 66, a4); richLine([['from exploding stars.', W1]], 1406, 66, a4);
+  // block 3: the rehook, then Voyager 1
+  const a5 = fadeIO(t, 13.15, 14.95, 0.1), pop5 = 1 + 0.07 * Math.exp(-Math.max(0, t - 13.15) * 9);
+  ctx.save(); ctx.translate(540, 1370); ctx.scale(pop5, pop5); ctx.translate(-540, -1370);
+  richLine([['ONLY ', W1], ['2 MACHINES', GOLD]], 1350, 84, a5, 600); richLine([['HAVE EVER LEFT.', W1]], 1446, 84, a5, 600); ctx.restore();
+  const a6 = fadeIO(t, 15.0, 16.95);
+  richLine([['Voyager 1 has been flying', W1]], 1330, 66, a6); richLine([['since ', W1], ['1977.', GOLD]], 1406, 66, a6);
+  const a7 = fadeIO(t, 17.05, 19.3);
+  richLine([['It took ', W1], ['35 years', GOLD]], 1330, 66, a7); richLine([['to get out.', W1]], 1406, 66, a7);
+  const lv = fadeIO(t, 13.65, 14.35, 0.15);
+  if (lv > 0 && E2.v1 && E2.v1[2]) text('VOYAGER 1', clamp(E2.v1[0], 170, 910), E2.v1[1] - 40, 28, '#ffe2a6', { alpha: lv, spacing: 4 });
+  if (lv > 0 && E2.v2 && E2.v2[2]) text('VOYAGER 2', clamp(E2.v2[0], 170, 910), E2.v2[1] + 44, 28, '#bff0ff', { alpha: lv * (1 - smooth(13.9, 14.3, t)), spacing: 4 });
+  const lc2 = fadeIO(t, 15.0, 18.6, 0.3);
+  if (lc2 > 0 && E2.v1 && E2.v1[2]) { const yr = Math.floor(yearV1(t)), ax = clamp(E2.v1[0], 200, 880), ay = clamp(E2.v1[1] - 250, 200, 1200);
+    chip('VOYAGER 1', ax, ay, 34, lc2); text(t > T_X - 0.02 && t < T_X + 0.9 ? 'AUG 2012 · 121 AU' : String(yr), ax, ay + 56, 28, '#f4e6c8', { alpha: lc2, spacing: 3 }); }
   // small labels on the two shields
   const la = fadeIO(t, 0.2, 1.5, 0.25), lb = fadeIO(t, 2.6, 4.4, 0.3), lc = fadeIO(t, 7.0, 9.6, 0.3), ld = fadeIO(t, 7.9, 9.6, 0.25);
   if (la > 0 && E2[2]) text("EARTH'S SHIELD", E2[0], E2[1], 36, '#bfe9ff', { alpha: la, spacing: 4 });
   if (lb > 0 && S2[2]) text("THE SUN'S BUBBLE", clamp(S2[0], 220, 860), clamp(S2[1], 170, 1700), 36, '#ffe2a6', { alpha: lb, spacing: 4 });
   if (lc > 0 && E2.sun && E2.sun[2]) { ringMark(E2.sun[0], E2.sun[1], 34, lc * 0.8); text('YOU ARE HERE', E2.sun[0], E2.sun[1] - 62, 32, '#ffe2a6', { alpha: lc, spacing: 4 }); }
   if (ld > 0 && E2.gc && E2.gc[2]) { chip('SAGITTARIUS A*', E2.gc[0], E2.gc[1] - 120, 40, ld); text('A BLACK HOLE · 4 MILLION SUNS', E2.gc[0], E2.gc[1] - 66, 24, '#f4e6c8', { alpha: ld, spacing: 2 }); }
+  const flX = t >= T_X ? 0.2 * Math.exp(-(t - T_X) * 7) : 0; if (flX > 0.005) { ctx.save(); ctx.fillStyle = `rgba(225,235,255,${flX})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
   text('SLOW LIGHT', 540, 1760, 22, 'rgba(255,255,255,.55)', { spacing: 9, stroke: false });
   text('DISTANCES COMPRESSED · SIZES ENLARGED · NOT TO SCALE', 540, 1800, 16, '#f4e6c8', { alpha: 0.4, spacing: 1, stroke: false });
 }
@@ -691,10 +707,111 @@ function updateRays(t) { const I = smooth(10.1, 10.6, t); CR.p.visible = I > 0.0
     else { crTmp.copy(c.P).addScaledVector(c.g, 50 * (tau - TI)).addScaledVector(c.u, 3 * (tau - TI)); a = (1 + 3 * Math.exp(-(tau - TI) * 16)) * (1 - smooth(TI, TI + 0.9, tau)); }
     CR.pos[idx * 3] = crTmp.x; CR.pos[idx * 3 + 1] = crTmp.y; CR.pos[idx * 3 + 2] = crTmp.z; CR.aA[idx] = a * (1 - j / CR.M); } });
   CR.g.attributes.position.needsUpdate = CR.g.attributes.aA.needsUpdate = true; }
+// ================= BLOCK 3 (13-19 s): ONLY 2 MACHINES HAVE EVER LEFT. Voyager 1 crosses the heliopause =================
+// Everything here lives in the heliosphere's own frame (HELI: nose on +z). Voyager 1 left through the nose's northern flank
+// (2012, 121.6 AU, 35 years after launch), Voyager 2 through the southern flank (2018, 119 AU).
+const HQi = HELI.quaternion.clone().invert();
+const nL = (() => { const n = ECL_N.clone().applyQuaternion(HQi); n.z = 0; return n.normalize(); })(), sL = V3(0, 0, 1).cross(nL).normalize();
+const shellPt = (u, sx, nose, tail) => { const s = sx * (1 - (1 - nose) * Math.max(0, u.z) + (tail - 1) * Math.max(0, -u.z) ** 2);
+  return V3(u.x * sx * (1 + 0.035 * Math.sin(5 * Math.atan2(u.y, u.x))), u.y * sx, u.z * s); };
+const exitOf = u => { const p = shellPt(u.normalize(), 27, 0.86, 2.6); return { U: p.clone().normalize(), RW: p.length() }; };
+const V1X = exitOf(V3(0, 0, Math.cos(32 * RAD)).addScaledVector(nL, Math.sin(32 * RAD)));
+const V2X = exitOf(V3(0, 0, Math.cos(36 * RAD)).addScaledVector(nL, -Math.sin(36 * RAD) * 0.85).addScaledVector(sL, 0.42));
+const U1 = V1X.U, RW1 = V1X.RW, E1 = (() => { const a = Math.abs(U1.x) < 0.9 ? V3(1, 0, 0) : V3(0, 1, 0); return a.addScaledVector(U1, -a.dot(U1)).normalize(); })(), E2 = U1.clone().cross(E1);
+const T_X = 17.0, VX = 2.7, RV0 = 1.4;
+const rv1 = t => { if (t >= 14.6) return RW1 + VX * (t - T_X); const r1 = RW1 + VX * (14.6 - T_X), h = 1.6, s = clamp((t - 13) / h), s2 = s * s, s3 = s2 * s;
+  return (2 * s3 - 3 * s2 + 1) * RV0 + (s3 - 2 * s2 + s) * h * 3 + (-2 * s3 + 3 * s2) * r1 + (s3 - s2) * h * VX; };
+const rv2 = t => RV0 + (rv1(t) - RV0) * 0.9 * V2X.RW / RW1;
+const yearV1 = t => Math.min(2026.8, 1977.7 + 34.95 * (rv1(t) / RW1) ** 2);
+// the two paths out from the Sun (gold for Voyager 1, pale teal for Voyager 2)
+const voyTrail1 = ribbonMesh(HELI, 'voy1', 400, `vec3 P(float y){ return ${v3s(U1)}*y; }`, [1, 0.84, 0.52], { base: 0.12, pw: 1.3 });
+const voyTrail2 = ribbonMesh(HELI, 'voy2', 400, `vec3 P(float y){ return ${v3s(V2X.U)}*y; }`, [0.55, 0.92, 1.0], { base: 0.12, pw: 1.3 });
+const voyGlow1 = pointCloud(HELI, [0, 0, 0], {}, glowMat('vg1', [1, 0.92, 0.75])), voyGlow2 = pointCloud(HELI, [0, 0, 0], {}, glowMat('vg2', [0.75, 0.95, 1]));
+voyGlow1.renderOrder = voyGlow2.renderOrder = 9;
+// ---------- Voyager 1, built to its real layout (metres): 3.66 m dish facing home, 10-sided bus, golden record, RTG boom, science boom with the scan platform,
+// 13 m magnetometer boom, two 10 m plasma-wave whips. Lit by the Sun from behind the dish and by the bubble's glow from ahead.
+const ENV = new T.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const stdM = (color, metal, rough, env = 0.35, extra = {}) => new T.MeshStandardMaterial({ color, metalness: metal, roughness: rough, envMap: ENV, envMapIntensity: env, ...extra });
+const VOY = new T.Group(); HELI.add(VOY);
+const VM = { dish: stdM('#aaa498', 0.1, 0.55, 0.25, { side: T.DoubleSide }), white: stdM('#e8e4dc', 0.1, 0.5), bus: stdM('#7b7d84', 0.75, 0.38, 0.6), foil: stdM('#c69a4c', 0.95, 0.3, 0.8),
+  dark: stdM('#2b2c31', 0.5, 0.55, 0.4), gold: stdM('#e3b553', 1.0, 0.22, 1.1), boom: stdM('#b9b6ae', 0.6, 0.45, 0.5) };
+{ const add = (geo, mat, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); VOY.add(m); return m; };
+  const rod = (a, b, r, mat) => { const d = b.clone().sub(a), m = new T.Mesh(new T.CylinderGeometry(r, r, d.length(), 8), mat); m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize()); VOY.add(m); return m; };
+  const f = 1.2, dishPts = []; for (let k = 0; k <= 40; k++) { const r = 1.83 * k / 40; dishPts.push(new T.Vector2(r, r * r / (4 * f))); }
+  add(new T.LatheGeometry(dishPts, 96), VM.dish, 0, 0.32);
+  for (let k = 0; k < 12; k++) { const a = k / 12 * 6.2832; rod(V3(0.25 * Math.cos(a), 0.3, 0.25 * Math.sin(a)), V3(1.8 * Math.cos(a), 0.32 + 0.69, 1.8 * Math.sin(a)), 0.012, VM.boom); }   // ribs behind the dish
+  add(new T.TorusGeometry(1.83, 0.025, 8, 96), VM.white, 0, 0.32 + 0.7, 0, Math.PI / 2);                                       // dish rim
+  for (let k = 0; k < 3; k++) { const a = k / 3 * 6.2832 + 0.4; rod(V3(1.0 * Math.cos(a), 0.32 + 0.21, 1.0 * Math.sin(a)), V3(0.1 * Math.cos(a), 0.32 + 1.18, 0.1 * Math.sin(a)), 0.018, VM.white); }
+  add(new T.CylinderGeometry(0.28, 0.28, 0.05, 32), VM.white, 0, 0.32 + 1.2);                                                  // subreflector
+  add(new T.CylinderGeometry(0.09, 0.13, 0.5, 16), VM.white, 0, 0.32 + 0.25);                                                  // feed
+  add(new T.CylinderGeometry(0.89, 0.89, 0.47, 10), VM.bus, 0, 0);                                                            // the 10-sided bus
+  add(new T.CylinderGeometry(0.91, 0.91, 0.08, 10), VM.foil, 0, -0.27); add(new T.CylinderGeometry(0.6, 0.75, 0.25, 20), VM.foil, 0, -0.42);   // MLI blankets
+  add(new T.CylinderGeometry(0.155, 0.155, 0.012, 48), VM.gold, 0.0, 0.0, 0.86, Math.PI / 2);                                  // the Golden Record on its bay
+  add(new T.CylinderGeometry(0.05, 0.05, 0.016, 16), VM.dark, 0.0, 0.0, 0.868, Math.PI / 2);
+  add(new T.ConeGeometry(0.12, 0.25, 16, 1, true), VM.dark, 0, -0.66, 0, Math.PI);                                              // thruster nozzle
+  // RTG boom (+x): open truss, three RTGs with cooling fins
+  for (const [dy, dz] of [[0.12, 0.12], [-0.12, 0.12], [0, -0.16]]) rod(V3(0.85, dy - 0.05, dz), V3(3.5, dy - 0.4, dz), 0.022, VM.boom);
+  for (let k = 0; k < 3; k++) { const x = 2.2 + 0.52 * k; add(new T.CylinderGeometry(0.2, 0.2, 0.42, 20), VM.dark, x, -0.38, 0, 0, 0, Math.PI / 2);
+    for (let q = 0; q < 6; q++) { const a = q / 6 * 6.2832; add(new T.BoxGeometry(0.4, 0.16, 0.015), VM.dark, x, -0.38 + 0.27 * Math.sin(a), 0.27 * Math.cos(a), a); } }
+  // science boom (-x) with the scan platform and its cameras
+  for (const [dy, dz] of [[0.12, 0.12], [-0.12, 0.12], [0, -0.16]]) rod(V3(-0.85, dy, dz), V3(-2.6, dy + 0.35, dz), 0.022, VM.boom);
+  add(new T.BoxGeometry(0.55, 0.45, 0.42), VM.foil, -2.75, 0.5, 0); add(new T.BoxGeometry(0.4, 0.35, 0.4), VM.dark, -3.15, 0.55, 0.05);
+  add(new T.CylinderGeometry(0.09, 0.09, 0.95, 16), VM.white, -3.15, 0.95, 0.25, 0.3); add(new T.CylinderGeometry(0.07, 0.07, 0.55, 16), VM.white, -3.0, 0.9, -0.2, -0.2);
+  add(new T.CylinderGeometry(0.16, 0.16, 0.3, 16), VM.foil, -2.45, 0.05, 0.3);                                                // cosmic ray instrument
+  // magnetometer boom: 13 m of lattice, sensors part-way and at the tip
+  { const a = V3(-0.3, 0.2, -0.7), b = a.clone().add(V3(-0.42, -0.26, -1).normalize().multiplyScalar(13)); rod(a, b, 0.035, VM.boom);
+    for (const s of [0.48, 1]) { const m = new T.Mesh(new T.CylinderGeometry(0.09, 0.09, 0.32, 12), VM.white); m.position.copy(a).lerp(b, s); m.quaternion.setFromUnitVectors(V3(0, 1, 0), b.clone().sub(a).normalize()); VOY.add(m); } }
+  // plasma wave antennas: a V of two 10 m whips
+  for (const sx of [1, -1]) rod(V3(0.3 * sx, -0.2, -0.75), V3(0.3 * sx + 6.5 * sx, -6.4, -5.2), 0.018, VM.white);
+}
+const VOY_S = 0.13 / 3.66;     // 1 m on the map: the dish is 0.09 units across (enlarged, like the planets)
+VOY.scale.setScalar(VOY_S);
+const sunLight = new T.DirectionalLight('#fff1dc', 1.6), wallLight = new T.DirectionalLight('#9aa8ff', 0.9), rimLight = new T.DirectionalLight('#ffb38a', 0.7), amb = new T.AmbientLight('#4a5578', 0.25);
+for (const l of [sunLight, wallLight, rimLight]) { sSolar.add(l); sSolar.add(l.target); } sSolar.add(amb);
+// plasma round Voyager's line of flight: solar wind racing out (gold) until the wall, the denser, slower interstellar plasma beyond it (violet-blue),
+// and cosmic rays (white-blue) that fill interstellar space and mostly cannot get in
+const PLASMA = (() => { const N0 = 5000, N1 = 7000, N2 = 900, M = 6, pos = [], aB = [], aD = [], aJ = [];
+  const push = (x, y, s, kind, d) => { for (let j = 0; j < M; j++) { pos.push(0, 0, 0); aB.push(x, y, s, kind); aD.push(d.x, d.y, d.z); aJ.push(j, rnd()); } };
+  for (let i = 0; i < N0; i++) { const r = 1.6 * Math.sqrt(rnd()), a = rnd() * 6.283; push(r * Math.cos(a), r * Math.sin(a), rnd(), 0, V3()); }
+  for (let i = 0; i < N1; i++) { const r = 1.8 * Math.sqrt(rnd()), a = rnd() * 6.283; push(r * Math.cos(a), r * Math.sin(a), 12 * Math.pow(rnd(), 1.8), 1, V3()); }
+  for (let i = 0; i < N2; i++) { const r = 2.2 * Math.sqrt(rnd()), a = rnd() * 6.283, z = rnd() * 2 - 1, ph = rnd() * 6.283, q = Math.sqrt(1 - z * z);
+    push(r * Math.cos(a), r * Math.sin(a), 10 * rnd(), 2, V3(q * Math.cos(ph), q * Math.sin(ph), z - 0.35).normalize()); }
+  const m = pointsMat('plasma', `${LOGV[0]} uniform float uT; uniform float uRw; uniform vec3 uE1, uE2, uU; attribute vec4 aB; attribute vec3 aD; attribute vec2 aJ; varying float vA; varying vec3 vC;
+      void main(){ float j = aJ.x, k = aB.w; vec3 p; vec3 v; float a;
+        if (k < 0.5) { float L = uRw - 12.; float s = 12. + mod(aB.z*L + 7.*uT, L); v = uU*7.; p = uE1*aB.x + uE2*aB.y + uU*s; a = 1.1*smoothstep(12., 13., s)*(1. - smoothstep(uRw - 0.7, uRw, s)); vC = vec3(1., .82, .5); }
+        else if (k < 1.5) { float s = uRw + 0.12 + aB.z; v = uU*(-0.12); p = uE1*aB.x + uE2*aB.y + uU*(s - 0.12*uT); a = 0.5*(0.5 + 0.5*exp(-aB.z*0.6)); vC = mix(vec3(.7,.62,1.), vec3(.55,.8,1.), aJ.y); }
+        else { float c = mod(uT*1.0 + aJ.y*3., 3.) - 1.5; v = aD*26.; p = uE1*aB.x + uE2*aB.y + uU*(uRw + aB.z) + v*c*0.3; float s = dot(p, uU); a = 1.3*(s < uRw ? 0.12 : 1.)*(1. - smoothstep(1.1, 1.5, abs(c))); vC = vec3(.8,.92,1.); }
+        p -= v*j*0.0065; a *= (1. - j/6.);
+        vec4 mv = modelViewMatrix*vec4(p, 1.); float z = max(-mv.z, 1e-3); vA = a*clamp(2.5/z, 0.2, 1.);
+        gl_Position = projectionMatrix*mv; gl_PointSize = clamp((k > 1.5 ? 2.4 : 1.7)/z*uH/1280., 1., 7.); ${LOGV[1]} }`,
+    `${LOGF[0]} uniform float uA; varying float vA; varying vec3 vC; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(vC*vA*exp(-r*2.4)*uA, 1.); }`,
+    { uT: { value: 0 }, uRw: { value: RW1 }, uE1: { value: E1 }, uE2: { value: E2 }, uU: { value: U1 } });
+  const p = pointCloud(HELI, pos, { aB: [aB, 4], aD: [aD, 3], aJ: [aJ, 2] }, m); p.renderOrder = 7; return m; })();
+// cameras for the block, in HELI's frame: the dive from the bubble view onto Voyager 1, a chase beside it up to the wall, and after the crossing
+// a swing out ahead of it, looking back down at the bubble it just left
+const hl = v => v.clone().applyMatrix4(HELI.matrixWorld);
+function voyPoseL(t) {
+  const pv = U1.clone().multiplyScalar(rv1(t)), az = 0.55 + 0.3 * (t - 14.6), rad = E1.clone().multiplyScalar(Math.cos(az)).addScaledVector(E2, Math.sin(az));
+  const sB = smooth(17.05, 18.95, t), d = Math.exp(mixv(Math.log(0.82 - 0.14 * smooth(14.6, 16.9, t)), Math.log(4.6), Math.pow(sB, 1.25)));
+  const c0 = rad.clone().multiplyScalar(0.82).addScaledVector(U1, -0.57).normalize(), c1 = rad.clone().multiplyScalar(0.55).addScaledVector(U1, 0.84).normalize();
+  const dir = slerpDir(c0, c1, sB), look = pv.clone().addScaledVector(U1, -1.7 * sB * sB).addScaledVector(rad, 0.02);
+  const shake = 0.012 * Math.exp(-Math.max(0, t - T_X) * 5) * (t > T_X ? 1 : 0);
+  look.addScaledVector(E1, shake * Math.sin(t * 90)).addScaledVector(E2, shake * Math.cos(t * 77));
+  const pos = pv.clone().addScaledVector(dir, d), vd = look.clone().sub(pos).normalize(), up = U1.clone().addScaledVector(vd, -U1.dot(vd)).normalize();
+  return { pos, look, up };
+}
+function voyPose(t) { const p = voyPoseL(t), o = hl(V3()); return { pos: hl(p.pos), look: hl(p.look), up: hl(p.up).sub(o).normalize() }; }
 window.renderAt = function (t, frame = Math.round(t * 30)) {
   const y = yAt(t); U.uTime.value = t;
   renderer.setClearColor('#050914', 1); renderer.clear();
+  // the bubble's scale first (the Voyager cameras live in its frame)
+  const wB = fadeIO(t, 9.9, 11.5, 0.35), inflate = smooth(10.05, 10.75, t);
+  HELI.scale.setScalar(mixv(1, 0.8, smooth(9.5, 10.05, t)) * (1 - inflate) + inflate * (1 + 0.07 * Math.sin(Math.PI * smooth(10.4, 11.3, t)))); HELI.updateMatrixWorld(true);
   let pS = hookPose(t);
+  // block 3: dive from the bubble view onto Voyager 1 and ride with it (dS keeps the hook's value: it drives what is shown, not the lens)
+  const sV = eio(seg2(t, 13.5, 15.0));
+  if (sV > 0) { const b = blendPose(pS, voyPose(t), sV, 0, 0.45); pS = { ...b, dS: pS.dS }; }
   // galaxy layer: the solar camera's view, scaled up by K, so the backdrop turns with the camera
   const K = mixv(9000, 21000, smooth(0.3, 4.6, t)) / pS.pos.length();
   const gA = { pos: pS.pos.clone().multiplyScalar(K), look: pS.look.clone().multiplyScalar(K), up: pS.up.clone() };
@@ -714,7 +831,7 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   galSun.position.set(0, 0, 0); galSun.material.uniforms.uPx.value = 26; galSun.material.uniforms.uA.value = smooth(0.5, 0.9, sG); sunVeil.material.uniforms.uA.value = 0.25 * smooth(2, 4, t); sunVeil.position.set(0, 0, 0); sunVeil.scale.setScalar(2 * 40 * K); sunVeil.visible = sG < 0.3;
   renderer.render(sGal, camG); renderer.clearDepth();
   // solar layer
-  setCam(camS, pS, Math.max(1e-3, Math.min(dS * 2e-3, 0.004)));
+  setCam(camS, pS, sV > 0 ? mixv(Math.min(dS * 2e-3, 0.004), 2e-4, sV) : Math.max(1e-3, Math.min(dS * 2e-3, 0.004)));
   sky.visible = false;
   bodies.forEach((b, i) => { const pe = posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(1); b.group.visible = i === 2 || ((i > 1 || dS > 8) && camS.position.distanceTo(e2g(pe)) > 1.2 + 6 * PL[i].R);
     b.spin.rotation.y = spinHours(t * 0.6) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3 + (i === 2 ? 2.2 : 0);
@@ -740,17 +857,31 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   const magK = 1 - smooth(4, 13, dS); magMat.uniforms.uK.value = magMat2.uniforms.uK.value = magK; fieldMat.uniforms.uA.value = 0.34 * (1 - smooth(4, 12, dS)); MAG.visible = magK > 0.01;
   const hk = smooth(3, 14, dS); helioMat.uniforms.uK.value = hk; tsMat.uniforms.uK.value = hk * smooth(14, 60, dS); HELI.visible = hk > 0.01;
   // "The Sun's wind blows it up": the bubble sags during the dive back in, then the wind inflates it (with an overshoot)
-  const wB = fadeIO(t, 9.9, 11.5, 0.35), inflate = smooth(10.05, 10.75, t);
-  HELI.scale.setScalar(mixv(1, 0.8, smooth(9.5, 10.05, t)) * (1 - inflate) + inflate * (1 + 0.07 * Math.sin(Math.PI * smooth(10.4, 11.3, t))));
   WIND.uniforms.uSz.value = 1 + 1.3 * wB; tsMat.uniforms.uS.value = 0.38 + 0.5 * wB * (0.6 + 0.4 * Math.sin(t * 9));
   WIND.uniforms.uA.value = (0.8 + 1.4 * fadeIO(t, 9.9, 11.5, 0.35)) * smooth(3, 14, dS); updateRays(t);
+  // block 3
+  const vOn = t > 12.9; VOY.visible = vOn && sV > 0.05; PLASMA.uniforms.uA.value = smooth(13.9, 14.8, t); PLASMA.uniforms.uT.value = t;
+  const r1 = rv1(t), r2 = rv2(t), tA = smooth(13.0, 13.25, t);
+  voyTrail1.uniforms.uStart.value = 0.9; voyTrail1.uniforms.uNow.value = r1; voyTrail1.uniforms.uWidth.value = mixv(4.2, 1.8, sV); voyTrail1.uniforms.uHead.value = 0.6; voyTrail1.uniforms.uA.value = tA * mixv(1.2, 0.55, sV);
+  voyTrail2.uniforms.uStart.value = 0.9; voyTrail2.uniforms.uNow.value = r2; voyTrail2.uniforms.uWidth.value = 4.2; voyTrail2.uniforms.uHead.value = 0.6; voyTrail2.uniforms.uA.value = tA * 1.1 * (1 - smooth(13.9, 14.6, t));
+  voyGlow1.position.copy(U1).multiplyScalar(r1); voyGlow2.position.copy(V2X.U).multiplyScalar(r2);
+  voyGlow1.material.uniforms.uPx.value = 22; voyGlow1.material.uniforms.uA.value = tA * (1 - smooth(14.6, 15.0, t)); voyGlow2.material.uniforms.uPx.value = 20; voyGlow2.material.uniforms.uA.value = tA * (1 - smooth(13.9, 14.6, t));
+  if (vOn) { VOY.position.copy(U1).multiplyScalar(r1);
+    // dish faces home (+y of the model to the Sun), slow roll for life
+    VOY.quaternion.setFromUnitVectors(V3(0, 1, 0), U1.clone().negate()).multiply(new T.Quaternion().setFromAxisAngle(V3(0, 1, 0), 0.9 + 0.05 * t));
+    const pw = hl(VOY.position); sunLight.position.copy(hl(V3())); sunLight.target.position.copy(pw); wallLight.position.copy(hl(U1.clone().multiplyScalar(r1 + 5))); wallLight.target.position.copy(pw);
+    rimLight.position.copy(hl(U1.clone().multiplyScalar(r1 + 2).addScaledVector(E2, -4))); rimLight.target.position.copy(pw);
+    // outside the wall the Sun is a star: less light, more of the wall's glow
+    const out = smooth(T_X - 0.1, T_X + 0.6, t); sunLight.intensity = mixv(1.6, 1.3, out); wallLight.intensity = mixv(0.9, 1.5, out); }
+  helioMat.uniforms.uFc.value = 0.6 * fadeIO(t, 14.2, 18.9, 0.8) * (1 + 0.5 * Math.exp(-Math.abs(t - T_X) * 4)); helioMat.uniforms.uNr.value = tsMat.uniforms.uNr.value = smooth(14.0, 14.8, t); helioMat.uniforms.uK.value *= 1 - 0.5 * fadeIO(t, 17.15, 18.75, 0.45);
+  CR.m.uniforms.uA.value *= 1 - 0.75 * fadeIO(t, 14.2, 17.0, 0.5);
   renderer.render(sSolar, camS);
   drawFilm();
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 560, 540, 960, 1250); v.addColorStop(0, 'rgba(4,8,18,0)'); v.addColorStop(1, 'rgba(4,8,18,0.3)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
   ctx.globalAlpha = 0.035; ctx.globalCompositeOperation = 'overlay'; ctx.drawImage(grain[frame % 6], 0, 0, 1080, 1920); ctx.restore();
   // label anchors: beside Earth's shield, and on the Sun's bubble wall
   const eP = projWith(camS, E.clone().addScaledVector(pS.up, 0.42)), sP = projWith(camS, VG.clone().multiplyScalar(26).addScaledVector(pS.up, 3));
-  eP.sun = projWith(camG, V3(0, 0, 0)); eP.gc = projWith(camG, GC); hookOverlay(t, eP, sP);
+  eP.sun = projWith(camG, V3(0, 0, 0)); eP.gc = projWith(camG, GC); eP.v1 = projWith(camS, hl(U1.clone().multiplyScalar(rv1(t)))); eP.v2 = projWith(camS, hl(V2X.U.clone().multiplyScalar(rv2(t)))); hookOverlay(t, eP, sP);
 };
 window.captureFrame = (t, frame) => { window.renderAt(t, frame); return out.toDataURL('image/jpeg', 0.93).split(',')[1]; };
 // fact check helpers for render.cjs
