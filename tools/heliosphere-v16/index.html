@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Heliosphere v16 opening act</title>
+<style>
+@font-face { font-family: "PF"; src: url("assets/playfair.woff2") format("woff2"); font-weight: 400 900; }
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#4a5262}
+#gl{position:absolute;left:0;top:0;width:1080px;height:1920px}
+.cap{position:absolute;left:0;width:1080px;text-align:center;color:#fff;font-family:"PF",Georgia,serif;opacity:0;padding:0 60px;box-sizing:border-box}
+#big{top:1180px;font-weight:800;font-size:104px;line-height:1.02;text-shadow:0 4px 34px rgba(10,14,24,.7),0 0 6px rgba(10,14,24,.5)}
+.lk{top:1290px;font-weight:700;font-size:66px;line-height:1.12;text-shadow:0 3px 24px rgba(10,14,24,.75)}
+.cap em{font-style:normal;color:#ffcf73}
+#lab{position:absolute;font:600 22px/1 "DejaVu Sans Mono",monospace;letter-spacing:.14em;color:#ffe7b0;text-shadow:0 2px 10px rgba(0,0,0,.8);opacity:0;white-space:nowrap}
+#brand{position:absolute;left:0;width:1080px;top:1720px;text-align:center;font:500 22px "DejaVu Sans Mono",monospace;letter-spacing:.42em;color:rgba(255,255,255,.5)}
+#note{position:absolute;left:0;width:1080px;top:1770px;text-align:center;font:500 14px "DejaVu Sans Mono",monospace;letter-spacing:.2em;color:rgba(255,255,255,.38)}
+</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script></head>
+<body>
+<canvas id="gl" width="1080" height="1920"></canvas>
+<div id="big" class="cap">YOU WILL DIE<br>INSIDE THIS<br>BUBBLE.</div>
+<div id="l1" class="cap lk">So did all <em>117 billion</em><br>humans before you.</div>
+<div id="l2" class="cap lk" style="top:1240px">And you're flying around<br>the galaxy at <em>830,000 km/h.</em></div>
+<div id="lab">YOU ARE HERE</div>
+<div id="brand">SLOW LIGHT</div>
+<div id="note">DISTANCES COMPRESSED · SIZES ENLARGED · NOT TO SCALE</div>
+<script type="module" src="scene.js"></script>
+</body></html>
