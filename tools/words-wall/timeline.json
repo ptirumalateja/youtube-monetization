@@ -1,7 +1,7 @@
 {
-  "duration": 10.0,
+  "duration": 9.0,
   "fps": 30,
-  "_comment": "Seconds. Layout read off the reference frame by frame (concepts/wall-reel-frame-read.md in the project files). Wall 16 x 6 plain bricks, the last 6 of the top row missing on frame 0. catches[k] = when thrown brick k reaches his face and he catches it; he sets it into the top row (left to right, toward the wall's end) at catches[k] + place. throwers[k] = which grey man throws it (3 = the red one's holder). The men stand in front of the wall (z > 0); he stands behind its right end. The big red brick is thrown at his face at redRelease, slams into the wall's face in front of him at redHit and bounces back to land at redLand: the wall keeps him safe.",
+  "_comment": "Seconds. Layout read off the reference frame by frame (concepts/wall-reel-frame-read.md in the project files). Wall 16 x 6 plain bricks, the last 6 of the top row missing on frame 0. catches[k] = when thrown brick k reaches his face and he catches it; he sets it into the top row (left to right, toward the wall's end) at catches[k] + place. throwers[k] = which grey man throws it (3 = the red one's holder). The men stand in front of the wall (z > 0); he stands behind its right end. The big red brick is thrown at his face at redRelease, slams into the wall's face in front of him at redHit and bounces back to land at redLand: the wall keeps him safe. V4 (4 Nov): 9 s. The first brick (dodge) is already flying at his face on frame 0; he ducks and it smashes on the floor behind him. Close-ups cu1/cu2 cut in on the dodge and on the red hit. After the red brick bounces off, he hops up onto his wall (hop0 -> hopLand) and the men lower their heads. The last loopXfade s dissolve into frame 0.",
   "words": [
     "YOU CAN'T",
     "GIVE UP",
@@ -12,12 +12,12 @@
   ],
   "red": "YOU'LL NEVER MAKE IT",
   "catches": [
-    0.55,
     1.35,
-    2.15,
-    2.95,
-    3.75,
-    4.55
+    2.05,
+    2.75,
+    3.45,
+    4.15,
+    4.85
   ],
   "throwers": [
     0,
@@ -28,30 +28,43 @@
     2
   ],
   "flight": 0.6,
-  "place": 0.38,
-  "redRelease": 5.25,
-  "silence0": 5.6,
-  "pay0": 6.6,
-  "pay1": 7.8,
+  "place": 0.35,
+  "redRelease": 5.2,
+  "silence0": 5.55,
+  "pay0": 7.35,
+  "pay1": 8.2,
   "fade0": 99.0,
   "fade1": 100.0,
-  "hookOut": 2.3,
-  "rehook0": 2.7,
-  "rehook1": 4.7,
-  "endText": 7.0,
   "reviewTimes": [
     0.0,
-    1.0,
+    0.3,
+    0.5,
+    0.9,
+    1.2,
     2.6,
-    4.9,
-    5.6,
+    5.7,
     5.85,
-    6.2,
-    7.0,
-    9.8
+    6.9,
+    7.1,
+    7.4,
+    8.5
   ],
-  "redHit": 5.85,
-  "redLand": 6.4,
-  "lookOver": 6.7,
-  "loopXfade": 0.4
+  "redHit": 5.8,
+  "redLand": 6.35,
+  "lookOver": 99.0,
+  "loopXfade": 0.4,
+  "dodge": "WEAK",
+  "dodgeRel": -0.15,
+  "dodgeAt": 0.4,
+  "dodgeThrower": 2,
+  "hop0": 6.75,
+  "hopLand": 7.3,
+  "cu1": [
+    0.0,
+    1.0
+  ],
+  "cu2": [
+    5.5,
+    6.5
+  ]
 }

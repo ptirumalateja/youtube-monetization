@@ -84,7 +84,7 @@ for k, c in enumerate(C):
     whoosh(bus['air'], k, rel + FL * 0.55, (0.62 if k == 0 else 0.3 + 0.015 * k), PAN[th] * 0.4)   # brick 0 is already flying on frame 0: loud from the start
     place(bus['fol'], thud(400 + k, f=75, dec=0.08, gain=0.3), rel, 1.0, PAN[th])
     # catch: slap into the hands
-    place(bus['fol'], thud(10 + k, f=95, dec=0.07, gain=0.45), c, 1.0, 0.25)
+    place(bus['fol'], thud(10 + k, f=78 + 14 * k, dec=0.09, gain=0.6), c, 1.0, 0.25)   # signature thunk, rising in pitch as the wall grows
     place(bus['fol'], bp(noise(int(0.05 * SR)), 1800, 1.5) * env(int(0.05 * SR), 0.0005, 0.01) * 0.25, c, 1.0, 0.25)
     # placement: stone set into the wall, heavier as it grows; the word burns in
     place(bus['hit'], stone_hit(100 + k, 0.8 + 0.04 * k, bright=0.8), c + PL, 0.55 + 0.025 * k, 0.3)
@@ -105,12 +105,21 @@ place(bus['hit'], stone_hit(997, 1.3), RC + 0.006, 0.7, 0.35)
 place(bus['fol'], gravel_rain(1.2, 90, 4, 0.5), RC + 0.03, 1.0, 0.3)
 place(bus['hit'], stone_hit(998, 1.1), RL, 0.55, -0.1)          # it drops back in front of them
 place(bus['fol'], gravel_rain(1.4, 70, 5, 0.4), RL + 0.05, 1.0, -0.1)
-place(bus['fol'], breath(1.3, 'out', 61, 0.22), TL['lookOver'] + 0.2, 1.0, 0.35)
+# the hop up onto the wall: push-off scuff, then feet landing on stone, then one slow exhale up there
+place(bus['fol'], thud(610, f=85, dec=0.05, gain=0.3), TL['hop0'] + 0.1, 1.0, 0.35)
+place(bus['hit'], stone_hit(611, 0.9, bright=0.6), TL['hopLand'], 0.6, 0.35)
+place(bus['fol'], thud(612, f=70, dec=0.12, gain=0.7), TL['hopLand'], 1.0, 0.35)
+place(bus['fol'], breath(1.3, 'out', 61, 0.22), TL['hopLand'] + 0.45, 1.0, 0.35)
 
 # frame 0 hook: a brick is already in the air, so the sound starts loud: a throw thud + a fast close swish over the first 0.45 s
 n0 = int(0.45 * SR); sw = bp(noise(n0), 900, 0.8) * np.sin(np.pi * np.arange(n0) / n0) ** 1.2
 place(bus['air'], sw * 0.55, 0.0, 1.0, -0.2)
 place(bus['fol'], thud(401, f=75, dec=0.08, gain=0.5), 0.0, 1.0, -0.5)
+# the dodge: a close whoosh right past his head, then it smashes on the floor behind him
+whoosh(bus['air'], 3, TL['dodgeAt'], 0.75, 0.3)
+DL = TL['dodgeRel'] + 1.06                                           # landing time (same flat arc as dodgeState in scene.js)
+place(bus['hit'], stone_hit(620, 1.3), DL, 0.85, 0.45)
+place(bus['fol'], gravel_rain(0.8, 80, 6, 0.4), DL + 0.02, 1.0, 0.45)
 mix = K.finish(bus, duck)
 # seamless loop: the last loopXfade seconds fade out while the head's first second is already loud
 xf = int(TL['loopXfade'] * SR); mix[:, -xf:] *= np.linspace(1, 0, xf) ** 1.5

@@ -78,6 +78,7 @@ function makeBrick(word,red=false){
   return {m,mat,spr,glow,red,sw:red?2.9:2.5,sh:red?0.725:0.625}; }
 const bricks=TL.words.map(w=>makeBrick(w));
 const redB=makeBrick(TL.red,true);
+const dodgeB=makeBrick(TL.dodge);
 
 // sparks: gold motes off each brick as it is set, a red burst at the capstone
 const NSP=30*NB+90, spPos=new Float32Array(NSP*3), spA=new Float32Array(NSP);
@@ -99,7 +100,10 @@ const PLACED=k=>TL.catches[k]+TL.place;
 // ---------------------------------------------------------------- hero
 const XK=(()=>{ const K=[[0,hx(0)]]; TL.catches.forEach((c,k)=>{ const b=k<NB-1?hx(k+1):HX_END; K.push([PLACED(k)+0.05,hx(k)],[PLACED(k)+0.32,b]); }); return K; })();
 function heroRoot(t){ let x=keys(XK,t), mv=0; TL.catches.forEach((c,k)=>{ const a=PLACED(k)+0.05,b=PLACED(k)+0.32; if(t>a&&t<b) mv=(t-a)/(b-a); });
-  return {root:V(x,0,HZ),mv}; }
+  let y=0, z=HZ;
+  const h0=TL.hop0, hl=TL.hopLand;                                    // payoff: he hops up onto his own wall
+  if(t>h0+0.12){ const u=clamp((t-h0-0.12)/(hl-h0-0.12)); const e=sm5(u); z=lerp(HZ,0,e); y=TOP*e+0.32*Math.sin(Math.PI*u); }
+  return {root:V(x,y,z),mv}; }
 const Y0=yawOf(V(-1,0,0.9));
 const faceYaw=(root,i)=>yawOf(HP[i].clone().sub(root).setY(0));
 const facePt=(root,yaw,d=0.26)=>root.clone().addScaledVector(fwdOf(yaw),d).add(V(0,FACE_H,0));
@@ -107,6 +111,8 @@ function heroYaw(t){ const {root}=heroRoot(t); let y=Y0;
   TL.catches.forEach((c,k)=>{ const wc=sstep(c-0.45,c-0.15,t)*(1-sstep(c+0.02,c+0.14,t)); if(wc>0) y=angLerp(y,faceYaw(V(hx(k),0,HZ),TL.throwers[k]),wc);
     const wp=sstep(c+0.04,c+0.2,t)*(1-sstep(PLACED(k)+0.02,PLACED(k)+0.25,t)); if(wp>0) y=angLerp(y,yawOf(slot(k).sub(root).setY(0)),wp); });
   const r=TL.redRelease; const wr=sstep(r-0.3,r+0.05,t); if(wr>0) y=angLerp(y,faceYaw(V(HX_END,0,HZ),RED),wr);
+  const wd=sstep(-1,-0.5,t)*(1-sstep(TL.dodgeAt+0.2,TL.dodgeAt+0.5,t)); if(wd>0) y=angLerp(y,faceYaw(V(hx(0),0,HZ),TL.dodgeThrower),wd);
+  const wm=sstep(TL.hopLand,TL.hopLand+0.4,t); if(wm>0) y=angLerp(y,yawOf(V(-1.2,0,1).normalize()),wm);
   return y; }
 const catchPt=k=>{ const r=V(hx(k),0,HZ); return facePt(r,faceYaw(r,TL.throwers[k])); };
 
@@ -128,6 +134,18 @@ function brickState(k,t){
   if(t<pl){ const {root}=heroRoot(t), yw=heroYaw(t); const hold=facePt(root,yw,0.3).add(V(0,-0.12,0)); const u=sm5(sstep(c+0.08,pl,t));
     const p=hold.lerp(slot(k),u); p.y+=0.08*Math.sin(Math.PI*u); return {pos:p,yaw:angLerp(yw+Math.PI/2,0,u),flip:0,a:1}; }
   return {pos:slot(k),yaw:0,flip:0,a:1,placed:t-pl}; }
+function dodgeState(t){
+  // the first brick: thrown straight at his face; he ducks; it flies on over him and smashes on the floor behind him
+  const th=TL.dodgeThrower, r=TL.dodgeRel, T1=TL.dodgeAt-r, hy=haterYaw(th,r);
+  const P0=holdPt(HP[th],hy,'rel'), r0=V(hx(0),0,HZ), P1=facePt(r0,faceYaw(r0,th),0.05);
+  const GD=5;                                                          // a flat, fast line straight at his face
+  const v=P1.clone().sub(P0).multiplyScalar(1/T1); const vy=(P1.y-P0.y)/T1+0.5*GD*T1; v.y=0;
+  const yAt=s=>P0.y+vy*s-0.5*GD*s*s;
+  let sL=T1; while(yAt(sL)>BH/2&&sL<3) sL+=0.005;                       // where it lands
+  const s=t-r; if(s<0) return null;
+  if(s<sL){ const p=P0.clone().addScaledVector(v,s); p.y=yAt(s); return {pos:p,yaw:hy+Math.PI/2,flip:2.5*Math.PI*s/sL,a:1,dodge:true}; }
+  const q=s-sL; const pl=P0.clone().addScaledVector(v,sL); pl.addScaledVector(v.clone().normalize(),0.35*sm5(clamp(q/0.4))); pl.y=BH/2+0.07*Math.max(0,Math.sin(Math.PI*clamp(q/0.18)));
+  return {pos:pl,yaw:hy+Math.PI/2+0.7*sm5(clamp(q/0.4)),flip:2.5*Math.PI+0.4*sm5(clamp(q/0.3)),a:1,dodge:true,landed:q}; }
 function redState(t){
   // thrown at his face, but the wall he built is in the way: it slams into the wall's face and bounces back at them
   const r=TL.redRelease, Hh=TL.redHit, L=TL.redLand, hy=haterYaw(RED,Math.min(t,r));
@@ -159,9 +177,15 @@ function heroPose(t){
   const r=TL.redRelease, Hh=TL.redHit;
   const br=sstep(r-0.1,Hh-0.1,t)*(1-sstep(Hh+0.15,Hh+0.7,t)); P.p+=0.12*br; P.tilt+=0.1*br; P.dy-=0.05*br; P.kL+=0.25*br; P.kR+=0.25*br;
   const fl=Math.exp(-Math.pow((t-Hh-0.06)/0.1,2)); P.p-=0.1*fl; P.dy-=0.03*fl;
-  const lk=sstep(TL.lookOver-0.2,TL.lookOver+0.5,t); P.tilt+=0.18*lk*(1-sstep(TL.pay0+0.5,TL.pay1+0.6,t)); P.p+=0.12*lk;
-  if(lk>0&&!hold){ const f=fwdOf(yaw), sd=rotY(V(0,0,1),yaw); const c0=root.clone().addScaledVector(f,0.3).setY(TOP+0.035); c0.z=Math.min(c0.z,-0.02);
-    hold=[c0.clone().addScaledVector(sd,-0.24),c0.clone().addScaledVector(sd,0.24)]; wHold=lk; }
+  // the dodge: a big fast full-body duck under the first brick
+  const dk=sstep(TL.dodgeAt-0.3,TL.dodgeAt-0.1,t)*(1-sstep(TL.dodgeAt+0.2,TL.dodgeAt+0.55,t));
+  if(dk>0){ P=R.blend(P,{...R.POSES.crouch,p:1.15,tilt:0.25,sL:1.6,sR:1.6,eL:1.4,eR:1.4},dk); P.dy-=0.12*dk; }
+  // the hop up onto the wall: crouch, spring, tuck, land with an absorb, then stand tall looking down at them
+  const h0=TL.hop0, hl=TL.hopLand;
+  const pre=sstep(h0-0.15,h0+0.1,t)*(1-sstep(h0+0.12,h0+0.25,t)); const air=sstep(h0+0.12,h0+0.25,t)*(1-sstep(hl-0.1,hl,t));
+  const land=Math.exp(-Math.pow((t-hl-0.08)/0.1,2));
+  P=R.blend(P,R.POSES.crouch,0.6*pre+0.45*air+0.5*land);
+  const tall=sstep(hl+0.2,hl+0.8,t); P.tilt+=0.25*tall; P.p-=0.03*tall;
   P.p+=Math.sin(t*2.1)*0.01;
   if(hold&&wHold>0) Object.assign(P,{tL:hold[1],tR:hold[0],wL:wHold,wR:wHold},POLES);
   else if(ready&&wReady>0) Object.assign(P,{tL:ready[1],tR:ready[0],wL:wReady,wR:wReady},POLES);
@@ -171,12 +195,13 @@ function haterPose(i,t){
   let hand=null, w=0;
   const mine=[]; TL.throwers.forEach((th,k)=>{ if(th===i) mine.push(REL(k)); });
   if(i===RED) mine.push(TL.redRelease);
+  if(i===TL.dodgeThrower) mine.push(TL.dodgeRel);
   for(const r of mine){ const rel=t-r, isRed=(i===RED);
     if(rel>=(isRed?-99:-0.9)&&rel<0){ const st=isRed?redState(t):{pos:inHands(i,yaw,rel),yaw:yaw+Math.PI/2}; hand=grips(st,(isRed?RW:BW)/2-0.03); w=isRed?1:sstep(-0.9,-0.72,rel); }
     if(rel>=0&&rel<0.5){ const f=fwdOf(yaw), side=rotY(V(0,0,1),yaw); const tip=holdPt(HP[i],yaw,'rel').addScaledVector(f,0.15).add(V(0,-0.35*sstep(0,0.5,rel),0));
       hand=[tip.clone().addScaledVector(side,-0.2),tip.clone().addScaledVector(side,0.2)]; w=1-sstep(0.05,0.5,rel); }
     if(rel>-0.6&&rel<0.9){ P.p+=keys([[-0.5,0],[-0.18,-0.3],[0.0,0.38],[0.3,0.3],[0.85,0]],rel); P.aL+=0.24*sstep(-0.3,0.0,rel)*(1-sstep(0.4,0.85,rel)); P.kR+=0.2*sstep(-0.3,0,rel)*(1-sstep(0.4,0.85,rel)); P.tilt+=keys([[-0.5,0],[-0.18,-0.2],[0,0.12],[0.85,0]],rel); } }
-  const dn=sstep(TL.redLand+0.2,TL.redLand+1.1,t); P.tilt+=0.4*dn; P.p+=(i===RED?0.22:0.13)*dn;
+  const dn=sstep(TL.hopLand+0.05,TL.hopLand+0.9,t); P.tilt+=0.45*dn; P.p+=(i===RED?0.24:0.15)*dn;
   if(hand&&w>0) Object.assign(P,{tR:hand[0],tL:hand[1],wL:w,wR:w,pL:V(-0.3,-0.5,0.9),pR:V(-0.3,-0.5,-0.9)});
   return {P,yaw}; }
 
@@ -188,12 +213,16 @@ function setBrick(B,st,t,k){
   qY.setFromAxisAngle(V(0,1,0),st.yaw); qX.setFromAxisAngle(V(1,0,0),st.flip); B.m.quaternion.copy(qY).multiply(qX);
   const tr=(st.a??1)<0.999; if(B.mat.transparent!==tr){ B.mat.transparent=tr; B.mat.needsUpdate=true; } B.mat.opacity=st.a??1;
   let sa, em=0, gl=0;
-  if(!B.red){ const c=TL.catches[k], rl=REL(k); sa=(st.a??1)*sstep(rl-0.45,rl-0.25,t)*(1-sstep(c+0.05,c+0.3,t));   // label shows from the wind-up
+  if(st.dodge){ sa=1-sstep(0.0,0.35,st.landed??-1); }
+  else if(!B.red){ const c=TL.catches[k], rl=REL(k); sa=(st.a??1)*sstep(rl-0.45,rl-0.25,t)*(1-sstep(c+0.05,c+0.3,t));   // label shows from the wind-up
     if(st.placed!==undefined){ em=0.9*Math.exp(-st.placed/0.3)*sstep(0,0.06,st.placed); gl=0.35*Math.exp(-Math.pow((st.placed-0.08)/0.14,2)); } }
   else { const r=TL.redRelease; sa=sstep(r-0.6,r-0.3,t);
     em=0.12+0.25*sstep(r-0.5,r,t); gl=0.12*sstep(r-0.5,r,t);
     if(st.hit!==undefined){ gl+=0.7*Math.exp(-st.hit/0.12); sa*=1-sstep(0.1,0.9,st.hit); em=0.12+0.4*Math.exp(-st.hit/0.3)-0.08*sstep(0.5,1.5,st.hit); } }
-  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; B.spr.position.copy(st.pos).add(V(0,B.red?0.62:0.45,0)); B.spr.scale.set(B.sw,B.sh,1);
+  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; B.spr.position.copy(st.pos).add(V(0,B.red?0.62:0.45,0)); const ks=Math.min(1,cam.position.distanceTo(B.spr.position)/18); B.spr.scale.set(B.sw*ks,B.sh*ks,1);   // same on-screen size in the close-ups
+  { cam.updateMatrixWorld(); const n=B.spr.position.clone().project(cam);           // keep every label fully inside the frame
+    const hw=(B.spr.position.clone().add(rotY(V(0,0,0),0)).addScaledVector(new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld,0),B.sw*ks/2).project(cam).x-n.x);
+    const lim=0.94-Math.abs(hw); const nx=Math.max(-lim,Math.min(lim,n.x)); if(nx!==n.x){ n.x=nx; B.spr.position.copy(n.unproject(cam)); } }
   B.mat.emissiveIntensity=em;
   B.glow.position.copy(st.pos).add(V(0,0,0.12)); B.glow.scale.setScalar(B.red?1.1:0.6); B.glow.material.opacity=gl; }
 function setSparks(t){
@@ -210,19 +239,25 @@ function setSparks(t){
 
 // ---------------------------------------------------------------- camera: side view from the front-right, slightly high (as the reference)
 const CL=V(0.6,1.0,2.25), CD=V(9.7,3.4,5.5).sub(V(0.3,1.0,0.0)).multiplyScalar(1.7);   // same angle as approved, pulled back for the wider gap + edge padding
-const CAMK=[[0.0,1.0],[8.4,1.0],[DUR,0.95]];
-function camAt(t){ const d=keys(CAMK,t); const pc=CL.clone().addScaledVector(CD,d), lk=CL.clone(); const P=[pc.x,pc.y,pc.z], L=[lk.x,lk.y,lk.z];
+const CAMK=[[0.0,1.0],[DUR,0.97]];
+const CDN=CD.clone().normalize();
+function shotCU(t){ if(t>=TL.cu1[0]&&t<TL.cu1[1]){ const u=(t-TL.cu1[0])/(TL.cu1[1]-TL.cu1[0]); return {lk:V(hx(0)-1.0,1.15,0.5),d:8.2-0.6*u}; }
+  if(t>=TL.cu2[0]&&t<TL.cu2[1]){ const u=(t-TL.cu2[0])/(TL.cu2[1]-TL.cu2[0]); return {lk:V(HX_END-0.9,1.05,0.6),d:8.6-0.6*u}; } return null; }
+function camAt(t){ const d=keys(CAMK,t); let pc=CL.clone().addScaledVector(CD,d), lk=CL.clone();
+  const cu=shotCU(t); if(cu){ lk=cu.lk; pc=lk.clone().addScaledVector(CDN,cu.d); } const P=[pc.x,pc.y,pc.z], L=[lk.x,lk.y,lk.z];
   if(q.get('cam')){ const c=q.get('cam').split(',').map(Number); P[0]=c[0];P[1]=c[1];P[2]=c[2];L[0]=c[3];L[1]=c[4];L[2]=c[5]; }
   const j=jolt(t,TL.redHit); cam.position.set(P[0]+0.005*j,P[1]+0.014*j,P[2]); cam.lookAt(L[0],L[1],L[2]); }
 
 // ---------------------------------------------------------------- frame
 function setT(t){
+  camAt(t);
   const h=heroPose(t); R.poseFig(hero,R.skel(h.P,h.root,h.yaw));
   const fade=1-sstep(TL.fade0,TL.fade1,t);
   haters.forEach((F,i)=>{ const p=haterPose(i,t); R.poseFig(F,R.skel(p.P,HP[i],p.yaw)); F.setAlpha(fade); });
   bricks.forEach((B,k)=>setBrick(B,brickState(k,t),t,k));
+  setBrick(dodgeB,dodgeState(t),t,-2);
   setBrick(redB,redState(t),t,-1);
-  setSparks(t); camAt(t);
+  setSparks(t);
   S.tick(t,0.18*sstep(TL.pay0,TL.pay1,t)); }
 window.renderAt=(t,K=3)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
 window.metaAt=t=>{ let placed=0; for(let k=0;k<NB;k++) if(t>=PLACED(k)) placed++; return {t,placed}; };
