@@ -595,7 +595,7 @@ const helioMesh = new T.Mesh(shellGeo(27, 0.86, 2.6), helioMat); helioMesh.rende
 const tsMesh = new T.Mesh(shellGeo(21, 0.84, 1.7), tsMat); tsMesh.renderOrder = 5; HELI.add(tsMesh);
 // Earth's magnetosphere: compressed nose toward the Sun, long magnetotail, dipole field lines
 const MAG = new T.Group(); sSolar.add(MAG);
-const magMat = shellMat('mag', [1.0, 0.62, 0.3], [0.25, 0.75, 1.0], [0.4, 0.5, 1.0], 0.75, 16.0), magMat2 = shellMat('mag2', [1.0, 0.5, 0.25], [0.45, 0.85, 1.0], [0.5, 0.55, 1.0], 0.3, 24.0);
+const magMat = shellMat('mag', [1.0, 0.62, 0.3], [0.25, 0.75, 1.0], [0.4, 0.5, 1.0], 0.5, 16.0), magMat2 = shellMat('mag2', [1.0, 0.5, 0.25], [0.45, 0.85, 1.0], [0.5, 0.55, 1.0], 0.2, 24.0);
 const MAGS = 0.2 / 0.52;   // Earth is 0.2 map units here (0.52 in v16)
 const magIn = new T.Mesh(shellGeo(1.45 * MAGS, 0.72, 4.2, 40), magMat), magOut = new T.Mesh(shellGeo(1.9 * MAGS, 0.78, 3.0, 40), magMat2); MAG.add(magIn, magOut);
 const fieldMat = new T.ShaderMaterial({ uniforms: { ...U, uA: { value: 0 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
@@ -614,19 +614,19 @@ const WIND = (() => { const N = 5000, pos = [], a = []; for (let i = 0; i < N; i
     `${LOGF[0]} uniform float uA; varying float vA; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(vec3(1.,.86,.62)*vA*(1.-r)*uA, 1.); }`);
   const p = pointCloud(HELI, pos, { aR: [a, 1] }, m); return m; })();
 
-const HOOK_DUR = 5;
+const HOOK_DUR = 6.5;
 const r0 = 0.03, r1 = 0.2;      // years per second: slow on Earth, then the planets race
 const yAt = t => { if (t < 1) return Y_TODAY + r0 * t; if (t < 3) { const S = (t - 1) / 2; return Y_TODAY + r0 * t + (r1 - r0) * 2 * (S ** 3 - S ** 4 / 2); } return Y_TODAY + r0 * t + (r1 - r0) * (1 + (t - 3)); };
 const eio = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const Ew = y => e2g(posD(2, y));
 function hookPose(t) {
   const y = yAt(t), E = Ew(y), toSun = E.clone().negate().normalize(), side = toSun.clone().cross(ECL_N).normalize();
-  const dirE = toSun.clone().multiplyScalar(0.45).addScaledVector(side, -0.8).addScaledVector(ECL_N, 0.42).normalize();
-  const kd = eio(seg2(t, 0.3, 4.3)), kr = smooth(0.5, 3.6, t);
-  const dS = Math.exp(mixv(Math.log(1.35), Math.log(112), kd)) * (1 + 0.05 * Math.max(0, t - 3.8));
+  const dirE = toSun.clone().multiplyScalar(0.45).addScaledVector(side, -0.8).addScaledVector(ECL_N, 0.42).normalize().applyQuaternion(new T.Quaternion().setFromAxisAngle(ECL_N, -0.1 * Math.min(t, 1.2)));
+  const kd = eio(seg2(t, 0.55, 3.6)), kr = smooth(0.7, 3.4, t);
+  const dS = Math.exp(mixv(Math.log(1.3), Math.log(92), kd)) * (1 + 0.075 * Math.max(0, t - 3.6)) * (1 - 0.05 * smooth(0, 0.6, t));
   const kl = smooth(Math.log(1.6), Math.log(14), Math.log(dS));
-  const spin = new T.Quaternion().setFromAxisAngle(VG, 0.07 * Math.max(0, t - 3.2) ** 1.5);
-  const dir = dirE.clone().lerp(RIDE_DIR, kr).normalize().applyQuaternion(spin), up = ECL_N.clone().lerp(RIDE_UP, smooth(0.5, 3.2, t)).normalize().applyQuaternion(spin);
+  const spin = new T.Quaternion().setFromAxisAngle(VG, 0.06 * Math.max(0, t - 3.2) ** 1.3);
+  const dir = dirE.clone().lerp(RIDE_DIR, kr).addScaledVector(ECL_N, 0.9 * Math.sin(Math.PI * seg2(t, 0.8, 3.2))).normalize().applyQuaternion(spin), up = ECL_N.clone().lerp(RIDE_UP, smooth(0.7, 3.2, t)).normalize().applyQuaternion(spin);
   const look = E.clone().addScaledVector(up, -0.06).lerp(VG.clone().multiplyScalar(-0.2 * dS), kl);
   return { pos: look.clone().addScaledVector(dir, dS), look, up, dS };
 }
@@ -638,16 +638,17 @@ function richLine(parts, y, size, alpha, weight = 700) { if (alpha <= 0.002) ret
 const fadeIO = (t, a, b, f = 0.16) => smooth(a, a + f, t) * (1 - smooth(b - f, b, t));
 function hookOverlay(t, E2, S2) {
   const W1 = '#ffffff', GOLD = '#ffcf73';
-  const a0 = t < 0.02 ? 1 : 1 - smooth(2.5, 2.66, t);
-  hookText('YOU WILL DIE', 540, 1262, 104, W1, a0); hookText('INSIDE THIS', 540, 1368, 104, W1, a0); hookText('BUBBLE.', 540, 1474, 104, W1, a0);
-  const a1 = fadeIO(t, 2.7, 3.75);
+  const a0 = t < 0.02 ? 1 : 1 - smooth(3.3, 3.42, t), ab = smooth(2.55, 2.68, t) * a0, pop = 1 + 0.08 * Math.exp(-Math.max(0, t - 2.55) * 9) * (t > 2.55 ? 1 : 0);
+  hookText('YOU WILL DIE', 540, 1262, 104, W1, a0);
+  ctx.save(); ctx.translate(540, 1420); ctx.scale(pop, pop); ctx.translate(-540, -1420); hookText('INSIDE THIS', 540, 1368, 104, W1, ab); hookText('BUBBLE.', 540, 1474, 104, GOLD, ab); ctx.restore();
+  const a1 = fadeIO(t, 3.38, 5.0);
   richLine([['So did all ', W1], ['117 billion', GOLD]], 1360, 66, a1); richLine([['humans before you.', W1]], 1436, 66, a1);
-  const a2 = fadeIO(t, 3.8, 99);
+  const a2 = fadeIO(t, 5.05, 99);
   richLine([["And you're flying around", W1]], 1330, 66, a2); richLine([['the galaxy at ', W1], ['830,000 km/h.', GOLD]], 1406, 66, a2);
   // small labels on the two shields
-  const la = fadeIO(t, 0.25, 1.55, 0.25), lb = fadeIO(t, 2.2, 3.7, 0.3);
-  if (la > 0 && E2[2]) text("EARTH'S SHIELD", E2[0], E2[1], 24, '#bfe9ff', { alpha: la, spacing: 4 });
-  if (lb > 0 && S2[2]) text("THE SUN'S BUBBLE", S2[0], S2[1], 24, '#ffe2a6', { alpha: lb, spacing: 4 });
+  const la = fadeIO(t, 0.2, 1.5, 0.25), lb = fadeIO(t, 2.6, 4.4, 0.3);
+  if (la > 0 && E2[2]) text("EARTH'S SHIELD", E2[0], E2[1], 36, '#bfe9ff', { alpha: la, spacing: 4 });
+  if (lb > 0 && S2[2]) text("THE SUN'S BUBBLE", clamp(S2[0], 220, 860), clamp(S2[1], 170, 1700), 36, '#ffe2a6', { alpha: lb, spacing: 4 });
   text('SLOW LIGHT', 540, 1760, 22, 'rgba(255,255,255,.55)', { spacing: 9, stroke: false });
   text('DISTANCES COMPRESSED · SIZES ENLARGED · NOT TO SCALE', 540, 1800, 16, '#f4e6c8', { alpha: 0.4, spacing: 1, stroke: false });
 }
@@ -667,7 +668,7 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   // solar layer
   setCam(camS, pS, Math.max(1e-3, Math.min(dS * 2e-3, 0.004)));
   sky.visible = false;
-  bodies.forEach((b, i) => { const pe = posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(1); b.group.visible = i === 2 || camS.position.distanceTo(e2g(pe)) > 1.2 + 6 * PL[i].R;
+  bodies.forEach((b, i) => { const pe = posD(i, y); b.group.position.copy(pe); b.group.scale.setScalar(1); b.group.visible = i === 2 || ((i > 1 || dS > 8) && camS.position.distanceTo(e2g(pe)) > 1.2 + 6 * PL[i].R);
     b.spin.rotation.y = spinHours(t * 0.6) / Math.abs(PL[i].day_h) * 2 * Math.PI * Math.sign(PL[i].day_h) + i * 1.3 + (i === 2 ? 2.2 : 0);
     glows[i].position.copy(pe); glows[i].material.uniforms.uA.value = smooth(30, 120, dS) * 0.9; glows[i].material.uniforms.uPx.value = 9 + 1.5 * Math.sqrt(i); });
   for (const m of [...mats, ringMat, uRingMat, ...moonBodies.map(mb => mb.mat)]) m.uniforms.uSunPos.value.set(0, 0, 0);
@@ -676,21 +677,21 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   EU.uCloudShift.value = t * 0.004;
   moonBodies.forEach((mb, k) => { mb.mesh.position.copy(moonPos(mb, t, y)); mb.mesh.visible = dS < 100; moonGlows[k].material.uniforms.uA.value = 0; });
   const sunS = R_SUN_D / R_SUN; sunMesh.scale.setScalar(sunS); corona.scale.setScalar(sunS); sunMesh.visible = true;
-  corona.visible = dS < 90; corona.material.uniforms.uA.value = 0.85;
-  sunGlare.visible = true; sunGlare.scale.setScalar(Math.max(R_SUN_D * 8, dS * 0.075)); sunGlare.material.uniforms.uA.value = 0.6;
+  const gk = smooth(1.0, 3.0, camS.position.length()); corona.visible = dS < 90; corona.material.uniforms.uA.value = 0.85 * mixv(0.4, 1, gk);
+  sunGlare.visible = true; sunGlare.scale.setScalar(Math.max(R_SUN_D * 8, dS * 0.075)); sunGlare.material.uniforms.uA.value = 0.6 * mixv(0.2, 1, gk);
   astBelt.material.uniforms.uY.value = kuiper.material.uniforms.uY.value = y; astBelt.material.uniforms.uA.value = 0.3; kuiper.material.uniforms.uA.value = 0.22;
   rings.forEach(m => { m.uniforms.uA.value = 0; }); smears.forEach(m => { m.uniforms.uA.value = 0; });
   const y0 = y - 1.7;   // the waves: the last 1.7 years of each planet's true path through the galaxy
   trails.forEach((m, i) => { m.uniforms.uNow.value = y; m.uniforms.uStart.value = y0; m.uniforms.uA.value = (i === 2 ? 1.3 : 1) * mixv(0.55, 1, smooth(0.5, 2.5, t));
     m.uniforms.uWidth.value = i === 2 ? 4.5 : 3.2; m.uniforms.uHead.value = 0.04; });
   sunTrailMat.uniforms.uLen.value = 1.7 * VD; sunTrailMat.uniforms.uA.value = 0.9;
-  dustMat.uniforms.uS.value = y - Y_TODAY; dustMat.uniforms.uA.value = 0.45 * smooth(0.6, 1.8, t);
+  dustMat.uniforms.uS.value = y - Y_TODAY; dustMat.uniforms.uA.value = 0.8 * smooth(0.6, 1.8, t);
   mythTrails.forEach(m => { m.uniforms.uA.value = 0; }); mythBeads.forEach(b => { b.visible = false; }); mythSun.visible = false; mythTail.uniforms.uA.value = 0;
   // the two shields
   const E = Ew(y); MAG.position.copy(E); MAG.lookAt(0, 0, 0);
   const magK = 1 - smooth(4, 13, dS); magMat.uniforms.uK.value = magMat2.uniforms.uK.value = magK; fieldMat.uniforms.uA.value = 0.34 * (1 - smooth(4, 12, dS)); MAG.visible = magK > 0.01;
-  const hk = smooth(4, 26, dS); helioMat.uniforms.uK.value = hk; tsMat.uniforms.uK.value = hk * smooth(14, 60, dS); HELI.visible = hk > 0.01;
-  WIND.uniforms.uA.value = 0.55 * smooth(3, 14, dS);
+  const hk = smooth(3, 14, dS); helioMat.uniforms.uK.value = hk; tsMat.uniforms.uK.value = hk * smooth(14, 60, dS); HELI.visible = hk > 0.01;
+  WIND.uniforms.uA.value = 0.8 * smooth(3, 14, dS);
   renderer.render(sSolar, camS);
   drawFilm();
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 560, 540, 960, 1250); v.addColorStop(0, 'rgba(4,8,18,0)'); v.addColorStop(1, 'rgba(4,8,18,0.3)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
@@ -706,5 +707,6 @@ window.factCheck = () => { const beta = Math.asin(VE.z) / RAD; const tilt = Math
   let ahead = 0; for (let k = 0; k < 1000; k++) if (posEcl(2, k / 1000).dot(VE) > 0) ahead++;
   return { motionAboveEclipticDeg: beta, eclipticToGalacticPlaneDeg: tilt, earthAheadFraction: ahead / 1000, auPerYear: VSUN,
     axialTiltsDeg: bodies.map(b => +(Math.acos(b.pole.z) / RAD).toFixed(1)), lapMyr: state(T_LAP1).myr }; };
+window.camDbg = t => { window.renderAt(t); return camS.position.length(); };
 window.renderAt(0.0);
 window.ready = true;
