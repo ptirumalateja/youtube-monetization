@@ -614,7 +614,7 @@ const WIND = (() => { const N = 5000, pos = [], a = []; for (let i = 0; i < N; i
     `${LOGF[0]} uniform float uA; varying float vA; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(vec3(1.,.86,.62)*vA*(1.-r)*uA, 1.); }`);
   const p = pointCloud(HELI, pos, { aR: [a, 1] }, m); return m; })();
 
-const HOOK_DUR = 6.5;
+const HOOK_DUR = 13;
 const r0 = 0.03, r1 = 0.2;      // years per second: slow on Earth, then the planets race
 const yAt = t => { if (t < 1) return Y_TODAY + r0 * t; if (t < 3) { const S = (t - 1) / 2; return Y_TODAY + r0 * t + (r1 - r0) * 2 * (S ** 3 - S ** 4 / 2); } return Y_TODAY + r0 * t + (r1 - r0) * (1 + (t - 3)); };
 const eio = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
@@ -623,9 +623,9 @@ function hookPose(t) {
   const y = yAt(t), E = Ew(y), toSun = E.clone().negate().normalize(), side = toSun.clone().cross(ECL_N).normalize();
   const dirE = toSun.clone().multiplyScalar(0.45).addScaledVector(side, -0.8).addScaledVector(ECL_N, 0.42).normalize().applyQuaternion(new T.Quaternion().setFromAxisAngle(ECL_N, -0.1 * Math.min(t, 1.2)));
   const kd = eio(seg2(t, 0.55, 3.6)), kr = smooth(0.7, 3.4, t);
-  const dS = Math.exp(mixv(Math.log(1.3), Math.log(92), kd)) * (1 + 0.075 * Math.max(0, t - 3.6)) * (1 - 0.05 * smooth(0, 0.6, t));
+  const dS = Math.exp(mixv(Math.log(1.3), Math.log(92), kd)) * (1 + 0.075 * Math.min(Math.max(0, t - 3.6), 3)) * (1 - 0.05 * smooth(0, 0.6, t)) * (1 - 0.12 * smooth(9.0, 12.5, t));
   const kl = smooth(Math.log(1.6), Math.log(14), Math.log(dS));
-  const spin = new T.Quaternion().setFromAxisAngle(VG, 0.06 * Math.max(0, t - 3.2) ** 1.3);
+  const spin = new T.Quaternion().setFromAxisAngle(VG, 0.09 * Math.max(0, Math.min(t, 6.6) - 3.2) ** 1.3 + 0.05 * Math.max(0, t - 6.6));
   const dir = dirE.clone().lerp(RIDE_DIR, kr).addScaledVector(ECL_N, 0.9 * Math.sin(Math.PI * seg2(t, 0.8, 3.2))).normalize().applyQuaternion(spin), up = ECL_N.clone().lerp(RIDE_UP, smooth(0.7, 3.2, t)).normalize().applyQuaternion(spin);
   const look = E.clone().addScaledVector(up, -0.06).lerp(VG.clone().multiplyScalar(-0.2 * dS), kl);
   return { pos: look.clone().addScaledVector(dir, dS), look, up, dS };
@@ -643,27 +643,66 @@ function hookOverlay(t, E2, S2) {
   ctx.save(); ctx.translate(540, 1420); ctx.scale(pop, pop); ctx.translate(-540, -1420); hookText('INSIDE THIS', 540, 1368, 104, W1, ab); hookText('BUBBLE.', 540, 1474, 104, GOLD, ab); ctx.restore();
   const a1 = fadeIO(t, 3.38, 5.0);
   richLine([['So did all ', W1], ['117 billion', GOLD]], 1360, 66, a1); richLine([['humans before you.', W1]], 1436, 66, a1);
-  const a2 = fadeIO(t, 5.05, 99);
+  const a2 = fadeIO(t, 5.05, 8.05);
   richLine([["And you're flying around", W1]], 1330, 66, a2); richLine([['the galaxy at ', W1], ['830,000 km/h.', GOLD]], 1406, 66, a2);
+  const a3 = fadeIO(t, 8.85, 10.4);
+  richLine([["The Sun's wind", W1]], 1330, 66, a3); richLine([['blows it up.', GOLD]], 1406, 66, a3);
+  const a4 = fadeIO(t, 10.5, 13.2);
+  richLine([['Outside: ', W1], ['cosmic rays', GOLD]], 1330, 66, a4); richLine([['from exploding stars.', W1]], 1406, 66, a4);
   // small labels on the two shields
-  const la = fadeIO(t, 0.2, 1.5, 0.25), lb = fadeIO(t, 2.6, 4.4, 0.3);
+  const la = fadeIO(t, 0.2, 1.5, 0.25), lb = fadeIO(t, 2.6, 4.4, 0.3), lc = fadeIO(t, 7.2, 8.0, 0.2);
   if (la > 0 && E2[2]) text("EARTH'S SHIELD", E2[0], E2[1], 36, '#bfe9ff', { alpha: la, spacing: 4 });
   if (lb > 0 && S2[2]) text("THE SUN'S BUBBLE", clamp(S2[0], 220, 860), clamp(S2[1], 170, 1700), 36, '#ffe2a6', { alpha: lb, spacing: 4 });
+  if (lc > 0 && E2.sun && E2.sun[2]) text('YOU ARE HERE', E2.sun[0] + 150, E2.sun[1], 32, '#ffe2a6', { alpha: lc, spacing: 4 });
   text('SLOW LIGHT', 540, 1760, 22, 'rgba(255,255,255,.55)', { spacing: 9, stroke: false });
   text('DISTANCES COMPRESSED · SIZES ENLARGED · NOT TO SCALE', 540, 1800, 16, '#f4e6c8', { alpha: 0.4, spacing: 1, stroke: false });
 }
 function setCam(cam, pose, near) { cam.position.copy(pose.pos); cam.up.copy(pose.up); cam.lookAt(pose.look); cam.near = near; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+
+function galOverview(t) { const q = new T.Quaternion().setFromAxisAngle(V3(0, 0, 1), 0.03 * (t - 7.2));
+  return { pos: GC.clone().addScaledVector(V3(-Math.cos(38 * RAD), 0, Math.sin(38 * RAD)).applyQuaternion(q), 150000), look: GC.clone().lerp(V3(), 0.25), up: V3(0, 1, 0).applyQuaternion(q) }; }
+// cosmic rays: streaks from outside that hit the heliopause; most are turned aside along the wall, a few get through
+const hpPt = u => V3(u.x * 27, u.y * 27, u.z * 27 * (1 - 0.14 * Math.max(0, u.z) + 1.6 * Math.pow(Math.max(0, -u.z), 2)));
+const CR = (() => { const N = 520, M = 26, dat = [];
+  for (let i = 0; i < N; i++) { let z = rnd() * 2 - 1; if (rnd() < 0.6) z = Math.abs(z) * 0.9; const a = rnd() * 6.2832, q = Math.sqrt(1 - z * z), u = V3(q * Math.cos(a), q * Math.sin(a), z);
+    const tg = V3(0, 0, -1).addScaledVector(u, z), g = tg.length() > 0.05 ? tg.normalize() : V3(1, 0, 0); dat.push({ u, g, P: hpPt(u), ph: rnd(), pass: rnd() < 0.16 }); }
+  const pos = new Float32Array(N * M * 3), aA = new Float32Array(N * M);
+  const m = pointsMat('crays', `${LOGV[0]} attribute float aA; varying float vA; void main(){ vA = aA; vec4 mv = modelViewMatrix*vec4(position,1.); gl_Position = projectionMatrix*mv;
+      gl_PointSize = clamp(1100./max(-mv.z,1.)*uH/1280., 2.5, 8.); ${LOGV[1]} }`,
+    `${LOGF[0]} uniform float uA; varying float vA; void main(){ ${LOGF[1]} vec2 q = gl_PointCoord*2.-1.; float r = dot(q,q); if (r > 1.) discard; gl_FragColor = vec4(mix(vec3(.5,.85,1.), vec3(1.), min(vA,1.)*.6)*vA*exp(-r*2.2)*uA, 1.); }`);
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('aA', new T.BufferAttribute(aA, 1));
+  const p = new T.Points(g, m); p.frustumCulled = false; p.renderOrder = 7; HELI.add(p); return { N, M, dat, pos, aA, g, m, p }; })();
+const crTmp = V3();
+function updateRays(t) { const I = smooth(10.2, 10.8, t); CR.p.visible = I > 0.01; if (!CR.p.visible) return; CR.m.uniforms.uA.value = I;
+  const CY = 2.0, TI = 0.9;
+  CR.dat.forEach((c, i) => { for (let j = 0; j < CR.M; j++) { const tau = ((t + c.ph * CY) % CY) - j * 0.006, idx = i * CR.M + j; let a = 0;
+    if (tau < 0) { CR.aA[idx] = 0; continue; }
+    if (tau < TI) { crTmp.copy(c.P).addScaledVector(c.u, 90 * (TI - tau)); a = smooth(0, 0.2, tau); }
+    else if (c.pass) { crTmp.copy(c.P).addScaledVector(c.u, -60 * (tau - TI)); a = 0.6 * (1 - smooth(TI, TI + 0.6, tau)); }
+    else { crTmp.copy(c.P).addScaledVector(c.g, 50 * (tau - TI)).addScaledVector(c.u, 3 * (tau - TI)); a = (1 + 2 * Math.exp(-(tau - TI) * 14)) * (1 - smooth(TI, TI + 0.9, tau)); }
+    CR.pos[idx * 3] = crTmp.x; CR.pos[idx * 3 + 1] = crTmp.y; CR.pos[idx * 3 + 2] = crTmp.z; CR.aA[idx] = a * (1 - j / CR.M); } });
+  CR.g.attributes.position.needsUpdate = CR.g.attributes.aA.needsUpdate = true; }
 window.renderAt = function (t, frame = Math.round(t * 30)) {
   const y = yAt(t); U.uTime.value = t;
   renderer.setClearColor('#050914', 1); renderer.clear();
-  const pS = hookPose(t), dS = pS.dS;
+  let pS = hookPose(t);
   // galaxy layer: the solar camera's view, scaled up by K, so the backdrop turns with the camera
   const K = mixv(9000, 21000, smooth(0.3, 4.6, t)) / pS.pos.length();
-  setCam(camG, { pos: pS.pos.clone().multiplyScalar(K), look: pS.look.clone().multiplyScalar(K), up: pS.up }, 50);
+  const gA = { pos: pS.pos.clone().multiplyScalar(K), look: pS.look.clone().multiplyScalar(K), up: pS.up.clone() };
+  // the galaxy round trip: out to the whole spiral (the Sun's bubble is a point on its gold orbit), then back down into the bubble
+  const sOut = smooth(6.5, 8.0, t), sIn = smooth(8.1, 9.25, t), sG = sOut * (1 - sIn);
+  let gP = gA;
+  if (sG > 0) { const gB = galOverview(t); gP = blendPose(gA, gB, sG, 0.0, 0.8); }
+  setCam(camG, gP, Math.max(50, gP.pos.distanceTo(gP.look) * 1e-4));
+  if (sG > 0) { const ratio = gP.pos.length() / gA.pos.length(), dSt = pS.dS * Math.pow(ratio, 2.6), Kp = Math.pow(ratio, 1.6) / K;
+    pS = { pos: gP.pos.clone().multiplyScalar(Kp), look: gP.look.clone().multiplyScalar(Kp), up: gP.up.clone(), dS: dSt }; }
+  const dS = pS.dS;
   galSky.position.copy(camG.position); galaxy.rotation.z = 0;
-  plateMat.uniforms.uA.value = 0.92; galStars.material.uniforms.uA.value = 0.95; neighbourhood.material.uniforms.uA.value = 0.3;
+  plateMat.uniforms.uA.value = 0.92; galStars.material.uniforms.uA.value = 0.95; neighbourhood.material.uniforms.uA.value = 0.3 * (1 - smooth(0.1, 0.5, sG));
   bulge.scale.setScalar(26000); bulge.material.uniforms.uA.value = 0.4; bh.material.uniforms.uA.value = 0; bh.visible = false;
-  lapTrail.uniforms.uA.value = 0; lapCircle.uniforms.uA.value = 0; galSun.material.uniforms.uA.value = 0; sunVeil.material.uniforms.uA.value = 0.25 * smooth(2, 4, t); sunVeil.position.set(0, 0, 0); sunVeil.scale.setScalar(2 * 40 * K);
+  lapTrail.uniforms.uStart.value = -0.32; lapTrail.uniforms.uNow.value = 0; lapTrail.uniforms.uWidth.value = 6; lapTrail.uniforms.uHead.value = 0.02; lapTrail.uniforms.uA.value = sG * 1.2;
+  lapCircle.uniforms.uStart.value = 0; lapCircle.uniforms.uNow.value = 2 * Math.PI; lapCircle.uniforms.uWidth.value = 4; lapCircle.uniforms.uHead.value = 1e-6; lapCircle.uniforms.uA.value = 0.45 * sG;
+  galSun.position.set(0, 0, 0); galSun.material.uniforms.uPx.value = 26; galSun.material.uniforms.uA.value = smooth(0.5, 0.9, sG); sunVeil.material.uniforms.uA.value = 0.25 * smooth(2, 4, t); sunVeil.position.set(0, 0, 0); sunVeil.scale.setScalar(2 * 40 * K); sunVeil.visible = sG < 0.3;
   renderer.render(sGal, camG); renderer.clearDepth();
   // solar layer
   setCam(camS, pS, Math.max(1e-3, Math.min(dS * 2e-3, 0.004)));
@@ -691,14 +730,14 @@ window.renderAt = function (t, frame = Math.round(t * 30)) {
   const E = Ew(y); MAG.position.copy(E); MAG.lookAt(0, 0, 0);
   const magK = 1 - smooth(4, 13, dS); magMat.uniforms.uK.value = magMat2.uniforms.uK.value = magK; fieldMat.uniforms.uA.value = 0.34 * (1 - smooth(4, 12, dS)); MAG.visible = magK > 0.01;
   const hk = smooth(3, 14, dS); helioMat.uniforms.uK.value = hk; tsMat.uniforms.uK.value = hk * smooth(14, 60, dS); HELI.visible = hk > 0.01;
-  WIND.uniforms.uA.value = 0.8 * smooth(3, 14, dS);
+  WIND.uniforms.uA.value = (0.8 + 0.7 * fadeIO(t, 8.8, 10.6, 0.4)) * smooth(3, 14, dS); updateRays(t);
   renderer.render(sSolar, camS);
   drawFilm();
   ctx.save(); const v = ctx.createRadialGradient(540, 960, 560, 540, 960, 1250); v.addColorStop(0, 'rgba(4,8,18,0)'); v.addColorStop(1, 'rgba(4,8,18,0.3)'); ctx.fillStyle = v; ctx.fillRect(0, 0, 1080, 1920);
   ctx.globalAlpha = 0.035; ctx.globalCompositeOperation = 'overlay'; ctx.drawImage(grain[frame % 6], 0, 0, 1080, 1920); ctx.restore();
   // label anchors: beside Earth's shield, and on the Sun's bubble wall
   const eP = projWith(camS, E.clone().addScaledVector(pS.up, 0.42)), sP = projWith(camS, VG.clone().multiplyScalar(26).addScaledVector(pS.up, 3));
-  hookOverlay(t, eP, sP);
+  eP.sun = projWith(camG, V3(0, 0, 0)); hookOverlay(t, eP, sP);
 };
 window.captureFrame = (t, frame) => { window.renderAt(t, frame); return out.toDataURL('image/jpeg', 0.93).split(',')[1]; };
 // fact check helpers for render.cjs
