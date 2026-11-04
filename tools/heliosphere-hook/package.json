@@ -1,0 +1,15 @@
+{
+  "name": "slow-light-moon-never-loops",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "^1.56.1",
+    "three": "^0.170.0"
+  },
+  "scripts": {
+    "sound": "node sound.mjs",
+    "stills": "node render.cjs --gpu --stills",
+    "render": "node sound.mjs && node render.cjs --gpu"
+  }
+}
