@@ -32,15 +32,15 @@ const IMP=V(HX_END-0.05,TOP-0.16,BD/2+RD/2+0.005);          // the red brick hit
 // ---------------------------------------------------------------- stage: clean studio light over the series lamp
 const S=SLD.createStage({W,H,lamp:V(END+0.1,6.4,-0.5),lampTarget:V(END-0.2,0,-0.1),cone:0.2,spot:42,beam:0.0,fov:+(q.get('fov')||44),motes:300,vig:0.1});
 const {scene,cam}=S;
-scene.background=new THREE.Color(0x36363b); S.renderer.toneMappingExposure=1.25;
+scene.background=new THREE.Color(0x9a9da4); S.renderer.toneMappingExposure=1.3;
 S.floor.scale.set(3,3,1); S.refl.scale.set(3,3,1);
-scene.fog=new THREE.FogExp2(0x48484d,0.03);
-scene.add(new THREE.HemisphereLight(0xb8bcc8,0x3a3632,0.55));
+scene.fog=new THREE.FogExp2(0x9a9da4,0.02);
+scene.add(new THREE.HemisphereLight(0xd8dce6,0x8a8680,0.9));
 const key=new THREE.DirectionalLight(0xfff0dc,1.25); key.position.set(4.5,6.5,6.5); key.target.position.set(-0.5,0.6,0);
 key.castShadow=true; key.shadow.mapSize.set(2048,2048); Object.assign(key.shadow.camera,{left:-6,right:6,top:5,bottom:-3,near:1,far:20}); key.shadow.bias=-0.0003; key.shadow.normalBias=0.02;
 scene.add(key,key.target);
 const rim=new THREE.DirectionalLight(0x9fb4e0,0.6); rim.position.set(-3,3.5,-5); scene.add(rim);
-S.floor.material.color.set(0x6a6a70); S.floor.material.opacity=0.72;
+S.floor.material.color.set(0xb8bac0); S.floor.material.opacity=0.93;
 const R=SLD.createRig(scene);
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
 const haters=HP.map((p,i)=>R.makeFig(PAL.SLATE,'hater'+i,{rim:0.24,rimCol:0x9fb2d6,lift:0.035}));
@@ -66,13 +66,13 @@ const coreTop=new THREE.Mesh(new THREE.BoxGeometry((NC-NB)*BW-0.02,BH-0.01,BD-0.
 function wordCanvas(word,col){
   const c=document.createElement('canvas'); c.width=1024; c.height=256; const g=c.getContext('2d');
   let fs=128; g.font=`700 ${fs}px SLB`; while(g.measureText(word).width>c.width*0.92&&fs>10){ fs-=4; g.font=`700 ${fs}px SLB`; }
-  g.textAlign='center'; g.textBaseline='middle'; g.shadowColor='rgba(0,0,0,0.9)'; g.shadowBlur=24;
-  g.fillStyle=col; g.fillText(word,512,132); g.shadowBlur=0; g.fillText(word,512,132);
+  g.textAlign='center'; g.textBaseline='middle'; g.shadowColor='rgba(255,255,255,0.85)'; g.shadowBlur=20;
+  g.fillStyle=col; g.fillText(word,512,132); g.shadowBlur=0; g.lineWidth=7; g.lineJoin='round'; g.strokeStyle=col; g.strokeText(word,512,132); g.fillText(word,512,132);   // dark, heavy word on the light background
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; }
 function makeBrick(word,red=false){
   const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:red?0xc0392b:0xa4a6ae,roughness:red?0.6:0.8,metalness:0,map:stoneTex,emissive:red?PAL.RED:PAL.GOLD,emissiveIntensity:0}),red?0xff9a80:0xdfe6f5,0.06,red?'red':'b'+word);
   const m=new THREE.Mesh(new THREE.BoxGeometry(red?RW:BW-0.012,red?RH:BH-0.012,red?RD:BD),mat); m.castShadow=true; m.receiveShadow=true; scene.add(m);
-  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:wordCanvas(word,red?'#FF5A44':'#F1E7D2'),transparent:true,depthWrite:false,depthTest:false,fog:false}));
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:wordCanvas(word,red?'#C0281C':'#26262B'),transparent:true,depthWrite:false,depthTest:false,fog:false}));
   spr.renderOrder=20; scene.add(spr); S.NOREFL.push(spr);   // labels always on top, never mirrored in the floor
   const glow=SLD.glowSprite(scene,red?PAL.RED:PAL.GOLD,0);
   return {m,mat,spr,glow,red,sw:red?2.9:2.5,sh:red?0.725:0.625}; }
@@ -220,7 +220,7 @@ function setBrick(B,st,t,k){
   else { const r=TL.redRelease; sa=sstep(r-0.6,r-0.3,t);
     em=0.12+0.25*sstep(r-0.5,r,t); gl=0.12*sstep(r-0.5,r,t);
     if(st.hit!==undefined){ gl+=0.7*Math.exp(-st.hit/0.12); sa*=1-sstep(0.1,0.9,st.hit); em=0.12+0.4*Math.exp(-st.hit/0.3)-0.08*sstep(0.5,1.5,st.hit); } }
-  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; const ks=Math.min(1,cam.position.distanceTo(st.pos)/18); B.spr.position.copy(st.pos).add(V(0,(B.red?0.62:0.45)*ks,0));   // offset shrinks with the label so it sits right on its brick in the close-ups
+  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; const ks=Math.min(1,cam.position.distanceTo(st.pos)/18); B.spr.position.copy(st.pos).add(V(0,(B.red?0.42:0.45)*ks,0));   // offset shrinks with the label so it sits right on its brick in the close-ups
   { cam.updateMatrixWorld(); const nb=st.pos.clone().project(cam); const off=Math.max(Math.abs(nb.x),Math.abs(nb.y)); const k=1-sstep(0.85,0.98,off); B.spr.material.opacity*=k; B.spr.visible=B.spr.visible&&k>0.01; }   // brick out of shot -> no stray label
   B.spr.scale.set(B.sw*ks,B.sh*ks,1);   // same on-screen size in the close-ups
   { cam.updateMatrixWorld(); const n=B.spr.position.clone().project(cam);           // keep every label fully inside the frame

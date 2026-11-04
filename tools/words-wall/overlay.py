@@ -23,8 +23,8 @@ def draw(img, t):
     img = sld_text.draw(img, [])                       # resize + the SLOW LIGHT watermark only
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
     for i, line in enumerate(LINES):
-        d.text((W / 2, Y0 + i * LH), line, font=F, fill=(240, 236, 228, 255), anchor='mm')
-    sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sh.putalpha(layer.getchannel('A').filter(ImageFilter.GaussianBlur(6)).point(lambda v: int(v * 0.5)))
+        d.text((W / 2, Y0 + i * LH), line, font=F, fill=(34, 34, 38, 255), anchor='mm')
+    sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); sh.putalpha(layer.getchannel('A').filter(ImageFilter.GaussianBlur(6)).point(lambda v: int(v * 0.0)))
     base = img.convert('RGBA'); base.alpha_composite(sh); base.alpha_composite(layer)
     return base.convert('RGB')
 
