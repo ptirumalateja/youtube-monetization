@@ -220,7 +220,8 @@ function setBrick(B,st,t,k){
   else { const r=TL.redRelease; sa=sstep(r-0.6,r-0.3,t);
     em=0.12+0.25*sstep(r-0.5,r,t); gl=0.12*sstep(r-0.5,r,t);
     if(st.hit!==undefined){ gl+=0.7*Math.exp(-st.hit/0.12); sa*=1-sstep(0.1,0.9,st.hit); em=0.12+0.4*Math.exp(-st.hit/0.3)-0.08*sstep(0.5,1.5,st.hit); } }
-  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; B.spr.position.copy(st.pos).add(V(0,B.red?0.62:0.45,0)); const ks=Math.min(1,cam.position.distanceTo(B.spr.position)/18); B.spr.scale.set(B.sw*ks,B.sh*ks,1);   // same on-screen size in the close-ups
+  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; const ks=Math.min(1,cam.position.distanceTo(st.pos)/18); B.spr.position.copy(st.pos).add(V(0,(B.red?0.62:0.45)*ks,0));   // offset shrinks with the label so it sits right on its brick in the close-ups
+  { cam.updateMatrixWorld(); const nb=st.pos.clone().project(cam); const off=Math.max(Math.abs(nb.x),Math.abs(nb.y)); const k=1-sstep(0.85,0.98,off); B.spr.material.opacity*=k; B.spr.visible=B.spr.visible&&k>0.01; }   // brick out of shot -> no stray label B.spr.scale.set(B.sw*ks,B.sh*ks,1);   // same on-screen size in the close-ups
   { cam.updateMatrixWorld(); const n=B.spr.position.clone().project(cam);           // keep every label fully inside the frame
     const hw=(B.spr.position.clone().add(rotY(V(0,0,0),0)).addScaledVector(new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld,0),B.sw*ks/2).project(cam).x-n.x);
     const lim=0.94-Math.abs(hw); const nx=Math.max(-lim,Math.min(lim,n.x)); if(nx!==n.x){ n.x=nx; B.spr.position.copy(n.unproject(cam)); } }
