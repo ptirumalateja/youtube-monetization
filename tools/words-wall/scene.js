@@ -32,15 +32,15 @@ const IMP=V(HX_END-0.05,TOP-0.16,BD/2+RD/2+0.005);          // the red brick hit
 // ---------------------------------------------------------------- stage: clean studio light over the series lamp
 const S=SLD.createStage({W,H,lamp:V(END+0.1,6.4,-0.5),lampTarget:V(END-0.2,0,-0.1),cone:0.2,spot:42,beam:0.0,fov:+(q.get('fov')||44),motes:300,vig:0.1});
 const {scene,cam}=S;
-scene.background=new THREE.Color(0x2b2b2e); S.renderer.toneMappingExposure=1.12;
+scene.background=new THREE.Color(0x36363b); S.renderer.toneMappingExposure=1.25;
 S.floor.scale.set(3,3,1); S.refl.scale.set(3,3,1);
-scene.fog=new THREE.FogExp2(0x3a3a3e,0.03);
+scene.fog=new THREE.FogExp2(0x48484d,0.03);
 scene.add(new THREE.HemisphereLight(0xb8bcc8,0x3a3632,0.55));
 const key=new THREE.DirectionalLight(0xfff0dc,1.25); key.position.set(4.5,6.5,6.5); key.target.position.set(-0.5,0.6,0);
 key.castShadow=true; key.shadow.mapSize.set(2048,2048); Object.assign(key.shadow.camera,{left:-6,right:6,top:5,bottom:-3,near:1,far:20}); key.shadow.bias=-0.0003; key.shadow.normalBias=0.02;
 scene.add(key,key.target);
 const rim=new THREE.DirectionalLight(0x9fb4e0,0.6); rim.position.set(-3,3.5,-5); scene.add(rim);
-S.floor.material.color.set(0x5c5c62); S.floor.material.opacity=0.72;
+S.floor.material.color.set(0x6a6a70); S.floor.material.opacity=0.72;
 const R=SLD.createRig(scene);
 const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.16,lift:0.07});
 const haters=HP.map((p,i)=>R.makeFig(PAL.SLATE,'hater'+i,{rim:0.24,rimCol:0x9fb2d6,lift:0.035}));
@@ -72,10 +72,10 @@ function wordCanvas(word,col){
 function makeBrick(word,red=false){
   const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:red?0xc0392b:0xa4a6ae,roughness:red?0.6:0.8,metalness:0,map:stoneTex,emissive:red?PAL.RED:PAL.GOLD,emissiveIntensity:0}),red?0xff9a80:0xdfe6f5,0.06,red?'red':'b'+word);
   const m=new THREE.Mesh(new THREE.BoxGeometry(red?RW:BW-0.012,red?RH:BH-0.012,red?RD:BD),mat); m.castShadow=true; m.receiveShadow=true; scene.add(m);
-  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:wordCanvas(word,red?'#FF5A44':'#F1E7D2'),transparent:true,depthWrite:false,fog:false}));
-  spr.renderOrder=8; scene.add(spr);
+  const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:wordCanvas(word,red?'#FF5A44':'#F1E7D2'),transparent:true,depthWrite:false,depthTest:false,fog:false}));
+  spr.renderOrder=20; scene.add(spr); S.NOREFL.push(spr);   // labels always on top, never mirrored in the floor
   const glow=SLD.glowSprite(scene,red?PAL.RED:PAL.GOLD,0);
-  return {m,mat,spr,glow,red,sw:red?1.5:0.95,sh:red?0.375:0.24}; }
+  return {m,mat,spr,glow,red,sw:red?2.9:2.5,sh:red?0.725:0.625}; }
 const bricks=TL.words.map(w=>makeBrick(w));
 const redB=makeBrick(TL.red,true);
 
@@ -188,12 +188,12 @@ function setBrick(B,st,t,k){
   qY.setFromAxisAngle(V(0,1,0),st.yaw); qX.setFromAxisAngle(V(1,0,0),st.flip); B.m.quaternion.copy(qY).multiply(qX);
   const tr=(st.a??1)<0.999; if(B.mat.transparent!==tr){ B.mat.transparent=tr; B.mat.needsUpdate=true; } B.mat.opacity=st.a??1;
   let sa, em=0, gl=0;
-  if(!B.red){ const c=TL.catches[k]; sa=(st.a??1)*(1-sstep(c+0.05,c+0.3,t));
+  if(!B.red){ const c=TL.catches[k], rl=REL(k); sa=(st.a??1)*sstep(rl-0.45,rl-0.25,t)*(1-sstep(c+0.05,c+0.3,t));   // label shows from the wind-up
     if(st.placed!==undefined){ em=0.9*Math.exp(-st.placed/0.3)*sstep(0,0.06,st.placed); gl=0.35*Math.exp(-Math.pow((st.placed-0.08)/0.14,2)); } }
   else { const r=TL.redRelease; sa=sstep(r-0.6,r-0.3,t);
     em=0.12+0.25*sstep(r-0.5,r,t); gl=0.12*sstep(r-0.5,r,t);
     if(st.hit!==undefined){ gl+=0.7*Math.exp(-st.hit/0.12); sa*=1-sstep(0.1,0.9,st.hit); em=0.12+0.4*Math.exp(-st.hit/0.3)-0.08*sstep(0.5,1.5,st.hit); } }
-  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; B.spr.position.copy(st.pos).add(V(0,B.red?0.36:0.27,0)); B.spr.scale.set(B.sw,B.sh,1);
+  B.spr.visible=sa>0.01; B.spr.material.opacity=sa; B.spr.position.copy(st.pos).add(V(0,B.red?0.62:0.45,0)); B.spr.scale.set(B.sw,B.sh,1);
   B.mat.emissiveIntensity=em;
   B.glow.position.copy(st.pos).add(V(0,0,0.12)); B.glow.scale.setScalar(B.red?1.1:0.6); B.glow.material.opacity=gl; }
 function setSparks(t){
@@ -209,7 +209,7 @@ function setSparks(t){
   spGeo.attributes.position.needsUpdate=true; spGeo.attributes.a.needsUpdate=true; }
 
 // ---------------------------------------------------------------- camera: side view from the front-right, slightly high (as the reference)
-const CL=V(0.6,1.0,2.25), CD=V(9.7,3.4,5.5).sub(V(0.3,1.0,0.0)).multiplyScalar(1.75);   // same angle as approved, pulled back for the wider gap + edge padding
+const CL=V(0.6,1.0,2.25), CD=V(9.7,3.4,5.5).sub(V(0.3,1.0,0.0)).multiplyScalar(1.7);   // same angle as approved, pulled back for the wider gap + edge padding
 const CAMK=[[0.0,1.0],[8.4,1.0],[DUR,0.95]];
 function camAt(t){ const d=keys(CAMK,t); const pc=CL.clone().addScaledVector(CD,d), lk=CL.clone(); const P=[pc.x,pc.y,pc.z], L=[lk.x,lk.y,lk.z];
   if(q.get('cam')){ const c=q.get('cam').split(',').map(Number); P[0]=c[0];P[1]=c[1];P[2]=c[2];L[0]=c[3];L[1]=c[4];L[2]=c[5]; }

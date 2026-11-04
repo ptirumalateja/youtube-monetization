@@ -16,13 +16,17 @@ from sld_sound import master_to_mp4
 src, out = sys.argv[1], sys.argv[2]
 os.makedirs(out, exist_ok=True)
 fps = overlay.TL['fps']; total = round(overlay.TL['duration'] * fps)
+XF = round(overlay.TL.get('loopXfade', 0) * fps) or 1
 frames = sorted(glob.glob(os.path.join(src, 'frames', 'f*.jpg')))
 assert len(frames) == total, f'{len(frames)} frames, expected {total}'
 silent = os.path.join(out, 'their-words-wall_music-ready.mp4')
 enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', '1080x1920', '-r', str(fps), '-i', '-',
                         '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-tune', 'film', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], stdin=subprocess.PIPE)
 for f, path in enumerate(frames):
-    enc.stdin.write(overlay.draw(Image.open(path).convert('RGB'), f / fps).tobytes())
+    im = Image.open(path).convert('RGB')
+    u = (f - (total - XF)) / XF                       # seamless loop: dissolve the last frames into frame 0
+    if u > 0: im = Image.blend(im, Image.open(frames[0]).convert('RGB'), min(1.0, u * u * (3 - 2 * u)))
+    enc.stdin.write(overlay.draw(im, f / fps).tobytes())
 enc.stdin.close(); assert enc.wait() == 0
 print('video ok')
 lufs, tp = master_to_mp4(silent, os.path.join(src, 'mix.wav'), os.path.join(out, 'their-words-wall.mp4'), limit=0.4)

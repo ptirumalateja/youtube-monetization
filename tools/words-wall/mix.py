@@ -81,7 +81,7 @@ for k, c in enumerate(C):
     rel = c - FL; th = TL['throwers'][k]
     # the throw: wind-up cloth swish, release footfall, the block's whoosh
     place(bus['air'], bp(noise(int(0.25 * SR)), 1200, 1.0) * np.sin(np.pi * np.arange(int(0.25 * SR)) / int(0.25 * SR)) ** 2 * 0.12, max(0.0, rel - 0.3), 1.0, PAN[th])
-    whoosh(bus['air'], k, rel + FL * 0.55, 0.3 + 0.015 * k, PAN[th] * 0.4)
+    whoosh(bus['air'], k, rel + FL * 0.55, (0.62 if k == 0 else 0.3 + 0.015 * k), PAN[th] * 0.4)   # brick 0 is already flying on frame 0: loud from the start
     place(bus['fol'], thud(400 + k, f=75, dec=0.08, gain=0.3), rel, 1.0, PAN[th])
     # catch: slap into the hands
     place(bus['fol'], thud(10 + k, f=95, dec=0.07, gain=0.45), c, 1.0, 0.25)
@@ -107,7 +107,13 @@ place(bus['hit'], stone_hit(998, 1.1), RL, 0.55, -0.1)          # it drops back 
 place(bus['fol'], gravel_rain(1.4, 70, 5, 0.4), RL + 0.05, 1.0, -0.1)
 place(bus['fol'], breath(1.3, 'out', 61, 0.22), TL['lookOver'] + 0.2, 1.0, 0.35)
 
+# frame 0 hook: a brick is already in the air, so the sound starts loud: a throw thud + a fast close swish over the first 0.45 s
+n0 = int(0.45 * SR); sw = bp(noise(n0), 900, 0.8) * np.sin(np.pi * np.arange(n0) / n0) ** 1.2
+place(bus['air'], sw * 0.55, 0.0, 1.0, -0.2)
+place(bus['fol'], thud(401, f=75, dec=0.08, gain=0.5), 0.0, 1.0, -0.5)
 mix = K.finish(bus, duck)
+# seamless loop: the last loopXfade seconds fade out while the head's first second is already loud
+xf = int(TL['loopXfade'] * SR); mix[:, -xf:] *= np.linspace(1, 0, xf) ** 1.5
 write_wav(mix, sys.argv[1])
 def db(a, b):
     s = mix[:, int(a * SR):int(b * SR)]; return 20 * np.log10(np.sqrt((s ** 2).mean()) + 1e-12)
