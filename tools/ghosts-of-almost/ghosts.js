@@ -116,17 +116,22 @@ const ITEMGLOW={msg:0x9fc4ff,video:0xff9a5a,plan:0xffe2b0,book:0xffe2b0,canvas:0
 const GCOL=0x9cd2ff;
 const IS=1.55;   // items drawn larger than life so they read on a phone
 const ORDER=['msg','plan','video','bag','book','canvas'];
-const ROWS=[3,4,5,6,7];
+const ROWS=[4,5,6,7,8];
+const FRONT=[{x:-0.62,z:-0.45,type:'msg',pose:'offer'},{x:0.6,z:-0.35,type:'plan',pose:'reach'},{x:-1.2,z:-1.2,type:'video',pose:'hold',ex:{eo:0.7,py:-0.3}},{x:1.22,z:-1.25,type:'bag',pose:'slump',ex:{eo:0.45,py:-0.6}}];
 const GH=[]; { const rn=SLD.rng(7); let k=0;
-  ROWS.forEach((n,r)=>{ const z=-1.15-r*1.2, hs=0.7+0.78*r;
-    for(let i=0;i<n;i++){ let x=lerp(-hs,hs,(i+0.5)/n)+(rn()-0.5)*0.35; if(r===0&&Math.abs(x)<0.3) x+=x<0?-0.25:0.25;
-      const type=ORDER[k%ORDER.length]; const item=ITEMS[type](); item.scale.setScalar(IS); scene.add(item);
+  const mkG=(x,y,z,type,r,pose,ex)=>{ const item=ITEMS[type](); item.scale.setScalar(IS); scene.add(item);
       const glow=SLD.glowSprite(scene,ITEMGLOW[type],0.22);
       const mat=ghostMat(GCOL); const F=makeFig(mat,false,256);
       const dm=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:true,transparent:true,polygonOffset:true,polygonOffsetFactor:2,polygonOffsetUnits:2}); F.pre=F.all.map(m=>{ const c=new THREE.Mesh(m.geometry,dm); c.frustumCulled=false; scene.add(c); return c; });
       F.face.mesh.material.blending=THREE.AdditiveBlending; F.face.mesh.material.color.set(0x9cc8ff);
-      GH.push({F,item,glow,type,pos:V(x,0.28*r+0.04*rn(),z+(rn()-0.5)*0.4),seed:rn()*6.28,row:r,idx:k,yaw0:Math.atan2(-x,5-z)*0.8,ex:[EX.sigh,{...EX.neutral,ba:0.55,by:0.15,mc:-0.25,py:-0.2},{...EX.sleepy,ba:0.4,mc:-0.1},{...EX.neutral,eo:0.8,ba:0.35,mc:-0.15}][k%4]}); k++; } });
+      GH.push({F,item,glow,type,pos:V(x,y,z),seed:rn()*6.28,row:r,idx:GH.length,pose,front:r<0,ex}); };
+  const PLEAD={...EX.neutral,ba:0.75,by:0.25,mc:-0.3,mw:0.6,pr:0.46};
+  FRONT.forEach(f=>mkG(f.x,0.1,f.z,f.type,-1,f.pose,{...PLEAD,...(f.ex||{})}));
+  ROWS.forEach((n,r)=>{ const z=-2.3-r*1.2, hs=1.0+0.78*r;
+    for(let i=0;i<n;i++){ let x=lerp(-hs,hs,(i+0.5)/n)+(rn()-0.5)*0.35; if(r===0&&Math.abs(x)<0.3) x+=x<0?-0.25:0.25;
+      const type=ORDER[k%ORDER.length]; mkG(x,0.18+0.28*r+0.04*rn(),z+(rn()-0.5)*0.4,type,r,'hold',[EX.sigh,{...EX.neutral,ba:0.55,by:0.15,mc:-0.25,py:-0.2},{...EX.sleepy,ba:0.4,mc:-0.1},{...EX.neutral,eo:0.8,ba:0.35,mc:-0.15}][k%4]); k++; } });
   // back-to-front draw order so the per-ghost prepass never hides a farther ghost
+  GH.forEach(G=>{ const k=G.front?0.85:0.6*Math.exp(-G.row*0.12); G.item.traverse(m=>{ if(m.material&&m.material.map) m.material.color.setScalar(k); else if(m.material) m.material.emissiveIntensity*=k/0.85; }); G.glow.material.opacity*=G.front?1.3:0.6; });
   [...GH].sort((a,b)=>a.pos.z-b.pos.z).forEach((G,i)=>{ const o=20+i*2; G.F.pre.forEach(m=>m.renderOrder=o); G.F.all.forEach(m=>m.renderOrder=o+1); G.F.face.mesh.renderOrder=o+1.5; G.item.traverse(m=>m.renderOrder=o+1.8); G.glow.renderOrder=o+1.7; }); }
 
 // local hold poses per item type (item centre in the figure's frame; hand targets)
@@ -140,22 +145,22 @@ function holdPose(type,br){ const c=V(0,1.18+br,0.24);
 function tag(text){ const c=document.createElement('canvas'); c.width=640; c.height=160; const g=c.getContext('2d'); g.font=`800 64px ${FONT}`;
   const tw=g.measureText(text).width+64; const x0=(640-tw)/2; rr(g,x0,24,tw,112,14); g.fillStyle='#fff6e4'; g.fill(); g.fillStyle='#2a1d17'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,320,82);
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,fog:false,depthTest:false})); s.renderOrder=9; s.scale.set(0.56,0.14,1); s.visible=false; scene.add(s); return s; }
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,fog:false,depthTest:false})); s.renderOrder=9; s.scale.set(0.5,0.125,1); s.visible=false; scene.add(s); return s; }
 const nearG=(x,r)=>GH.filter(G=>G.row===r).reduce((a,b)=>Math.abs(b.pos.x-x)<Math.abs(a.pos.x-x)?b:a).idx;
-const TAGS=[{g:nearG(0.9,0),text:'STARTS MONDAY'},{g:nearG(-1.2,1),text:'DRAFT, 2019'},{g:nearG(1.3,2),text:'SAVED. NOT POSTED.'},{g:nearG(-0.6,3),text:'DAY 1 (OF 1)'}].map(o=>({...o,s:tag(o.text)}));
+const TAGS=[{g:1,text:'STARTS MONDAY'},{g:2,text:'DRAFT, 2019'},{g:0,text:'NEVER SENT'},{g:3,text:'DAY 1 (OF 1)'}].map(o=>({...o,s:tag(o.text)}));
 
 // hero's phone: the thing he does instead
-const PHONE=ITEMS.msg(); PHONE.material.color.setScalar(0.95); PHONE.material.map.image.getContext('2d'); scene.add(PHONE);
+const PHONE=ITEMS.msg(); PHONE.material.color.setScalar(0.95); PHONE.material.depthWrite=true; PHONE.renderOrder=200; PHONE.material.map.image.getContext('2d'); scene.add(PHONE);
 { const g=PHONE.material.map.image.getContext('2d'); const w=260,h=476; g.fillStyle='#10131a'; g.beginPath(); g.roundRect(0,0,w,h,30); g.fill();
   const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#2b3550'); gr.addColorStop(1,'#141a28'); g.fillStyle=gr; g.beginPath(); g.roundRect(10,10,w-20,h-20,22); g.fill();
   for(let i=0;i<4;i++){ g.fillStyle='#3d4a6a'; g.fillRect(24,30+i*110,w-48,80); g.fillStyle='#8fa2c8'; g.fillRect(24,116+i*110,120,8); } PHONE.material.map.needsUpdate=true; }
 const PBACK=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.24,0.008),new THREE.MeshStandardMaterial({color:0x15161a,roughness:0.5})); PBACK.position.z=-0.005; PHONE.add(PBACK);
-const phoneLight=new THREE.PointLight(0x9fb8ff,0.5,0.45,2); scene.add(phoneLight);
+const phoneLight=new THREE.PointLight(0x9fb8ff,0.9,0.42,2); scene.add(phoneLight);
 
 // ---------------------------------------------------------------- timeline
 // 0-2.4 hook (crowd already there, he scrolls), 2.4-3.4 he turns to face them.
-const CAMK={x:[[0,0],[1.6,0.25],[2.4,0.3],[3.2,1.0]], y:[[0,2.25],[1.6,2.0],[3.2,1.85]], z:[[0,5.2],[1.6,3.9],[2.4,3.6],[3.2,3.1]],
-  lx:[[0,0],[1.6,-0.05],[3.2,-0.3]], ly:[[0,1.2],[2.4,1.25],[3.2,1.3]], lz:[[0,-2.2],[2.4,-2.2],[3.2,-3.4]], fov:[[0,40],[3.2,42]]};
+const CAMK={x:[[0,0],[1.6,0.12],[2.4,0.15],[3.2,0.8]], y:[[0,1.7],[1.6,1.62],[3.2,1.55]], z:[[0,3.25],[1.6,2.75],[2.4,2.7],[3.2,2.1]],
+  lx:[[0,0],[1.6,0.02],[3.2,-0.1]], ly:[[0,1.3],[2.4,1.36],[3.2,1.48]], lz:[[0,-1.5],[2.4,-1.5],[3.2,-2.0]], fov:[[0,40],[3.2,46]]};
 function setT(t){
   const turn=keys([[0,0],[2.4,0],[3.1,1]],t);
   // hero
@@ -168,21 +173,28 @@ function setT(t){
   poseFig(hero,J,exH);
   // phone in his hands (screen toward his face)
   const pc=J.hL.clone().add(J.hR).multiplyScalar(0.5).add(V(0,0.06,0)); PHONE.position.copy(pc);
-  PHONE.lookAt(J.head); PHONE.material.side=THREE.FrontSide; PHONE.visible=phoneDown<0.6; PHONE.material.opacity=1-phoneDown;
-  phoneLight.position.copy(pc).lerp(J.head,0.72); phoneLight.intensity=0.5*(1-phoneDown);
+  PHONE.lookAt(J.head.clone().lerp(ST.cam.position,0.55)); PHONE.material.side=THREE.FrontSide; PHONE.visible=phoneDown<0.6; PHONE.material.opacity=1-phoneDown;
+  phoneLight.position.copy(J.head).addScaledVector(J.f,0.24).add(V(0,-0.08,0)); phoneLight.intensity=0.5*(1-phoneDown);
   // ghosts: still, swaying, all staring at him
-  for(const G of GH){ const br=0.012*Math.sin(t*1.1+G.seed); const hp=holdPose(G.type,br);
+  for(const G of GH){ const br=0.012*Math.sin(t*1.1+G.seed); let hp=holdPose(G.type,br);
     const look=Math.atan2(J.head.x-G.pos.x,J.head.z-G.pos.z);
-    const o={pos:G.pos,yaw:look*0.85+0.04*Math.sin(t*0.5+G.seed),roll:0.025*Math.sin(t*0.8+G.seed),nod:0.06+0.04*Math.sin(t*0.6+G.seed*2),tilt:0.12*Math.sin(G.seed*3),hL:hp.hL,hR:hp.hR,pL:hp.pL,pR:hp.pR};
-    const GJ=figJ(o); G.F.mat.uniforms.uBase.value=G.pos.y; G.F.mat.uniforms.uOp.value=0.85+0.15*Math.sin(t*1.7+G.seed*5); poseFig(G.F,GJ,G.ex); G.F.pre.forEach((c,i)=>{ const m=G.F.all[i]; c.position.copy(m.position); c.quaternion.copy(m.quaternion); c.scale.copy(m.scale); c.visible=m.visible; });
-    G.F.face.mesh.material.opacity=0.55*G.F.mat.uniforms.uOp.value*Math.exp(-G.row*0.18);
+    const o={pos:G.pos,yaw:look*(G.front?1:0.85)+0.04*Math.sin(t*0.5+G.seed),roll:0.025*Math.sin(t*0.8+G.seed),nod:0.06+0.04*Math.sin(t*0.6+G.seed*2),tilt:0.12*Math.sin(G.seed*3)};
+    const toLocal=p=>rotY(p.clone().sub(G.pos),-o.yaw);
+    if(G.pose==='offer'){ o.lean=0.16; o.nod=-0.02; const c=V(0,1.32+br,0.42); hp={item:c,itemRot:0.05,hL:c.clone().add(V(0.05,-0.15,0)),hR:c.clone().add(V(-0.05,-0.15,0)),pL:V(1,-0.8,0),pR:V(-1,-0.8,0)}; }
+    if(G.pose==='reach'){ o.lean=0.12; const sh=toLocal(J.shR.x<J.shL.x===(G.pos.x>0)?J.shL:J.shR); const side=sh.x>0?1:-1;
+      const tgt=V(0,1.38,0).lerp(sh,0.8+0.04*Math.sin(t*0.9)); const c=V(-side*0.24,0.98+br,0.12);
+      hp={item:c,itemRot:-0.05,['h'+(side>0?'L':'R')]:tgt,['p'+(side>0?'L':'R')]:V(side,-0.4,-0.6),['h'+(side>0?'R':'L')]:c.clone().add(V(0,0.12,0)),['p'+(side>0?'R':'L')]:V(-side,-0.5,-0.3)}; }
+    if(G.pose==='slump'){ o.nod=0.38; o.lean=0.08; o.roll=0.06; hp=holdPose('bag',br); }
+    Object.assign(o,{hL:hp.hL,hR:hp.hR,pL:hp.pL,pR:hp.pR});
+    const GJ=figJ(o); G.F.mat.uniforms.uBase.value=G.pos.y; G.F.mat.uniforms.uOp.value=(G.front?1.45:0.8*Math.exp(-G.row*0.08))*(0.88+0.12*Math.sin(t*1.7+G.seed*5)); poseFig(G.F,GJ,G.ex); G.F.pre.forEach((c,i)=>{ const m=G.F.all[i]; c.position.copy(m.position); c.quaternion.copy(m.quaternion); c.scale.copy(m.scale); c.visible=m.visible; });
+    G.F.face.mesh.material.opacity=(G.front?0.85:0.55)*G.F.mat.uniforms.uOp.value*Math.exp(-Math.max(G.row,0)*0.18);
     G.item.position.copy(rotY(hp.item,o.yaw).add(G.pos)); G.item.rotation.set(hp.itemRot,o.yaw,0,'YXZ');
     if(G.type==='bag') G.item.rotation.set(0,o.yaw+0.2,0.08*Math.sin(t*1.3+G.seed));
     G.glow.position.copy(G.item.position).add(V(0,0,-0.05)); G.glow.scale.setScalar(0.8); }
   // tags appear while he looks back (body) — shown from 1.4 s in the test
-  TAGS.forEach((T,i)=>{ const G=GH[T.g]; const a=SLD.sstep(1.2+i*0.12,1.5+i*0.12,t); T.s.visible=a>0.01; T.s.material.opacity=a;
-    T.s.position.copy(G.pos).add(V(0,HIPY+PT.len+0.62,0)); });
+  TAGS.forEach((T,i)=>{ const G=GH[T.g]; const a=SLD.sstep(1.2+i*0.12,1.5+i*0.12,t); T.s.visible=false; T.s.material.opacity=a;
+    T.s.position.copy(G.item.position).add(V(0,G.type==='bag'?0.2:0.3,0.06)); T.s.scale.set(0.42,0.105,1); });
   ST.tick(t,0);
   const C=ST.cam; C.position.set(keys(CAMK.x,t),keys(CAMK.y,t),keys(CAMK.z,t)); C.fov=keys(CAMK.fov,t); C.updateProjectionMatrix(); C.lookAt(keys(CAMK.lx,t),keys(CAMK.ly,t),keys(CAMK.lz,t)); }
 window.renderAt=(t,K=1)=>ST.renderAt(setT,t,K,{shutter:1/60});
-window.events={}; window.ready=true;
+ST.renderAt(setT,0.5,1); window.events={}; window.ready=true;   // warm-up: first render uploads canvas textures
