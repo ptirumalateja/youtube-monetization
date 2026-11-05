@@ -9,7 +9,7 @@ import overlay as ov
 FPS = 24
 # shot, frames, overlay(frame index in shot) -> image
 SHOTS = [
-    ('lamp', 36, lambda im, i: ov.big(im, ['THEN THEY', 'REACHED B.'], cy=1240) if i >= 5 else im),
+    ('lamp', 36, lambda im, i: ov.big(im, ['THEN THEY', 'REACHED B.'], cy=700) if i >= 5 else im),
     ('heads', 42, lambda im, i: ov.small(im, ['No handle.', 'No lock.'], cy=1480, size=62) if i >= 4 else im),
     ('seam', 42, lambda im, i: ov.small(im, ['They say only a chant', 'can open it.'], cy=1420, size=58) if i >= 4 else im),
     ('hand', 42, lambda im, i: im),
