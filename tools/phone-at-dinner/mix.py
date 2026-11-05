@@ -33,7 +33,7 @@ VOW = {'a': [(750, 4), (1250, 5), (2600, 6)], 'e': [(450, 4), (1850, 6), (2550, 
 def formant(x, fs, scale):
     return sum(bp(x, f * scale, q) * (1.0 / (1 + k * 0.8)) for k, (f, q) in enumerate(fs))
 
-def voice(seed, f0, t_end, energy):
+def voice(seed, f0, t_end, energy, start=None, gap=1.8):
     r = np.random.default_rng(seed); n = min(N, int((t_end + 0.6) * SR)); t = np.arange(n) / SR
     # intonation + jitter; glottal pulses with spectral tilt
     f = f0 * (1 + 0.08 * np.sin(2 * np.pi * (0.3 + 0.4 * r.random()) * t + r.random() * 6) + 0.012 * np.cumsum(r.standard_normal(n)) / np.sqrt(SR))
@@ -42,7 +42,7 @@ def voice(seed, f0, t_end, energy):
     sc = 1 + 0.12 * (f0 - 140) / 140
     vs = {k: formant(src, v, sc) for k, v in VOW.items()}
     # phrases with syllables; vowel colour changes per syllable
-    talk = np.zeros(n); wts = {k: np.zeros(n) for k in VOW}; tt = r.random() * 1.5 - 0.5
+    talk = np.zeros(n); wts = {k: np.zeros(n) for k in VOW}; tt = r.random() * 1.5 - 0.5 if start is None else start
     while tt < t_end:
         ln = 0.8 + 2.2 * r.random(); a, b = int(max(tt, 0) * SR), int(min(tt + ln, t_end) * SR)
         if b > a:
@@ -50,7 +50,7 @@ def voice(seed, f0, t_end, energy):
             talk[a:b] = np.maximum(0, np.sin(2 * np.pi * rate * seg + r.random() * 6)) ** 1.5 * np.minimum(1, seg / 0.08) * np.minimum(1, (ln - seg) / 0.15)
             syl = np.floor(seg * rate).astype(int); cols = r.integers(0, 3, syl.max() + 1)
             for i, k in enumerate(VOW): wts[k][a:b] = (cols[syl] == i)
-        tt += ln + 0.4 + 1.8 * r.random()
+        tt += ln + 0.25 + gap * r.random()
     for k in wts: wts[k] = lp(wts[k], 25)
     y = sum(vs[k] * wts[k] for k in VOW) * talk
     # laughs: "ha-ha-ha" bursts, higher pitch, breathy; more of them while the table is full
@@ -70,7 +70,7 @@ def voice(seed, f0, t_end, energy):
     return y * fade
 
 talk = per_frame('herTalk'); alpha = per_frame('herAlpha')
-v = voice(5, 205, EV['grey'][0] + 0.3, lambda t: float(np.interp(t, [0, D0, EV['quiet'] - 0.2], [0.9, 0.6, 0.0])))
+v = voice(9, 205, EV['grey'][0] + 0.3, lambda t: float(np.interp(t, [0, D0, EV['quiet'] - 0.2], [0.9, 0.6, 0.0])), start=-0.3, gap=0.6)
 v = v / (np.abs(v).max() + 1e-9)
 g = np.zeros(N); g[:len(v)] = 1.0
 g *= (0.25 + 0.75 * talk) * alpha            # after she goes quiet only a few words leak out

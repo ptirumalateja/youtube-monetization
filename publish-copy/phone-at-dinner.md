@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v3: cut to 14.0 s (owner: tighter pacing) with the vidIQ notes (the lamp leaves her side as she fades; duller echoing ticks, a low minor pad and three sparse piano notes), rendering |
+| Status | v3: cut to 14.0 s (owner: tighter pacing) with the vidIQ notes (the lamp leaves her side as she fades; duller echoing ticks, a low minor pad and three sparse piano notes). Rendered (-15.1 LUFS, -2.9 dBTP after AAC), waiting for owner review |
 | Upload file | `phone-at-dinner.mp4` (master with sound); `phone-at-dinner_music-ready.mp4` (silent, reveal hit at 10.50 s) |
 | Length | 14.0 s; "SHE WASN'T THERE." holds about 2.6 s to the end, then the cut back to dinner 1 loops |
 | Voice | None (wordless) |
