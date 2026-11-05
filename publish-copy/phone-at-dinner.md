@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v1 rendered (-15.1 LUFS, -2.5 dBTP after AAC), waiting for owner review |
+| Status | v2 (vidIQ notes: the lamp leaves her side as she fades; duller echoing ticks, a low minor pad and three sparse piano notes under the dinners), rendering |
 | Upload file | `phone-at-dinner.mp4` (master with sound); `phone-at-dinner_music-ready.mp4` (silent, reveal hit at 13.45 s) |
 | Length | 17.5 s; "SHE WASN'T THERE." holds about 2.8 s to the end, then the cut back to dinner 1 loops |
 | Voice | None (wordless) |

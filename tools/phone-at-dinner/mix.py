@@ -93,7 +93,13 @@ def blip(seed):
 
 t0 = 0.15
 while t0 < EV['lookUp'][0]:
-    place(bus['fol'], tick(int(t0 * 100)), t0, 0.05, -0.4); t0 += 0.35 + 0.5 * R.random()
+    # the ticks lose their brightness over the years and pick up a fading echo (vidIQ note: less cheerful, more distance)
+    f_t = float(np.interp(t0, [0, 12], [3000, 1700])); k_e = float(np.interp(t0, [4, 12], [0, 1]))
+    tk = lp(tick(int(t0 * 100), f_t), float(np.interp(t0, [0, 12], [9000, 3500])))
+    place(bus['fol'], tk, t0, 0.05, -0.4)
+    for j, (dt, ge) in enumerate([(0.19, 0.4), (0.38, 0.18), (0.57, 0.08)]):
+        place(bus['fol'], lp(tk, 2500), t0 + dt, 0.05 * ge * k_e, -0.4 + 0.25 * (j + 1))
+    t0 += 0.35 + 0.5 * R.random()
 for t0 in [1.7, 5.9, 9.1, 11.6]:
     place(bus['fol'], blip(int(t0 * 10)), t0, 0.05, -0.4)
 
@@ -101,7 +107,8 @@ for t0 in [1.7, 5.9, 9.1, 11.6]:
 # ---------------------------------------------------------------- the years: cutlery ticks, one per few dinners, quickening with the counter
 def cutlery(seed):
     n = int(0.12 * SR); t = np.arange(n) / SR; r = np.random.default_rng(seed); y = np.zeros(n)
-    for m in [1.0, 2.7, 4.1]: y += np.sin(2 * np.pi * 2600 * m * (0.95 + 0.1 * r.random()) * t) * np.exp(-t / (0.02 / m))
+    f0 = 2600 - 1100 * min(1, seed / 7 / 380)   # duller as the dinners pile up
+    for m in [1.0, 2.7, 4.1]: y += np.sin(2 * np.pi * f0 * m * (0.95 + 0.1 * r.random()) * t) * np.exp(-t / (0.02 / m))
     return y
 d = np.array([f['dinner'] for f in FR]); last = 1
 for f in range(1, len(FR)):
@@ -110,6 +117,22 @@ for f in range(1, len(FR)):
         for j in range(n_new):
             place(bus['fol'], cutlery(f * 7 + j), f / FPS + j / FPS / 3, 0.02 + 0.03 * f / len(FR), R.uniform(-0.3, 0.5))
 
+
+# ---------------------------------------------------------------- the distance: a low minor pad that swells as she fades, three sparse low piano notes
+pad = sum(a_ * np.sin(2 * np.pi * f_ * T + 0.4 * np.sin(2 * np.pi * 0.15 * T + i)) for i, (f_, a_) in enumerate([(110.0, 1.0), (130.8, 0.7), (164.8, 0.45), (220.0, 0.15)]))
+pad = lp(np.tanh(1.2 * pad), 900) * np.interp(T, [0, 5.0, 9.0, 12.4, 12.6], [0, 0, 0.6, 1.0, 0]) * 0.08
+for c in range(2): bus['drone'][c] += pad * (1 + 0.05 * np.sin(2 * np.pi * (0.11 + 0.03 * c) * T))
+
+def piano(f0, dur=3.5):
+    n = int(dur * SR); t = np.arange(n) / SR; y = np.zeros(n)
+    for h in range(1, 9):
+        fh = f0 * h * np.sqrt(1 + 0.0004 * h * h)            # slight string inharmonicity
+        y += np.sin(2 * np.pi * fh * t) * np.exp(-t * (0.8 + 0.45 * h)) / h ** 1.1
+    hammer = lp(noise(n), 1800) * env(n, 0.001, 0.012) * 0.25
+    return (y + hammer) * np.minimum(1, t / 0.004)
+
+for t0, f0, g0 in [(6.5, 110.0, 0.16), (9.0, 87.3, 0.13), (11.2, 82.4, 0.1)]:   # A2, F2, E2: falling, each softer
+    place(bus['air'], piano(f0), t0, g0, 0.1)
 
 # ---------------------------------------------------------------- the look-up: held breath, one cold hit, the phone face down
 place(bus['hit'], lp(sub_boom(4.0), 240), LOOK, 0.32, 0.0)

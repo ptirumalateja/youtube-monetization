@@ -13,6 +13,10 @@ const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get
 
 const S=SLD.createStage({W,H,lamp:V(0,4.6,0.05),lampTarget:V(0,0,0)});
 const R=SLD.createRig(S.scene);
+// the lamp drifts off her side of the table over the years, so her half sinks into shadow as she fades (vidIQ note)
+const LAMP=V(0,4.6,0.05), beamMesh=S.NOREFL[0];
+function aim(target){ const d=target.clone().sub(LAMP).normalize();
+  S.spot.target.position.copy(target); S.spot.target.updateMatrixWorld(); S.beamU.uAxis.value.copy(d); beamMesh.quaternion.setFromUnitVectors(V(0,-1,0),d); }
 const TOP=0.74, HALF=0.42;
 
 // ---------------------------------------------------------------- wood, table, chairs, plates, glasses
@@ -124,6 +128,7 @@ function setT(t){
   phoneHalo.position.copy(h.pp).add(V(0,0.02,0)); phoneHalo.scale.setScalar(0.32+0.12*glow); phoneHalo.material.opacity=0.22*glow;
   // the lamp loses a little warmth to the phone over the years (no warm payoff in this one)
   const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);
+  aim(V(-0.34*sstep(4.5,12.4,t),0,0));
   S.tick(t,-0.18*sstep(4,12.5,t)*(1-0.5*lookK(t)));
 }
 
