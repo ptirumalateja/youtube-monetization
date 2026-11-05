@@ -310,7 +310,8 @@ if not ANIM:
 else:
     a0, n, total = [int(v) for v in ANIM.split(',')]
     os.makedirs(out, exist_ok=True)
-    for f in range(a0, min(total, a0 + n)):
+    step = int(os.environ.get('STEP', '1'))
+    for f in range(a0, min(total, a0 + n), step):
         fn = os.path.join(out, 'f%04d.png' % f)
         if os.path.exists(fn): continue
         t = f / max(1, total - 1); e = t * t * (3 - 2 * t)
