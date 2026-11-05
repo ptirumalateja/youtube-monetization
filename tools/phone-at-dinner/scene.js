@@ -102,8 +102,8 @@ function himAt(t){
 // ---------------------------------------------------------------- camera: both in frame; a slow push toward him over the years; a slow pull back on the empty chair
 function camAt(t){
   const push=Math.pow(sstep(0,TL.lookUp[0],t),1.3), back=sstep(TL.lookUp[1],DUR,t);
-  const tg=V(lerp(0.0,0.05,push)+0.12*back,lerp(0.92,0.95,push),0);   // the empty chair must stay fully in frame for the twist
-  const dist=lerp(5.6,5.0,push)+0.45*back, az=lerp(0.28,0.2,push), el=lerp(0.2,0.16,push);
+  const tg=V(lerp(0.0,0.05,push)+0.2*back,lerp(0.92,0.95,push),0);   // the empty chair must stay fully in frame for the twist
+  const dist=lerp(5.6,5.0,push)+0.9*back, az=lerp(0.28,0.2,push), el=lerp(0.2,0.16,push);
   const dir=V(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el));
   return {pos:tg.clone().addScaledVector(dir,dist),tg};
 }
