@@ -73,7 +73,9 @@ function build(){ N1=noiseCanvas(540,960,120,5,3); N2=noiseCanvas(1080,700,260,5
 
 // ---------------------------------------------------------------- shots
 function shot1(t){ // spotlight, dark concrete studio, small worried stickman looking up. 0-1.75
-  const z=1+0.12*sm(t/1.75); g.save(); g.translate(540,1150); g.scale(z,z); g.translate(-540,-1150);
+  const pu=(u=>u<0.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2)(clamp(t/1.7)), z=1+0.85*pu, cy=lerp(1150,920,pu), sk=(1-pu*0.5)*3;
+  g.save(); g.translate(540+Math.sin(t*9.3)*sk,lerp(1150,760,pu)+Math.sin(t*7.1)*sk); g.scale(z,z); g.translate(-540,-cy);
+  const fk=0.82+0.18*Math.sin(t*31)*Math.sin(t*12.7)-(t>0.45&&t<0.52?0.45:0)-(t>0.58&&t<0.62?0.3:0);
   g.fillStyle='#141416'; g.fillRect(-200,-200,1480,2320);
   g.globalAlpha=0.16; g.drawImage(N1,-200,-200,1480,1500); g.globalAlpha=1;
   const wl=g.createLinearGradient(0,0,0,1300); wl.addColorStop(0,'rgba(10,10,12,0.6)'); wl.addColorStop(1,'rgba(10,10,12,0.1)'); g.fillStyle=wl; g.fillRect(-200,-200,1480,1500);
@@ -82,18 +84,18 @@ function shot1(t){ // spotlight, dark concrete studio, small worried stickman lo
   g.save(); g.globalAlpha=0.22; g.globalCompositeOperation='multiply'; g.drawImage(N3,-200,1230,1480,900); g.restore();
   g.fillStyle=rad(g,540,1420,560,[[0,'rgba(200,200,205,0.55)'],[0.5,'rgba(150,150,158,0.2)'],[1,'rgba(0,0,0,0)']]); g.save(); g.translate(540,1420); g.scale(1,0.32); g.translate(-540,-1420); g.fillRect(-100,800,1280,1300); g.restore();
   // light cone
-  g.save(); g.globalCompositeOperation='lighter'; const cg=g.createLinearGradient(0,-100,0,1450); cg.addColorStop(0,'rgba(220,220,230,0.38)'); cg.addColorStop(1,'rgba(220,220,230,0.04)'); g.fillStyle=cg;
+  g.save(); g.globalCompositeOperation='lighter'; const cg=g.createLinearGradient(0,-100,0,1450); cg.addColorStop(0,`rgba(220,220,230,${0.42*fk})`); cg.addColorStop(1,`rgba(220,220,230,${0.05*fk})`); g.fillStyle=cg;
   g.beginPath(); g.moveTo(470,-120); g.lineTo(610,-120); g.lineTo(860,1420); g.lineTo(220,1420); g.closePath(); g.filter='blur(30px)'; g.fill(); g.filter='none'; g.restore();
-  glow(g,540,-40,260,'235,235,245',0.7);
+  glow(g,540,-40,260,'235,235,245',0.7*fk);
   // dust in the beam
   const R=rng(5); g.save(); g.globalCompositeOperation='lighter'; for(let i=0;i<70;i++){ const x0=R()*600+240, y0=R()*1400, sp=10+R()*25; const y=(y0+t*sp)%1400, x=x0+Math.sin(t*0.8+i)*12; const inb=Math.abs(x-540)<(70+y*0.2); if(!inb) continue; g.fillStyle=`rgba(255,255,255,${0.15+R()*0.35})`; g.beginPath(); g.arc(x,y,1.2+R()*2.2,0,7); g.fill(); } g.restore();
   // figure: standing, looking up at the light
-  const b=breathe(t,3), hx=540, hy=920+b*0.4, r=88;
+  const b=breathe(t,4), hx=540+Math.sin(t*1.6)*5, hy=920+b*0.4, r=88;
   const J={ r, head:[hx,hy], neck:[hx,hy+r], hip:[hx,hy+r+215+b*0.2], le:[hx-38,hy+r+120], lh:[hx-30,hy+r+215], re:[hx+38,hy+r+120], rh:[hx+30,hy+r+215], lk:[hx-24,hy+r+330], lf:[hx-38,hy+r+440], rk:[hx+24,hy+r+330], rf:[hx+38,hy+r+440], lfd:-1, rfd:1 };
   // reflection + contact shadow
   g.save(); g.globalAlpha=0.15; g.translate(0,2*(hy+r+455)); g.scale(1,-1); g.filter='blur(4px)'; stick(g,J,{eyes:'open',ly:-1,brow:'worried',mouth:'frown'}); g.restore();
   g.fillStyle=rad(g,540,hy+r+455,130,[[0,'rgba(0,0,0,0.55)'],[1,'rgba(0,0,0,0)']]); g.save(); g.translate(540,hy+r+455); g.scale(1,0.18); g.beginPath(); g.arc(0,0,130,0,7); g.fill(); g.restore();
-  stick(g,J,{eyes:'open',lx:Math.sin(t*1.7)*0.25,ly:-0.95,brow:'worried',mouth:'frown',lid:blinkAt(t,[1.2]),rot:Math.sin(t*1.1)*0.03});
+  const dn=sm((t-1.0)/0.25); stick(g,J,{eyes:'open',lx:Math.sin(t*2.7)*0.3*(1-dn),ly:lerp(-0.95,0.05,dn),brow:dn>0.5?'sad':'worried',mouth:'frown',lid:dn*0.18+blinkAt(t,[0.62]),rot:Math.sin(t*1.4)*0.04*(1-dn)});
   g.restore();
   }
 
