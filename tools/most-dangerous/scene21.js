@@ -99,39 +99,50 @@ function shot1(t){ // spotlight, dark concrete studio, small worried stickman lo
   g.restore();
   }
 
-function shot2(t){ // alley, giant angry shadow on the wall. 1.75-3.75
-  const u=(t-1.75)/2, z=1.04+0.06*sm(u);
-  g.save(); g.translate(540,1100); g.scale(z,z); g.translate(-540,-1100);
-  if(IMG.alley){ g.save(); g.translate(1080,0); g.scale(-1,1); cover(g,IMG.alley,0.5,0.5,1.04,'grayscale(0.85) contrast(1.15) brightness(0.95)'); g.restore(); } else { g.fillStyle='#1b1c1f'; g.fillRect(0,0,1080,1920); }
-  g.fillStyle='rgba(20,26,34,0.22)'; g.fillRect(-100,-100,1280,2120);
-  g.fillStyle=rad(g,420,1600,560,[[0,'rgba(200,206,218,0.5)'],[1,'rgba(0,0,0,0)']]); g.fillRect(-100,1000,1280,1000);
+// his own silhouette (one colour), used for the cast shadow
+function sil(c,J,lw,fist=1){ c.lineCap='round'; c.lineJoin='round'; c.lineWidth=lw; const seg=(...p)=>{ c.beginPath(); c.moveTo(...p[0]); for(let i=1;i<p.length;i++) c.lineTo(...p[i]); c.stroke(); };
+  seg(J.neck,J.hip); seg(J.neck,J.le,J.lh); seg(J.neck,J.re,J.rh); seg(J.hip,J.lk,J.lf); seg(J.hip,J.rk,J.rf);
+  c.beginPath(); c.arc(J.head[0],J.head[1],J.r,0,7); c.fill(); for(const h of [J.lh,J.rh]){ c.beginPath(); c.arc(h[0],h[1],lw*1.5*fist,0,7); c.fill(); }
+  for(const f of [J.lf,J.rf]){ c.beginPath(); c.ellipse(f[0],f[1],lw*1.9,lw*0.9,0,0,7); c.fill(); } }
+function walkPose(cx,fy,r,ph){ const L=Math.max(0,Math.sin(ph)), Rr=Math.max(0,-Math.sin(ph)), bob=-Math.abs(Math.sin(ph))*r*0.12, n=fy-r*5.05+bob, hy=n-r, sw=Math.sin(ph)*r*0.32;
+  return { r, head:[cx,hy], neck:[cx,n], hip:[cx,n+r*2.45], le:[cx-r*0.5,n+r*1.3+sw*0.4], lh:[cx-r*0.42,n+r*2.4+sw], re:[cx+r*0.5,n+r*1.3-sw*0.4], rh:[cx+r*0.42,n+r*2.4-sw],
+    lk:[cx-r*0.3,n+r*3.75-L*r*0.45], lf:[cx-r*0.42,fy-L*r*0.55], rk:[cx+r*0.3,n+r*3.75-Rr*r*0.45], rf:[cx+r*0.42,fy-Rr*r*0.55], lfd:-1, rfd:1 }; }
+function shot2(t){ // alley: he walks toward us; his shadow on the wall walks with him, then wakes up on ANGER. ref clock 1.75-3.75
+  const w=clamp((t-1.75)/2), z=1.0+0.16*sm(w), ang=sm((t-2.52)/0.3);
+  g.save(); g.translate(540,1150); g.scale(z,z); g.translate(-540,-1150+Math.sin(t*7)*2);
+  if(IMG.alley){ g.save(); g.translate(1080,0); g.scale(-1,1); cover(g,IMG.alley,0.5,0.5,1.04,'grayscale(0.85) contrast(1.15) brightness(0.8)'); g.restore(); } else { g.fillStyle='#1b1c1f'; g.fillRect(0,0,1080,1920); }
+  g.fillStyle='rgba(20,26,34,0.3)'; g.fillRect(-100,-100,1280,2120);
+  // the right wall catches a low lamp from the front-left: a pale lit panel for the shadow to land on
+  g.save(); g.beginPath(); g.moveTo(560,-100); g.lineTo(1200,-100); g.lineTo(1200,2000); g.lineTo(700,1560); g.closePath(); g.clip();
+  g.fillStyle='rgba(120,128,140,0.35)'; g.fillRect(500,-100,800,2100); g.globalAlpha=0.35; g.globalCompositeOperation='multiply'; g.drawImage(N3,500,-100,800,2100); g.globalCompositeOperation='source-over'; g.globalAlpha=1;
+  g.fillStyle=rad(g,760,1050,700,[[0,'rgba(210,218,232,0.35)'],[1,'rgba(0,0,0,0)']]); g.fillRect(500,-100,800,2100);
+  // the man and his pose this frame
+  const ph=(t-1.75)*2*Math.PI*0.95, fy=lerp(1360,1760,sm(w)), sc=lerp(0.62,1.2,w), r=95*sc, hx=lerp(470,420,w);
+  const J=walkPose(hx,fy,r,ph);
+  // cast shadow = his exact pose, projected up the wall, growing as he nears the lamp
+  const k=lerp(2.35,1.95,w), ax=hx+150, ay=fy-6;
+  g.save(); g.translate(ax,ay); g.transform(1,0,-0.22,1,0,0); g.scale(k*0.92,k); g.translate(-hx,-fy);
+  const JS=JSON.parse(JSON.stringify(J)); if(ang>0){ JS.head[0]+=ang*r*0.25; JS.head[1]+=ang*r*0.1; JS.lh[1]-=ang*r*0.2; JS.rh[1]-=ang*r*0.2; JS.le[0]-=ang*r*0.25; JS.re[0]+=ang*r*0.25; }
+  g.filter='blur(4px)'; g.fillStyle=g.strokeStyle='rgba(4,5,8,0.9)'; sil(g,JS,r*0.16,1+ang*0.5); g.filter='none';
+  // the shadow's face: nothing, until ANGER - then two red slits and a scowl
+  if(ang>0){ const [sx,sy]=JS.head, er=r, gl=ang*(0.85+0.15*Math.sin(t*11));
+    g.save(); g.shadowColor=`rgba(255,30,20,${gl})`; g.shadowBlur=18; g.fillStyle=`rgba(255,${50-20*gl|0},30,${gl})`;
+    for(const s_ of [-1,1]){ g.beginPath(); g.moveTo(sx+s_*er*0.12,sy-er*0.05); g.lineTo(sx+s_*er*0.62,sy-er*0.32); g.lineTo(sx+s_*er*0.55,sy+er*0.08); g.closePath(); g.fill(); }
+    g.restore(); g.strokeStyle=`rgba(90,90,100,${0.7*ang})`; g.lineWidth=er*0.07; g.lineCap='round'; g.beginPath(); g.moveTo(sx-er*0.3,sy+er*0.5); g.quadraticCurveTo(sx,sy+er*0.36,sx+er*0.3,sy+er*0.5); g.stroke(); }
+  g.restore(); g.restore();
+  // lamp spill from the front-left, wet floor glints
+  glow(g,80,1350,520,'215,225,245',0.22); g.save(); g.globalCompositeOperation='lighter'; for(let i=0;i<14;i++){ const R0=rng(40+i); const x=R0()*1080, y=1450+R0()*450; g.fillStyle=`rgba(200,210,230,${0.08+0.06*Math.sin(t*3+i)})`; g.fillRect(x,y,60+R0()*120,3); } g.restore();
   // fluorescent flicker
-  const fk=0.75+0.25*Math.sin(t*37)*Math.sin(t*13.3)+(Math.sin(t*91)>0.97?-0.4:0);
-  glow(g,560,520,300,'225,235,255',0.32*fk);
-  // the shadow on the right wall
-  const sx=760, sy=1500, sw=1+0.015*Math.sin(t*1.7), lean=Math.sin(t*1.2)*0.02;
-  g.save(); g.translate(sx,sy); g.rotate(lean); g.scale(sw,sw); g.filter='blur(3px)'; g.fillStyle='rgba(3,4,6,0.94)';
-  g.beginPath(); g.ellipse(0,-1060,175,190,0,0,7); g.fill();                         // head
-  g.strokeStyle='rgba(3,4,6,0.94)'; g.lineCap='round'; g.lineJoin='round';
-  const sl=(w,...p)=>{ g.lineWidth=w; g.beginPath(); g.moveTo(...p[0]); for(let i=1;i<p.length;i++) g.lineTo(...p[i]); g.stroke(); };
-  sl(150,[0,-880],[15,-430]); sl(78,[-50,-850],[-215,-620],[-255,-330]); sl(78,[50,-850],[235,-600],[270,-320]); sl(84,[0,-450],[-95,-210],[-125,0]); sl(84,[30,-450],[115,-215],[145,0]);
-  g.beginPath(); g.arc(-260,-300,60,0,7); g.arc(272,-292,60,0,7); g.fill();
-  g.filter='none';
-  // angry eyes + scowl in slightly lighter grey
-  const eg=0.35+0.65*sm((t-2.4)/0.5)*(0.85+0.15*Math.sin(t*9)); g.save(); g.shadowColor=`rgba(255,40,30,${eg})`; g.shadowBlur=40*eg; g.fillStyle=`rgba(${120+120*eg|0},${40-10*eg|0},${30-10*eg|0},${0.6+0.4*eg})`;
-  for(const s of [-1,1]){ g.beginPath(); g.moveTo(s*30,-1095); g.lineTo(s*120,-1130); g.lineTo(s*105,-1070); g.closePath(); g.fill(); } g.restore();
-  g.strokeStyle='rgba(70,74,82,0.8)'; g.lineWidth=12; g.lineCap='round'; g.beginPath(); g.moveTo(-60,-960); g.quadraticCurveTo(0,-990,60,-960); g.stroke();
-  g.restore();
+  const fk=0.75+0.25*Math.sin(t*37)*Math.sin(t*13.3)+(Math.sin(t*91)>0.97?-0.4:0); glow(g,560,520,300,'225,235,255',0.3*fk);
   // drizzle
   const R=rng(8); g.strokeStyle='rgba(210,220,235,0.18)'; g.lineWidth=2; for(let i=0;i<90;i++){ const x=R()*1200-60, y=((R()*1920+t*1500)%2000)-40; g.beginPath(); g.moveTo(x,y); g.lineTo(x-6,y+40); g.stroke(); }
-  // our stickman, tired face
-  const b=breathe(t,3), hx=400, hy=960+b*0.4, r=95;
-  const J={ r, head:[hx,hy], neck:[hx,hy+r], hip:[hx-4,hy+r+235], le:[hx-42,hy+r+130], lh:[hx-40,hy+r+240], re:[hx+40,hy+r+130], rh:[hx+38,hy+r+238], lk:[hx-30,hy+r+360], lf:[hx-46,hy+r+480], rk:[hx+22,hy+r+360], rf:[hx+40,hy+r+478], lfd:-1, rfd:1 };
-  g.fillStyle=rad(g,hx,hy+r+495,150,[[0,'rgba(0,0,0,0.6)'],[1,'rgba(0,0,0,0)']]); g.save(); g.translate(hx,hy+r+495); g.scale(1,0.2); g.beginPath(); g.arc(0,0,150,0,7); g.fill(); g.restore();
-  g.save(); g.globalAlpha=0.18; g.translate(0,2*(hy+r+495)); g.scale(1,-1); g.filter='blur(5px)'; stick(g,J,{}); g.restore();
-  stick(g,J,{eyes:'half',lx:0.1,ly:0.2,brow:'sad',mouth:'frown',lid:0.12+blinkAt(t,[2.9]),rot:-0.04+Math.sin(t)*0.02},{skin:['#f4f4f6','#d7d8dc','#9c9ea4']});
-  // the red flash at 3.5 ("grows within")
-  if(t>3.45){ const a=Math.sin(clamp((t-3.45)/0.3)*Math.PI)*0.5; g.save(); g.globalCompositeOperation='lighter'; glow(g,hx,hy,260,'255,90,40',a); g.restore(); }
+  // him: contact shadow, wet reflection, rim glow so the black limbs read, then the figure
+  g.fillStyle=rad(g,hx,fy+12,160*sc,[[0,'rgba(0,0,0,0.6)'],[1,'rgba(0,0,0,0)']]); g.save(); g.translate(hx,fy+12); g.scale(1,0.2); g.beginPath(); g.arc(0,0,160*sc,0,7); g.fill(); g.restore();
+  g.save(); g.globalAlpha=0.16; g.translate(0,2*(fy+14)); g.scale(1,-1); g.filter='blur(5px)'; stick(g,J,{}); g.restore();
+  g.save(); g.filter='blur(6px)'; stick(g,J,{},{lw:r*0.105*2.2,ink:'rgba(170,182,205,0.45)'}); g.restore();
+  stick(g,J,{eyes:'half',lx:0,ly:0.05,brow:ang>0.5?'flat':'sad',mouth:'frown',lid:0.15+0.1*ang+blinkAt(t,[2.15]),rot:Math.sin(ph)*0.03},{skin:['#f4f4f6','#d7d8dc','#9c9ea4']});
+  // "grows within": red pulse on him
+  if(t>3.45){ const a=Math.sin(clamp((t-3.45)/0.3)*Math.PI)*0.5; g.save(); g.globalCompositeOperation='lighter'; glow(g,hx,J.head[1],260,'255,90,40',a); g.restore(); }
   g.restore(); }
 
 function crack(c,x0,y0,len,seed,w){ const R=rng(seed); c.beginPath(); c.moveTo(x0,y0); let x=x0,y=y0,a=R()*0.4-0.2; for(let i=0;i<14;i++){ a+=R()*0.7-0.35; x+=Math.cos(a)*len/14; y+=Math.sin(a)*len/40; c.lineTo(x,y); } c.lineWidth=w; c.stroke(); }
