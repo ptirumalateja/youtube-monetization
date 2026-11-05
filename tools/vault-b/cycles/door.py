@@ -273,7 +273,8 @@ def pose(f, total):
         e = ss(t); p = Vector((0.1, -4.3, 1.05)).lerp(Vector((0.06, -3.55, 1.12)), e); aim(p, (0, 0, 1.5))
         set_eyes(1.5 + 7.0 * max(0.0, (t - 0.55) / 0.45) ** 2)
     elif SHOT == 'lamp':        # rehook: the flames lean toward B
-        e = ss(t); aim(Vector((1.5, -1.75, 0.74)).lerp(Vector((1.46, -1.5, 0.78)), e), Vector((0.62, 0, 0.92)).lerp(Vector((0.5, 0, 0.98)), e), 1.25); cam.data.lens = 24
+        e = ss(t); cam.data.lens = 20  # camera stays inside the side wall face (x=1.475)
+        aim(Vector((1.36, -2.7, 0.8)).lerp(Vector((1.34, -2.25, 0.84)), e), Vector((0.55, 0, 0.95)).lerp(Vector((0.45, 0, 1.0)), e), 2.0)
         set_lean(0.55 * ss((f - 4) / 18), 0.04, sec); set_eyes(2.5)
     elif SHOT == 'heads':       # slow lateral drift across both heads
         e = ss(t); p = Vector((m_eyes.x + 0.38, -1.58, m_eyes.z - 0.18)).lerp(Vector((m_eyes.x - 0.16, -1.36, m_eyes.z - 0.2)), e)
