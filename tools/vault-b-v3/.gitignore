@@ -1,0 +1,8 @@
+output/
+cg/
+footage/**/*.jpg
+footage/**/*.webm
+*.wav
+*.log
+work/*.txt
+__pycache__/
