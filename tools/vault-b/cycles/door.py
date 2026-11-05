@@ -1,5 +1,6 @@
 """Shot 02: the sealed cobra door of Vault B (Cycles). python3 door.py OUT.png [W H SAMPLES SHOT]
-SHOT: wide (default) | heads | lamp
+SHOT: wide (default) | heads | lamp | seam | hand | eyes
+ANIM=a0,n,total renders frames f%04d.png into OUT (a directory); FRAME/TOTAL pose a still.
 """
 import sys, os, math, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -191,10 +192,23 @@ eyeL = cobra(-0.34, 1)
 eyeR = cobra(0.34, -1)
 
 # lamps either side of the door
-lean = {'wide': 0.0, 'heads': 0.0, 'lamp': 0.9}[SHOT]
+lean = {'lamp': 0.9}.get(SHOT, 0.0) if not os.environ.get('ANIM') else 0.0
+FLAMES = []
 for sx in (-1, 1):
     o, wicks = lib.nilavilakku((sx * 1.15, -0.55, 0), 1.0, brass)
-    for w in wicks: lib.flame(w, 1.25, lean=(-sx * lean, 0))
+    for w in wicks:
+        fo, fl = lib.flame(w, 1.25, lean=(-sx * lean, 0))
+        FLAMES.append((fo, [v.co.copy() for v in fo.data.vertices], fl, fl.location.copy(), sx))
+
+def set_lean(amount, wobble=0.0, t=0.0):
+    """Lean every flame toward the door's centre line (x=0) by `amount` (lib.flame lean units)."""
+    k = 0.07 * 1.25
+    for i, (fo, base, fl, l0, sx) in enumerate(FLAMES):
+        L = -sx * amount + wobble * math.sin(t * 9 + i * 1.7)
+        for v, b in zip(fo.data.vertices, base):
+            z = b.z / k; v.co.x = b.x + L * z * z * k
+        fo.data.update()
+        fl.location = (l0.x + L * 0.02, l0.y, l0.z)
 # warm fill from the stairwell behind camera; keeps the frame lifted
 lib.spot((0.2, -6.5, 3.0), (0, 0, 1.4), 150, angle=0.5, blend=0.9, color=(1, 0.72, 0.45), radius=0.6)
 lib.point((0, -1.2, 2.9), 12, (1, 0.66, 0.36), 0.2)
@@ -205,29 +219,94 @@ wn = sc.world.node_tree.nodes; wn['Background'].inputs['Color'].default_value = 
 lib.volume_box((0, -3.2, 1.7), (3.1, 7.0, 3.4), density=0.03, color=(1, 0.82, 0.62), aniso=0.55)
 lib.dust((0, -1.6, 1.5), (1.2, 1.4, 1.2), 260, radius=0.0022, strength=2.2, seed=7)
 
+# ---------- hand (POV reach) ----------
+HAND = None
+if SHOT == 'hand':
+    skin, _, _, kb = lib.mat('skin')
+    kb.inputs['Base Color'].default_value = (0.42, 0.24, 0.15, 1); kb.inputs['Roughness'].default_value = 0.48
+    kb.inputs['Subsurface Weight'].default_value = 0.35; kb.inputs['Subsurface Radius'].default_value = (0.01, 0.004, 0.002)
+    HAND = bpy.data.objects.new('hand', None); lib.link(HAND)
+    def blob(c, r, look=None):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=1, location=c); o = bpy.context.object
+        o.scale = r; o.data.materials.append(skin); bpy.ops.object.shade_smooth()
+        if look is not None: o.rotation_euler = Vector(look).to_track_quat('Z', 'Y').to_euler()
+        o.parent = HAND; return o
+    blob((0, 0, 0.05), (0.043, 0.016, 0.052))                     # palm (normal = +y, toward the door)
+    for fx, L_, curl in [(-0.032, 0.07, 0.12), (-0.011, 0.088, 0.08), (0.011, 0.092, 0.07), (0.032, 0.08, 0.1)]:
+        p = Vector((fx, 0.0, 0.098)); d = Vector((fx * 4.5, 0.0, 1.0)).normalized(); seg = L_ / 3
+        for k in range(3):
+            d = (d + Vector((0, curl, 0))).normalized()
+            c = p + d * seg / 2; blob(c, (0.0092 - k * 0.0012, 0.0088 - k * 0.001, seg * 0.62), d); p = p + d * seg
+    p = Vector((0.04, 0.004, 0.025)); d = Vector((0.85, 0.1, 0.45)).normalized()
+    for k in range(2):
+        blob(p + d * 0.022, (0.012 - k * 0.002, 0.011, 0.026), d); p = p + d * 0.044; d = (d + Vector((-0.2, 0.15, 0.35))).normalized()
+    blob((0.0, -0.004, -0.13), (0.034, 0.03, 0.15))               # forearm, back toward the camera
+    HAND.rotation_mode = 'QUATERNION'
+    lib.spot((0.55, -3.2, 0.95), (0.05, 0, 1.4), 320, angle=0.5, blend=0.35, color=(1, 0.66, 0.38), radius=0.015)  # throws the hand's shadow on the iron
+    HAND.scale = (1.35, 1.35, 1.35)
+    for ch in HAND.children: ch.visible_camera = False   # only its shadow is seen: no CG hand on screen
+
+# ---------- cameras / animation ----------
+m_eyes = Vector(eyeL).lerp(Vector(eyeR), 0.5)
 if SHOT == 'wide':
     cam = lib.camera((0.1, -4.3, 1.05), (0, 0, 1.5), lens=30, fstop=8, focus=4.3)
 elif SHOT == 'heads':
-    m = Vector(eyeL).lerp(Vector(eyeR), 0.5)
-    lib.camera((m.x + 0.1, -1.5, m.z - 0.2), (m.x, 0, m.z - 0.16), lens=30, fstop=2.8, focus=1.32)
+    cam = lib.camera((m_eyes.x + 0.1, -1.5, m_eyes.z - 0.2), (m_eyes.x, 0, m_eyes.z - 0.16), lens=30, fstop=2.8, focus=1.32)
 elif SHOT == 'lamp':
-    lib.camera((1.9, -3.2, 1.25), (0.5, 0, 1.15), lens=40, fstop=2.8, focus=3.0)
+    cam = lib.camera((1.9, -3.2, 1.25), (0.5, 0, 1.15), lens=40, fstop=2.8, focus=3.0)
+else:
+    cam = lib.camera((0, -2, 1.3), (0, 0, 1.3), lens=40, fstop=2.8, focus=2.0)
+eyes_m = [mm for mm in bpy.data.materials if mm.name.startswith('eye')]
+
+def aim(p, look, focus=None):
+    cam.location = p; cam.rotation_euler = (Vector(look) - p).to_track_quat('-Z', 'Y').to_euler()
+    cam.data.dof.focus_distance = focus if focus else (Vector(look) - p).length
+
+def ss(t): t = min(1, max(0, t)); return t * t * (3 - 2 * t)
+
+def set_eyes(g):
+    for mm in eyes_m: mm.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = g
+
+def pose(f, total):
+    t = f / max(1, total - 1); sec = f / 24
+    if SHOT == 'wide':
+        e = ss(t); p = Vector((0.1, -4.3, 1.05)).lerp(Vector((0.06, -3.55, 1.12)), e); aim(p, (0, 0, 1.5))
+        set_eyes(1.5 + 7.0 * max(0.0, (t - 0.55) / 0.45) ** 2)
+    elif SHOT == 'lamp':        # rehook: the flames lean toward B
+        e = ss(t); aim(Vector((1.5, -1.75, 0.74)).lerp(Vector((1.46, -1.5, 0.78)), e), Vector((0.62, 0, 0.92)).lerp(Vector((0.5, 0, 0.98)), e), 1.25); cam.data.lens = 24
+        set_lean(0.55 * ss((f - 4) / 18), 0.04, sec); set_eyes(2.5)
+    elif SHOT == 'heads':       # slow lateral drift across both heads
+        e = ss(t); p = Vector((m_eyes.x + 0.38, -1.58, m_eyes.z - 0.18)).lerp(Vector((m_eyes.x - 0.16, -1.36, m_eyes.z - 0.2)), e)
+        aim(p, (m_eyes.x, 0, m_eyes.z - 0.15)); set_lean(0.0, 0.05, sec); set_eyes(2.0)
+    elif SHOT == 'seam':        # macro tilt up the seam between the leaves: no handle, no lock
+        e = ss(t); p = Vector((0.16, -1.15, 0.62)).lerp(Vector((0.1, -1.0, 1.15)), e)
+        aim(p, Vector((0, 0.03, 0.7)).lerp(Vector((0, 0.03, 1.25)), e), 1.05); set_lean(0.0, 0.05, sec); set_eyes(2.0)
+    elif SHOT == 'hand':        # POV hand reaches, stops an inch from the iron
+        aim(Vector((0.12, -1.7, 1.3)), (0.0, 0, 1.35), 1.7)
+        u = ss(f / 30); tremble = 0.0015 * math.sin(sec * 31) * (1 if f > 30 else 0)
+        HAND.location = Vector((0.55, -1.3, 0.55)).lerp(Vector((0.1, -0.08, 1.2)), u) + Vector((tremble, 0, tremble * 0.6))
+        up = Vector((-0.25, 0.35, 0.9)).normalized()
+        HAND.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(up)
+        set_lean(0.0, 0.05, sec); set_eyes(2.0 + 3.0 * ss((f - 24) / 18))
+    elif SHOT == 'eyes':        # close: push into the left cobra's eye as it burns up
+        tgt = Vector(eyeL); e = ss(t) ** 0.85
+        p = (m_eyes + Vector((0.02, -1.25, -0.08))).lerp(tgt + Vector((0.015, -0.24, -0.006)), e)
+        aim(p, m_eyes.lerp(tgt, min(1, e * 1.4)), (tgt - p).length); set_lean(0.0, 0.05, sec)
+        set_eyes(2.0 + 14.0 * ss((t - 0.15) / 0.85) ** 1.5)
+
 ANIM = os.environ.get('ANIM')
 if not ANIM:
+    if SHOT in ('seam', 'hand', 'eyes') or os.environ.get('FRAME'):
+        pose(int(os.environ.get('FRAME', '30')), int(os.environ.get('TOTAL', '60')))
     sc.render.filepath = out
     bpy.ops.render.render(write_still=True)
 else:
     a0, n, total = [int(v) for v in ANIM.split(',')]
     os.makedirs(out, exist_ok=True)
-    eyes_m = [m for m in bpy.data.materials if m.name.startswith('eye')]
-    p0 = Vector((0.1, -4.3, 1.05)); p1 = Vector((0.06, -3.55, 1.12)); look = Vector((0, 0, 1.5))
     for f in range(a0, min(total, a0 + n)):
         fn = os.path.join(out, 'f%04d.png' % f)
         if os.path.exists(fn): continue
-        t = f / max(1, total - 1); e = t * t * (3 - 2 * t)
-        cam.location = p0.lerp(p1, e); cam.rotation_euler = (look - cam.location).to_track_quat('-Z', 'Y').to_euler(); cam.data.dof.focus_distance = (look - cam.location).length
-        glow = 1.5 + 7.0 * max(0.0, (t - 0.55) / 0.45) ** 2
-        for m in eyes_m: m.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = glow
+        pose(f, total)
         sc.render.filepath = fn
         bpy.ops.render.render(write_still=True)
         print('frame', f, flush=True)
