@@ -23,7 +23,8 @@ const server = http.createServer((req, res) => {
     await page.waitForFunction(() => window.ready === true, null, { timeout: 180000 });
     if (process.env.DBG) await page.evaluate(d => { window.DBG = JSON.parse(d); }, process.env.DBG);
     const shot = async (t, file) => { const b64 = await page.evaluate(([t, k]) => window.renderAt(t, k), [t, SUB]); fs.writeFileSync(file, Buffer.from(b64.split(',')[1], 'base64')); };
-    if (mode === 'meta') { fs.writeFileSync(path.join(out, 'meta.json'), JSON.stringify(await page.evaluate(() => window.events))); console.log('meta ok'); }
+    if (mode === 'proj') { const fps=Number(a2||30), n=Math.round(Number(a1)*fps), o=[]; for(let f=0;f<n;f++) o.push(await page.evaluate(t=>window.projAt(t),f/fps)); fs.writeFileSync(path.join(out,'proj.json'),JSON.stringify(o)); console.log('proj ok'); }
+    else if (mode === 'meta') { fs.writeFileSync(path.join(out, 'meta.json'), JSON.stringify(await page.evaluate(() => window.events))); console.log('meta ok'); }
     else if (mode === 'stills') {
       for (const t of (process.env.TIMES || '0').split(',').map(Number)) { await shot(t, path.join(out, `still-${t.toFixed(2).padStart(5, '0')}.jpg`)); console.log('still', t); }
     } else if (mode === 'frames') {

@@ -153,23 +153,29 @@ const TAGS=[{g:1,text:'STARTS MONDAY'},{g:2,text:'DRAFT, 2019'},{g:0,text:'NEVER
 const PHONE=ITEMS.msg(); PHONE.material.color.setScalar(0.95); PHONE.material.depthWrite=true; PHONE.renderOrder=200; PHONE.material.map.image.getContext('2d'); scene.add(PHONE);
 { const g=PHONE.material.map.image.getContext('2d'); const w=260,h=476; g.fillStyle='#10131a'; g.beginPath(); g.roundRect(0,0,w,h,30); g.fill();
   const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#2b3550'); gr.addColorStop(1,'#141a28'); g.fillStyle=gr; g.beginPath(); g.roundRect(10,10,w-20,h-20,22); g.fill();
-  for(let i=0;i<4;i++){ g.fillStyle='#3d4a6a'; g.fillRect(24,30+i*110,w-48,80); g.fillStyle='#8fa2c8'; g.fillRect(24,116+i*110,120,8); } PHONE.material.map.needsUpdate=true; }
+}
+let feedLast=-1; function drawFeed(off){ off=Math.round(off); if(off===feedLast) return; feedLast=off; const g=PHONE.material.map.image.getContext('2d'); const w=260,h=476;
+  g.clearRect(0,0,w,h); g.fillStyle='#10131a'; g.beginPath(); g.roundRect(0,0,w,h,30); g.fill();
+  g.save(); g.beginPath(); g.roundRect(10,10,w-20,h-20,22); g.clip(); g.fillStyle='#141a28'; g.fillRect(0,0,w,h);
+  const cols=['#4a5d8a','#8a4a5d','#4a8a76','#8a7a4a','#5d4a8a'];
+  for(let i=-1;i<6;i++){ const k=Math.floor(off/110)+i, y=30+i*110-(off%110); g.fillStyle=cols[((k%5)+5)%5]; g.fillRect(24,y,w-48,80); g.fillStyle='#8fa2c8'; g.fillRect(24,y+86,120,8); }
+  g.restore(); PHONE.material.map.needsUpdate=true; }
 const PBACK=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.24,0.008),new THREE.MeshStandardMaterial({color:0x15161a,roughness:0.5})); PBACK.position.z=-0.005; PHONE.add(PBACK);
 const phoneLight=new THREE.PointLight(0x9fb8ff,0.9,0.42,2); scene.add(phoneLight);
 
 // ---------------------------------------------------------------- timeline
 // 0-2.4 hook (crowd already there, he scrolls), 2.4-3.4 he turns to face them.
-const CAMK={x:[[0,0],[1.6,0.12],[2.4,0.15],[3.2,0.8]], y:[[0,1.7],[1.6,1.62],[3.2,1.55]], z:[[0,3.25],[1.6,2.75],[2.4,2.7],[3.2,2.1]],
-  lx:[[0,0],[1.6,0.02],[3.2,-0.1]], ly:[[0,1.3],[2.4,1.36],[3.2,1.48]], lz:[[0,-1.5],[2.4,-1.5],[3.2,-2.0]], fov:[[0,40],[3.2,46]]};
+const CAMK={x:[[0,0],[2.4,0.1],[2.55,0.1],[3.15,0.8],[5,0.66]], y:[[0,1.7],[2.4,1.64],[3.15,1.55],[5,1.55]], z:[[0,3.25],[2.4,2.8],[2.55,2.78],[3.15,2.1],[5,1.85]],
+  lx:[[0,0],[2.55,0.02],[3.15,-0.1],[5,-0.12]], ly:[[0,1.3],[2.55,1.36],[3.15,1.48],[5,1.5]], lz:[[0,-1.5],[2.55,-1.5],[3.15,-2.0],[5,-2.0]], fov:[[0,40],[2.55,40],[3.15,46],[5,44]]};
 function setT(t){
-  const turn=keys([[0,0],[2.4,0],[3.1,1]],t);
+  const turn=keys([[0,0],[2.55,0],[3.05,1]],t); drawFeed(keys([[0,0],[0.35,0],[0.55,140],[1.05,140],[1.25,290],[1.7,290],[1.9,420]],t));
   // hero
-  const hy=Math.PI*0.86*turn;
-  const ho={pos:V(0,0,0.15),yaw:hy,nod:lerp(0.32,-0.06,turn),turn:lerp(0,0,turn),tilt:-0.04+0.03*Math.sin(t*0.7),
+  const hy=Math.PI*0.86*turn, sense=SLD.sstep(2.25,2.45,t);
+  const ho={pos:V(0,0,0.15),yaw:hy,nod:lerp(0.32,-0.06,turn),turn:0.32*sense*(1-turn),tilt:-0.04+0.03*Math.sin(t*0.7),
     hL:V(0.045,1.24,0.3),hR:V(-0.045,1.23,0.3),pL:V(1,-0.8,-0.2),pR:V(-1,-0.8,-0.2)};
-  const phoneDown=SLD.sstep(2.3,2.9,t); ho.hL.lerp(V(0.19,0.9,0.05),phoneDown); ho.hR.lerp(V(-0.19,0.9,0.05),phoneDown);
+  const phoneDown=SLD.sstep(2.5,2.95,t); ho.hL.lerp(V(0.19,0.9,0.05),phoneDown); ho.hR.lerp(V(-0.19,0.9,0.05),phoneDown);
   const J=figJ(ho);
-  const exH=t<2.3?{...EX.neutral,eo:0.62,py:-0.9,ba:0.6,by:0.1,mc:-0.05}:mix({...EX.neutral,eo:0.62,py:-0.9,ba:0.3},EX.frozen,SLD.sstep(2.6,3.1,t));
+  const bored={...EX.neutral,eo:0.62,py:-0.9,ba:0.6,by:0.1,mc:-0.05}; const exH=mix(mix(bored,{...EX.wide,px:0.85,py:-0.2},sense),EX.frozen,SLD.sstep(2.8,3.15,t));
   poseFig(hero,J,exH);
   // phone in his hands (screen toward his face)
   const pc=J.hL.clone().add(J.hR).multiplyScalar(0.5).add(V(0,0.06,0)); PHONE.position.copy(pc);
@@ -181,9 +187,10 @@ function setT(t){
     const o={pos:G.pos,yaw:look*(G.front?1:0.85)+0.04*Math.sin(t*0.5+G.seed),roll:0.025*Math.sin(t*0.8+G.seed),nod:0.06+0.04*Math.sin(t*0.6+G.seed*2),tilt:0.12*Math.sin(G.seed*3)};
     const toLocal=p=>rotY(p.clone().sub(G.pos),-o.yaw);
     if(G.pose==='offer'){ o.lean=0.16; o.nod=-0.02; const c=V(0,1.32+br,0.42); hp={item:c,itemRot:0.05,hL:c.clone().add(V(0.05,-0.15,0)),hR:c.clone().add(V(-0.05,-0.15,0)),pL:V(1,-0.8,0),pR:V(-1,-0.8,0)}; }
-    if(G.pose==='reach'){ o.lean=0.12; const sh=toLocal(J.shR.x<J.shL.x===(G.pos.x>0)?J.shL:J.shR); const side=sh.x>0?1:-1;
-      const tgt=V(0,1.38,0).lerp(sh,0.8+0.04*Math.sin(t*0.9)); const c=V(-side*0.24,0.98+br,0.12);
+    if(G.pose==='reach'){ o.lean=0.08+0.06*SLD.sstep(0,2.3,t); const sh=toLocal(J.shR.x<J.shL.x===(G.pos.x>0)?J.shL:J.shR); const side=sh.x>0?1:-1;
+      const tgt=V(0,1.38,0).lerp(sh,lerp(0.55,1.0,SLD.sstep(0.2,2.3,t))-0.12*SLD.sstep(2.6,3.0,t)); const c=V(-side*0.24,0.98+br,0.12);
       hp={item:c,itemRot:-0.05,['h'+(side>0?'L':'R')]:tgt,['p'+(side>0?'L':'R')]:V(side,-0.4,-0.6),['h'+(side>0?'R':'L')]:c.clone().add(V(0,0.12,0)),['p'+(side>0?'R':'L')]:V(-side,-0.5,-0.3)}; }
+    if(G.front&&G.pose!=='reach') o.lean=(o.lean||0)+0.06*SLD.sstep(0,2.4,t);
     if(G.pose==='slump'){ o.nod=0.38; o.lean=0.08; o.roll=0.06; hp=holdPose('bag',br); }
     Object.assign(o,{hL:hp.hL,hR:hp.hR,pL:hp.pL,pR:hp.pR});
     const GJ=figJ(o); G.F.mat.uniforms.uBase.value=G.pos.y; G.F.mat.uniforms.uOp.value=(G.front?1.45:0.8*Math.exp(-G.row*0.08))*(0.88+0.12*Math.sin(t*1.7+G.seed*5)); poseFig(G.F,GJ,G.ex); G.F.pre.forEach((c,i)=>{ const m=G.F.all[i]; c.position.copy(m.position); c.quaternion.copy(m.quaternion); c.scale.copy(m.scale); c.visible=m.visible; });
@@ -196,5 +203,6 @@ function setT(t){
     T.s.position.copy(G.item.position).add(V(0,G.type==='bag'?0.2:0.3,0.06)); T.s.scale.set(0.42,0.105,1); });
   ST.tick(t,0);
   const C=ST.cam; C.position.set(keys(CAMK.x,t),keys(CAMK.y,t),keys(CAMK.z,t)); C.fov=keys(CAMK.fov,t); C.updateProjectionMatrix(); C.lookAt(keys(CAMK.lx,t),keys(CAMK.ly,t),keys(CAMK.lz,t)); }
+window.projAt=t=>{ setT(t); return GH.filter(G=>G.front).map(G=>{ const p=G.item.position.clone().project(ST.cam); return [G.type,(p.x*0.5+0.5)*W,(0.5-p.y*0.5)*H]; }); };
 window.renderAt=(t,K=1)=>ST.renderAt(setT,t,K,{shutter:1/60});
 ST.renderAt(setT,0.5,1); window.events={}; window.ready=true;   // warm-up: first render uploads canvas textures
