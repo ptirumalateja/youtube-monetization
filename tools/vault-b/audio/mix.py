@@ -26,8 +26,8 @@ def ramp(n, up=True):
     return r if up else 1 - r
 
 
-def main():
-    out = sys.argv[1]
+def hook(TOTAL=TOTAL, tail_fade=.25):
+    """0-TOTAL s hook bed (stereo float array, unnormalised)."""
     N = int(TOTAL * SR); mix = np.zeros((N, 2))
     coins = load('coins-pour-363089.wav')
     # densest run is 1.45-3.85 s, then a short gap; splice in the heavy section at 4.15 s with a 60 ms crossfade
@@ -53,7 +53,11 @@ def main():
     hit = hit + .35 * syn / np.abs(syn).max()
     i = int(HIT * SR)
     mix[i:i + len(hit)] += hit / np.abs(hit).max() * .95
-    mix[-int(.25 * SR):] *= ramp(int(.25 * SR), False)
+    mix[-int(tail_fade * SR):] *= ramp(int(tail_fade * SR), False)
+    return mix
+
+
+def write(out, mix):
     mix = mix / np.abs(mix).max() * .93
     with wave.open(out, 'wb') as w:
         w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
@@ -62,4 +66,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    write(sys.argv[1], hook())
