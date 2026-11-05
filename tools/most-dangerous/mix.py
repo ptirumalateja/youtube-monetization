@@ -4,7 +4,7 @@ import subprocess, sys, wave
 import numpy as np
 SR, DUR = 48000, 16.4
 out = np.zeros((int(DUR * SR), 2), np.float32); rng = np.random.default_rng(3)
-CUTS = [1.75, 3.75, 6.75, 9.5, 10.75, 13.25]
+CUTS = [1.5, 3.55, 6.1, 8.7, 10.3, 13.3]   # VO clock (Teja's fishaudio take at 1.11x)
 def load(name, a=0, b=None):
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', name if '/' in name else '../sfxlib/' + name, '-ac', '2', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True, check=True).stdout
     x = np.frombuffer(raw, np.float32).reshape(-1, 2).copy(); x = x[int(a * SR):int(b * SR) if b else None]
@@ -23,18 +23,24 @@ def hum(t0, t1, hz, db):
 # low drone under everything, swelling into the end
 t = np.arange(len(out)) / SR; dr = (np.sin(2 * np.pi * 55 * t) * 0.6 + np.sin(2 * np.pi * 82.4 * t) * 0.3) * (0.5 + 0.5 * t / DUR)
 out += np.repeat(dr[:, None], 2, 1).astype(np.float32) * 10 ** (-30 / 20)
-bed(0, 1.75, 0.01, -26)                                     # empty room
-bed(1.75, 3.75, 0.25, -24); hum(1.75, 3.75, 120, -38)       # alley rain + fluorescent buzz
-put(load('22331__sleepcircle__wind.ogg', 4, 7.2), 3.75, -16)  # park breeze
-bed(6.75, 9.5, 0.006, -22)                                  # office air
-bed(9.5, 10.75, 0.3, -23)                                   # rain on cafe glass
-bed(10.75, 13.0, 0.004, -26)                                # bedroom hush
-put(load('22331__sleepcircle__wind.ogg', 12, 15.3), 13.25, -14)  # rooftop wind
+bed(0, 1.5, 0.01, -26)                                     # empty room
+bed(1.5, 3.55, 0.25, -24); hum(1.5, 3.55, 120, -38)       # alley rain + fluorescent buzz
+put(load('22331__sleepcircle__wind.ogg', 4, 6.6), 3.55, -18)  # park breeze
+bed(6.1, 8.7, 0.006, -22)                                  # office air
+bed(8.7, 10.3, 0.3, -23)                                   # rain on cafe glass
+bed(10.3, 13.1, 0.004, -26)                                # bedroom hush
+put(load('22331__sleepcircle__wind.ogg', 12, 15.2), 13.3, -14)  # rooftop wind
 for c in CUTS: put(load('649445__audiopapkin__cinematic-woosh-sfx-015.wav', 2.35, 2.95), c - 0.12, -14)
-put(load('722633__chakong__cinematic-braaam.wav', 0, 3.5), 2.45, -7)          # ANGER
-put(load('869757__mikiko850__dark-suspense-accent.wav', 0, 5), 13.2, -9)      # UNTIL ONE DAY
+put(load('722633__chakong__cinematic-braaam.wav', 0, 3.5), 2.4, -7)          # ANGER
+put(load('869757__mikiko850__dark-suspense-accent.wav', 0, 5), 13.25, -9)
+# slow heartbeat under 'carry pain / nobody noticed'
+for k, tb in enumerate(np.arange(10.45, 13.0, 0.92)):
+    n = int(0.35 * SR); tt = np.arange(n) / SR
+    for off, a in ((0, 1.0), (0.17, 0.6)):
+        m = int(off * SR); s_ = np.zeros(n, np.float32); s_[m:] = (np.sin(2 * np.pi * 48 * tt[:n - m]) * np.exp(-tt[:n - m] / 0.07) * a)
+        put(np.repeat(s_[:, None], 2, 1), tb, -10)      # UNTIL ONE DAY
 if len(sys.argv) > 2:
-    vo = load(sys.argv[2]); out[:, :] *= 0.55; put(vo, float(sys.argv[3]) if len(sys.argv) > 3 else 0.0, 0)
+    vo = load(sys.argv[2]); out[:, :] *= 0.5; put(vo, float(sys.argv[3]) if len(sys.argv) > 3 else 0.0, 0)
 out *= 0.89 / np.abs(out).max()
 with wave.open(sys.argv[1] if len(sys.argv) > 1 else 'bed.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((np.clip(out, -1, 1) * 32767).astype('<i2').tobytes())
