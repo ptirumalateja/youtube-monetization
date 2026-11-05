@@ -15,7 +15,8 @@ CAPS = [
  (17.88, 19.90, "CRACKED\\NFROM {Y}ABOVE{W}"),
  (19.98, 21.85, "THE LOCAL\\NLEGEND"),
  (21.85, 23.94, "{Y}IRON HAIL{W}"),
- (24.02, 25.60, "WHO WERE\\N{Y}THEY?{W}"),
+ (24.02, 26.10, "WHO WERE\\N{Y}THEY?{W}"),
+ (24.90, 26.10, "{\\pos(540,1470)\\fs60}YOUR THEORY? ↓"),
 ]
 def ts(t):
     h=int(t//3600); m=int(t%3600//60); s=t%60
@@ -38,4 +39,5 @@ with open(OUT,'w') as f:
     for a,b,t in CAPS:
         t = t.replace("{Y}","{\\c&H2FD8FF&}").replace("{W}","{\\c&HFFFFFF&}")
         # pop-in: 112% -> 100% over 90 ms, 60 ms fade
-        f.write(f"Dialogue: 0,{ts(a)},{ts(b)},Cap,,0,0,0,,{{\\pos(540,1230)\\fad(60,80)\\fscx112\\fscy112\\t(0,90,\\fscx100\\fscy100)}}{t}\n")
+        pos = "" if t.startswith("{\\pos") else "\\pos(540,1230)"
+        f.write(f"Dialogue: 0,{ts(a)},{ts(b)},Cap,,0,0,0,,{{{pos}\\fad(60,80)\\fscx112\\fscy112\\t(0,90,\\fscx100\\fscy100)}}{t}\n")
