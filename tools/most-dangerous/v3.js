@@ -41,8 +41,13 @@ const S1={ scene:new THREE.Scene(), cam:new THREE.PerspectiveCamera(50,W/H,0.05,
 { const s=S1.scene; s.background=new THREE.Color('#040507'); s.fog=new THREE.FogExp2('#040507',0.11);
   const fl=plane(40,40,tex(concrete(1024,1024,'#2a2b30',3,0.7))); fl.rotation.x=-Math.PI/2; fl.material.opacity=0.86; fl.material.map.wrapS=fl.material.map.wrapT=THREE.RepeatWrapping; fl.material.map.repeat.set(8,8); s.add(fl);
   const pool=plane(5.5,5.5,glowTex('210,214,225'),{add:true}); pool.rotation.x=-Math.PI/2; pool.position.y=0.005; pool.material.opacity=0.55; s.add(pool);
-  const wall=plane(30,14,tex(concrete(1024,512,'#1c1d22',8,0.8))); wall.position.set(0,7,-7); s.add(wall);
+  const wall=plane(60,30,tex(concrete(1024,512,'#1c1d22',8,0.8))); wall.position.set(0,10,-7); s.add(wall);
   const wp=plane(9,9,glowTex('170,175,190'),{add:true}); wp.position.set(0,4.5,-6.95); wp.material.opacity=0.22; s.add(wp);
+  const pil=new THREE.MeshLambertMaterial({map:tex(concrete(256,1024,'#3a3c42',31,0.8))});
+  for(const [x,z] of [[-1.7,-2.2],[1.7,-2.2],[-1.9,-5.2],[1.9,-5.2]]){ const m=new THREE.Mesh(new THREE.BoxGeometry(0.6,9,0.6),pil); m.position.set(x,4.5,z); s.add(m); }
+  s.add(new THREE.AmbientLight('#8090a8',0.35)); const sp=new THREE.SpotLight('#e8ecf8',60,14,0.5,0.6,1.2); sp.position.set(0,7.2,0); sp.target.position.set(0,0,0); s.add(sp,sp.target);
+  const door=plane(1.3,2.6,glowTex('150,170,205'),{add:true}); door.position.set(-1.4,1.3,-6.9); door.material.opacity=0.55; s.add(door);
+  const dr=new THREE.Mesh(new THREE.PlaneGeometry(1.0,2.2),new THREE.MeshBasicMaterial({color:'#6c7a92'})); dr.position.set(-1.4,1.1,-6.92); s.add(dr);
   const b=beam(0.22,1.5,7.2,'#dfe4f0',0.5); b.position.set(0,3.6,0); s.add(b); S1.beam=b;
   const lamp=plane(1.4,1.4,glowTex('245,247,255'),{add:true}); lamp.position.set(0,7.1,0); s.add(lamp);
   // dust motes in the beam
@@ -59,9 +64,9 @@ function drawMan1(t){ const L=S1.man, c=L.x, w=L.c.width, h=L.c.height; c.clearR
   L.t.needsUpdate=true; }
 function set1(t){ const s=S1, u=ease(t/1.5);
   // low on the floor, looking up at him under the light -> craning up to his eye line, close
-  const p=V(lerp(0.45,0.0,u),lerp(0.08,1.62,ease(clamp((t-0.1)/1.4))),lerp(3.1,1.75,u)), look=V(0,lerp(1.75,1.5,u),0);
+  const p=V(lerp(0.45,0.15,u),lerp(0.08,1.55,ease(clamp((t-0.1)/1.4))),lerp(4.2,2.7,u)), look=V(0,lerp(1.7,1.35,u),0);
   const sh=0.004; p.x+=Math.sin(t*9.1)*sh; p.y+=Math.sin(t*7.3)*sh;
-  s.cam.fov=lerp(62,34,u); s.cam.position.copy(p); s.cam.lookAt(look); s.cam.updateProjectionMatrix();
+  s.cam.fov=lerp(62,42,u); s.cam.position.copy(p); s.cam.lookAt(look); s.cam.updateProjectionMatrix();
   s.man.p.position.set(0,0,0); s.man.p.children; drawMan1(t);
   const pa=s.dust.geometry.attributes.position; s.seed.forEach((k,i)=>{ const y=((k[1]*7+t*(0.05+k[2]*0.12))%7), rr=(0.2+y*0.17)*Math.sqrt(k[0]), a=k[3]*6.283+t*0.2; pa.setXYZ(i,Math.cos(a)*rr,7-y,Math.sin(a)*rr); }); pa.needsUpdate=true;
   s.beam.material.uniforms.a.value=0.5*(0.92+0.08*Math.sin(t*31)*Math.sin(t*11));
@@ -116,18 +121,17 @@ function drawMan2(t,close){ const L=S2.man, c=L.x, w=L.c.width, h=L.c.height; c.
   const r=320, J=walkJ(w/2,h-30,r,WALK.ph(t));
   const tr=close?sm((t-3.55)/0.8):0;
   c.save(); c.filter='blur(10px)'; stick(c,J,{},{lw:52,ink:'rgba(175,188,212,0.6)'}); c.restore();
-  stick(c,J,{eyes:'half',lx:close?Math.sin(t*20)*0.04:0.25,ly:close?0.0:0.3,brow:'sad',mouth:'frown',lid:close?0.18+0.1*sm((t-3.4)/0.6):0.12+blinkAt(t,[2.2]),rot:-0.04+Math.sin(t)*0.015},
+  const hard=close?sm((t-3.45)/0.7):0; stick(c,J,{eyes:'half',lx:close?0.05:0.25,ly:close?0.0:0.3,brow:hard>0.5?'angry':'sad',mouth:hard>0.4?'flat':'frown',lid:close?0.12+0.2*hard:0.12+blinkAt(t,[2.2]),rot:-0.04+Math.sin(t)*0.015*(1-hard)},
     {lw:34,skin:['#f2f3f6','#d2d4da','#8e929c'],shade:close?`rgba(255,40,20,${0.10+0.08*Math.sin(t*9)})`:null});
-  if(close){ const [hx,hy]=J.head; tear(c,hx-r*0.36,hy-r*0.05,r,tr); }
   L.t.needsUpdate=true; }
 function set2(t){ const s=S2, cam=s.cam; drawWall(t); const mz=WALK.z(t); s.man.p.position.set(-0.25,0,mz); s.refl.position.set(-0.25,0,mz);
   let p, look, fov;
   if(t<2.573){ // wide, low: small man, the shadow towering over him
     const u=ease((t-1.5)/1.07); p=V(lerp(-1.0,-0.85,u),lerp(0.15,0.45,u),lerp(3.3,3.1,u)); look=V(0.45,lerp(2.2,2.4,u),mz-1.0); fov=lerp(58,52,u); drawMan2(t,false); }
   else if(t<3.36){ // ANGER: low on the shadow -> rise to its eye line, eyes ignite
-    const u=ease((t-2.573)/0.787), su=WALL.z0+SU+(mz-0.2)*0.9; p=V(lerp(0.2,-1.2,u),lerp(0.9,SV+0.2,u),lerp(su+1.6,su+0.15,u)); look=V(WALL.x,lerp(SV-0.6,SV+0.1,u),su); fov=lerp(50,40,u); drawMan2(t,false); }
+    const u=ease((t-2.573)/0.787), su=WALL.z0+SU+(mz-0.2)*0.9; p=V(lerp(0.9,-2.3,u),lerp(0.5,SV-0.1,u),lerp(su+1.8,su+1.0,u)); look=V(WALL.x,lerp(SV-0.9,SV-0.3,u),su-0.2); fov=lerp(56,46,u); drawMan2(t,false); }
   else { // GROWS WITHIN SOMEONE: his face, close, red spill from the shadow
-    const u=ease((t-3.36)/1.07), hp=s.man.p.position; p=V(hp.x-0.25+lerp(0,0.05,u),1.62,hp.z+lerp(1.75,1.4,u)); look=V(hp.x+0.02,1.6,hp.z); fov=lerp(36,32,u); drawMan2(t,true); }
+    const u=ease((t-3.36)/1.07), hp=s.man.p.position; p=V(hp.x-0.35+lerp(0,0.08,u),1.5,hp.z+lerp(2.5,2.05,u)); look=V(hp.x+0.1,1.45,hp.z); fov=lerp(42,38,u); drawMan2(t,true); }
   const sh=0.005; p.x+=Math.sin(t*8.3)*sh; p.y+=Math.sin(t*6.1)*sh; cam.fov=fov; cam.position.copy(p); cam.lookAt(look); cam.updateProjectionMatrix();
   const fk=0.8+0.2*Math.sin(t*37)*Math.sin(t*13.3)-(Math.sin(t*91)>0.96?0.5:0); s.tube.material.opacity=fk; s.tg.material.opacity=0.45*fk;
   const pa=s.rain.geometry.attributes.position; s.rs.forEach((k,i)=>{ const y=7-((k[1]+t*8*k[3])%7); pa.setXYZ(i*2,k[0],y,k[2]); pa.setXYZ(i*2+1,k[0]-0.02,y-0.28,k[2]); }); pa.needsUpdate=true;
