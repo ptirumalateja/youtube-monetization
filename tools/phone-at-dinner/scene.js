@@ -72,7 +72,7 @@ const lookK=t=>sstep(TL.lookUp[0],TL.lookUp[1],t), downK=t=>sstep(TL.phoneDown[0
 
 function herAt(t){
   const tk=talkK(t), slump=sstep(TL.quiet,TL.grey[1],t);
-  const L=Math.max(bump(t,-0.5,1.4),bump(t,1.6,1.1)*0.8,bump(t,3.2,0.9)*0.5)*tk;   // laughs at her own story, he doesn't look up
+  const L=Math.max(bump(t,-0.5,1.4),bump(t,1.2,1.0)*0.8,bump(t,2.4,0.8)*0.5)*tk;   // laughs at her own story, he doesn't look up
   const P={...CHAIRP};
   P.p+=0.1*tk*(0.5+0.5*Math.sin(t*2.1))-0.12*L+0.04*L*Math.sin(t*28)+0.22*slump;  // leans in to talk; later sinks
   P.tilt+=-0.3*L+0.06*tk*Math.sin(t*3.3)+0.35*slump;                               // head drops when she gives up
@@ -91,7 +91,7 @@ function herAt(t){
 function himAt(t){
   const lk=lookK(t), dn=downK(t);
   const P={...CHAIRP};
-  P.p+=0.16*(1-lk)+0.03*(1-lk)*sstep(3,12,t);                  // hunched over the screen, a little more every year
+  P.p+=0.16*(1-lk)+0.03*(1-lk)*sstep(TL.dinner0,TL.dinner1,t);                  // hunched over the screen, a little more every year
   P.tilt+=0.62*(1-lk)-0.05*lk;                                   // eyes down... then up at her chair
   P.hy=0.03*Math.sin(t*0.7)*(1-lk);
   // phone: held low in front of his chest, thumb scrolling; at the look-up it goes face down on the table
@@ -122,18 +122,18 @@ function setT(t){
   const h=himAt(t); R.poseFig(him,R.skel(h.P,HIM_ROOT,HIM_YAW));
   // phone: tilted toward his face while held, lies flat face down after
   phone.position.copy(h.pp); phone.rotation.set(Math.PI*h.flip,0.55*(1-h.flip),h.tiltPhone);   // angled so the screen also shows to the camera
-  const glow=(0.55+0.45*sstep(3,12,t))*(1-sstep(TL.phoneDown[0]+0.15,TL.phoneDown[1],t))*(1+0.06*Math.sin(t*13));
+  const glow=(0.55+0.45*sstep(TL.dinner0,TL.dinner1,t))*(1-sstep(TL.phoneDown[0]+0.15,TL.phoneDown[1],t))*(1+0.06*Math.sin(t*13));
   phone.userData.scr.material.opacity=glow; phoneM.emissiveIntensity=0.06+0.25*glow;
   phoneLight.position.copy(h.pp).add(V(0.02,0.08,0)); phoneLight.intensity=1.15*glow;
   phoneHalo.position.copy(h.pp).add(V(0,0.02,0)); phoneHalo.scale.setScalar(0.32+0.12*glow); phoneHalo.material.opacity=0.22*glow;
   // the lamp loses a little warmth to the phone over the years (no warm payoff in this one)
   const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);
-  aim(V(-0.34*sstep(4.5,12.4,t),0,0));
-  S.tick(t,-0.18*sstep(4,12.5,t)*(1-0.5*lookK(t)));
+  aim(V(-0.34*sstep(TL.dinner0+1.0,TL.dinner1,t),0,0));
+  S.tick(t,-0.18*sstep(TL.dinner0+0.7,TL.dinner1+0.1,t)*(1-0.5*lookK(t)));
 }
 
 // ---------------------------------------------------------------- overlay / sound data
-window.metaAt=t=>({dinner:dinnerAt(t),herAlpha:fadeA(t),herTalk:talkK(t),glow:(0.55+0.45*sstep(3,12,t))*(1-sstep(TL.phoneDown[0]+0.15,TL.phoneDown[1],t))});
+window.metaAt=t=>({dinner:dinnerAt(t),herAlpha:fadeA(t),herTalk:talkK(t),glow:(0.55+0.45*sstep(TL.dinner0,TL.dinner1,t))*(1-sstep(TL.phoneDown[0]+0.15,TL.phoneDown[1],t))});
 window.events={...TL};
 window.renderAt=(t,K=3)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
 window.ready=true;

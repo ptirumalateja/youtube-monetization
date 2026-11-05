@@ -1,22 +1,64 @@
 {
-  "duration": 17.5,
+  "duration": 14.0,
   "fps": 30,
   "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this (overlay and mix through output/meta.json).",
-  "hookOut": 2.75,
-  "counterIn": 2.85,
-  "dinner0": 3.0,
-  "dinner1": 12.4,
+  "hookOut": 2.2,
+  "counterIn": 2.25,
+  "dinner0": 2.3,
+  "dinner1": 9.6,
   "dinnerPow": 2.1,
   "dinners": 1825,
-  "lines": [[3.0, 6.3, "SHE KEPT TALKING."], [6.5, 9.5, "THEN SHE STOPPED."], [9.7, 12.5, "THEN SHE STOPPED WAITING."]],
-  "touch": [4.0, 5.2],
-  "quiet": 6.4,
-  "grey": [8.2, 10.4],
-  "fade": [10.2, 12.3],
-  "counterOut": 12.6,
-  "lookUp": [12.75, 13.45],
-  "phoneDown": [13.35, 13.9],
-  "line1": 13.0,
-  "line2": 14.7,
-  "reviewTimes": [0.3, 2.0, 4.6, 7.5, 9.8, 11.5, 13.0, 13.6, 15.5, 17.2]
+  "lines": [
+    [
+      2.3,
+      4.6,
+      "SHE KEPT TALKING."
+    ],
+    [
+      4.75,
+      7.0,
+      "THEN SHE STOPPED."
+    ],
+    [
+      7.15,
+      9.7,
+      "THEN SHE STOPPED WAITING."
+    ]
+  ],
+  "touch": [
+    3.0,
+    3.9
+  ],
+  "quiet": 4.8,
+  "grey": [
+    6.2,
+    8.0
+  ],
+  "fade": [
+    7.9,
+    9.5
+  ],
+  "counterOut": 9.8,
+  "lookUp": [
+    9.9,
+    10.5
+  ],
+  "phoneDown": [
+    10.4,
+    10.9
+  ],
+  "line1": 10.1,
+  "line2": 11.4,
+  "reviewTimes": [
+    0.3,
+    1.8,
+    3.4,
+    5.5,
+    7.5,
+    9.0,
+    10.2,
+    10.8,
+    12.0,
+    13.8
+  ]
 }

@@ -18,7 +18,7 @@ DUR = EV['duration']; FPS = EV['fps']; N = int(DUR * SR); T = np.arange(N) / SR
 R = np.random.default_rng(11)
 sst = lambda a, b, x: np.clip((x - a) / (b - a), 0, 1) ** 2 * (3 - 2 * np.clip((x - a) / (b - a), 0, 1))
 per_frame = lambda key: np.interp(T, np.arange(len(FR)) / FPS, [f[key] for f in FR])
-LOOK = EV['lookUp'][1]
+LOOK = EV['lookUp'][1]; D0, D1, CO = EV['dinner0'], EV['dinner1'], EV['counterOut']
 
 def mixs(*sig):
     y = np.zeros(max(len(x) for x in sig))
@@ -70,12 +70,12 @@ def voice(seed, f0, t_end, energy):
     return y * fade
 
 talk = per_frame('herTalk'); alpha = per_frame('herAlpha')
-v = voice(5, 205, 8.2, lambda t: float(np.interp(t, [0, 3, 6], [0.9, 0.6, 0.0])))
+v = voice(5, 205, EV['grey'][0] + 0.3, lambda t: float(np.interp(t, [0, D0, EV['quiet'] - 0.2], [0.9, 0.6, 0.0])))
 v = v / (np.abs(v).max() + 1e-9)
 g = np.zeros(N); g[:len(v)] = 1.0
 g *= (0.25 + 0.75 * talk) * alpha            # after she goes quiet only a few words leak out
 bright, dull = lp(hp(v, 150), 4200), lp(hp(v, 150), 1500)
-k = np.clip(np.interp(np.arange(len(v)) / SR, [0, 5, 8], [0, 0.4, 1.0]), 0, 1)
+k = np.clip(np.interp(np.arange(len(v)) / SR, [0, EV['quiet'] - 1, EV['grey'][0]], [0, 0.4, 1.0]), 0, 1)
 vv = np.zeros(N); vv[:len(v)] = bright * (1 - k) + dull * k
 place(bus['fol'], vv * g, 0.0, 0.62, 0.35)    # she sits screen right
 place(bus['fol'], breath(1.4, 'out', 77, 1.0), EV['quiet'] + 0.1, 0.06, 0.35)       # the sigh when she stops
@@ -94,20 +94,20 @@ def blip(seed):
 t0 = 0.15
 while t0 < EV['lookUp'][0]:
     # the ticks lose their brightness over the years and pick up a fading echo (vidIQ note: less cheerful, more distance)
-    f_t = float(np.interp(t0, [0, 12], [3000, 1700])); k_e = float(np.interp(t0, [4, 12], [0, 1]))
-    tk = lp(tick(int(t0 * 100), f_t), float(np.interp(t0, [0, 12], [9000, 3500])))
+    f_t = float(np.interp(t0, [0, D1], [3000, 1700])); k_e = float(np.interp(t0, [D0 + 1, D1], [0, 1]))
+    tk = lp(tick(int(t0 * 100), f_t), float(np.interp(t0, [0, D1], [9000, 3500])))
     place(bus['fol'], tk, t0, 0.05, -0.4)
     for j, (dt, ge) in enumerate([(0.19, 0.4), (0.38, 0.18), (0.57, 0.08)]):
         place(bus['fol'], lp(tk, 2500), t0 + dt, 0.05 * ge * k_e, -0.4 + 0.25 * (j + 1))
     t0 += 0.35 + 0.5 * R.random()
-for t0 in [1.7, 5.9, 9.1, 11.6]:
+for t0 in [1.4, 4.4, 6.9, 8.9]:
     place(bus['fol'], blip(int(t0 * 10)), t0, 0.05, -0.4)
 
 
 # ---------------------------------------------------------------- the years: cutlery ticks, one per few dinners, quickening with the counter
 def cutlery(seed):
     n = int(0.12 * SR); t = np.arange(n) / SR; r = np.random.default_rng(seed); y = np.zeros(n)
-    f0 = 2600 - 1100 * min(1, seed / 7 / 380)   # duller as the dinners pile up
+    f0 = 2600 - 1100 * min(1, seed / 7 / (D1 * FPS))   # duller as the dinners pile up
     for m in [1.0, 2.7, 4.1]: y += np.sin(2 * np.pi * f0 * m * (0.95 + 0.1 * r.random()) * t) * np.exp(-t / (0.02 / m))
     return y
 d = np.array([f['dinner'] for f in FR]); last = 1
@@ -120,7 +120,7 @@ for f in range(1, len(FR)):
 
 # ---------------------------------------------------------------- the distance: a low minor pad that swells as she fades, three sparse low piano notes
 pad = sum(a_ * np.sin(2 * np.pi * f_ * T + 0.4 * np.sin(2 * np.pi * 0.15 * T + i)) for i, (f_, a_) in enumerate([(110.0, 1.0), (130.8, 0.7), (164.8, 0.45), (220.0, 0.15)]))
-pad = lp(np.tanh(1.2 * pad), 900) * np.interp(T, [0, 5.0, 9.0, 12.4, 12.6], [0, 0, 0.6, 1.0, 0]) * 0.08
+pad = lp(np.tanh(1.2 * pad), 900) * np.interp(T, [0, D0 + 1.5, D0 + 4.5, D1, CO], [0, 0, 0.6, 1.0, 0]) * 0.08
 for c in range(2): bus['drone'][c] += pad * (1 + 0.05 * np.sin(2 * np.pi * (0.11 + 0.03 * c) * T))
 
 def piano(f0, dur=3.5):
@@ -131,7 +131,7 @@ def piano(f0, dur=3.5):
     hammer = lp(noise(n), 1800) * env(n, 0.001, 0.012) * 0.25
     return (y + hammer) * np.minimum(1, t / 0.004)
 
-for t0, f0, g0 in [(6.5, 110.0, 0.16), (9.0, 87.3, 0.13), (11.2, 82.4, 0.1)]:   # A2, F2, E2: falling, each softer
+for t0, f0, g0 in [(D0 + 2.6, 110.0, 0.16), (D0 + 4.6, 87.3, 0.13), (D0 + 6.4, 82.4, 0.1)]:   # A2, F2, E2: falling, each softer
     place(bus['air'], piano(f0), t0, g0, 0.1)
 
 # ---------------------------------------------------------------- the look-up: held breath, one cold hit, the phone face down
@@ -143,9 +143,9 @@ place(bus['fol'], mixs(thud(91, 140, 0.05, 1.0), tick(92, 2200, 0.8)), EV['phone
 
 
 # ---------------------------------------------------------------- bed, the held breath, master
-room_g = np.interp(T, [0, 3, 12.5, LOOK, DUR], [0.3, 0.32, 0.36, 0.3, 0.34])
-drone_g = np.interp(T, [0, 3, 10, 12.55, LOOK, LOOK + 0.5, DUR], [0.1, 0.15, 0.4, 0.6, 0.0, 0.3, 0.25])
-duck = 1 - 0.96 * ((T > 12.6) & (T < LOOK)); duck = lp(duck, 30)
+room_g = np.interp(T, [0, D0, D1 + 0.1, LOOK, DUR], [0.3, 0.32, 0.36, 0.3, 0.34])
+drone_g = np.interp(T, [0, D0, D1 - 2, CO - 0.05, LOOK, LOOK + 0.5, DUR], [0.1, 0.15, 0.4, 0.6, 0.0, 0.3, 0.25])
+duck = 1 - 0.96 * ((T > CO) & (T < LOOK)); duck = lp(duck, 30)
 bed(bus, room_g, drone_g, duck)
 mix = finish(bus, duck)
 write_wav(mix, sys.argv[2])

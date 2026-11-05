@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | v2 (vidIQ notes: the lamp leaves her side as she fades; duller echoing ticks, a low minor pad and three sparse piano notes under the dinners), rendering |
-| Upload file | `phone-at-dinner.mp4` (master with sound); `phone-at-dinner_music-ready.mp4` (silent, reveal hit at 13.45 s) |
-| Length | 17.5 s; "SHE WASN'T THERE." holds about 2.8 s to the end, then the cut back to dinner 1 loops |
+| Status | v3: cut to 14.0 s (owner: tighter pacing) with the vidIQ notes (the lamp leaves her side as she fades; duller echoing ticks, a low minor pad and three sparse piano notes), rendering |
+| Upload file | `phone-at-dinner.mp4` (master with sound); `phone-at-dinner_music-ready.mp4` (silent, reveal hit at 10.50 s) |
+| Length | 14.0 s; "SHE WASN'T THERE." holds about 2.6 s to the end, then the cut back to dinner 1 loops |
 | Voice | None (wordless) |
 | Build | `tools/phone-at-dinner/` (three.js scene on the shared Slow Light Dark kit, PIL text, numpy mix) |
 
