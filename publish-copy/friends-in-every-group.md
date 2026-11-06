@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v4 rendered (15.0 s, -15.1 LUFS, -2.1 dBTP after AAC), waiting for owner review |
+| Status | v5 rendered (15.0 s, -15.1 LUFS, -1.1 dBTP after AAC): no whoosh, no gold glow, natural late walk. Waiting for owner review |
 | Upload file | `friends-in-every-group.mp4` (master with sound); `friends-in-every-group_music-ready.mp4` (silent: add a trending sound in the IG/FB app) |
 | Length | 15.0 s; end card "WHICH ONE ARE YOU? / COMMENT YOUR NUMBER" from 12.6 s |
 | Voice | None (wordless) |
