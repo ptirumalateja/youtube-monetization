@@ -77,6 +77,10 @@ CUT = [
 if os.environ.get('AB'):
     from ab_cut import CUT
 
+if os.environ.get('CUTMOD'):
+    import importlib.util as _u; _sp = _u.spec_from_file_location('cm', os.environ['CUTMOD']); _m = _u.module_from_spec(_sp); _sp.loader.exec_module(_m)
+    CUT = [(c[0], c[1], _m.MAPT(c[2])) + tuple(c[3:]) for c in CUT]
+
 def shot(i, s, t0):
     name, ss, tend, z0, z1, cx, sp, fx = s
     n = round(tend / TEMPO * FPS) - round(t0 / TEMPO * FPS); dur = n / FPS

@@ -43,6 +43,9 @@ DUCK = [(16.4, 17.0), (35.0, 36.1), (41.5, 44.2)]
 if os.environ.get('AB'):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from ab_cut import FX_AB, DUCK_AB as DUCK
     FX = FX_AB(E, L, BRAAAM, SUB, ACC, IMPL)
+if os.environ.get('CUTMOD'):
+    import importlib.util as _u; _sp = _u.spec_from_file_location('cm', os.environ['CUTMOD']); _m = _u.module_from_spec(_sp); _sp.loader.exec_module(_m)
+    FX = [(f, ts, _m.MAPT(at), g) for f, ts, at, g in FX]; DUCK = [(_m.MAPT(a), _m.MAPT(b)) for a, b in DUCK]
 inp = ['-i', PIC, '-i', vo_n, '-stream_loop', '-1', '-i', E('wind')]
 duck = "+".join([f"between(t,{a/TEMPO:.2f},{b/TEMPO:.2f})" for a, b in DUCK])
 fc = [f"[1:a]aformat=channel_layouts=stereo,apad=whole_dur={D}[vo]",
@@ -54,7 +57,17 @@ for i, (f, ts, at, g) in enumerate(FX):
     fc.append(f"[{k}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=start={ts},asetpts=PTS-STARTPTS,volume={g}dB,adelay={int(max(0, at/TEMPO)*1000)}:all=1[f{i}]")
     mix.append(f'[f{i}]')
 fc.append(f"{''.join(mix)}amix=inputs={len(mix)}:normalize=0:duration=first,atrim=0:{D},afade=t=out:st={D-0.4}:d=0.4,alimiter=limit=0.79[a]")
-fc.append(f"[0:v]ass={ASS}[v]")
+if os.environ.get('CAPPNG'):           # PIL-rendered captions (Indic scripts), see capspng.py
+    import json as _j
+    caps = _j.load(open(os.environ['CAPPNG'])); last = '[0:v]'
+    for k, c in enumerate(caps):
+        inp += ['-i', c['png']]; idx = len(FX) + 3 + k
+        fade = f"[{idx}:v]format=rgba[c{k}]"
+        fc.append(fade)
+        fc.append(f"{last}[c{k}]overlay=0:0:enable='between(t,{c['a']},{c['b']})':eof_action=repeat[o{k}]"); last = f'[o{k}]'
+    fc.append(f"{last}null[v]")
+else:
+    fc.append(f"[0:v]ass={ASS}[v]")
 subprocess.run(['ffmpeg','-v','error','-y',*inp,'-filter_complex',';'.join(fc),'-map','[v]','-map','[a]',
                 '-c:v','libx264','-preset','slow','-b:v','14M','-maxrate','18M','-bufsize','28M','-pix_fmt','yuv420p','-movflags','+faststart',
                 '-c:a','aac','-b:a','192k','-t',f'{D}',OUT],check=True)
