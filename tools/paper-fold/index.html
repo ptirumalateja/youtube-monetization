@@ -72,11 +72,11 @@ async function shotDesk(){
   const spine=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.0132,0.209),coverM); spine.position.set(-0.076,0.0066,0); nb.add(spine);
   const label=new THREE.Mesh(new THREE.PlaneGeometry(0.07,0.03),new THREE.MeshStandardMaterial({color:'#efe6d2',roughness:0.9})); label.rotation.x=-Math.PI/2; label.position.set(0.01,0.0133,-0.04); nb.add(label);
   nb.position.set(0.07,0,-0.1); nb.rotation.y=-0.5; nb.traverse(o=>{o.castShadow=o.receiveShadow=true}); S.add(nb);
-  // the folded page: A4-ish page folded 7 times = 128 layers, ~1.3 cm thick, ~3.7 x 2.6 cm footprint
-  // folded page: 7 folds = 128 layers, 1.28 cm thick, ~3.7 x 2.6 cm footprint; drawn as 32 visible slabs, slightly fanned
+  // the folded page: A4-ish page folded 7 times = 128 layers, ~1.3 cm thick, 1.86 x 2.62 cm footprint (A4 folded 7 times, alternating directions)
+  // folded page: 7 folds = 128 layers, 1.28 cm thick, 1.86 x 2.62 cm footprint (A4 folded 7 times, alternating directions); drawn as 32 visible slabs, slightly fanned
   const blk=new THREE.Group(); const NL=32, th=0.0128/NL;
   for(let i=0;i<NL;i++){const tone=0.93+rnd()*0.07; const m=new THREE.MeshStandardMaterial({color:new THREE.Color(tone,tone*0.975,tone*0.93),roughness:0.85});
-    const sl=new THREE.Mesh(new RoundedBoxGeometry(0.037+(rnd()-0.5)*0.0012,th*0.92,0.026+(rnd()-0.5)*0.0012,2,th*0.45),m);
+    const sl=new THREE.Mesh(new RoundedBoxGeometry(0.0262+(rnd()-0.5)*0.0008,th*0.92,0.0186+(rnd()-0.5)*0.0008,2,th*0.45),m);
     const bulge=Math.sin(i/NL*Math.PI)*0.0006; sl.position.set((rnd()-0.5)*0.0008+bulge,th*(i+0.5),(rnd()-0.5)*0.0008); sl.rotation.y=(rnd()-0.5)*0.025; sl.castShadow=sl.receiveShadow=true; blk.add(sl);}
   blk.position.set(-0.008,0,0.03); blk.rotation.y=0.42; S.add(blk);
   // pencil for scale
