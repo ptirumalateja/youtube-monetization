@@ -1,6 +1,6 @@
 """Text layer for Ten Numbers (Slow Light logo palette: cream text, amber for the one number that matters).
 
-0 - hookOut        "AT 10, YOU KNEW / 10 PHONE NUMBERS." (cream, frame 0), "HOW MANY NOW?" (amber) pops at hookQ
+0 - hookOut        "AT 10, YOU KNEW / 10 PHONE NUMBERS." (cream, frame 0), "HOW MANY DID YOU LOSE?" (amber) pops at hookQ
 counterIn - counterOut   AGE n (cream) over "n NUMBERS" (amber)
 payoffIn - end     "NOW YOU KNOW" (cream) over "ONE." (amber, bigger)
 Series kit ../slow-light-dark-common/sld_text.py supplies font, tracking, halo and the SLOW LIGHT watermark.
@@ -43,6 +43,9 @@ def draw(img, t, m, end_k=1.0, hook_k=None):
     blocks.append((['NOW YOU KNOW'], 64, 9, 236, p))
     img = sld_text.draw(img, blocks)
     n = m['count']
-    img = amber_line(img, f"{n} NUMBER" + ('S' if n != 1 else ''), 44, 12, 326, c)
-    img = amber_line(img, 'HOW MANY NOW?', 60, 9, 170 + 2 * int(60 * 1.45), (a * sstep(TL['hookQ'], TL['hookQ'] + 0.3, t) if hook_k is None else 0))
+    hit = 0.0
+    if len(TL['depart']) >= 5:                      # rehook: the count crosses 5 (half gone) - the amber line punches
+        t5 = TL['depart'][4][1] + TL['fly']; x = (t - t5) / 0.5; hit = (1 - x) ** 2 if 0 <= x < 1 else 0.0
+    img = amber_line(img, f"{n} NUMBER" + ('S' if n != 1 else ''), int(44 + 26 * hit), 12, 326 - int(8 * hit), c)
+    img = amber_line(img, 'HOW MANY DID YOU LOSE?', 52, 8, 170 + 2 * int(60 * 1.45), (a * sstep(TL['hookQ'], TL['hookQ'] + 0.3, t) if hook_k is None else 0))
     return amber_line(img, 'ONE.', 110, 14, 330, p)

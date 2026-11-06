@@ -33,6 +33,9 @@ const add=(geo,mat,x,y,z,par=S.scene)=>{ const m=new THREE.Mesh(geo,mat); m.posi
 add(new THREE.BoxGeometry(1.3,0.05,0.62),WOOD,0,DESK_TOP-0.025,0);
 for(const x of [-0.6,0.6]) for(const z of [-0.26,0.26]) add(new THREE.BoxGeometry(0.06,DESK_TOP-0.05,0.06),WOOD,x,(DESK_TOP-0.05)/2,z);
 add(new THREE.BoxGeometry(1.24,0.68,0.03),new THREE.MeshStandardMaterial({color:0x6b5240,roughness:0.7,emissive:0x2a1e15}),0,0.36,0.285);
+// drawer fronts + brass knobs on the desk front, so the bottom of the frame reads as furniture, not a void
+{ const DM=new THREE.MeshStandardMaterial({color:0x82664e,roughness:0.65,emissive:0x2e2218}), KM=new THREE.MeshStandardMaterial({color:0xc9a35c,roughness:0.35,metalness:0.6,emissive:0x3a2a10});
+  for(const x of [-0.31,0.31]) for(const y of [0.5,0.2]){ add(new THREE.BoxGeometry(0.56,0.26,0.012),DM,x,y,0.3); add(new THREE.SphereGeometry(0.018,14,10),KM,x,y,0.312); } }
 const CH_Z=-0.62;
 { const g=new THREE.Group(); g.position.set(0,0,CH_Z); S.scene.add(g);
   add(new THREE.BoxGeometry(0.42,0.04,0.42),WOOD,0,0.47,0,g);
@@ -121,7 +124,7 @@ function wheelAt(t){ for(const [t0,k,amp] of PULLS){ if(t>=t0-0.01&&t<=t0+D_PULL
 function dialWeight(t){ let w=0; for(const g of [TL.pullsIntro,TL.pullsEnd]){ const a=g[0][0]-0.55, b=g[g.length-1][0]+D_PULL+D_HOLD+0.4; w=Math.max(w,sstep(a,a+0.35,t)*(1-sstep(b-0.3,b+0.1,t))); } return w; }
 
 // ---------------------------------------------------------------- camera: slow push-in that follows him up as he grows
-function camAt(t){ const u=sm5(clamp(t/DUR)), g=grow(t);
+function camAt(t){ const u=sm5(clamp(t/19.2)), g=grow(t);   // camera time base fixed at 19.2 s so trimming the tail never shifts earlier frames
   const tg=V(0.05,lerp(1.27,1.34,g),lerp(-0.4,-0.45,u)), dist=lerp(3.0,2.75,u)+0.3*g-0.28*sstep(14.5,TL.duration,t), az=lerp(0.3,0.16,u), el=lerp(0.15,0.1,u);
   return {pos:tg.clone().add(V(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el)).multiplyScalar(dist)),tg}; }
 
@@ -187,6 +190,7 @@ function setT(t){
   for(const c of CARDS){ const b=0.03*Math.sin(t*c.sp+c.ph), b2=0.02*Math.cos(t*c.sp*0.7+c.ph);
     const home=V(c.off[0]*0.84-0.07,cy+c.off[1],CH_Z+c.dz).add(V(b2,b,0));
     let pos=home.clone(), sc=1, k=0.78+0.12*Math.sin(t*1.7+c.ph), vis=true;
+    k+=0.55*bump(t,0.1+c.i*0.07,0.4);                                  // count-in: the ten cards flare in turn in the first second
     if(c.dep!==null){ const u=(t-c.dep)/TL.fly; if(u>=1) vis=false; else if(u>0){ const e=sm5(u); pos=home.clone().lerp(spTarget,e); pos.y+=0.4*Math.sin(Math.PI*e); pos.z+=0.55*Math.sin(Math.PI*e); sc=lerp(1,0.3,e); k*=1-0.9*sstep(0.7,1,u); } }
     else { const center=V(-0.03,cy+0.3,CH_Z-0.1); pos.lerp(center,homeC); let pl=0; for(const [t0] of TL.pullsEnd) pl+=bump(t,t0,0.5)*0.5; for(const r of TL.ringAt) pl+=bump(t,r+0.02,1.0)*0.9; pl+=0.8*bump(t,TL.answer,1.4);
       sc=lerp(1,1.55,homeC)*(1+0.1*pl); k=lerp(k,1.15+0.2*Math.sin(t*3.2),homeC)+0.55*pl; }

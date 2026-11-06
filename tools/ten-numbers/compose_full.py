@@ -27,6 +27,6 @@ for f, path in enumerate(frames):
 enc.stdin.close(); assert enc.wait() == 0
 wav = os.path.join(src, 'mix.wav'); master = os.path.join(out, 'ten-numbers.mp4')
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', silent, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-af',
-                'loudnorm=I=-15:TP=-2.0:LRA=9,aresample=48000,alimiter=limit=0.7:level=false', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', master], check=True)
+                'loudnorm=I=-15:TP=-2.0:LRA=9,aresample=48000,alimiter=limit=0.66:level=false', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', master], check=True)
 r = subprocess.run(['ffmpeg', '-hide_banner', '-i', master, '-af', 'ebur128=peak=true', '-f', 'null', '-'], capture_output=True, text=True).stderr
 s = r[r.rindex('Summary:'):]; print('master', re.search(r'I:\s+(\S+) LUFS', s).group(1), 'LUFS, peak', re.search(r'Peak:\s+(\S+) dBFS', s).group(1))
