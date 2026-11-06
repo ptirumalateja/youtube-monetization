@@ -74,6 +74,9 @@ CUT = [
  ('skull',   2.60, 50.30, 1.00, 1.22, .50, 1.2, 'FV'),
 ]
 
+if os.environ.get('AB'):
+    from ab_cut import CUT
+
 def shot(i, s, t0):
     name, ss, tend, z0, z1, cx, sp, fx = s
     n = round(tend / TEMPO * FPS) - round(t0 / TEMPO * FPS); dur = n / FPS

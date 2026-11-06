@@ -39,8 +39,12 @@ FX = [
  (E('icecrack'), 0.1, 45.70, -10),              # "the ice gives back"
  (IMPL, 0, 48.45, -15), (BRAAAM, 0.25, 48.50, -12),           # who were they
 ]
+DUCK = [(16.4, 17.0), (35.0, 36.1), (41.5, 44.2)]
+if os.environ.get('AB'):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from ab_cut import FX_AB, DUCK_AB as DUCK
+    FX = FX_AB(E, L, BRAAAM, SUB, ACC, IMPL)
 inp = ['-i', PIC, '-i', vo_n, '-stream_loop', '-1', '-i', E('wind')]
-duck = "+".join([f"between(t,{a/TEMPO:.2f},{b/TEMPO:.2f})" for a, b in [(16.4, 17.0), (35.0, 36.1), (41.5, 44.2)]])
+duck = "+".join([f"between(t,{a/TEMPO:.2f},{b/TEMPO:.2f})" for a, b in DUCK])
 fc = [f"[1:a]aformat=channel_layouts=stereo,apad=whole_dur={D}[vo]",
       f"[2:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:{D},highpass=f=90,volume=-17dB,"
       f"volume='1-0.9*({duck})':eval=frame[wind]"]

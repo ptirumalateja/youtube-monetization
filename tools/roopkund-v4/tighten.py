@@ -7,7 +7,7 @@ w = wave.open(src); sr = w.getframerate(); a = np.frombuffer(w.readframes(w.getn
 words = [x for x in json.load(open(stt))['words'] if x['type'] == 'word']
 # gap (s) to leave BEFORE the word whose text starts with key; default 0.28
 BEAT = {'this': .38, 'Roopkund': .55, 'Hundreds': .32, 'They': .75, 'Their': .55, 'A': .30,
-        'And': .45, 'Some': .70, 'From': .50, 'The': .55, 'Hail': .45, 'Who': .75}
+        'And': .45, 'Some': .70, 'From': .50, 'The': .55, 'Hail': .45, 'Who': .75, 'DNA': .45, 'So': .55}
 DEF, PRE, POST = .28, .05, .10
 segs = []; tl = 0.0; newwords = []
 # group words into phrases separated by gaps > .3

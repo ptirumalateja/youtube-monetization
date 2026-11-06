@@ -26,6 +26,8 @@ CAPS = [
  (48.55, 50.30, "WHO WERE\\N{Y}THEY?{W}"),
  (48.90, 50.30, "{\\pos(540,1470)\\fs60}YOUR THEORY? ↓"),
 ]
+if os.environ.get('AB'):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from ab_cut import CAPS
 def ts(t):
     t /= TEMPO; h = int(t//3600); m = int(t%3600//60); s = t%60
     return f"{h}:{m:02d}:{s:05.2f}"
