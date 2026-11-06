@@ -45,12 +45,14 @@ const CH_Z=-0.62;
 // ---------------------------------------------------------------- the red landline (the one red object)
 const RED=new THREE.MeshStandardMaterial({color:PAL.RED,roughness:0.35,emissive:PAL.RED,emissiveIntensity:0.04});
 SLD.rimify(RED,0xff9a80,0.14,'phone');
-const PH=V(-0.17,DESK_TOP,-0.1);
+const PH=V(-0.12,DESK_TOP,-0.3);
+let dialMesh=null;
 const phone=new THREE.Group(); phone.position.copy(PH); phone.rotation.y=0.35; S.scene.add(phone);
 { const body=add(new THREE.BoxGeometry(0.22,0.07,0.2),RED,0,0.035,0,phone); body.geometry.translate(0,0,0);
   const top=add(new THREE.CylinderGeometry(0.075,0.09,0.03,32),RED,0,0.085,0.02,phone);
   const dialM=new THREE.MeshStandardMaterial({color:0xe9e2d2,roughness:0.4});
-  add(new THREE.CylinderGeometry(0.055,0.055,0.008,32),dialM,0,0.104,0.02,phone);
+  dialMesh=add(new THREE.CylinderGeometry(0.06,0.06,0.01,32),dialM,0,0.105,0.02,phone);
+  for(let k=0;k<10;k++){ const a=k/10*Math.PI*2*0.8+0.5; add(new THREE.CylinderGeometry(0.0075,0.0075,0.012,10),new THREE.MeshStandardMaterial({color:0x2a2018,roughness:0.6}),Math.cos(a)*0.043,0.004,Math.sin(a)*0.043,dialMesh); }
   for(const x of [-0.07,0.07]) add(new THREE.BoxGeometry(0.03,0.03,0.04),RED,x,0.085,-0.06,phone); }   // cradle forks
 const DIAL_W=new THREE.Vector3(); phone.updateMatrixWorld(); phone.localToWorld(DIAL_W.set(0,0.11,0.02));
 const CRADLE_W=new THREE.Vector3(); phone.localToWorld(CRADLE_W.set(0,0.115,-0.06));
@@ -110,7 +112,9 @@ function setT(t){
   P.p+=lerp(0.18,0.02,sstep(TL.lift-0.2,TL.lift+0.5,t));
   // right hand: dialing (one finger, small arcs) until the lift, then rests on the desk edge
   const dialing=1-sstep(TL.lift-0.3,TL.lift,t), spin=(t*2.4)%1, arc=Math.sin(Math.PI*spin)*0.9;
-  const dialHand=DIAL_W.clone().add(V(0.03*Math.cos(arc*2.2+1),0.03,0.03*Math.sin(arc*2.2+1)));
+  const th=0.6+arc*1.7;   // finger in a hole, drags the wheel clockwise, lets go, returns
+  const dialHand=phone.localToWorld(V(Math.cos(th)*0.043,0.135,0.02+Math.sin(th)*0.043));
+  dialMesh.rotation.y=-(arc*1.7)*0.9;
   const restR=V(-0.2,DESK_TOP+0.03,-0.16);
   const hR=restR.clone().lerp(dialHand,dialing);
   // left hand: holds the receiver to his ear after TL.lift
