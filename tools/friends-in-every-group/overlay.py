@@ -24,7 +24,7 @@ def blocks(t):
     a = 1 - sstep(TL['hookOut'] - 0.2, TL['hookOut'], t)          # on from frame 0, no fade-in
     out.append((['FRIENDS IN', 'EVERY GROUP'], 76, 12, 230, a))
     for t0, seat, lines in TL['beats']:
-        b = sstep(t0, t0 + 0.12, t) * (1 - sstep(t0 + TL['beatLen'] - 0.12, t0 + TL['beatLen'], t))
+        b = sstep(t0, t0 + 0.06, t) * (1 - sstep(t0 + TL['beatLen'] - 0.06, t0 + TL['beatLen'], t))   # near-hard swap between friends: no empty gap
         if b > 0: out.append((lines, 54, 8, 250, b))
     e = sstep(TL['endCard'], TL['endCard'] + 0.3, t)
     out.append((['WHICH ONE', 'ARE YOU?'], 76, 12, 230, e))

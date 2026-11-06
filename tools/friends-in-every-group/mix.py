@@ -100,9 +100,7 @@ def powerup(seed, dur=0.55):
     body = np.sin(2 * np.pi * (70 + 50 * np.exp(-t / 0.05)) * t) * env(n, 0.003, 0.12) * 0.8
     return (sweep * 0.6 + crackle * 0.3 + body) * np.minimum(1, (n - np.arange(n)) / (0.1 * SR))
 place(bus['air'], pop(330), 0.0, 0.2, 0.0)                                  # frame 0: the hook lands on a pop
-place(bus['hit'], powerup(799, 0.5), 0.0, 0.16, 0.0)
-for seat, (t0, k) in BEAT.items():
-    place(bus['hit'], powerup(800 + k), t0 + (0.55 if seat == 'R1' else 0.0) - 0.05, 0.22, PAN[seat] * 0.5)
+# (the per-beat power-up whoosh was removed: owner found it irritating)
 
 
 # ---------------------------------------------------------------- each friend's own sound

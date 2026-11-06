@@ -118,7 +118,8 @@ function act(st,t){
       if(t<sat){ const x=lerp(2.2,1.12,clamp(t/arrive)); const standRoot=V(x,0,st.z);   // in frame from frame 0
         let Q=R.gait({...STANDP,p:0.22},(2.2-x)/1.1*Math.PI*2,1.25*(1-sstep(arrive-0.2,arrive,t)));   // hurrying in
         const sit=sstep(arrive,sat,t); P=R.blend(Q,P,sit); root=standRoot.lerp(st.root,sit); }
-      { const w=Math.max(t<sat?0.9:0,bump(t,sat-0.2,1.1)); P.tL=(t<sat?root.clone().add(V(-0.12,1.55,0.25)):seatPt(st,0.1,1.48,0.2*st.s)).add(V(0,0.04*Math.sin(t*18),0)); P.wL=w; P.pL=V(0,-0.3,1); }   // 'sorry sorry' hand up
+      if(t<sat){ P.wL=0; P.wR=0; }   // walking: plain arm swing from the gait, no IK (IK on a moving target flipped the elbow)
+      { const w=bump(t,sat-0.05,1.0); if(w>0){ P.tL=seatPt(st,0.12,1.4,0.16*st.s).add(V(0,0,0.03*Math.sin(t*14))); P.wL=w; P.pL=V(0.2,-0.9,0.4); } }   // seated: a small 'sorry' wave
       break; }
     case 'L2': {   // the photographer: phone up high, "one more", flash
       const up=sstep(-0.15,0.3,u)*(1-sstep(1.65,2.0,u));
@@ -212,8 +213,8 @@ function setT(t){
       st.face3.position.copy(h).addScaledVector(fw,0.132); st.face3.up.copy(uw); st.face3.lookAt(h.clone().addScaledVector(fw,1)); st.face3.material=FACES[faceKind(st,t)]; st.face3.visible=!(st.id==='L1'&&t>BEAT.L1.t0+0.45); }   // face-down sleeper: the Z z z tells it
     // spotlight: the one being named stays bright cream, the other five sink toward slate (owner: highlight the selected one)
     let mine=auraK(st,t), any=0; for(const o of Object.values(SEATS)) any=Math.max(any,auraK(o,t));
-    const dim=0.75*Math.max(0,any-mine);
-    st.fig.mat.color.copy(CREAM_C).lerp(SLATE_C,dim); st.fig.mat.emissive.copy(st.fig.mat.color).lerp(GOLD_C,mine); st.fig.mat.emissiveIntensity=0.07*(1-dim)+0.26*mine;   // the named one glows gold head to toe
+    const dim=0.8*Math.max(0,any-mine);
+    st.fig.mat.color.copy(CREAM_C).lerp(SLATE_C,dim); st.fig.mat.emissive.copy(st.fig.mat.color); st.fig.mat.emissiveIntensity=0.07*(1-dim)+0.06*mine;   // the named one simply stays bright (owner: no gold glow)
   }
   // phone: in the photographer's right hand, screen toward the table
   const ph=SEATS.L2.fig.joints[11].position; phone.position.copy(ph).add(V(0.03,0.06,0)); phone.rotation.set(0,-Math.PI/2,0.2);
@@ -225,7 +226,7 @@ function setT(t){
   // the stolen fry rides in the thief's hand between plate and mouth
   const u5=t-BEAT.L0.t0, carry=(u5>0.35&&u5<0.75)||(u5>1.1&&u5<1.5)||(u5>1.65&&u5<1.95);
   heldFry.visible=carry; heldFry.position.copy(SEATS.L0.fig.joints[11].position).add(V(0.02,0.02,0)); heldFry.rotation.set(0.6,0.3,0);
-  updateAura(t);
+  aura.visible=false; auraGlow.material.opacity=0; auraLight.intensity=0;   // aura retired (owner: too much)
   const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);
   S.tick(t,0.08*sstep(TL.endCard,TL.endCard+0.8,t));
 }
