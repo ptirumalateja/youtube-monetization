@@ -19,9 +19,10 @@
 ### YouTube Shorts
 
 **Title (pick one, under 70 characters)**
-1. The Door India Is Afraid to Open 🐍
-2. ₹1 Lakh Crore Found… Then They Reached Vault B
-3. No Handle. No Lock. No Keyhole. Would You Open Vault B?
+1. They Found $22 Billion Under This Temple. One Door Stayed Shut 🐍
+2. The Door India Is Afraid to Open 🐍
+3. ₹1 Lakh Crore Found… Then They Reached Vault B
+4. No Handle. No Lock. No Keyhole. Would You Open Vault B?
 
 **Description**
 They were warned never to open the door.
@@ -61,7 +62,7 @@ Would you open it? YES or NO 👇
 **Hashtags (10 to 12, mixed size)**
 #padmanabhaswamy #vaultb #kerala #mystery #indianmysteries #temple #treasure #nagabandham #unsolvedmysteries #incredibleindia #thiruvananthapuram #reelsindia
 
-**Cover / alt text**: use the cobra-strike frame (about 4 s) or the "VAULT B." door frame (about 21 s) as the cover. Alt text: "Animation: a giant cobra rises and strikes in front of a sealed iron door with two gold cobra carvings, then a gold temple tower, vault doors opening onto gold, cobras sliding over coins, and the sealed Vault B door."
+**Cover / alt text**: cover on the "VAULT B." door frame (about 21 s), with the cobra-strike frame (about 4 s) as the backup. FB and IG covers both work best on the door. Alt text: "Animation: a giant cobra rises and strikes in front of a sealed iron door with two gold cobra carvings, then a gold temple tower, vault doors opening onto gold, cobras sliding over coins, and the sealed Vault B door."
 
 ### Facebook Reels
 
@@ -89,6 +90,7 @@ Vault B is still shut. If you had the chance... would you open it? YES or NO �
 
 **Replies for common comments**
 - "Is this real footage?" → It's a recreation made with 3D renders and AI video. No one is allowed to film inside the vaults.
+- "How did the man die?" → T. P. Sundararajan was 70 and died of a heart attack in July 2011, weeks after the vaults were opened. Believers linked it to the curse.
 - "Why don't they just break it?" → Believers say opening it the wrong way would bring disaster. That's why it's still shut.
 - "How much is inside Vault B?" → Nobody knows. That's the whole mystery 👀
 
