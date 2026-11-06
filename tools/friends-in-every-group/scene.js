@@ -120,7 +120,7 @@ const FACES={}; for(const k of ['smile','grin','chill','excited','bored','shock'
 const faceGeo=new THREE.PlaneGeometry(0.235,0.235);
 
 // ---------------------------------------------------------------- the four friends: own colour + own prop
-const SKIN=new THREE.MeshStandardMaterial({color:0xf1e2cc,roughness:0.6,emissive:0xf1e2cc,emissiveIntensity:0.06});
+const SKIN=new THREE.MeshStandardMaterial({color:0xdcc7aa,roughness:0.7,emissive:0xdcc7aa,emissiveIntensity:0.02});   // a shade darker than v7: cream heads bloomed out under the bulbs and the flash
 const PROPM=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.5});
 const CHAIRP={...R.P0,p:0.07,tilt:0.0,aL:1.5,aR:1.47,kL:1.52,kR:1.47,sL:0.5,sR:0.5,eL:0.9,eR:0.9};
 const STANDP={...R.P0,p:0.08};
@@ -154,7 +154,7 @@ function seated(f,t,{lean=0,look=0}={}){
   return P; }
 // head yaw to look at another seat (positive hy turns toward local -z; here local +x = world +z, local -z = world... use the sign that turns toward +x world)
 const lookTo=(f,x)=>clamp((f.x-x)*1.2,-1.1,1.1);
-const LATESTAND=V(1.12,0,0.12);   // where the late one stops beside the booth end before sliding in
+const LATESTAND=V(1.15,0,-0.02);   // where the late one stops beside the booth end before sliding in
 function selfiePose(f,t,shot){
   // everyone squeezes toward the middle and leans into the lens; the photographer holds the phone out in front
   const P=seated(f,t,{lean:0.18,look:clamp(f.x*0.9,-0.5,0.5)}); P.tilt-=0.12;
@@ -247,7 +247,7 @@ function setT(t){
   PHONES.PAYS.visible=sh.name==='pays'&&t>TL.pays.ring; PHONES.PAYS.position.copy(hand('PAYS','L')); PHONES.PAYS.rotation.set(0,-Math.PI/2,0);
   // flashes: the selfie flashes and the photographer's burst
   let fl=0; for(const ft of [TL.flash0,TL.flashEnd,...TL.photoFlashes]) if(t>=ft) fl=Math.max(fl,Math.exp(-(t-ft)*16));
-  flash.position.copy(PHONES.PHOTO.position); flash.scale.setScalar(0.5); flash.material.opacity=0.85*fl; flashL.position.copy(PHONES.PHOTO.position); flashL.intensity=2.2*fl;
+  flash.position.copy(PHONES.PHOTO.position); flash.scale.setScalar(0.5); flash.material.opacity=0.85*fl; flashL.position.copy(PHONES.PHOTO.position); flashL.intensity=1.1*fl;
   // the door swings open for the late one
   const dk=sstep(TL.late.door-0.1,TL.late.door+0.25,t)*(1-sstep(TL.late.door+0.9,TL.late.door+1.4,t)); doorPivot.rotation.y=1.3*dk;   // swings in, away from the camera
   // fries vanish as she eats them; the stolen fry rides in her hand
