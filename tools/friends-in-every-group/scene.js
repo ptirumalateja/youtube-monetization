@@ -15,18 +15,30 @@ const TL=await (await fetch('./timeline.json')).json();
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960, DUR=TL.duration;
 
 // ---------------------------------------------------------------- stage: the series kit, re-lit as a warm cafe
-const S=SLD.createStage({W,H,lamp:V(0,4.4,0.2),lampTarget:V(0,0,-0.2),cone:0.62,spot:46,beam:0.05,motes:900});
+const S=SLD.createStage({W,H,lamp:V(0,4.4,0.2),lampTarget:V(0,0,-0.2),cone:0.62,spot:40,beam:0.0,motes:250});
 const R=SLD.createRig(S.scene);
-const WARM=new THREE.Color(0x2b1a10); S.scene.background=WARM; S.scene.fog=new THREE.FogExp2(WARM,0.05);
-S.scene.add(new THREE.HemisphereLight(0xffd9a8,0x3a2414,0.75));
-const fillL=new THREE.DirectionalLight(0xffe2bc,0.55); fillL.position.set(-1.5,2.5,4); S.scene.add(fillL);
-S.floor.material.color.set(0x5a3c28);
+const WARM=new THREE.Color(0xc9ae8a); S.scene.background=WARM; S.scene.fog=new THREE.FogExp2(WARM,0.012);   // v8: a bright cafe so black stickmen pop
+S.scene.add(new THREE.HemisphereLight(0xffe6c4,0x6a4a30,1.05));
+const fillL=new THREE.DirectionalLight(0xffe2bc,0.85); fillL.position.set(-1.5,2.5,4); S.scene.add(fillL);
+S.floor.material.color.set(0x8a6646);
+S.bloom.strength=0.12; S.bloom.threshold=0.97;   // v8: on a bright wall the series bloom washed a warm haze over the black figures
 const TOP=0.74;
 
 // cafe wall: warm plaster, string-light bokeh, two dark frames
-function wallTex(){ const c=document.createElement('canvas'); c.width=1024; c.height=512; const g=c.getContext('2d'); const Rn=rng(8);
-  const gr=g.createLinearGradient(0,0,0,512); gr.addColorStop(0,'#4a2e1c'); gr.addColorStop(1,'#6b4329'); g.fillStyle=gr; g.fillRect(0,0,1024,512);
-  g.fillStyle='rgba(20,12,8,0.55)'; g.fillRect(150,170,170,120); g.fillRect(700,150,140,170);
+function wallTex(){ const c=document.createElement('canvas'); c.width=2048; c.height=1024; const g=c.getContext('2d'); g.scale(2,2); const Rn=rng(8);   // drawn in 1024x512 units at 2x for sharp edges
+  const gr=g.createLinearGradient(0,0,0,512); gr.addColorStop(0,'#d9c4a2'); gr.addColorStop(1,'#ead9bc'); g.fillStyle=gr; g.fillRect(0,0,1024,512);
+  for(let k=0;k<1400;k++){ g.fillStyle=`rgba(${Rn()<0.5?'120,90,60':'255,250,240'},${0.03+Rn()*0.04})`; g.fillRect(Rn()*1024,Rn()*360,2+Rn()*5,2+Rn()*5); }   // plaster texture
+  g.fillStyle='#6e4c32'; g.fillRect(0,360,1024,152); g.fillStyle='#5a3c27'; g.fillRect(0,356,1024,8);                      // wood wainscot + rail
+  g.strokeStyle='rgba(30,18,10,0.35)'; g.lineWidth=2; for(let x=0;x<1024;x+=26){ g.beginPath(); g.moveTo(x,366); g.lineTo(x,512); g.stroke(); }
+  const frame=(x,y,w,h,art)=>{ g.fillStyle='#2a1d14'; g.fillRect(x-7,y-7,w+14,h+14); g.fillStyle='#f3ead8'; g.fillRect(x,y,w,h); art(x,y,w,h); };
+  frame(352,215,64,84,(x,y,w,h)=>{ g.fillStyle='#c98b5a'; g.beginPath(); g.arc(x+w/2,y+h*0.5,20,0,7); g.fill(); g.fillStyle='#7f8f6a'; g.fillRect(x+8,y+h-22,w-16,14); });
+  frame(432,232,52,64,(x,y,w,h)=>{ g.strokeStyle='#3b2a1e'; g.lineWidth=3; g.beginPath(); for(let i=0;i<4;i++){ g.moveTo(x+8,y+12+i*13); g.lineTo(x+w-8,y+16+i*13); } g.stroke(); });
+  frame(575,212,90,70,(x,y,w,h)=>{ g.fillStyle='#86a0a8'; g.fillRect(x+6,y+6,w-12,h-28); g.fillStyle='#d9b26a'; g.beginPath(); g.arc(x+w-22,y+20,9,0,7); g.fill(); g.fillStyle='#5f6f4f'; g.fillRect(x+6,y+h-22,w-12,16); });
+  g.font='bold 34px Georgia, serif'; g.fillStyle='rgba(255,196,120,0.95)'; g.shadowColor='rgba(255,170,80,0.9)'; g.shadowBlur=14; g.fillText('coffee & friends',395,190); g.shadowBlur=0;   // warm neon sign
+  // a shelf with plants and cups
+  g.fillStyle='#5a3c27'; g.fillRect(492,300,72,6); g.fillRect(820,250,190,10);
+  const pot=(x,c)=>{ g.fillStyle=c; g.fillRect(x,222,26,28); g.fillStyle='#4f6b3a'; for(let i=0;i<6;i++){ g.beginPath(); g.ellipse(x+13+(i-2.5)*7,214-Math.abs(i-2.5)*4,6,16,(i-2.5)*0.35,0,7); g.fill(); } };
+  pot(835,'#b8653c'); pot(905,'#e8dfcf'); g.fillStyle='#f3ead8'; g.fillRect(950,234,16,16); g.fillRect(972,234,16,16); pot(980,'#3f4b55'); g.save(); g.translate(-325,78); pot(830,'#b8653c'); g.restore(); g.fillStyle='#f3ead8'; g.fillRect(537,288,12,12);
   for(let k=0;k<70;k++){ const x=k/70*1024+Rn()*10, y=60+28*Math.sin(k*0.35)+Rn()*6, r=10+Rn()*14;
     const rg=g.createRadialGradient(x,y,0,x,y,r); rg.addColorStop(0,'rgba(255,214,150,0.95)'); rg.addColorStop(0.4,'rgba(255,190,110,0.35)'); rg.addColorStop(1,'rgba(255,170,90,0)'); g.fillStyle=rg; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
@@ -35,7 +47,7 @@ function wallTex(){ const c=document.createElement('canvas'); c.width=1024; c.he
   const wallGeo=new THREE.ShapeGeometry(wallShape); { const uv=wallGeo.attributes.uv, pos=wallGeo.attributes.position; for(let i=0;i<uv.count;i++) uv.setXY(i,(pos.getX(i)+4.5)/9,(pos.getY(i)+2.25)/4.5); }
   const wall=new THREE.Mesh(wallGeo,new THREE.MeshStandardMaterial({map:wallTex(),roughness:0.9,emissive:0xffffff,emissiveMap:null,emissiveIntensity:0}));
   wall.position.set(0,2.0,-1.25); wall.receiveShadow=true; S.scene.add(wall);
-  const glow=new THREE.Mesh(wallGeo,new THREE.MeshBasicMaterial({map:wall.material.map,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false}));
+  const glow=new THREE.Mesh(wallGeo,new THREE.MeshBasicMaterial({map:wall.material.map,transparent:true,opacity:0.1,blending:THREE.AdditiveBlending,depthWrite:false}));
   glow.position.set(0,2.0,-1.24); S.scene.add(glow); }
 // pendant bulbs over the table (setT dims one when a standing head passes right under it, else the face burns out)
 const PENDANTS=[];
@@ -50,7 +62,7 @@ function woodTex(seed,base){ const c=document.createElement('canvas'); c.width=1
     g.beginPath(); g.moveTo(0,y); for(let x=0;x<=1024;x+=32) g.lineTo(x,y+Math.sin(x*0.004+k)*3+Math.sin(x*0.021+k*1.7)*1.2); g.stroke(); }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; return t; }
 const WOOD=new THREE.MeshStandardMaterial({color:0xb08560,map:woodTex(3,'#4a3020'),roughness:0.45,metalness:0});
-const BENCH=new THREE.MeshStandardMaterial({color:0x2f6d6a,roughness:0.7});   // teal upholstered booth
+const BENCH=new THREE.MeshStandardMaterial({color:0x6f7f5e,roughness:0.7});   // muted sage upholstered booth
 const box=(w,h,d,m,x,y,z)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); b.position.set(x,y,z); b.castShadow=b.receiveShadow=true; S.scene.add(b); return b; };
 // curved booth: annular sectors (top view) extruded upward. a is the angle in the xz plane (x=r cos a, z=r sin a); the booth runs A0..A1 behind the table
 const A0=-168*Math.PI/180, A1=-12*Math.PI/180;
@@ -100,7 +112,7 @@ const flash=SLD.glowSprite(S.scene,0xffffff,0); const flashL=new THREE.PointLigh
 
 // ---------------------------------------------------------------- faces
 function faceTex(kind){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
-  g.strokeStyle=g.fillStyle='#1d1610'; g.lineWidth=13; g.lineCap='round';
+  g.strokeStyle=g.fillStyle='#f6f1e7'; g.lineWidth=13; g.lineCap='round';
   const eye=(x,y,r=13)=>{ g.beginPath(); g.arc(x,y,r,0,7); g.fill(); };
   const arcEye=(x,y,up)=>{ g.beginPath(); up?g.arc(x,y+8,16,Math.PI*1.15,Math.PI*1.85):g.arc(x,y-10,16,Math.PI*0.15,Math.PI*0.85); g.stroke(); };
   const mouthSmile=(r=34)=>{ g.beginPath(); g.arc(128,140,r,0.2*Math.PI,0.8*Math.PI); g.stroke(); };
@@ -120,23 +132,23 @@ const FACES={}; for(const k of ['smile','grin','chill','excited','bored','shock'
 const faceGeo=new THREE.PlaneGeometry(0.235,0.235);
 
 // ---------------------------------------------------------------- the four friends: own colour + own prop
-const SKIN=new THREE.MeshStandardMaterial({color:0xdcc7aa,roughness:0.7,emissive:0xdcc7aa,emissiveIntensity:0.02});   // a shade darker than v7: cream heads bloomed out under the bulbs and the flash
+// v8: classic stickmen: every friend is black (four close shades), head included; the face is drawn in white
 const PROPM=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.5});
 const CHAIRP={...R.P0,p:0.07,tilt:0.0,aL:1.5,aR:1.47,kL:1.52,kR:1.47,sL:0.5,sR:0.5,eL:0.9,eR:0.9};
 const STANDP={...R.P0,p:0.08};
-const F={}; const COLORS={LATE:0x4f8fd6,PHOTO:0xe9b93a,HUNGRY:0xe9799f,PAYS:0x4fb37a};
+const F={}; const COLORS={LATE:0x060607,PHOTO:0x040405,HUNGRY:0x08080a,PAYS:0x050506};
 for(const [id,x] of Object.entries(SEATX)){
-  const fig=R.makeFig(COLORS[id],'f'+id,{rim:0.1,rimCol:0xfff1d8,lift:0.05}); fig.head.material=SKIN;
+  const fig=R.makeFig(COLORS[id],'f'+id,{rim:0.06,rimCol:0xffffff,lift:0.0}); fig.mat.roughness=0.92;   // matte black, not bronze
   const face=new THREE.Mesh(faceGeo,FACES.smile); face.renderOrder=4; S.scene.add(face);
   const prop=new THREE.Group(); S.scene.add(prop);
-  if(id==='LATE'){ const band=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.018,10,32,Math.PI),PROPM(0x222222)); prop.add(band);
-    for(const s of [-1,1]){ const cup=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.04,20),PROPM(0x222222)); cup.rotation.z=Math.PI/2; cup.position.set(0.15*s,0,0); prop.add(cup); } }
-  if(id==='PHOTO'){ const cap=new THREE.Mesh(new THREE.SphereGeometry(0.138,24,12,0,Math.PI*2,0,Math.PI/2),PROPM(0xc0392b)); prop.add(cap);
-    const brim=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.012,24,1,false,-Math.PI/2,Math.PI),PROPM(0xc0392b)); brim.position.set(0,0.0,0.12); prop.add(brim); }
-  if(id==='HUNGRY'){ const bun=new THREE.Mesh(new THREE.SphereGeometry(0.07,18,12),PROPM(0x3b2416)); bun.position.set(0,0.11,-0.08); prop.add(bun);
-    const hair=new THREE.Mesh(new THREE.SphereGeometry(0.137,24,12,0,Math.PI*2,0,Math.PI*0.42),PROPM(0x3b2416)); hair.rotation.x=-0.35; prop.add(hair); }
-  if(id==='PAYS'){ for(const s of [-1,1]){ const r=new THREE.Mesh(new THREE.TorusGeometry(0.038,0.008,8,24),PROPM(0x111111)); r.position.set(0.05*s,0.01,0.135); prop.add(r); }
-    const br=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.008,0.008),PROPM(0x111111)); br.position.set(0,0.015,0.138); prop.add(br); }
+  if(id==='LATE'){ const band=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.018,10,32,Math.PI),PROPM(0x2c2c30)); prop.add(band);
+    for(const s of [-1,1]){ const cup=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.04,20),PROPM(0x2c2c30)); cup.rotation.z=Math.PI/2; cup.position.set(0.15*s,0,0); prop.add(cup); } }
+  if(id==='PHOTO'){ const cap=new THREE.Mesh(new THREE.SphereGeometry(0.138,24,12,0,Math.PI*2,0,Math.PI/2),PROPM(0x0e0e10)); prop.add(cap);
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.012,24,1,false,-Math.PI/2,Math.PI),PROPM(0x0e0e10)); brim.position.set(0,0.0,0.12); prop.add(brim); }
+  if(id==='HUNGRY'){ const bun=new THREE.Mesh(new THREE.SphereGeometry(0.07,18,12),PROPM(0x0e0e10)); bun.position.set(0,0.11,-0.08); prop.add(bun);
+    const hair=new THREE.Mesh(new THREE.SphereGeometry(0.137,24,12,0,Math.PI*2,0,Math.PI*0.42),PROPM(0x0e0e10)); hair.rotation.x=-0.35; prop.add(hair); }
+  if(id==='PAYS'){ for(const s of [-1,1]){ const r=new THREE.Mesh(new THREE.TorusGeometry(0.038,0.008,8,24),PROPM(0xf6f1e7)); r.position.set(0.05*s,0.01,0.135); prop.add(r); }
+    const br=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.008,0.008),PROPM(0xf6f1e7)); br.position.set(0,0.015,0.138); prop.add(br); }
   F[id]={id,x,fig,face,prop,root:V(x,0,-0.62).addScaledVector(FACE,HIPBACK),ph:x*3};
 }
 const bump=(t,a,d)=>{ const x=(t-a)/d; return x<=0||x>=1?0:Math.sin(Math.PI*x)**2; };

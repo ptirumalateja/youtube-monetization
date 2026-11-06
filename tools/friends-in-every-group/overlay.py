@@ -57,8 +57,13 @@ def blocks(t, m):
     return out
 
 
+# v8: the cafe is bright now, so a soft dark fade behind the top captions keeps cream text readable
+_TOPFADE = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+_TOPFADE.putalpha(Image.frombytes('L', (1, H), bytes(int(150 * max(0.0, 1 - y / 640) ** 1.6) for y in range(H))).resize((W, H)))
+
+
 def ui(img, m, t):
-    base = img.convert('RGBA'); layer = Image.new('RGBA', base.size, (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
+    base = img.convert('RGBA'); base.alpha_composite(_TOPFADE); layer = Image.new('RGBA', base.size, (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
     selfie = m['shot'] in ('selfie', 'selfieEnd')
     if selfie:   # phone camera frame: corner brackets + shutter button
         a = 200; L = 90; pad = 60; w = 7
