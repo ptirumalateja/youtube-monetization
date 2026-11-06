@@ -26,20 +26,21 @@ FX = [
  (E('boom'), 0, 16.95, -4),                      # THEY DIDN'T
  (E('glitch'), 0, 18.05, -12), (E('glitch'), 0, 19.60, -13),
  (E('glitch'), 0, 22.45, -12), (SUB, 0, 22.50, -10),
+ (E('whoosh'), 0, 31.80, -10), (SUB, 0, 33.00, -11),   # map flash: whoosh in, sub on "Greece"
  (E('whoosh'), 0, 25.05, -12),
  (E('heartbeat'), 0, 28.90, -8),                 # under the Greece/Crete reveal
  (E('riser'), 0, 34.85 - 2.4, -10),
  (E('skullcrack'), 0, 36.10, -4), (E('boom'), 0, 36.15, -9),   # "cracked"
  (E('whoosh'), 0, 37.15, -12),                  # look up "from above"
  (E('breath'), 0, 38.45, -12),                  # villagers' song: ghostly air
- (ACC, 0, 40.45, -10),                          # goddess
- (E('hail'), 0, 41.55, -6), (E('thunder'), 0.3, 41.60, -9),   # hail
- (SUB, 0, 43.40, -10), (E('boom'), 0, 43.45, -7),             # "iron"
+ (ACC, 0, 40.45, -15),                          # goddess
+ (E('hail'), 0, 41.55, -15), (E('thunder'), 0.3, 41.60, -17),   # V5: hail sits under the folklore line
+ (SUB, 0, 43.40, -14), (E('boom'), 0, 44.05, -9),             # "iron": hit lands after the word
  (E('icecrack'), 0.1, 45.70, -10),              # "the ice gives back"
  (IMPL, 0, 48.45, -15), (BRAAAM, 0.25, 48.50, -12),           # who were they
 ]
 inp = ['-i', PIC, '-i', vo_n, '-stream_loop', '-1', '-i', E('wind')]
-duck = "+".join([f"between(t,{a/TEMPO:.2f},{b/TEMPO:.2f})" for a, b in [(16.4, 17.0), (35.0, 36.1)]])
+duck = "+".join([f"between(t,{a/TEMPO:.2f},{b/TEMPO:.2f})" for a, b in [(16.4, 17.0), (35.0, 36.1), (41.5, 44.2)]])
 fc = [f"[1:a]aformat=channel_layouts=stereo,apad=whole_dur={D}[vo]",
       f"[2:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:{D},highpass=f=90,volume=-17dB,"
       f"volume='1-0.9*({duck})':eval=frame[wind]"]

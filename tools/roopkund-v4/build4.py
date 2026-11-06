@@ -23,6 +23,7 @@ C = {
  'valley': '13322002_1080_1920_60fps.mp4',
  'heap':   'Human_Skeletons_in_Roopkund_Lake.jpg',
  'lake':   'Roopkund_Lake.jpg',
+ 'map':    os.environ.get('MAP', '/tmp/claude-0/rk/mapflash.mp4'),
 }
 for k, v in list(C.items()):          # optional Commons stills dropped next to the clips
     pass
@@ -33,7 +34,7 @@ STILL = lambda n: C[n].lower().endswith('.jpg')
 #     K black dip at end  R speed ramp  V reversed (in = source end)  N night (very dark, cold)  X long slow push
 CUT = [
  # HOOK  "Every summer, when the ice melts... this lake gives back its dead."
- ('skull',   0.00, 1.35, 1.00, 1.10, .50, 1.0, 'PF'),
+ ('skull',   0.00, 1.35, 1.00, 1.20, .46, 1.0, 'PF'),   # stronger push on the hook
  ('ice',     1.20, 2.62, 1.00, 1.10, .50, 1.0, 'BS'),     # ice crack at "melts"
  ('rise',    0.00, 3.85, 1.12, 1.00, .50, 1.0, 'B'),
  ('heap',    0.00, 5.30, 1.06, 1.22, .47, 1.0, 'FS'),     # boom on "dead"
@@ -44,7 +45,7 @@ CUT = [
  ('lake',    0.00, 11.10, 1.00, 1.14, .45, 1.0, 'FS'),    # bones clatter
  # BODY 1 "For decades, everyone believed they died together. In one terrible night."
  ('shore',   0.20, 13.30, 1.08, 1.00, .50, 0.8, 'B'),
- ('skull',   2.20, 14.50, 1.00, 1.06, .50, 1.0, ''),
+ ('drone',   6.50, 14.50, 1.00, 1.06, .55, 1.0, 'D'),     # V5: no repeat skull
  ('valley',  4.00, 16.55, 1.00, 1.08, .50, 0.7, 'NLK'),   # thunder; dip to black before "They didn't"
  # REHOOK  "They didn't."
  ('ice',     5.00, 18.00, 1.10, 1.22, .50, 1.0, 'PFS'),
@@ -55,16 +56,16 @@ CUT = [
  ('drone',   10.0, 26.80, 1.00, 1.08, .55, 1.0, 'B'),     # a thousand years apart
  ('rise',    4.20, 28.90, 1.00, 1.10, .50, 1.0, 'D'),     # same frozen lake
  # BODY 3  "And the second group? Their closest match... is people from Greece and Crete."
- ('heap',    0.00, 30.40, 1.30, 1.42, .62, 1.0, 'GS'),
+ ('sandal',  6.00, 30.40, 1.00, 1.10, .50, 1.0, 'GS'),    # V5: lake from above, not a 2nd bone pile
  ('valley',  8.00, 31.90, 1.00, 1.10, .50, 1.0, 'BD'),   # far from home
- ('helixR',  1.00, 34.85, 1.00, 1.15, .50, 1.0, 'G'),
+ ('map',     0.00, 34.85, 1.00, 1.00, .50, 1.0, 'G'),     # V5: map flash Roopkund -> Greece & Crete
  # REHOOK 2 "Some skulls are cracked. From above."
- ('skull',   0.30, 37.20, 1.00, 1.30, .50, 0.6, 'XD'),    # slow push, skull crack at "cracked"
+ ('heap',    0.00, 37.20, 1.55, 1.75, .60, 1.0, 'XD'),    # V5: real skulls, tight on the top of the pile    # slow push, skull crack at "cracked"
  ('face',    4.50, 38.40, 1.12, 1.00, .30, 1.0, 'PL'),    # look up: from above
  # BODY 4  legend
  ('shore',   3.80, 40.50, 1.00, 1.06, .50, 0.8, 'D'),
  ('peaks',   3.50, 41.60, 1.05, 1.15, .55, 1.0, 'PL'),    # a goddess
- ('heap',    0.00, 43.10, 1.15, 1.00, .55, 1.0, 'LS'),    # hail
+ ('valley',  11.0, 43.10, 1.08, 1.00, .50, 1.0, 'NLS'),   # hail: storm-dark valley, lightning
  ('sandal',  2.40, 44.20, 1.00, 1.10, .50, 1.0, 'DFS'),   # iron
  # CLOSE   "And every summer... the ice gives back a little more."
  ('ice',     0.00, 46.30, 1.00, 1.18, .50, 0.7, 'X'),
