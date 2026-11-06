@@ -24,7 +24,7 @@ def put(buf, clip, t, gain=0, a=0, b=None, fade_in=0.005, fade_out=0.05, pan=0.0
     if 0 <= s < len(buf): buf[s:e] += c[:e - s]
 
 # --- VO: split after "door." and push the rest back by GAP
-vo = load(f"{R}/vo/blackview_v2.mp3"); cut = int(TL["CUT"] * SR); f = int(0.03 * SR)
+vo = load(f"{R}/vo/{TL.get('VOICE', 'viraj')}_v2.mp3"); cut = int(TL["CUT"] * SR); f = int(0.03 * SR)
 A = vo[:cut].copy(); A[-f:] *= np.linspace(1, 0, f)[:, None]; B = vo[cut:].copy(); B[:f] *= np.linspace(0, 1, f)[:, None]
 v = np.zeros_like(mix); v[:len(A)] += A; s0 = int((TL["CUT"] + TL["GAP"]) * SR); v[s0:s0 + len(B)] += B[:len(v) - s0]
 
@@ -40,11 +40,11 @@ for seg in TL["flow"]:
 
 # --- 1 hook: stinger, a whoosh/tick on every flash, rising, then the giant cobra on "door"
 put(mix, S["w2_stinger"], 0.0, -4, fade_out=0.4)
-cuts = [x["t0"] for x in TL["flow"] if x["flash"]]
-for i, c in enumerate([0.24, 0.46, 0.70, 0.92, 1.14, 1.34, 1.52, 1.86, 1.96]):
+cuts = TL["HOOK_CUTS"]
+for i, c in enumerate(cuts[1:-1]):
     put(mix, S["w1_whoosh"], c - 0.08, -16 + i * 0.9, b=0.5, fade_out=0.15, pan=(-0.4 if i % 2 else 0.4))
     put(mix, S["impact"], c, -24 + i, b=0.4, fade_out=0.2)
-put(mix, S["w5_drip"], 1.14, -10, b=0.6, fade_out=0.2)
+put(mix, S["w5_drip"], cuts[5], -10, b=0.6, fade_out=0.2)
 put(mix, S["01_hiss"], 0.2, -18, b=2.0, fade_in=0.3, fade_out=0.2)
 SA, SE = TL["STRIKE_AT"], TL["STRIKE_END"]
 put(mix, S["w3_big_hiss"], SA - 0.05, -3, fade_out=0.4)

@@ -12,19 +12,28 @@ W, H, FPS = 1080, 1920, 24
 rng = np.random.default_rng(11)
 
 # ---------------- VO timing (blackview_v2 word starts, seconds) ----------------
-CUT = 2.70             # VO is split here (after "door.") and the rest is pushed back by GAP
-STRIKE_AT = 2.26       # the giant cobra appears on "door"
+VOICE = os.environ.get("VOICE", "viraj")   # Teja 6 Nov: use Viraj
+CUT = 2.84 if VOICE == "viraj" else 2.70   # VO is split here (after "door.") and the rest is pushed back by GAP
+STRIKE_AT = 2.40 if VOICE == "viraj" else 2.26   # the giant cobra appears on "door"
 S0, S_FAST, S_LUNGE, S_END = 6.2, 1.5, 1.1, 9.62   # strike_floor.mp4: in-point, rise speed, lunge speed, out-point
 LUNGE = 7.45
 STRIKE_END = STRIKE_AT + (LUNGE - S0) / S_FAST + (S_END - LUNGE) / S_LUNGE
 BENEATH = STRIKE_END + 0.30
-GAP = BENEATH - 3.02
-W0 = dict(they=0.10, warned=0.46, never=1.44, open=1.88, door=2.30, beneath=3.02, padma=3.42, temple=4.52, kerala=5.04, six=5.98,
+GAP = None
+W0_BV = dict(they=0.10, warned=0.46, never=1.44, open=1.88, door=2.30, beneath=3.02, padma=3.42, temple=4.52, kerala=5.04, six=5.98,
           vaults=6.62, in2011=7.58, opened=8.60, five=9.02, gold=9.78, idols=10.06, eighteen=11.06, chain=12.02, sacks=12.68, coins=13.58,
           crowns=14.26, diamonds=15.08, over=16.02, lakh=16.50, rupees=17.08, rupees_end=17.62, then=18.14, reached=19.12, vaultb=19.48, b_end=19.92,
           handle=20.48, lock=21.38, keyhole=22.14, keyhole_end=22.72, just=23.14, cobras=23.54, guarding=24.28, door2_end=24.98,
           legend=25.48, naga=27.46, only=28.92, chant=29.68, openit=30.26, openit_end=30.76, weeks=31.26, man=32.36, was=34.84, dead=35.06,
           dead_end=35.38, still=35.96, shut_end=37.08, would=37.72, end=38.54)
+W0_VJ = dict(they=0.10, warned=0.42, never=1.78, open=2.14, door=2.44, beneath=3.28, padma=3.62, temple=4.54, kerala=5.06, six=6.12,
+          vaults=6.80, in2011=7.68, opened=8.88, five=9.26, gold=10.02, idols=10.26, eighteen=11.32, chain=12.62, sacks=13.30, coins=14.26,
+          crowns=14.94, diamonds=15.68, over=16.64, lakh=17.30, rupees=18.12, rupees_end=18.56, then=19.00, reached=20.22, vaultb=20.66, b_end=21.10,
+          handle=21.38, lock=22.10, keyhole=22.68, keyhole_end=23.22, just=23.48, cobras=23.94, guarding=24.68, door2_end=25.30,
+          legend=26.10, naga=28.00, only=29.40, chant=30.64, openit=31.28, openit_end=31.70, weeks=32.80, man=34.04, was=36.60, dead=36.80,
+          dead_end=37.04, still=37.90, shut_end=39.00, would=39.64, end=40.30)
+W0 = W0_VJ if VOICE == "viraj" else W0_BV
+GAP = BENEATH - W0["beneath"]
 st = lambda k: W0[k] + (GAP if W0[k] >= CUT else 0.0)
 DUR = st("end") + 1.9
 
@@ -167,7 +176,7 @@ HOOK = [  # flashes under "They were warned... never to open the door"
     ("flow", "strike", dict(src=8.9, z0=1.0, z1=1.12, c0=(0.5, 0.45))),        # fangs (sub-flash)
     ("flow", "blood", dict(src=1.8, z0=1.0, z1=1.12, c0=(0.5, 0.5))),          # the door, first blood
 ]
-cuts = [0.0, 0.24, 0.46, 0.70, 0.92, 1.14, 1.34, 1.52, 1.86, 1.96, STRIKE_AT]
+cuts = [c * STRIKE_AT / 2.26 for c in [0.0, 0.24, 0.46, 0.70, 0.92, 1.14, 1.34, 1.52, 1.86, 1.96]] + [STRIKE_AT]
 EDL = [(a, b, k, n, dict(ar, flash=True), "horror") for (a, b), (k, n, ar) in zip(zip(cuts, cuts[1:]), HOOK)]
 EDL += [
     (STRIKE_AT, STRIKE_END, "strike", "strike_floor", {}, "warm"),
@@ -283,7 +292,7 @@ def flow_audio():
 def main():
     a = sys.argv[1:]
     os.makedirs(f"{R}/output", exist_ok=True)
-    json.dump(dict(DUR=DUR, CUT=CUT, GAP=GAP, STRIKE_AT=STRIKE_AT, STRIKE_END=STRIKE_END, LUNGE_T=STRIKE_AT + (LUNGE - S0) / S_FAST,
+    json.dump(dict(VOICE=VOICE, HOOK_CUTS=cuts, DUR=DUR, CUT=CUT, GAP=GAP, STRIKE_AT=STRIKE_AT, STRIKE_END=STRIKE_END, LUNGE_T=STRIKE_AT + (LUNGE - S0) / S_FAST,
                    words={k: st(k) for k in W0}, flow=flow_audio()), open(f"{R}/output/timeline.json", "w"), indent=1)
     if "--timeline" in a: return
     out = a[a.index("--out") + 1] if "--out" in a else f"{R}/output/vault-b-v4_silent.mp4"
