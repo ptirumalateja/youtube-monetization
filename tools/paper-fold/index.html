@@ -1,0 +1,209 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// Paper fold 103: look-test plates. One scene per shot, selected by window.renderShot(name).
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const q=new URLSearchParams(location.search); const W=+(q.get('w')||1080), H=+(q.get('h')||1920);
+const R=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+R.setSize(W,H); R.setPixelRatio(1); R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=1.0;
+R.shadowMap.enabled=true; R.shadowMap.type=THREE.PCFSoftShadowMap; document.body.appendChild(R.domElement);
+const TL=new THREE.TextureLoader(); const load=u=>new Promise(r=>TL.load(u,t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;r(t)}));
+const rnd=(s=>()=>(s=(s*16807)%2147483647)/2147483647)(7);
+
+function canvasTex(w,h,draw,srgb=true){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);
+  const t=new THREE.CanvasTexture(c); if(srgb)t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;}
+function softDot(){return canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,0,64,64,64);
+  r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(0.55,'rgba(255,255,255,0.55)');r.addColorStop(0.8,'rgba(255,255,255,0.12)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});}
+function bokehDisc(){return canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGradient(64,64,0,64,64,62);
+  r.addColorStop(0,'rgba(255,255,255,0.55)');r.addColorStop(0.82,'rgba(255,255,255,0.75)');r.addColorStop(0.93,'rgba(255,255,255,0.9)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,w,h);});}
+function sprite(tex,color,size,pos,opacity=1){const m=new THREE.SpriteMaterial({map:tex,color,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending});
+  const s=new THREE.Sprite(m); s.scale.set(size,size,1); s.position.copy(pos); return s;}
+
+function compose(scene,cam,bloom){const c=new EffectComposer(R); c.setSize(W,H); c.addPass(new RenderPass(scene,cam));
+  c.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),bloom[0],bloom[1],bloom[2])); c.addPass(new OutputPass()); return c;}
+
+// Paper layers texture: fine strata lines for the side faces of a folded block.
+function strataTex(n,rounded){return canvasTex(512,512,(g,w,h)=>{g.fillStyle='#f4efe4';g.fillRect(0,0,w,h);
+  for(let i=0;i<n;i++){const y=(i+0.5)/n*h; g.strokeStyle=`rgba(120,105,85,${0.25+0.25*rnd()})`; g.lineWidth=0.8+rnd()*0.8;
+    g.beginPath(); g.moveTo(0,y+rnd()*1.5); for(let x=0;x<=w;x+=32)g.lineTo(x,y+(rnd()-0.5)*1.6); g.stroke();}
+  if(rounded){const gr=g.createLinearGradient(0,0,w,0);gr.addColorStop(0,'rgba(255,255,255,0.0)');gr.addColorStop(1,'rgba(255,250,240,0.15)');g.fillStyle=gr;g.fillRect(0,0,w,h);} });}
+function woodTex(){return canvasTex(2048,1024,(g,w,h)=>{g.fillStyle='#5a3a24';g.fillRect(0,0,w,h);
+  for(let i=0;i<260;i++){const y=rnd()*h, a=0.05+rnd()*0.12, l=rnd()>0.5?'rgba(30,16,8,':'rgba(140,96,60,'; g.strokeStyle=l+a+')'; g.lineWidth=1+rnd()*5;
+    g.beginPath(); let yy=y; g.moveTo(0,yy); for(let x=0;x<=w;x+=40){yy+=(rnd()-0.5)*3+Math.sin(x*0.004+i)*0.8; g.lineTo(x,yy);} g.stroke();}
+  for(let k=0;k<5;k++){const x=rnd()*w,y=rnd()*h; for(let r=4;r<40;r+=5){g.strokeStyle='rgba(40,22,10,0.12)';g.beginPath();g.ellipse(x,y,r*2.6,r*0.7,0,0,7);g.stroke();}} });}
+
+// ---------- SHOT A: fold 7 on a desk at night, one warm lamp ----------
+async function shotDesk(){
+  const S=new THREE.Scene(); S.background=new THREE.Color('#3a2b22'); S.fog=new THREE.Fog("#4a3628",0.3,0.62);
+  const cam=new THREE.PerspectiveCamera(26,W/H,0.01,50); cam.position.set(0.008,0.058,0.27); cam.lookAt(-0.002,0.02,0.0);
+  // desk
+  const wood=woodTex(); wood.wrapS=wood.wrapT=THREE.RepeatWrapping; wood.repeat.set(1.2,1.2);
+  const desk=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.04,1.3),new THREE.MeshStandardMaterial({map:wood,roughness:0.55,metalness:0.0}));
+  desk.position.set(0,-0.02,0.0); desk.receiveShadow=true; S.add(desk);
+  // back wall far away, warm gradient so the frame edge is never black
+  const wall=new THREE.Mesh(new THREE.PlaneGeometry(8,5),new THREE.MeshBasicMaterial({map:canvasTex(256,256,(g,w,h)=>{const r=g.createRadialGradient(70,90,10,128,128,240);
+    r.addColorStop(0,'#6a4a36');r.addColorStop(0.5,'#45352a');r.addColorStop(1,'#3a2b22');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));
+  wall.position.set(0,0.5,-0.62); S.add(wall);
+  // out-of-focus city lights through a window (bokeh)
+  const bk=bokehDisc(); const cols=['#ffb36a','#ffd49a','#ff9a55','#ffe2b8','#9fc0ff'];
+  for(let i=0;i<90;i++){const p=new THREE.Vector3(-0.25+rnd()*0.5,0.06+rnd()*0.32,-0.6); const s=sprite(bk,cols[(rnd()*cols.length)|0],0.012+rnd()*0.028,p,0.15+rnd()*0.3); s.material.fog=false; S.add(s);}
+  // lamp: warm 3000K key from upper left
+  const key=new THREE.SpotLight('#ffb978',2.2,3,0.55,0.75,1.6); key.position.set(-0.32,0.5,0.15); key.target.position.set(0.0,0,0); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048); key.shadow.radius=6; key.shadow.bias=-0.0004; S.add(key,key.target);
+  S.add(new THREE.HemisphereLight('#6b5444','#1a120c',0.6));
+  const rim=new THREE.PointLight('#8fb0ff',0.25,2); rim.position.set(0.3,0.15,-0.4); S.add(rim);
+  // lamp glow just off the top-left edge
+  const glow=sprite(softDot(),'#ffb070',0.5,new THREE.Vector3(-0.32,0.38,-0.2),0.5); glow.material.fog=false; S.add(glow);
+
+  const paperM=new THREE.MeshStandardMaterial({color:'#f6f1e6',roughness:0.8});
+  // the notebook it came from: closed, 1.3 cm thick, cover + page block
+  const nb=new THREE.Group();
+  const pages=new THREE.Mesh(new THREE.BoxGeometry(0.148,0.0118,0.205),[new THREE.MeshStandardMaterial({map:strataTex(90,false),roughness:0.85}),new THREE.MeshStandardMaterial({map:strataTex(90,false),roughness:0.85}),paperM,paperM,new THREE.MeshStandardMaterial({map:strataTex(90,false),roughness:0.85}),new THREE.MeshStandardMaterial({map:strataTex(90,false),roughness:0.85})]);
+  pages.position.y=0.0065; nb.add(pages);
+  const coverM=new THREE.MeshStandardMaterial({color:'#2f5d7a',roughness:0.6});
+  const top=new THREE.Mesh(new THREE.BoxGeometry(0.152,0.0008,0.209),coverM); top.position.y=0.0128; nb.add(top);
+  const bot=top.clone(); bot.position.y=0.0004; nb.add(bot);
+  const spine=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.0132,0.209),coverM); spine.position.set(-0.076,0.0066,0); nb.add(spine);
+  const label=new THREE.Mesh(new THREE.PlaneGeometry(0.07,0.03),new THREE.MeshStandardMaterial({color:'#efe6d2',roughness:0.9})); label.rotation.x=-Math.PI/2; label.position.set(0.01,0.0133,-0.04); nb.add(label);
+  nb.position.set(0.07,0,-0.1); nb.rotation.y=-0.5; nb.traverse(o=>{o.castShadow=o.receiveShadow=true}); S.add(nb);
+  // the folded page: A4-ish page folded 7 times = 128 layers, ~1.3 cm thick, ~3.7 x 2.6 cm footprint
+  // folded page: 7 folds = 128 layers, 1.28 cm thick, ~3.7 x 2.6 cm footprint; drawn as 32 visible slabs, slightly fanned
+  const blk=new THREE.Group(); const NL=32, th=0.0128/NL;
+  for(let i=0;i<NL;i++){const tone=0.93+rnd()*0.07; const m=new THREE.MeshStandardMaterial({color:new THREE.Color(tone,tone*0.975,tone*0.93),roughness:0.85});
+    const sl=new THREE.Mesh(new RoundedBoxGeometry(0.037+(rnd()-0.5)*0.0012,th*0.92,0.026+(rnd()-0.5)*0.0012,2,th*0.45),m);
+    const bulge=Math.sin(i/NL*Math.PI)*0.0006; sl.position.set((rnd()-0.5)*0.0008+bulge,th*(i+0.5),(rnd()-0.5)*0.0008); sl.rotation.y=(rnd()-0.5)*0.025; sl.castShadow=sl.receiveShadow=true; blk.add(sl);}
+  blk.position.set(-0.008,0,0.03); blk.rotation.y=0.42; S.add(blk);
+  // pencil for scale
+  const pen=new THREE.Group(); const body=new THREE.Mesh(new THREE.CylinderGeometry(0.0036,0.0036,0.15,6),new THREE.MeshStandardMaterial({color:'#e0a530',roughness:0.5}));
+  body.rotation.z=Math.PI/2; pen.add(body); const tip=new THREE.Mesh(new THREE.ConeGeometry(0.0036,0.016,6),new THREE.MeshStandardMaterial({color:'#d8b48a',roughness:0.8}));
+  tip.rotation.z=-Math.PI/2; tip.position.x=0.083; pen.add(tip); pen.position.set(-0.07,0.0037,-0.03); pen.rotation.y=-0.7; pen.traverse(o=>{o.castShadow=true}); S.add(pen);
+  // dust motes in the lamp beam
+  const dd=softDot(); for(let i=0;i<70;i++){const s=sprite(dd,'#ffd8a8',0.0015+rnd()*0.003,new THREE.Vector3(-0.15+rnd()*0.3,0.01+rnd()*0.15,-0.15+rnd()*0.3),0.25+rnd()*0.4); S.add(s);}
+  return {S,cam,bloom:[0.45,0.6,0.82]};
+}
+
+// ---------- SHOT B: fold 21 (210 m) beside the Statue of Unity (182 m) at sunset ----------
+function skyMat(top,mid,hor,sunDir,sunCol,sunSize){return new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:new THREE.Color(top)},mid:{value:new THREE.Color(mid)},hor:{value:new THREE.Color(hor)},sd:{value:sunDir.clone().normalize()},sc:{value:new THREE.Color(sunCol)},ss:{value:sunSize}},
+  vertexShader:`varying vec3 vd; void main(){vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform vec3 top,mid,hor,sc,sd; uniform float ss; varying vec3 vd;
+   float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+   float n(vec2 p){vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+   void main(){float y=vd.y; vec3 c=mix(hor,mid,smoothstep(0.0,0.18,y)); c=mix(c,top,smoothstep(0.15,0.75,y));
+    float d=max(dot(vd,sd),0.); c+=sc*(pow(d,10.)*0.18+pow(d,90.)*0.6); c+=sc*smoothstep(1.-ss,1.-ss*0.6,d)*6.0;
+    vec2 uv=vd.xz/(vd.y+0.25)*2.0; float cl=n(uv*1.3)*0.6+n(uv*3.1)*0.3; cl=smoothstep(0.55,0.85,cl)*smoothstep(0.02,0.12,y)*(1.-smoothstep(0.35,0.6,y));
+    c=mix(c,mix(vec3(0.45,0.22,0.25),sc*1.2,pow(d,3.)),cl*0.55);
+    gl_FragColor=vec4(c,1.);}`});}
+function ridge(z,height,color,seed,width=6000){const pts=[]; const N=120; let s=seed;
+  const r=()=> (s=(s*16807)%2147483647)/2147483647; let ph=[r()*10,r()*10,r()*10];
+  for(let i=0;i<=N;i++){const x=-width/2+width*i/N; const y=height*(0.55+0.25*Math.sin(x*0.0021+ph[0])+0.15*Math.sin(x*0.0067+ph[1])+0.06*Math.sin(x*0.019+ph[2]));pts.push(new THREE.Vector2(x,y));}
+  const sh=new THREE.Shape(); sh.moveTo(-width/2,-50); pts.forEach(p=>sh.lineTo(p.x,p.y)); sh.lineTo(width/2,-50);
+  const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),new THREE.MeshBasicMaterial({color,fog:false})); m.position.z=z; return m;}
+function statue(mat){ // stylised standing figure with draped shawl, 182 m tall on y=0
+  const g=new THREE.Group(); const L=(pts,y0=0)=>{const m=new THREE.Mesh(new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),48),mat); m.position.y=y0; g.add(m); return m;};
+  // dhoti / lower body as one tapering skirt-like form, feet apart
+  L([[0,0],[22,0],[21,6],[17,40],[15.5,70],[16,82],[0,82]]);
+  // torso wrapped in shawl, broad shoulders
+  const tor=L([[0,0],[16.5,0],[19,20],[22.5,42],[25.5,62],[23,72],[12,78],[0,79]],80); tor.scale.z=0.72;
+  // arms hanging at the sides inside the shawl
+  for(const sx of [-1,1]){const a=new THREE.Mesh(new THREE.CapsuleGeometry(5.2,58,6,16),mat); a.position.set(sx*22.5,112,1); a.rotation.z=sx*0.06; g.add(a);
+    const hnd=new THREE.Mesh(new THREE.SphereGeometry(4.6,16,12),mat); hnd.position.set(sx*24.5,80,2); g.add(hnd);}
+  // shawl fold falling from the left shoulder
+  const sw=new THREE.Mesh(new THREE.CylinderGeometry(8,14,70,24,1,true,-0.6,1.8),mat); sw.position.set(-8,118,6); g.add(sw);
+  // neck + head
+  const nk=new THREE.Mesh(new THREE.CylinderGeometry(6,7,8,24),mat); nk.position.y=161; g.add(nk);
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(10.5,32,24),mat); hd.scale.set(0.82,1.02,0.86); hd.position.y=172; g.add(hd);
+  return g;}
+async function shotUnity(){
+  const S=new THREE.Scene(); const sunDir=new THREE.Vector3(-0.2,0.045,-1);
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(20000,64,32),skyMat('#1f3358','#b8574f','#ff9550',sunDir,'#ffd08a',0.0012)); S.add(sky);
+  S.fog=new THREE.FogExp2('#c7704f',0.00007);
+  const cam=new THREE.PerspectiveCamera(24,W/H,1,40000); cam.position.set(170,30,1900); cam.lookAt(-10,215,0);
+  // hills, far to near, aerial perspective
+  S.add(ridge(-9000,700,'#b9746a',3,24000)); S.add(ridge(-5200,520,'#8d5a5a',11,16000)); S.add(ridge(-2600,330,'#5c4048',29,9000)); S.add(ridge(-900,120,'#3c2c33',47,5000));
+  // river with sun glitter
+  const river=new THREE.Mesh(new THREE.PlaneGeometry(30000,30000),new THREE.ShaderMaterial({fog:false,uniforms:{},
+    vertexShader:`varying vec3 wp; void main(){wp=(modelMatrix*vec4(position,1.)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);}`,
+    fragmentShader:`varying vec3 wp; float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+     void main(){float d=length(wp.xz-vec2(150.,1350.)); vec3 c=mix(vec3(0.10,0.06,0.08),vec3(0.55,0.25,0.18),smoothstep(300.,6000.,d));
+      float sx=abs(wp.x-(-300.-(wp.z-1350.)*0.32)); float gl=exp(-sx*sx/(2.*pow(60.+abs(wp.z)*0.08,2.)));
+      float sp=step(0.92,h(floor(wp.xz/vec2(9.,2.5)))); c+=vec3(1.,0.7,0.4)*gl*(0.25+sp*1.8); gl_FragColor=vec4(c,1.);}`}));
+  river.rotation.x=-Math.PI/2; river.position.y=-2; S.add(river);
+  // near bank
+  const bank=new THREE.Mesh(new THREE.PlaneGeometry(4000,500),new THREE.MeshStandardMaterial({color:'#2a1e20',roughness:1})); bank.rotation.x=-Math.PI/2; bank.position.set(0,0,-80); S.add(bank);
+  // key light from the sun, soft warm fill
+  const sun=new THREE.DirectionalLight('#ffc48a',3.2); sun.position.copy(sunDir).multiplyScalar(-1).multiply(new THREE.Vector3(1,-1,1)).negate().multiplyScalar(1000); S.add(sun);
+  sun.position.set(-320,60,-1000); S.add(new THREE.HemisphereLight('#c98b74','#2b1c1c',0.6));
+  // pedestal 58 m + statue 182 m (bronze, backlit)
+  const bronze=new THREE.MeshStandardMaterial({color:'#3a2c24',roughness:0.4,metalness:0.7});
+  const ped=new THREE.Group(); [[90,18],[74,22],[60,18]].reduce((y,[w,h])=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),new THREE.MeshStandardMaterial({color:'#6a5a50',roughness:0.8})); b.position.y=y+h/2; ped.add(b); return y+h;},0); S.add(ped);
+  const st=statue(bronze); st.position.y=58; S.add(st);
+  // the folded page: 210 m, standing on the bank to the right, pale and rim-lit
+  const colTex=strataTex(400,false); const col=new THREE.Mesh(new THREE.BoxGeometry(20,419,14),new THREE.MeshStandardMaterial({color:'#fff6e8',map:colTex,roughness:0.6,emissive:'#ffcf96',emissiveMap:colTex,emissiveIntensity:1.1}));
+  col.position.set(78,209.5,40); S.add(col);
+  // halo on the column edge and its top
+  const dot=softDot(); S.add(sprite(dot,'#ffe2b0',45,new THREE.Vector3(78,421,40),0.5));
+  // birds
+  for(let i=0;i<7;i++){const b=new THREE.Mesh(new THREE.PlaneGeometry(4,1.1),new THREE.MeshBasicMaterial({color:'#2a1a1c',fog:false})); b.position.set(110+rnd()*110,330+rnd()*50,200); b.rotation.z=(rnd()-0.5)*0.6; S.add(b);}
+  return {S,cam,bloom:[0.35,0.6,0.85]};
+}
+
+// ---------- SHOT C: fold 42 (440,000 km) passing the Moon ----------
+async function shotMoon(){
+  const S=new THREE.Scene(); const [eT,eL,cl,mT]=await Promise.all([load('tex/earth_atmos_2048.jpg'),load('tex/earth_lights_2048.png'),load('tex/clouds_a.png'),load('tex/moon_1024.jpg')]);
+  // units: 1 = 1000 km. Earth at origin, column along +y from India.
+  const sunDir=new THREE.Vector3(1,0.15,0.55).normalize();
+  // nebula sky: deep blue-violet with a dusty band, never black
+  const neb=new THREE.Mesh(new THREE.SphereGeometry(50000,64,32),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
+    vertexShader:`varying vec3 vd; void main(){vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec3 vd; float h(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+     float n(vec3 p){vec3 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+     float fbm(vec3 p){float a=0.5,s=0.;for(int i=0;i<6;i++){s+=a*n(p);p*=2.03;a*=0.5;}return s;}
+     void main(){vec3 d=normalize(vd); vec3 c=vec3(0.035,0.045,0.10);
+      vec3 bn=normalize(vec3(0.35,0.2,-0.9)); float band=exp(-pow(dot(d,normalize(vec3(0.8,-0.25,0.35))),2.)*9.);
+      float f=fbm(d*3.5); float f2=fbm(d*9.+3.);
+      c+=vec3(0.20,0.09,0.26)*band*f*0.8 + vec3(0.08,0.14,0.30)*f2*0.3 + vec3(0.55,0.32,0.22)*band*pow(f2,3.)*1.3;
+      float st=pow(h(floor(d*900.)),400.)*2.5 + pow(h(floor(d*400.)+7.),900.)*5.; c+=vec3(st)*(0.6+band);
+      gl_FragColor=vec4(c,1.);}`})); S.add(neb);
+  // Earth
+  const earth=new THREE.Mesh(new THREE.SphereGeometry(6.371,128,64),new THREE.ShaderMaterial({uniforms:{d:{value:eT},l:{value:eL},c:{value:cl},sd:{value:sunDir}},
+    vertexShader:`varying vec2 vu; varying vec3 vn,wp; void main(){vu=uv; vn=normalize(mat3(modelMatrix)*normal); wp=(modelMatrix*vec4(position,1.)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);}`,
+    fragmentShader:`uniform sampler2D d,l,c; uniform vec3 sd; varying vec2 vu; varying vec3 vn,wp;
+     void main(){float k=dot(normalize(vn),sd); float day=smoothstep(-0.12,0.25,k); vec3 alb=texture2D(d,vu).rgb; float cl=texture2D(c,vu).r;
+      vec3 col=mix(alb,vec3(1.),cl*0.85)*max(k,0.)*1.6; col+=texture2D(l,vu).rgb*(1.-day)*(1.-cl)*1.4;
+      vec3 v=normalize(cameraPosition-wp); float rim=pow(1.-max(dot(normalize(vn),v),0.),3.); col+=vec3(0.3,0.55,1.)*rim*(0.25+day);
+      gl_FragColor=vec4(col,1.);}`}));
+  // rotate so India (lon 78E, lat 21N) points to +y-ish and faces the sun side
+  earth.rotation.order='ZXY'; earth.rotation.y=-(78+90)*Math.PI/180; earth.rotation.x=0;
+  const eg=new THREE.Group(); eg.add(earth); eg.rotation.z=-0.0; S.add(eg);
+  const atm=sprite(softDot(),'#5aa0ff',22,new THREE.Vector3(0,0,0),0.55); S.add(atm);
+  // Moon at 384 (thousand km), offset sideways from the column
+  const moon=new THREE.Mesh(new THREE.SphereGeometry(1.737,96,64),new THREE.MeshStandardMaterial({map:mT,roughness:1,metalness:0})); moon.position.set(6.5,384.3,0); S.add(moon);
+  const sl=new THREE.DirectionalLight('#fff4e6',3.2); sl.position.copy(sunDir).multiplyScalar(100); S.add(sl); S.add(new THREE.AmbientLight('#56607e',0.55));
+  // the column: 440 thousand km beam of light from India
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,440,24,1,true),new THREE.ShaderMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,
+    uniforms:{},vertexShader:`varying vec3 vn,wp; varying float yy; void main(){vn=normalize(mat3(modelMatrix)*normal); yy=position.y; wp=(modelMatrix*vec4(position,1.)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);}`,
+    fragmentShader:`varying vec3 vn,wp; varying float yy; void main(){vec3 v=normalize(cameraPosition-wp); float f=abs(dot(normalize(vn),v)); float core=pow(f,2.5);
+      vec3 c=mix(vec3(1.,0.55,0.22),vec3(1.,0.9,0.72),core); gl_FragColor=vec4(c*(0.35+core*1.8),1.);}`}));
+  beam.position.set(0,6.371+220,0); S.add(beam);
+  const glowB=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,440,24,1,true),new THREE.ShaderMaterial({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,
+    vertexShader:`varying vec3 vn,wp; void main(){vn=normalize(mat3(modelMatrix)*normal); wp=(modelMatrix*vec4(position,1.)).xyz; gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.);}`,
+    fragmentShader:`varying vec3 vn,wp; void main(){vec3 v=normalize(cameraPosition-wp); float f=pow(abs(dot(normalize(vn),v)),4.); gl_FragColor=vec4(vec3(1.,0.6,0.3)*f*0.35,1.);}`}));
+  glowB.position.copy(beam.position); S.add(glowB);
+  // camera just past the Moon, looking back down the beam toward Earth
+  const cam=new THREE.PerspectiveCamera(40,W/H,0.01,100000); cam.position.set(6,420,6); cam.lookAt(3.2,300,0);
+  // dust motes for depth
+  const dd=softDot(); 
+  return {S,cam,bloom:[0.8,0.55,0.55],extra:{earth}};
+}
+
+const SH={desk:shotDesk,unity:shotUnity,moon:shotMoon};
+window.renderShot=async(name)=>{const {S,cam,bloom}=await SH[name](); const c=compose(S,cam,bloom); c.render(); c.render(); return R.domElement.toDataURL('image/png');};
+window.ready=true;
+</script></body></html>
