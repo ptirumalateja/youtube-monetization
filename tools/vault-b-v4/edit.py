@@ -174,7 +174,7 @@ HOOK = [  # flashes under "They were warned... never to open the door"
     ("flow", "coins", dict(src=1.0, z0=1.2, z1=1.35, c0=(0.4, 0.6))),          # scales sliding
     ("plate", "door", dict(src=1.0, z0=1.05, z1=1.2, c0=(0.5, 0.45))),         # the door
     ("flow", "strike", dict(src=8.9, z0=1.0, z1=1.12, c0=(0.5, 0.45))),        # fangs (sub-flash)
-    ("flow", "blood", dict(src=1.8, z0=1.0, z1=1.12, c0=(0.5, 0.5))),          # the door, first blood
+    ("flow", "corridor", dict(src=4.4, z0=1.05, z1=1.15, c0=(0.5, 0.4))),      # giant cobra rearing in the corridor
 ]
 cuts = [c * STRIKE_AT / 2.26 for c in [0.0, 0.24, 0.46, 0.70, 0.92, 1.14, 1.34, 1.52, 1.86, 1.96]] + [STRIKE_AT]
 EDL = [(a, b, k, n, dict(ar, flash=True), "horror") for (a, b), (k, n, ar) in zip(zip(cuts, cuts[1:]), HOOK)]
@@ -197,8 +197,8 @@ EDL += [
     (s("keyhole") - 0.06, s("just") - 0.1, "plate", "seam", dict(src=1.0, speed=0.9, z0=1.25, z1=1.35, c0=(0.5, 0.5)), "cold"),
     (s("just") - 0.1, s("legend") - 0.08, "flow", "carvings", dict(src=2.6, speed=1.0, z0=1.0, z1=1.05), "cold"),       # the two cobras turn, eyes ignite
     (s("legend") - 0.08, s("naga") - 0.08, "plate", "heads", dict(src=0.6, speed=0.6, z0=1.15, z1=1.3, c0=(0.5, 0.42)), "cold"),
-    (s("naga") - 0.08, s("weeks") - 0.3, "flow", "carvings", dict(src=6.2, speed=1.0, z0=1.0, z1=1.08), "cold"),       # mouths open, hiss
-    (s("weeks") - 0.3, s("dead") - 0.06, "plate", "hand", dict(src=0, speed=0.5, z0=1.0, z1=1.1, c0=(0.5, 0.5), c1=(0.5, 0.55)), "cold"),
+    (s("naga") - 0.08, s("weeks") - 0.3, "flow", "carvings", dict(src=5.25, speed=1.0, z0=1.0, z1=1.08), "cold"),       # mouths open, hiss
+    (s("weeks") - 0.3, s("dead") - 0.06, "plate", "hand", dict(src=0, speed=0.4, z0=1.0, z1=1.1, c0=(0.5, 0.5), c1=(0.5, 0.55)), "cold"),
     (s("dead") - 0.06, s("still") - 0.12, "flow", "blood", dict(src=7.2, speed=1.0, z0=1.0, z1=1.05), "cold"),
     (s("still") - 0.12, s("would") - 0.08, "plate", "door", dict(src=0.5, speed=0.6, z0=1.15, z1=1.0, c0=(0.5, 0.45)), "cold"),
     (s("would") - 0.08, s("end") + 0.55, "flow", "corridor", dict(src=8.0, speed=1.0, z0=1.0, z1=1.1, c0=(0.5, 0.45)), "warm"),
