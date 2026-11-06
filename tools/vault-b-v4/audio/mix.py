@@ -11,7 +11,7 @@ TL = json.load(open(f"{R}/output/timeline.json")); w = TL["words"]; DUR = TL["DU
 S = {k: load(f"{R}/sfx/{k}.mp3") for k in ["w1_whoosh", "w2_stinger", "w3_big_hiss", "w4_strike", "w5_drip", "w6_temple", "w7_riser", "w8_slither"]}
 S.update({k: load(f"{V3}/{k}.mp3") for k in ["01_hiss", "02_scales_coins", "03_iron_door", "04_bell", "05_heartbeat", "06_choir_drone", "07_breath", "08_boom"]})
 S["coins"] = load(f"{R}/../vault-b/audio/src/coins-pour-363089.wav"); S["impact"] = load(f"{R}/../vault-b/audio/src/bass-impact-512389.mp3")
-FL = {n: load(f"{R}/flow/{n}.mp4") for n in ["blood", "corridor", "carvings", "strike", "strike_floor", "coins"]}
+FL = {n: load(f"{R}/flow/{n}.mp4") for n in ["blood", "corridor", "carvings", "strike", "strike_floor", "coins", "temple"]}
 mix = np.zeros((int(DUR * SR), 2)); bed = np.zeros_like(mix)
 def db(x): return 10 ** (x / 20)
 def put(buf, clip, t, gain=0, a=0, b=None, fade_in=0.005, fade_out=0.05, pan=0.0):

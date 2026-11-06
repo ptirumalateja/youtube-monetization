@@ -181,7 +181,7 @@ EDL = [(a, b, k, n, dict(ar, flash=True), "horror") for (a, b), (k, n, ar) in zi
 EDL += [
     (STRIKE_AT, STRIKE_END, "strike", "strike_floor", {}, "warm"),
     (STRIKE_END, BENEATH - 0.06, "black", "", {}, None),
-    (BENEATH - 0.06, s("six") - 0.06, "plate", "gopuram", dict(src=0, speed=0.62, z0=1.0, z1=1.08, c0=(0.5, 0.5), c1=(0.5, 0.46)), "warm"),
+    (BENEATH - 0.06, s("six") - 0.06, "flow", "temple", dict(src=0.4, speed=1.0, z0=1.0, z1=1.05, c0=(0.5, 0.45), c1=(0.5, 0.42)), None),   # real gopuram over Padma Theertham (Flow, Teja)
     (s("six") - 0.06, s("gold") - 0.06, "plate", "vaults", dict(src=0, speed=0.52, z0=1.0, z1=1.04), "warm"),          # slow-mo doors opening
     (s("gold") - 0.06, s("eighteen") - 0.06, "gold", "gold", dict(z0=1.0, z1=1.1, c0=(0.5, 0.56), c1=(0.52, 0.5), coins=0.6), "warm"),
     (s("eighteen") - 0.06, s("sacks") - 0.06, "flow", "coins", dict(src=0.9, z0=1.0, z1=1.06), "warm"),                # cobra sliding over coins
