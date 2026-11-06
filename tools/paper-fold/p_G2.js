@@ -43,7 +43,7 @@ SC.G=async function(){
     gmat.uniforms.camH.value=Math.max(cy,0.02); gmat.uniforms.cp.value.copy(cam.position);
     const fd=4.0/far; S.fog.density=fd; gmat.uniforms.fogD.value=fd;
     const ks=far*0.8/60000; sky.scale.setScalar(ks); sky.position.copy(cam.position); const kr=far*0.8/20000; ridges.scale.setScalar(kr); ridges.position.set(cam.position.x*(1-kr),0,cam.position.z*(1-kr)); gr.scale.setScalar(far*1.2); gr.position.set(cam.position.x,0,cam.position.z);
-    decks.forEach(dk=>{dk.visible=cam.position.y>1200;}); ev.visible=n>=25;
+    decks.forEach(dk=>{dk.visible=cam.position.y>1200;}); ev.visible=n>=25; if(pos.mug) {}; items.forEach(([k,o])=>{ if(k==='mug') o.visible=n>=9.8; });
     const marks=[]; for(const k in pos){const q=pos[k]; marks.push({id:k,...project(cam,new THREE.Vector3(q[0],q[1],q[2]||0))});}
     marks.push({id:'plane',...project(cam,plane.position)}); marks.push({id:'top',...project(cam,new THREE.Vector3(0,Hh,0))}); marks.push({id:'base',...project(cam,new THREE.Vector3(0,0,0))});
     C.render(); return {marks};

@@ -31,7 +31,7 @@ SC.D=async function(){
   const C=compose(S,cam,[0.4,0.6,0.85]);
   let last=null;
   return {render(p){
-    const k=clamp(p.k,0,7); const j=Math.min(6,Math.floor(k)); const pr=k>=7?1:k-j; const e=ease(clamp((pr-0.04)/0.9,0,1));
+    const k=clamp(p.k,0,10); const j=Math.min(9,Math.floor(k)); const pr=k>=10?1:k-j; const e=ease(clamp((pr-0.04)/0.9,0,1));
     let sx=A,sz=B; for(let i=0;i<j;i++){ if(i%2==0)sx/=2; else sz/=2; }
     const T=1e-4*Math.pow(2,j), eps=0.00004;
     if(j%2==0){ // fold the x extent
@@ -41,13 +41,13 @@ SC.D=async function(){
       stat.scale.set(sx,T,sz/2); stat.position.set(sx/2,T/2+eps,sz/4);
       piv.position.set(sx/2,T+eps,sz/2); piv.rotation.set(-Math.PI*e,0,0); mov.scale.set(sx,T,sz/2); mov.position.set(0,-T/2,sz/4);
     }
-    const nx=(j%2==0)?lerp(sx,sx/2,e):sx, nz=(j%2==1)?lerp(sz,sz/2,e):sz; const ext=Math.max(nx,nz); const thick=T*(1+e);
-    const cx=nx/2, cz=nz/2; const dist=0.07+ext*5.8;
+    const nx=(j%2==0)?lerp(sx,sx/2,e):sx, nz=(j%2==1)?lerp(sz,sz/2,e):sz; const thick=T*(1+e); const ext=Math.max(nx,nz,thick);
+    const cx=nx/2, cz=nz/2; const dist=lerp(1.8,0.55,clamp(k/10,0,1))+ext*1.2;
     const yaw=0.25+0.12*Math.sin(k*0.4); const el=0.36;
     cam.position.set(cx+Math.sin(yaw)*dist*0.9, thick+dist*el, cz+Math.cos(yaw)*dist*0.9);
     cam.lookAt(cx-ext*0.04, thick*0.6+ext*0.04, cz);
     cam.fov=26; cam.updateProjectionMatrix(); S.fog.near=dist*0.9; S.fog.far=dist*0.9+1.1;
-    const sa=clamp((k-6.0)/0.8,0,1); nb.visible=sa>0.001;     nb.position.set(0.012+(1-ease(sa))*0.35,0,-0.17); nb.rotation.y=-0.12;
+    const sa=0; nb.visible=false;     nb.position.set(0.012+(1-ease(sa))*0.35,0,-0.17); nb.rotation.y=-0.12;
     bokeh.forEach((b,i)=>{b.material.opacity=0.12+0.2*(0.5+0.5*Math.sin(p.t*0.8+i))});
     C.render(); return {marks:[]};
   }};
