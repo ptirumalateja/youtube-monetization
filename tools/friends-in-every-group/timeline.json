@@ -1,9 +1,10 @@
 {
   "duration": 14.0,
   "fps": 30,
-  "_comment": "v6 (warm cafe, four friends). All times in seconds; scene.js, overlay.py and mix.py read this. shots: hard cuts [start, name]. Sound effects are placed on the action times below, so picture and sound land together.",
+  "_comment": "v7 (warm cafe, round table, four friends). All times in seconds; scene.js, overlay.py and mix.py read this. shots: hard cuts [start, name]. Sound effects are placed on the action times below, so picture and sound land together.",
   "shots": [[0.0, "selfie"], [1.5, "late"], [4.1, "photo"], [6.7, "hungry"], [9.3, "pays"], [11.9, "selfieEnd"]],
   "flash0": 0.45,
+  "ping": 0.15,
   "late": {"min0": 1.65, "min1": 3.0, "door": 2.35, "inFrame": 2.45, "sit0": 3.15, "sit1": 3.55, "wave": 3.6},
   "photoFlashes": [4.35, 4.75, 5.08, 5.35, 5.57, 5.75, 5.9, 6.02, 6.12],
   "photoCount": [4.35, 6.12],
@@ -15,8 +16,8 @@
   "captions": [
     [1.5, 4.1, ["THE ONE WHO'S", "\"5 MINUTES AWAY\""]],
     [4.1, 6.7, ["THE ONE WHO SAYS", "\"ONE LAST PHOTO\""]],
-    [6.7, 9.3, ["THE ONE WHO'S", "\"NOT HUNGRY\""]],
-    [9.3, 11.9, ["THE ONE WHO'LL", "\"PAY YOU BACK LATER\""]]
+    [6.7, 9.3, ["THE ONE WHO", "EATS YOUR FOOD"]],
+    [9.3, 11.9, ["THE ONE WHO", "NEVER PAYS"]]
   ],
   "reviewTimes": [0.1, 0.5, 1.2, 2.0, 2.8, 3.5, 4.6, 5.8, 6.9, 7.8, 8.6, 9.6, 10.4, 11.2, 12.4, 13.8]
 }

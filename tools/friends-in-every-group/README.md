@@ -1,4 +1,4 @@
-# Friends in Every Group (v6, warm café)
+# Friends in Every Group (v7, warm café, round table)
 
 14.0 s, 1080x1920, 30 fps. Copy: `publish-copy/friends-in-every-group.md`. This is an owner-approved departure from the Slow Light Dark void look: a warm café, four colourful friends, and English captions only. The rig, stage and text and sound kits are reused from `../slow-light-dark-common/`, and `sld.js` is a copy of the kit file. The v1-v5 dark-void build is kept as `*_v5.*` for reference. It is not runnable as-is, because `scene_v5.js` fetches `./timeline.json`.
 
@@ -12,7 +12,7 @@ python3 compose.py /path/to/render /path/to/deliver              # master (-15 L
 ```
 
 - `timeline.json`: the single source of timing. It holds the hard-cut shot list (selfie, late, photo, hungry, pays, selfieEnd), every action time, the captions and the review times. `scene.js`, `overlay.py` and `mix.py` all read it, so each sound effect lands on its action.
-- `scene.js`: a café booth with a wall, a doorway, pendant bulbs, the table and food. Four friends, each with a colour and one prop:
+- `scene.js`: a round table inside a curved, horseshoe-shaped booth, open to the camera, with a café wall, a doorway, pendant bulbs and food. Poses are written in each friend's "bench frame": the frame they would have on a straight bench, facing the camera. `toW()` moves that frame onto their seat on the curve and turns them 60% of the way toward the table centre, so faces stay toward the camera. Walk paths are written in world space. Four friends, each with a colour and one prop:
   1. LATE: blue, headphones.
   2. PHOTO: yellow, red cap.
   3. HUNGRY: pink, hair bun.
@@ -24,5 +24,5 @@ python3 compose.py /path/to/render /path/to/deliver              # master (-15 L
   - #4's phone rings when the bill lands, and he walks out.
   - Selfie bookends with a handheld wobble.
   - Motion blur never crosses a cut, because `renderAt` gets the shot bounds.
-- `overlay.py`: the phone-camera frame and shutter flash on the selfies; the hook "FRIENDS IN / EVERY GROUP"; one quoted caption per friend. The counters are "5 MIN AWAY" ticking to "47 MIN LATE" and "PHOTO #1" to "#47". Each friend's number disc sits beside the head, never on the face. The end card is "WHICH ONE ARE YOU? / COMMENT 1-4".
-- `mix.py`: plates and glasses clinking from frame 0, laughs, a soft camera shutter on every flash, the door, the bell and footsteps, minute ticks and a bonk at 47, fork taps and crunches, the bill thud, a ringtone and a wah-wah, number pops and a bright chord on the end card. The café murmur sits under everything. There are no whooshes.
+- `overlay.py`: the late one's "omw!! 5 min away" group-chat message dropping in at 0.15 s (the frame-0 gag); the phone-camera frame and shutter flash on the selfies; the hook "FRIENDS IN / EVERY GROUP"; one quoted caption per friend. The counters are "5 MIN AWAY" ticking to "47 MIN LATE" and "PHOTO #1" to "#47". Each friend's number disc sits beside the head, never on the face. The end card is "WHICH ONE ARE YOU? / COMMENT 1-4".
+- `mix.py`: a soft ping for the message, plates and glasses clinking from frame 0, laughs, a soft camera shutter on every flash, the door, the bell and footsteps, minute ticks and a bonk at 47, fork taps and crunches, the bill thud, a ringtone and a wah-wah, number pops and a bright chord on the end card. The café murmur sits under everything. There are no whooshes.

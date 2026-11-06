@@ -91,6 +91,9 @@ for k in range(6):
 mur = lp(mur, 2500) / np.abs(mur).max()
 for c in range(2): bus['fol'][c] += mur * 0.07
 
+# ---- the late one's message: a soft two-note ping as the banner drops in
+place(bus['air'], mixs(tone(1319, 0.25, 0.12, (1, 0.2)), np.pad(tone(1760, 0.3, 0.15, (1, 0.2)), (int(0.09 * SR), 0))), EV['ping'], 0.16, 0.0)
+
 # ---- frame 0: plates and glasses clinking, the friends laughing into the selfie, the shutter on the flash
 for j, t0 in enumerate([0.0, 0.05, 0.12, 0.2, 0.28, 0.33]):
     place(bus['fol'], clink(10 + j, 2400 + 500 * (j % 3)) if j % 2 == 0 else plate(20 + j), t0, 0.32 if j < 2 else 0.22, [-0.5, 0.4, -0.2, 0.5, 0.0, -0.4][j])

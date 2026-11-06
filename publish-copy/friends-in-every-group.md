@@ -1,8 +1,8 @@
-# Friends in Every Group (warm café, four friends)
+# Friends in Every Group (warm café, round table, four friends)
 
 | | |
 |---|---|
-| Status | v6 rendered (14.0 s). A full redo after the owner's v5 review: warm café, four colourful friends, hard cuts, a selfie at both ends. Waiting for owner review |
+| Status | v7 rendered (14.0 s): round table in a curved booth, plain captions ("eats your food", "never pays"), an "omw!! 5 min away" message at frame 0. Waiting for owner review |
 | Upload file | `friends-in-every-group.mp4` (master with sound); `friends-in-every-group_music-ready.mp4` (silent: add a trending sound in the IG/FB app) |
 | Length | 14.0 s; end card "WHICH ONE ARE YOU? / COMMENT 1-4" from 12.25 s |
 | Voice | None (wordless; captions in English only) |
@@ -16,10 +16,10 @@
 > Every friend group has these four.
 > 1. The one who's "5 minutes away"
 > 2. The one who says "one last photo"
-> 3. The one who's "not hungry"
-> 4. The one who'll "pay you back later"
+> 3. The one who eats your food
+> 4. The one who never pays
 >
-> Which one are you? Comment 1-4. Then tag the friend who's a 4.
+> Which one are you? Comment 1-4. Then tag the friend who never pays.
 >
 > A Slow Light short, made in code (three.js, rendered frame by frame). Sound synthesised for this short, plus one CC0 sound from Freesound (sleepCircle).
 >
@@ -28,7 +28,7 @@
 **Instagram / Facebook caption:**
 > Every group has these 4 😂
 > Which one are you? Comment 1-4 👇
-> Tag the one who still owes you money.
+> Tag the one who never pays.
 >
 > #friends #friendgroup #bestfriends #relatable #reels
 

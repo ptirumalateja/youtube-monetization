@@ -1,6 +1,6 @@
 """Text and UI layer for Friends in Every Group v6 (warm cafe). English only.
 
-- Selfie shots: a phone-camera frame (corner brackets, shutter button), a white flash on the shutter, and the hook
+- Selfie shots: the late one's "omw!! 5 min away" message drops in at 0.15 s; a phone-camera frame (corner brackets, shutter button), a white flash on the shutter, and the hook
   "FRIENDS IN / EVERY GROUP" (on from frame 0, punches on the flash).
 - One caption per friend, in their own words, plus their counter: "5 MIN AWAY" ticking to "47 MIN LATE";
   "PHOTO #1" to "#47" in step with the flashes.
@@ -83,6 +83,14 @@ def ui(img, m, t):
         d.ellipse((x - r, y - r, x + r, y + r), fill=(18, 12, 10, 225), outline=(RED if active else CREAM) + (255,), width=7)
         f = font(int(r * 1.15), 'Bold'); s = str(n); tw = d.textlength(s, font=f)
         d.text((x - tw / 2, y - r * 0.78), s, font=f, fill=CREAM + (255,))
+    if m['shot'] == 'selfie' and t >= TL['ping']:   # frame-0 gag: the late one's message drops in over the selfie
+        u = sstep(TL['ping'], TL['ping'] + 0.22, t); y0 = 505 - 180 * (1 - u); bx0, bx1, bh = 70, W - 70, 124
+        d.rounded_rectangle((bx0, y0, bx1, y0 + bh), 30, fill=(28, 26, 30, int(228 * u)))
+        d.rounded_rectangle((bx0 + 22, y0 + 22, bx0 + 102, y0 + 102), 20, fill=(79, 143, 214, int(255 * u)))
+        f1 = font(40, 'Bold'); s1 = '1'; d.text((bx0 + 62 - d.textlength(s1, font=f1) / 2, y0 + 36), s1, font=f1, fill=WHITE + (int(255 * u),))
+        d.text((bx0 + 124, y0 + 20), 'GROUP CHAT', font=font(30, 'Bold'), fill=(200, 200, 205, int(255 * u)))
+        d.text((W - 70 - 22 - d.textlength('now', font=font(28)), y0 + 22), 'now', font=font(28), fill=(160, 160, 165, int(255 * u)))
+        d.text((bx0 + 124, y0 + 62), 'omw!! 5 min away', font=font(40, 'Bold'), fill=WHITE + (int(255 * u),))
     base.alpha_composite(layer)
     # the shutter flash: a white frame flash on the selfies, a softer one on the photographer's burst
     k = max(flash_k(t, [TL['flash0'], TL['flashEnd']]) * 0.75, flash_k(t, TL['photoFlashes'], 14) * 0.3 * (m['shot'] == 'photo'))

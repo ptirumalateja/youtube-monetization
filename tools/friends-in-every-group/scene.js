@@ -1,10 +1,12 @@
-// Friends in Every Group, v6 (warm cafe). Four friends on a cafe booth bench, all facing the camera, each with their own
+// Friends in Every Group, v7 (warm cafe, round table). Four friends in a curved booth around a round table, cheated toward the camera, each with their own
 // colour and prop so you can tell them apart instantly: LATE (blue, headphones), PHOTO (yellow, cap), HUNGRY (pink, hair
 // bun), PAYS (green, glasses). Shots are hard cuts: a selfie from the phone's point of view (the late one's spot empty),
 // then one tight shot per friend with their gag, then the selfie again with all four for the end card.
 // The bill is the one red object. (v1-v5, the dark-void version, is kept as scene_v5.js for reference.)
 //
-// World: bench along x at the back (friends face +z, toward the camera), table in front of them, cafe wall behind.
+// World: a round table at the origin, a horseshoe booth behind it (open toward the camera, +z), cafe wall behind.
+// Poses are written in each friend's "bench frame" (as if on a straight bench at x=x0, facing +z); toW() maps that frame
+// onto their seat on the curve (moved + turned by th toward the table centre). Walk paths are written in world space.
 // renderAt(t) is pure (no state between frames) and never blurs across a cut. metaAt(t) gives overlay/sound data.
 import * as THREE from 'three';
 import * as SLD from './sld.js';
@@ -37,7 +39,7 @@ function wallTex(){ const c=document.createElement('canvas'); c.width=1024; c.he
   glow.position.set(0,2.0,-1.24); S.scene.add(glow); }
 // pendant bulbs over the table (setT dims one when a standing head passes right under it, else the face burns out)
 const PENDANTS=[];
-for(const x of [-1.1,0,1.1]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.06,20,12),new THREE.MeshBasicMaterial({color:0xffe1a8})); b.position.set(x,2.35,-0.1); S.scene.add(b);
+for(const x of [-0.95,0,0.95]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.06,20,12),new THREE.MeshBasicMaterial({color:0xffe1a8})); b.position.set(x,2.35,-0.1); S.scene.add(b);
   const cord=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,1.6),new THREE.MeshBasicMaterial({color:0x111111})); cord.position.set(x,3.15,-0.1); S.scene.add(cord);
   const pl=new THREE.PointLight(0xffc98a,0.9,3.2,2); pl.position.set(x,2.25,-0.1); S.scene.add(pl); PENDANTS.push(pl); SLD.glowSprite(S.scene,0xffc98a,0.35).position.set(x,2.35,-0.1); }
 
@@ -50,8 +52,18 @@ function woodTex(seed,base){ const c=document.createElement('canvas'); c.width=1
 const WOOD=new THREE.MeshStandardMaterial({color:0xb08560,map:woodTex(3,'#4a3020'),roughness:0.45,metalness:0});
 const BENCH=new THREE.MeshStandardMaterial({color:0x2f6d6a,roughness:0.7});   // teal upholstered booth
 const box=(w,h,d,m,x,y,z)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); b.position.set(x,y,z); b.castShadow=b.receiveShadow=true; S.scene.add(b); return b; };
-box(2.9,0.1,0.5,BENCH,0,0.4,-0.66); box(2.9,0.36,0.46,WOOD,0,0.17,-0.66); box(2.9,0.75,0.12,BENCH,0,0.82,-0.95);
-box(2.3,0.05,0.64,WOOD,0,TOP-0.025,0.05); box(2.3,0.62,0.04,WOOD,0,TOP-0.36,0.36);   // front panel: no legs showing under the table
+// curved booth: annular sectors (top view) extruded upward. a is the angle in the xz plane (x=r cos a, z=r sin a); the booth runs A0..A1 behind the table
+const A0=-168*Math.PI/180, A1=-12*Math.PI/180;
+function sector(r0,r1,y0,y1,m){ const sh=new THREE.Shape(), n=48;
+  for(let i=0;i<=n;i++){ const a=A0+(A1-A0)*i/n; const u=r1*Math.cos(a), v=-r1*Math.sin(a); i?sh.lineTo(u,v):sh.moveTo(u,v); }
+  for(let i=n;i>=0;i--){ const a=A0+(A1-A0)*i/n; sh.lineTo(r0*Math.cos(a),-r0*Math.sin(a)); }
+  const g=new THREE.ExtrudeGeometry(sh,{depth:y1-y0,bevelEnabled:false,curveSegments:48}); g.rotateX(-Math.PI/2);
+  const me=new THREE.Mesh(g,m); me.position.y=y0; me.castShadow=me.receiveShadow=true; S.scene.add(me); return me; }
+sector(0.72,1.2,0,0.35,WOOD); sector(0.70,1.2,0.35,0.45,BENCH); sector(1.2,1.34,0,1.2,BENCH);
+// round table: a wooden top over a drum skirt (the skirt hides the legs, like the old front panel)
+const TABLER=0.58;
+{ const top=new THREE.Mesh(new THREE.CylinderGeometry(TABLER,TABLER,0.05,72),WOOD); top.position.set(0,TOP-0.025,0); top.castShadow=top.receiveShadow=true; S.scene.add(top);
+  const sk=new THREE.Mesh(new THREE.CylinderGeometry(TABLER-0.03,TABLER-0.06,TOP-0.06,72,1,true),WOOD); sk.position.set(0,(TOP-0.06)/2,0); sk.receiveShadow=true; S.scene.add(sk); }
 // the door the late one comes in through (right side), with a bell
 const DOORX=1.95;
 box(0.9,2.15,0.6,new THREE.MeshBasicMaterial({color:0x0b0705}),DOORX,1.075,-1.55);   // the dark doorway behind the wall line
@@ -59,17 +71,24 @@ box(0.08,2.25,0.1,WOOD,DOORX-0.49,1.12,-1.22); box(0.08,2.25,0.1,WOOD,DOORX+0.49
 const doorPivot=new THREE.Group(); doorPivot.position.set(DOORX-0.45,0,-1.25); S.scene.add(doorPivot);
 { const d=new THREE.Mesh(new THREE.BoxGeometry(0.88,2.1,0.05),WOOD); d.position.set(0.44,1.05,0); d.castShadow=true; doorPivot.add(d); }
 const bell=new THREE.Mesh(new THREE.SphereGeometry(0.05,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xd4a843,metalness:0.6,roughness:0.3})); bell.position.set(DOORX-0.35,2.15,-1.15); S.scene.add(bell);
-const PLATEM=new THREE.MeshStandardMaterial({color:0xcfc6b6,roughness:0.5});
+const PLATEM=new THREE.MeshStandardMaterial({color:0x9c9284,roughness:0.75});   // darker than v6: the cream plates glowed under the bulbs
 const FRYM=new THREE.MeshStandardMaterial({color:0xe8b85a,roughness:0.6});
 const GLASSM=new THREE.MeshStandardMaterial({color:0xdde6ea,roughness:0.08,transparent:true,opacity:0.45,depthWrite:false});
 const DRINK=[0xd96b2b,0x7a3b1c,0xe8c547,0x5aa0d8];
 const fryGeo=new THREE.BoxGeometry(0.014,0.014,0.085);
-const SEATX={PAYS:-0.66,PHOTO:-0.22,HUNGRY:0.22,LATE:0.66};
-const FRIES={};
-Object.entries(SEATX).forEach(([id,x],i)=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.1,0.018,40),PLATEM); p.position.set(x,TOP+0.009,0.02); p.receiveShadow=true; S.scene.add(p);
-  const gl=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.03,0.13,20),GLASSM); gl.position.set(x+0.16,TOP+0.065,-0.08); S.scene.add(gl);
-  const dr=new THREE.Mesh(new THREE.CylinderGeometry(0.031,0.027,0.08,20),new THREE.MeshStandardMaterial({color:DRINK[i],roughness:0.3})); dr.position.set(x+0.16,TOP+0.045,-0.08); S.scene.add(dr);
-  const Rf=rng(40+i); FRIES[id]=[]; for(let k=0;k<9;k++){ const f=new THREE.Mesh(fryGeo,FRYM); f.position.set(x+(Rf()-0.5)*0.12,TOP+0.026+Rf()*0.012,0.02+(Rf()-0.5)*0.12); f.rotation.set(0,Rf()*3,0.2*(Rf()-0.5)); f.castShadow=true; S.scene.add(f); FRIES[id].push(f); } });
+const SEATX={PAYS:-0.66,PHOTO:-0.22,HUNGRY:0.22,LATE:0.66};   // bench-frame x of each friend
+const SEATA={PAYS:-145,PHOTO:-108,HUNGRY:-72,LATE:-35};         // their angle around the table (degrees)
+const HIPR=0.64, HIPBACK=0.276, FACE=V(0,0,1), YAW=yawOf(FACE), YAXIS=V(0,1,0);
+const XF={}; for(const [id,x0] of Object.entries(SEATX)){ const a=SEATA[id]*Math.PI/180;
+  const th=0.6*Math.atan2(-Math.cos(a),-Math.sin(a));             // turned 60% of the way toward the table centre, the rest cheats to camera
+  XF[id]={th,from:V(x0,0,-0.62).addScaledVector(FACE,HIPBACK),to:V(HIPR*Math.cos(a),0,HIPR*Math.sin(a))}; }
+const toW=(id,p)=>{ const X=XF[id]; return p.clone().sub(X.from).applyAxisAngle(YAXIS,X.th).add(X.to); };
+const toL=(id,p)=>{ const X=XF[id]; return p.clone().sub(X.to).applyAxisAngle(YAXIS,-X.th).add(X.from); };
+const FRIES={}, PLATEW={};
+Object.entries(SEATX).forEach(([id,x],i)=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.1,0.018,40),PLATEM); PLATEW[id]=toW(id,V(x,TOP+0.009,0.02)); p.position.copy(PLATEW[id]); p.receiveShadow=true; S.scene.add(p);
+  const gl=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.03,0.13,20),GLASSM); gl.position.copy(toW(id,V(x+0.16,TOP+0.065,-0.08))); S.scene.add(gl);
+  const dr=new THREE.Mesh(new THREE.CylinderGeometry(0.031,0.027,0.08,20),new THREE.MeshStandardMaterial({color:DRINK[i],roughness:0.3})); dr.position.copy(toW(id,V(x+0.16,TOP+0.045,-0.08))); S.scene.add(dr);
+  const Rf=rng(40+i); FRIES[id]=[]; for(let k=0;k<9;k++){ const f=new THREE.Mesh(fryGeo,FRYM); f.position.copy(toW(id,V(x+(Rf()-0.5)*0.12,TOP+0.026+Rf()*0.012,0.02+(Rf()-0.5)*0.12))); f.rotation.set(0,Rf()*3,0.2*(Rf()-0.5)); f.castShadow=true; S.scene.add(f); FRIES[id].push(f); } });
 const heldFry=new THREE.Mesh(fryGeo,FRYM); S.scene.add(heldFry);
 // the bill (the one red object)
 const bill=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.018,0.3),new THREE.MeshStandardMaterial({color:PAL.RED,roughness:0.5,emissive:PAL.RED,emissiveIntensity:0.15})); bill.castShadow=true; S.scene.add(bill);
@@ -105,7 +124,6 @@ const SKIN=new THREE.MeshStandardMaterial({color:0xf1e2cc,roughness:0.6,emissive
 const PROPM=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.5});
 const CHAIRP={...R.P0,p:0.07,tilt:0.0,aL:1.5,aR:1.47,kL:1.52,kR:1.47,sL:0.5,sR:0.5,eL:0.9,eR:0.9};
 const STANDP={...R.P0,p:0.08};
-const HIPBACK=0.276, FACE=V(0,0,1), YAW=yawOf(FACE);
 const F={}; const COLORS={LATE:0x4f8fd6,PHOTO:0xe9b93a,HUNGRY:0xe9799f,PAYS:0x4fb37a};
 for(const [id,x] of Object.entries(SEATX)){
   const fig=R.makeFig(COLORS[id],'f'+id,{rim:0.1,rimCol:0xfff1d8,lift:0.05}); fig.head.material=SKIN;
@@ -136,29 +154,30 @@ function seated(f,t,{lean=0,look=0}={}){
   return P; }
 // head yaw to look at another seat (positive hy turns toward local -z; here local +x = world +z, local -z = world... use the sign that turns toward +x world)
 const lookTo=(f,x)=>clamp((f.x-x)*1.2,-1.1,1.1);
-const DOORX_=1.95;
+const LATESTAND=V(1.12,0,0.12);   // where the late one stops beside the booth end before sliding in
 function selfiePose(f,t,shot){
   // everyone squeezes toward the middle and leans into the lens; the photographer holds the phone out in front
   const P=seated(f,t,{lean:0.18,look:clamp(f.x*0.9,-0.5,0.5)}); P.tilt-=0.12;
   if(f.id==='PHOTO'){ P.tR=P_(0.0,1.62,0.45); P.pR=V(0.2,-0.6,-0.8); }
-  else { const k=bump(t-shot.t0,0.0,0.9); P.tL=P_(f.x-0.05,1.15+0.35*k,-0.25); P.pL=V(0,-0.9,0.4); }   // peace-sign hand pops up
+  else { const k=bump(t-shot.t0,0.0,0.9); P.tL=P_(f.x-0.17,1.15+0.42*k,-0.32); P.pL=V(0,-0.9,0.4); }   // peace-sign hand pops up
   return P; }
 
 function poseAll(t){
   const sh=shotAt(t), out={};
   for(const f of Object.values(F)){
-    let P=seated(f,t), root=f.root.clone(), face='smile', vis=true;
+    let P=seated(f,t), root=f.root.clone(), face='smile', vis=true, world=false, rootWorld=false;
     const L=TL.late, Hh=TL.hungry, Py=TL.pays;
     if(sh.name==='selfie'||sh.name==='selfieEnd'){ P=selfiePose(f,t,sh); face=sh.name==='selfie'?'grin':'grin'; if(sh.name==='selfie'&&f.id==='LATE') vis=false; }
     if(sh.name==='late'){
       if(f.id==='LATE'){
-        if(t<L.sit0){ const u=clamp((t-L.door)/(L.sit0-L.door)); const a=V(DOORX,0,-1.55), b=V(DOORX,0,-0.3), c=V(f.x+0.45,0,-0.3);
+        if(t<L.sit0){ const u=clamp((t-L.door)/(L.sit0-L.door)); const a=V(DOORX,0,-1.55), b=V(DOORX,0,-0.15), c=LATESTAND.clone();
           const d1=a.distanceTo(b), d2=b.distanceTo(c), s=u*(d1+d2); root=s<d1?a.clone().lerp(b,s/d1):b.clone().lerp(c,(s-d1)/d2);
-          out.walkYaw=s<d1?yawOf(V(0,0,1)):yawOf(V(-1,0,0));
+          out.walkYaw=s<d1?yawOf(V(0,0,1)):yawOf(c.clone().sub(b)); world=true;
           let Q=R.gait({...STANDP,p:0.05},s/1.3*Math.PI*2,1-sstep(L.sit0-0.2,L.sit0,t)); Q.wL=0; Q.wR=0;
           Q.tL=root.clone().add(V(-0.05,1.58,-0.13)); Q.wL=1; Q.pL=V(0,-1,0.2);          // phone at his ear, strolling
           P=Q; face='chill'; vis=t>L.door; }
-        else { const s=sstep(L.sit0,L.sit1,t); const st=V(f.x+0.45,0,-0.25); root=st.lerp(f.root,s); P=R.blend({...STANDP},seated(f,t),s);
+        else { const s=sstep(L.sit0,L.sit1,t); root=LATESTAND.clone().lerp(toW('LATE',f.root),s); rootWorld=true; P=R.blend({...STANDP},seated(f,t),s);
+          out.walkYaw=lerp(yawOf(LATESTAND.clone().sub(V(DOORX,0,-0.15))),YAW+XF.LATE.th,s);
           const w=bump(t,L.wave,0.9); P.tL=P_(f.x-0.05,1.45+0.03*Math.sin(t*16),-0.2); P.wL=w; P.pL=V(0,-0.9,0.4); face=w>0.1?'sorry':'chill'; }
       } else { P=seated(f,t,{look:lookTo(f,2.0)*0.8}); face=t>L.door?'bored':'smile'; }
     }
@@ -172,9 +191,9 @@ function poseAll(t){
     if(sh.name==='hungry'){
       if(f.id==='HUNGRY'){ P=seated(f,t); const no=sstep(Hh.no0,Hh.no0+0.15,t)*(1-sstep(Hh.no1-0.1,Hh.no1,t));
         P.hy=0.45*Math.sin((t-Hh.no0)*14)*no; P.tR=P.tR.clone().lerp(P_(f.x+0.05,1.15+0.04*Math.sin(t*18),0.2),no); face=no>0.2?'no':'smile';
-        const targets=[SEATX.PHOTO,SEATX.LATE,SEATX.PAYS];
+        const targetIds=['PHOTO','LATE','PAYS'], targets=targetIds.map(id=>SEATX[id]);
         Hh.grabs.forEach((g,i)=>{ const reach=bump(t,g-0.05,0.4), mouth=bump(t,g+Hh.toMouth-0.05,0.35);
-          if(reach>0){ P.tR=P.tR.clone().lerp(P_(targets[i],TOP+0.05,0.04),Math.min(1,reach*1.5)); P.p+=0.25*reach; P.hy=lookTo(f,targets[i])*reach; }
+          if(reach>0){ P.tR=P.tR.clone().lerp(toL('HUNGRY',PLATEW[targetIds[i]].clone().add(V(0,0.04,0))),Math.min(1,reach*1.5)); P.p+=0.25*reach; P.hy=lookTo(f,targets[i])*reach; }
           if(mouth>0){ P.tR=P.tR.clone().lerp(P_(f.x+0.02,1.26,-0.38),Math.min(1,mouth*1.6)); face='chew'; } });
         if(t>Hh.grabs[0]+0.2) face=face==='smile'?'chew':face;
       } else { P=seated(f,t,{look:lookTo(f,SEATX.HUNGRY)*sstep(Hh.grabs[0],Hh.grabs[0]+0.3,t)}); face=t>Hh.grabs[0]+0.1?'shock':'smile'; }
@@ -183,36 +202,39 @@ function poseAll(t){
       if(f.id==='PAYS'){ P=seated(f,t); const ph=sstep(Py.ring,Py.ring+0.25,t);
         P.tL=P.tL.clone().lerp(P_(f.x-0.13,1.36,-0.5),ph); P.pL=V(0,-1,0.2); face=t<Py.ring?'shock':'sorry';
         if(t>Py.stand0){ const s=sstep(Py.stand0,Py.stand1,t); const w=clamp((t-Py.stand1)/(Py.walk1-Py.stand1));
-          const st=V(f.x,0,-0.2); root=f.root.clone().lerp(st,s).add(V(-1.8*w*w,0,0)); P=R.blend(P,{...STANDP,tL:root.clone().add(V(-0.13,1.58,0.05)),wL:1,pL:V(0,-1,0.2)},s);
-          if(w>0){ P=R.gait({...STANDP,tL:root.clone().add(V(-0.05,1.58,-0.13)),wL:1,pL:V(0,-1,0.2)},w*1.8/1.3*Math.PI*2,1); out.paysYaw=yawOf(V(-1,0,0.15)); } face='smug'; }
+          const st=f.root.clone().add(V(-0.22,0,0.04)); root=f.root.clone().lerp(st,s).add(V(-1.8*w*w,0,0)); P=R.blend(P,{...STANDP,tL:root.clone().add(V(-0.13,1.58,0.05)),wL:1,pL:V(0,-1,0.2)},s);
+          if(w>0){ P=R.gait({...STANDP,tL:root.clone().add(V(-0.05,1.58,-0.13)),wL:1,pL:V(0,-1,0.2)},w*1.8/1.3*Math.PI*2,1); out.paysYaw=yawOf(V(-1,0,0.15))+XF.PAYS.th; } face='smug'; }
       } else { const lb=sstep(Py.billLand,Py.billLand+0.25,t), lp=sstep(Py.stand0,Py.stand1,t);
         P=seated(f,t,{look:lerp(0,lookTo(f,SEATX.PAYS),lp)}); P.tilt+=0.3*lb*(1-lp); face=t>Py.stand0?'shock':(t>Py.billLand?'bored':'smile'); }
     }
-    out[f.id]={P,root,face,vis};
+    out[f.id]={P,root,face,vis,world,rootWorld};
   }
   return {sh,out};
 }
 
 // ---------------------------------------------------------------- cameras (one per shot, gentle drift inside each)
 function camFor(sh,t){ const u=clamp((t-sh.t0)/(sh.t1-sh.t0));
-  const C={ selfie:[V(-0.22,1.48,1.55),V(-0.22,1.22,-0.5),62], selfieEnd:[V(0.0,1.5,2.05),V(0,1.22,-0.5),70],
-    late:[V(1.0,1.6,2.9),V(1.45,1.1,-0.6),46], photo:[V(-0.1,1.55,2.1),V(-0.05,1.35,-0.5),44],
-    hungry:[V(0.25,1.75,1.45),V(0.22,0.95,-0.3),44], pays:[V(-0.9,1.5,2.4),V(-0.85,1.1,-0.4),46] }[sh.name];
+  const C={ selfie:[V(-0.24,1.6,1.25),V(-0.2,1.12,-0.55),66], selfieEnd:[V(0.0,1.62,1.62),V(0,1.16,-0.55),70],
+    late:[V(1.05,1.6,2.9),V(1.45,1.1,-0.6),46], photo:[V(-0.2,1.6,2.0),V(-0.18,1.3,-0.6),44],
+    hungry:[V(0.18,1.85,1.75),V(0.12,1.0,-0.45),46], pays:[V(-0.8,1.55,2.3),V(-0.75,1.1,-0.4),46] }[sh.name];
   const pos=C[0].clone(), tg=C[1].clone(); let fov=C[2];
   if(sh.name.startsWith('selfie')){ pos.add(V(0.02*Math.sin(t*3.1),0.015*Math.sin(t*2.3),-0.12*u)); fov-=4*u; }   // handheld, a tiny push
   else pos.addScaledVector(tg.clone().sub(pos).normalize(),0.35*sm5(u));                                      // slow push in
-  if(sh.name==='late'){ const w=sstep(TL.late.sit0-0.35,TL.late.sit1,t); pos.x-=0.6*w; tg.x-=0.6*w; }            // follow him to his seat
-  if(sh.name==='pays'){ const w=sstep(TL.pays.stand1,TL.pays.walk1,t); pos.x-=0.9*w; tg.x-=0.9*w; }                 // pan with him as he walks out
+  if(sh.name==='late'){ const w=sstep(TL.late.sit0-0.35,TL.late.sit1,t); pos.x-=0.8*w; tg.x-=0.8*w; }            // follow him to his seat
+  if(sh.name==='pays'){ const w=sstep(TL.pays.stand1,TL.pays.walk1,t); pos.x-=0.8*w; tg.x-=0.8*w; pos.z+=0.5*w; }   // he heads off toward camera-left                 // pan with him as he walks out
   return {pos,tg,fov}; }
 
 // ---------------------------------------------------------------- one frame
 function setT(t){
   const {sh,out}=poseAll(t);
   const c=camFor(sh,t); S.cam.fov=c.fov; S.cam.updateProjectionMatrix(); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);
-  for(const f of Object.values(F)){ const o=out[f.id]; let yaw=YAW; if(f.id==='LATE'&&out.walkYaw!==undefined) yaw=out.walkYaw; if(f.id==='PAYS'&&out.paysYaw!==undefined) yaw=out.paysYaw;
+  for(const f of Object.values(F)){ const o=out[f.id]; let yaw=YAW+XF[f.id].th; if(f.id==='PAYS'&&out.paysYaw!==undefined) yaw=out.paysYaw;
+    if(f.id==='LATE'&&out.walkYaw!==undefined) yaw=out.walkYaw;
     f.fig.setAlpha(o.vis?1:0); f.face.visible=o.vis; f.prop.visible=o.vis; if(!o.vis) continue;
-    R.poseFig(f.fig,R.skel(o.P,o.root,yaw));
-    const P=o.P, hd=P.p+P.tilt, fl=SLD.rotY(SLD.rotY(V(Math.cos(hd),-Math.sin(hd),0),P.hy),P.ty), ul=SLD.rotY(SLD.rotY(V(Math.sin(hd),Math.cos(hd),0),P.hy),P.ty);
+    const P={...o.P}; let root=o.root;
+    if(!o.world){ for(const k of ['tL','tR']) if(P[k]) P[k]=toW(f.id,P[k]); if(!o.rootWorld) root=toW(f.id,root); }
+    R.poseFig(f.fig,R.skel(P,root,yaw));
+    const hd=P.p+P.tilt, fl=SLD.rotY(SLD.rotY(V(Math.cos(hd),-Math.sin(hd),0),P.hy),P.ty), ul=SLD.rotY(SLD.rotY(V(Math.sin(hd),Math.cos(hd),0),P.hy),P.ty);
     const h=f.fig.head.position, fw=SLD.rotY(fl,yaw).normalize(), uw=SLD.rotY(ul,yaw).normalize();
     f.face.position.copy(h).addScaledVector(fw,0.132); f.face.up.copy(uw); f.face.lookAt(h.clone().addScaledVector(fw,1)); f.face.material=FACES[o.face];
     f.prop.position.copy(h); f.prop.up.copy(uw); f.prop.lookAt(h.clone().addScaledVector(fw,1)); }
@@ -234,7 +256,7 @@ function setT(t){
   heldFry.visible=carrying; heldFry.position.copy(hand('HUNGRY','R')).add(V(0,0.03,0.02)); heldFry.rotation.set(0.9,0.3,0);
   // the bill drops onto the table in the middle
   const b=sstep(TL.pays.billLand-0.25,TL.pays.billLand,t); bill.visible=t>TL.pays.billLand-0.25&&sh.name==='pays';
-  bill.position.set(lerp(-0.2,-0.42,b),TOP+0.008+0.5*(1-b),lerp(0.6,0.12,b)); bill.rotation.set(0,0.3,0);
+  const bl=toW('PAYS',V(SEATX.PAYS+0.24,TOP+0.008,0.14)); bill.position.set(bl.x+0.1*(1-b),bl.y+0.5*(1-b),bl.z+0.5*(1-b)); bill.rotation.set(0,0.3+XF.PAYS.th,0);
   S.tick(t,0);
 }
 
