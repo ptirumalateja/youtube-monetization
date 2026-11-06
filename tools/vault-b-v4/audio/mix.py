@@ -7,7 +7,8 @@ V3 = f"{R}/../vault-b-v3/sfx"
 def load(p):
     a = np.frombuffer(subprocess.run(["ffmpeg", "-v", "error", "-i", p, "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout, np.float32)
     return a.reshape(-1, 2).astype(np.float64)
-TL = json.load(open(f"{R}/output/timeline.json")); w = TL["words"]; DUR = TL["DUR"]
+LANG = os.environ.get("LANG_V", "en"); SUF = ("" if LANG == "en" else f"-{LANG}") + ("-short" if os.environ.get("VB_CUT") == "short" and LANG == "en" else "")
+TL = json.load(open(f"{R}/output/timeline{SUF}.json")); w = TL["words"]; DUR = TL["DUR"]
 S = {k: load(f"{R}/sfx/{k}.mp3") for k in ["w1_whoosh", "w2_stinger", "w3_big_hiss", "w4_strike", "w5_drip", "w6_temple", "w7_riser", "w8_slither"]}
 S.update({k: load(f"{V3}/{k}.mp3") for k in ["01_hiss", "02_scales_coins", "03_iron_door", "04_bell", "05_heartbeat", "06_choir_drone", "07_breath", "08_boom"]})
 S["coins"] = load(f"{R}/../vault-b/audio/src/coins-pour-363089.wav"); S["impact"] = load(f"{R}/../vault-b/audio/src/bass-impact-512389.mp3")
@@ -24,7 +25,7 @@ def put(buf, clip, t, gain=0, a=0, b=None, fade_in=0.005, fade_out=0.05, pan=0.0
     if 0 <= s < len(buf): buf[s:e] += c[:e - s]
 
 # --- VO: split after "door." and push the rest back by GAP
-vo = load(f"{R}/vo/{TL.get('VOICE', 'viraj')}_v2.mp3"); cut = int(TL["CUT"] * SR); f = int(0.03 * SR)
+vo = load(f"{R}/vo/{TL.get('VOICE', 'viraj')}_v2.mp3") if LANG == "en" else load(f"{R}/vo/lang/{ {'te': 'te_v3', 'hi': 'hi_v2'}[LANG] }_tight.wav"); cut = int(TL["CUT"] * SR); f = int(0.03 * SR)
 A = vo[:cut].copy(); A[-f:] *= np.linspace(1, 0, f)[:, None]; B = vo[cut:].copy(); B[:f] *= np.linspace(0, 1, f)[:, None]
 v = np.zeros_like(mix); v[:len(A)] += A; s0 = int((TL["CUT"] + TL["GAP"]) * SR); v[s0:s0 + len(B)] += B[:len(v) - s0]
 
@@ -104,6 +105,15 @@ put(mix, S["impact"], t_end + 0.02, -3, fade_out=1.6)
 # --- VO on top, duck everything else under speech
 env = np.convolve(np.abs(v[:, 0]), np.ones(int(0.12 * SR)) / int(0.12 * SR), "same"); duck = 1 - 0.5 * np.clip(env / 0.05, 0, 1)
 out = mix * (1 - 0.35 * (1 - duck))[:, None] + bed * duck[:, None] + v * db(2.0)
+if TL.get("REMOVE"):   # short cut: drop the same ranges the picture drops, 15 ms crossfades
+    keep, last, xf = [], 0, int(0.015 * SR)
+    for a0, b0 in TL["REMOVE"]:
+        keep.append(out[last:int(a0 * SR)]); last = int(b0 * SR)
+    keep.append(out[last:])
+    o2 = keep[0]
+    for k in keep[1:]:
+        o2[-xf:] = o2[-xf:] * np.linspace(1, 0, xf)[:, None] + k[:xf] * np.linspace(0, 1, xf)[:, None]; o2 = np.concatenate([o2, k[xf:]])
+    out = o2[:int(TL["DUR_OUT"] * SR)]; out[-int(0.3 * SR):] *= np.linspace(1, 0, int(0.3 * SR))[:, None]
 meter = pyln.Meter(SR)
 def limit(x, ceil=0.89, rel=0.12):
     pk = np.abs(x).max(1); la = int(0.005 * SR); need = np.r_[np.maximum(1, pk / ceil)[la:], np.ones(la)]
@@ -113,5 +123,5 @@ def limit(x, ceil=0.89, rel=0.12):
     return x / g[:, None]
 for _ in range(3):
     L = meter.integrated_loudness(out); out *= db(-15.0 - L); out = limit(out)
-sf.write(f"{R}/audio/vault-b-v4-mix.wav", out.astype(np.float32), SR, subtype="PCM_24")
+sf.write(f"{R}/audio/vault-b-v4{SUF}-mix.wav", out.astype(np.float32), SR, subtype="PCM_24")
 print("dur", round(DUR, 2), "LUFS", round(meter.integrated_loudness(out), 1), "peak", round(np.abs(out).max(), 3))

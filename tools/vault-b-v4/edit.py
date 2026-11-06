@@ -13,8 +13,14 @@ rng = np.random.default_rng(11)
 
 # ---------------- VO timing (blackview_v2 word starts, seconds) ----------------
 VOICE = os.environ.get("VOICE", "viraj")   # Teja 6 Nov: use Viraj
-CUT = 2.84 if VOICE == "viraj" else 2.70   # VO is split here (after "door.") and the rest is pushed back by GAP
-STRIKE_AT = 2.40 if VOICE == "viraj" else 2.26   # the giant cobra appears on "door"
+LANG = os.environ.get("LANG_V", "en")      # en | te | hi  (regional versions, VO in vo/lang/)
+SUF = "" if LANG == "en" else f"-{LANG}"
+if LANG != "en":
+    _tl = json.load(open(f"{R}/vo/lang/{ {'te': 'te_v3', 'hi': 'hi_v2'}[LANG] }_tight_timeline.json"))["keys"]
+    CUT = _tl["beneath"] - 0.14; STRIKE_AT = _tl["door"] - 0.04
+else:
+    CUT = 2.84 if VOICE == "viraj" else 2.70   # VO is split here (after "door.") and the rest is pushed back by GAP
+    STRIKE_AT = 2.40 if VOICE == "viraj" else 2.26   # the giant cobra appears on "door"
 S0, S_FAST, S_LUNGE, S_END = 6.2, 1.5, 1.1, 9.62   # strike_floor.mp4: in-point, rise speed, lunge speed, out-point
 LUNGE = 7.45
 STRIKE_END = STRIKE_AT + (LUNGE - S0) / S_FAST + (S_END - LUNGE) / S_LUNGE
@@ -33,9 +39,26 @@ W0_VJ = dict(they=0.10, warned=0.42, never=1.78, open=2.14, door=2.44, beneath=3
           legend=26.10, naga=28.00, only=29.40, chant=30.64, openit=31.28, openit_end=31.70, weeks=32.80, man=34.04, was=36.60, dead=36.80,
           dead_end=37.04, still=37.90, shut_end=39.00, would=39.64, end=40.30)
 W0 = W0_VJ if VOICE == "viraj" else W0_BV
+if LANG != "en":
+    W0 = dict(_tl); W0["keyhole_end"] = W0["just"] - 0.2; W0["dead"] = W0["was"] + 0.3
 GAP = BENEATH - W0["beneath"]
 st = lambda k: W0[k] + (GAP if W0[k] >= CUT else 0.0)
 DUR = st("end") + 1.9
+# 33 s backup cut (VB_CUT=short): same hook, then cut whole beats out of the finished timeline (picture and sound together)
+SHORT = os.environ.get("VB_CUT") == "short" and LANG == "en"
+REMOVE = []
+if SHORT:
+    SUF += "-short"
+    REMOVE = [(st("sacks") - 0.06, st("over") - 0.08),        # sacks / crowns / diamonds: keep idols + chain, go straight to the money
+              (st("then") + 0.35, st("then") + 0.75),         # tighten the pause after "Then..."
+              (st("handle") - 0.06, st("just") - 0.1),        # no handle / no lock / no keyhole
+              (st("weeks") - 0.3, st("still") - 0.12)]        # the death beat: the door carries the ending
+DUR_OUT = DUR - sum(b - a for a, b in REMOVE) - (0.4 if SHORT else 0.0)
+def inv(tp):
+    t = tp
+    for a, b in REMOVE:
+        if t >= a: t += b - a
+    return t
 
 # ---------------- sources ----------------
 @functools.lru_cache(maxsize=48)
@@ -114,10 +137,40 @@ def gold_grad(h):
     return col
 
 @functools.lru_cache(maxsize=96)
+def is_indic(ln): return any(ord(ch) >= 0x0900 for ch in ln)
+INDIC_FONT = {"te": "NotoSerif-telugu-800.ttf", "hi": "NotoSerif-devanagari-800.ttf"}
+@functools.lru_cache(maxsize=64)
+def INDIC(size): return ImageFont.truetype(os.path.join(FONTS, "indic", INDIC_FONT.get(LANG, "NotoSerif-devanagari-800.ttf")), size)
+
+@functools.lru_cache(maxsize=32)
+def PUNCT(size): return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", int(size * 0.8))
+def indic_runs(ln, sz):
+    """split a line into runs: Indic script (+spaces) with the Noto font, everything else (punctuation, digits) with DejaVu"""
+    runs = []
+    for ch in ln:
+        ind = ord(ch) >= 0x0900 or ch in " \u200c\u200d"
+        fo = INDIC(sz) if ind else PUNCT(sz)
+        if runs and runs[-1][1] is fo: runs[-1][0] += ch
+        else: runs.append([ch, fo])
+    return [(r, fo) for r, fo in runs]
+
 def text_rgba(lines, size, weight, style, cy, track=2, step=1.18):
     mask = Image.new("L", (W, H), 0); d = ImageDraw.Draw(mask); f = cfont(size, weight)
     sp = int(size * step); y0 = cy - sp * (len(lines) - 1) / 2
+    indic_any = any(is_indic(ln) for ln in lines)
+    if indic_any: sp = int(size * 1.32); y0 = cy - sp * (len(lines) - 1) / 2
     for li, ln in enumerate(lines):
+        if is_indic(ln):
+            sz = int(size * 1.15)
+            while True:
+                runs = indic_runs(ln, sz); tw = sum(d.textlength(r, font=fo) for r, fo in runs)
+                if tw <= 960 or sz <= 30: break
+                sz -= 3
+            bx = d.textbbox((0, 0), "".join(r for r, fo in runs if fo is INDIC(sz)) or ln, font=INDIC(sz)); x = (W - tw) / 2
+            yy = y0 + li * sp - (bx[1] + bx[3]) / 2
+            for r, fo in runs:
+                d.text((x, yy + (0 if fo is INDIC(sz) else sz * 0.08)), r, font=fo, fill=255); x += d.textlength(r, font=fo)
+            continue
         fonts = [RUPEE(size) if ch == "₹" else f for ch in ln]
         ws = [d.textlength(ch, font=fo) for ch, fo in zip(ln, fonts)]; tw = sum(ws) + track * (len(ln) - 1)
         asc, desc = f.getmetrics(); x = (W - tw) / 2; y = y0 + li * sp - (asc + desc) / 2
@@ -154,10 +207,12 @@ def put_text(f, lines, t, t0, t1, size=92, weight=900, style="cream", cy=1240, p
     return f * (1 - a * k) + col * k
 
 TAG_SH = (np.exp(-(((_x - W / 2) / 560) ** 2 + ((_y - 300) / 170) ** 2) * 1.6) * 0.55)[..., None]
+TAGS = dict(en=("PADMANABHASWAMY", "TEMPLE  ·  KERALA"), te=("పద్మనాభస్వామి ఆలయం", "కేరళ"), hi=("पद्मनाभस्वामी मंदिर", "केरल"))
 def tag(f, alpha):
     if alpha <= 0: return f
     f = f * (1 - TAG_SH * alpha)
-    for c, a in (text_rgba(("PADMANABHASWAMY",), 66, 800, "gold", 262, 4), text_rgba(("TEMPLE  ·  KERALA",), 36, 700, "gold", 344, 10)):
+    t1, t2 = TAGS[LANG]
+    for c, a in (text_rgba((t1,), 66, 800, "gold", 262, 4), text_rgba((t2,), 36 if LANG == "en" else 46, 700, "gold", 344, 10)):
         f = f * (1 - a * alpha) + c * alpha
     for y in (198, 392): f[y:y + 2, 210:870] = f[y:y + 2, 210:870] * (1 - 0.85 * alpha) + np.array([0.36, 0.70, 0.89], np.float32) * 0.85 * alpha
     return f
@@ -234,7 +289,20 @@ CAPS = [  # (lines, t0, t1, kw)
     (["VAULT B IS", "STILL SHUT."], s("still") - 0.12, s("would") - 0.08, dict(size=100, style="ice", cy=1520)),
     (["WOULD YOU", "OPEN IT?"], s("would") - 0.08, s("end") + 0.55, dict(size=120, style="gold", cy=1480)),
 ]
+if LANG != "en":
+    from captions_lang import CAPS as _CL
+    assert len(_CL[LANG]) == len(CAPS)
+    CAPS = [(_CL[LANG][i], t0, t1, dict(kw, size=int(kw.get("size", 92) * 0.92))) for i, (_, t0, t1, kw) in enumerate(CAPS)]
 PUNCH = [s(k) for k in ["five", "gold", "eighteen", "sacks", "crowns", "diamonds", "lakh", "vaultb", "handle", "lock", "keyhole", "naga", "was"]]
+
+def fit_src(kind, name, a, dur):
+    """never run past the end of a source (that freezes the last frame): slide the in-point back, then slow it down"""
+    src, sp = a.get("src", 0), a.get("speed", 1.0)
+    if a.get("flash"): return src, sp
+    Ls = len(frames(kind, name)) / FPS - 0.06
+    if src + dur * sp > Ls: src = max(0.0, Ls - dur * sp)
+    if src + dur * sp > Ls: sp = (Ls - src) / dur
+    return src, sp
 
 def strike_src(lt):
     """strike_floor.mp4 time for local time lt: hood high (fast) -> lunge into the lens (near real time)"""
@@ -259,7 +327,8 @@ def shot(t):
         f = fit(img(GOLD), z, cx, cy)
         if a.get("coins"): f = coin_rain(f, t, a["coins"], t0)
     else:
-        f = src_frame(kind, name, a.get("src", 0) + lt * a.get("speed", 1.0))
+        src, sp = fit_src(kind, name, a, t1 - t0)
+        f = src_frame(kind, name, src + lt * sp)
         f = fit(f, z, cx, cy, wm=(kind == "flow"))
     if a.get("gutter"):  # flame flickers, then dies
         fl = 1 + 0.18 * math.sin(t * 41) * math.sin(t * 13.7); f = f * max(0.04, (1 - u ** 2.2) * fl)
@@ -289,18 +358,19 @@ def flow_audio():
     """segments where a Flow clip is on screen: (t0, t1, clip, src_in, speed)"""
     out = []
     for t0, t1, kind, name, a, g in EDL:
-        if kind == "flow": out.append(dict(t0=t0, t1=t1, clip=name, src=a.get("src", 0), speed=a.get("speed", 1.0), flash=bool(a.get("flash"))))
+        if kind == "flow":
+            src, sp = fit_src(kind, name, a, t1 - t0); out.append(dict(t0=t0, t1=t1, clip=name, src=src, speed=sp, flash=bool(a.get("flash"))))
         if kind == "strike": out.append(dict(t0=t0, t1=t1, clip=name, src=S0, speed=1.0, flash=False))
     return out
 
 def main():
     a = sys.argv[1:]
     os.makedirs(f"{R}/output", exist_ok=True)
-    json.dump(dict(VOICE=VOICE, HOOK_CUTS=cuts, DUR=DUR, CUT=CUT, GAP=GAP, STRIKE_AT=STRIKE_AT, STRIKE_END=STRIKE_END, LUNGE_T=STRIKE_AT + (LUNGE - S0) / S_FAST,
-                   words={k: st(k) for k in W0}, flow=flow_audio()), open(f"{R}/output/timeline.json", "w"), indent=1)
+    json.dump(dict(VOICE=VOICE, LANG=LANG, REMOVE=REMOVE, DUR_OUT=DUR_OUT, HOOK_CUTS=cuts, DUR=DUR, CUT=CUT, GAP=GAP, STRIKE_AT=STRIKE_AT, STRIKE_END=STRIKE_END, LUNGE_T=STRIKE_AT + (LUNGE - S0) / S_FAST,
+                   words={k: st(k) for k in W0}, flow=flow_audio()), open(f"{R}/output/timeline{SUF}.json", "w"), indent=1)
     if "--timeline" in a: return
-    out = a[a.index("--out") + 1] if "--out" in a else f"{R}/output/vault-b-v4_silent.mp4"
-    n0, n1 = 0, int(DUR * FPS)
+    out = a[a.index("--out") + 1] if "--out" in a else f"{R}/output/vault-b-v4{SUF}_silent.mp4"
+    n0, n1 = 0, int(DUR_OUT * FPS)
     if "--frames" in a: n0, n1 = int(a[a.index("--frames") + 1]), min(n1, int(a[a.index("--frames") + 2]))
     if "--stills" in a:
         for tt in a[a.index("--stills") + 1].split(","):
@@ -309,7 +379,7 @@ def main():
     p = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                           "-c:v", "libx264", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p", out], stdin=subprocess.PIPE)
     for i in range(n0, n1):
-        p.stdin.write((render(i / FPS, i) * 255 + 0.5).astype(np.uint8).tobytes())
+        p.stdin.write((render(inv(i / FPS), i) * 255 + 0.5).astype(np.uint8).tobytes())
         if i % 48 == 0: print("frame", i, "/", n1, flush=True)
     p.stdin.close(); p.wait(); print("wrote", out)
 
