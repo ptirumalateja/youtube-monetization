@@ -17,11 +17,13 @@ const TL=await (await fetch('./timeline.json')).json();
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960, DUR=TL.duration;
 
 // ---------------------------------------------------------------- layout (metres; floor y = 0; camera on +z)
-const SP=TL.spacing, X=0.65, RAILX=0.31, ZB=0.27, NR=TL.rungsTotal, N0=TL.rungsStart;
+const SP=TL.spacing, X=0.65, RAILX=0.31, ZB=0.33, NR=TL.rungsTotal, N0=TL.rungsStart;
 const HATCH=NR*SP+0.3;                       // underside of the light hatch
 const PX=-1.05, PZ=-0.3, PILX=0.31;          // perfectionist lane: centre, his z, pillar half-gap
 const NB=NR-N0;                              // planks he builds
-const T=TL.cycle, START=TL.start, BEND=START+NB*T;   // build cycles, then fast steps up into the light
+const START=TL.start, R_=TL.r, T0=TL.T0;
+const Tk=k=>T0*Math.pow(R_,k), tk=k=>START+T0*(1-Math.pow(R_,k))/(1-R_);   // cycles speed up: tap, tap, tap... faster
+const BEND=tk(NB);   // build cycles, then fast steps up into the light
 const FAST=TL.fastStep;
 
 // ---------------------------------------------------------------- stage: 30 Friends look (dark void, warm lamp, motes)
@@ -102,8 +104,8 @@ const qb=(a,b,c,u)=>a.clone().multiplyScalar((1-u)*(1-u)).addScaledVector(b,2*u*
 const HIP0=0.84, CROUCH=[0.26,0.16,0.05];
 const crouchAt=k=>k<3?CROUCH[k]:0;
 const BU=TL.buildFrac, WH=TL.hitW;                       // hit times as fractions of the build phase
-const hitT=(k,i)=>START+k*T+BU*T*WH[i];
-const HAMKEYS=[[0.40,0.9],[0.56,1.35],[WH[0],0.0],[WH[0]+0.1,1.25],[WH[1],0.0],[0.97,0.9],[1.0,0.9]];
+const hitT=(k,i)=>tk(k)+BU*Tk(k)*WH[i];
+const HAMKEYS=[[WH[0]-0.3,0.9],[WH[0]-0.1,1.35],[WH[0],0.0],[WH[0]+0.12,1.25],[WH[1],0.0],[WH[1]+0.07,0.9],[1.0,0.9]];
 const NAILX=[RAILX-0.04,-(RAILX-0.04)];
 function climber(t){
   const o={look:0,lean:0.1,hm:0,ha:0.9,nail:null};
@@ -112,15 +114,15 @@ function climber(t){
   const railGrip=(f,side,dv)=>V(X+side*(RAILX-0.025),(f+dv)*SP+1.86,0.0);
   const climb=(f,v)=>{ // one step up from rung f to f+1
     const hip=f*SP+HIP0+SP*SLD.ease(sstep(0.12,0.88,v));
-    const fL=V(X-0.12,(f+sstep(0.0,0.42,v))*SP+0.035+0.1*arc(sstep(0,0.42,v)),0.05+0.1*arc(sstep(0,0.42,v)));
-    const fR=V(X+0.12,(f+sstep(0.45,0.88,v))*SP+0.035+0.1*arc(sstep(0.45,0.88,v)),0.05+0.1*arc(sstep(0.45,0.88,v)));
+    const fL=V(X-0.12,(f+sstep(0.0,0.42,v))*SP+0.085+0.1*arc(sstep(0,0.42,v)),0.0+0.12*arc(sstep(0,0.42,v)));
+    const fR=V(X+0.12,(f+sstep(0.45,0.88,v))*SP+0.085+0.1*arc(sstep(0.45,0.88,v)),0.0+0.12*arc(sstep(0.45,0.88,v)));
     const hL=railGrip(f,-1,sstep(0.08,0.4,v)).add(V(0,0,0.09*arc(sstep(0.08,0.4,v))));
     const hR=railGrip(f,1,sstep(0.5,0.82,v)).add(V(0,0,0.09*arc(sstep(0.5,0.82,v))));
     return {hip,fL,fR,hL,hR}; };
-  if(t<BEND){ const k=Math.min(NB-1,Math.floor(tt/T)), u=tt/T-k, f=Math.max(0,k-3);
+  if(t<BEND){ let k=0; while(k<NB-1&&t>=tk(k+1)) k++; const u=Math.max(0,t-tk(k))/Tk(k), f=Math.max(0,k-3);
     o.placed=k+(u>=BU*WH[0]?1:0); o.left=NB-k-(u>=BU*0.22?1:0);
     if(u<BU){ const w=u/BU, hip=f*SP+HIP0-crouchAt(k);
-      Object.assign(o,{hip,fL:V(X-0.12,f*SP+0.035,0.05),fR:V(X+0.12,f*SP+0.035,0.05)});
+      Object.assign(o,{hip,fL:V(X-0.12,f*SP+0.085,0.0),fR:V(X+0.12,f*SP+0.085,0.0)});
       const B=bundleAt(hip), TOP=V(X,hip+1.0,ZB-0.02), RG=V(X,rungY(k+1),0);
       let P;
       if(w<0.28) P=null; else if(w<0.55) P=qb(B,TOP.y>RG.y+0.7?TOP:RG.clone().add(V(0,0.5,0)),RG,SLD.ease(sstep(0.28,0.55,w))); else P=RG;
@@ -129,7 +131,7 @@ function climber(t){
       const lEnd=P?P.clone().add(V(-0.1,0.02,0.03)):B.clone().add(V(-0.2,0,0));
       o.hL=gL.clone().lerp(lEnd,grab).lerp(gL,release);
       // hammer: rests in the right hand, swings at the right nail then the left nail
-      const hm=sstep(0.34,0.5,w)*(1-sstep(0.95,1.0,w)); o.hm=hm; o.ha=keys(HAMKEYS,w);
+      const hm=sstep(0.2,0.34,w)*(1-sstep(0.95,1.0,w)); o.hm=hm; o.ha=keys(HAMKEYS,w);
       const nx=lerp(NAILX[0],NAILX[1],sstep(WH[0]+0.02,WH[0]+0.1,w)); const nail=V(X+nx,RG.y+0.01,0.03); o.nail=nail;
       const r=clamp(o.ha/1.35); const Hh=nail.clone().add(V(0,-HAM_L+0.16*r,0.04+0.14*r));
       o.hR=gR.clone().lerp(Hh,hm);
@@ -137,14 +139,14 @@ function climber(t){
       o.look=keys([[0,0],[0.15,-0.25],[0.35,0.4],[0.7,0.55],[0.9,0.1],[1,0]],w);
     } else { const v=(u-BU)/(1-BU);
       if(k<3){ const hip=HIP0-lerp(crouchAt(k),crouchAt(k+1),sstep(0.2,0.8,v));
-        Object.assign(o,{hip,fL:V(X-0.12,0.035,0.05),fR:V(X+0.12,0.035,0.05),hL:railGrip(0,-1,0),hR:railGrip(0,1,0)}); }
+        Object.assign(o,{hip,fL:V(X-0.12,0.085,0.0),fR:V(X+0.12,0.085,0.0),hL:railGrip(0,-1,0),hR:railGrip(0,1,0)}); }
       else Object.assign(o,climb(f,v)); o.ha=0.9; }
   } else { const tf=(t-BEND)/FAST, k=Math.floor(tf), v=tf-k, f=NB-3+k; o.placed=NB; o.left=0; Object.assign(o,climb(f,v)); o.look=0.35; o.lean=0.04; }
   return o; }
 function poseClimber(o){
   const hip=V(X,o.hip,ZB), J={};
   J.hip=hip; J.hipL=hip.clone().add(V(-0.07,0,0)); J.hipR=hip.clone().add(V(0.07,0,0));
-  const lL=ik2(J.hipL,o.fL,V(-0.35,0.2,-1)), lR=ik2(J.hipR,o.fR,V(0.35,0.2,-1));
+  const lL=ik2(J.hipL,o.fL,V(-0.7,0.1,-0.25)), lR=ik2(J.hipR,o.fR,V(0.7,0.1,-0.25));
   J.kL=lL.E; J.fL=lL.Hd; J.kR=lR.E; J.fR=lR.Hd;
   J.neck=hip.clone().add(V(0,0.56*Math.cos(o.lean),-0.56*Math.sin(o.lean)));
   const hd=V(0,Math.cos(o.look*0.6),-0.25+0.4*Math.sin(-o.look*0.5)+0.18*o.look).normalize();
@@ -194,7 +196,10 @@ function perfection(t){
 
 // ---------------------------------------------------------------- camera
 const CK=TL.cam;
-function setCam(t){ cam.position.set(keys(CK.cx,t),keys(CK.cy,t),keys(CK.d,t)); cam.lookAt(keys(CK.tx,t),keys(CK.ty,t),0); cam.updateMatrixWorld(); }
+const HITS=[]; for(let k=0;k<NB;k++){ HITS.push(hitT(k,0),hitT(k,1)); }
+function jolt(t){ let j=0; for(const h of HITS){ const dt=t-h; if(dt>=0&&dt<0.2) j+=Math.exp(-dt*26)*Math.cos(dt*60); } return j; }
+function setCam(t){ const j=jolt(t), d=keys(CK.d,t), amp=0.012*d*(t<TL.flareT?1:0);
+  cam.position.set(keys(CK.cx,t)+amp*0.4*j,keys(CK.cy,t)+amp*j,d); cam.lookAt(keys(CK.tx,t),keys(CK.ty,t)+amp*0.5*j,0); cam.updateMatrixWorld(); }
 
 // ---------------------------------------------------------------- frame
 function setT(t){
@@ -226,5 +231,5 @@ function setT(t){
 window.renderAt=(t,K=3)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
 window.metaAt=t=>{ setT(t); const pr=v=>{ const n=v.clone().project(cam); return [(n.x+1)/2,(1-n.y)/2]; };
   const o=climber(t); return {t,rungs:o.placed,prung:t>=TL.pPlace?1:0,lane:{perf:pr(V(PX,2.7,0)),act:pr(V(X,2.7,0)),perfFeet:pr(V(PX,-0.12,0))}}; };
-window.events={...TL,hits:[...Array(NB)].map((_,k)=>[hitT(k,0),hitT(k,1)]),grabs:[...Array(NB)].map((_,k)=>START+k*T+BU*T*0.22)};
+window.events={...TL,hits:[...Array(NB)].map((_,k)=>[hitT(k,0),hitT(k,1)]),grabs:[...Array(NB)].map((_,k)=>tk(k)+BU*Tk(k)*0.22)};
 window.ready=true;

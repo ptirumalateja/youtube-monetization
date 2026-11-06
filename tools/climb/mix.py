@@ -18,8 +18,11 @@ from sld_sound import SR, lp, hp, curve, place, write_wav
 
 TL = json.load(open(os.path.join(HERE, 'timeline.json')))
 DUR = TL['duration']; N = int(DUR * SR)
-T, BU, START, FAST, WH = TL['cycle'], TL['buildFrac'], TL['start'], TL['fastStep'], TL['hitW']
-NB = TL['rungsTotal'] - TL['rungsStart']; BEND = START + NB * T
+BU, START, FAST, WH = TL['buildFrac'], TL['start'], TL['fastStep'], TL['hitW']
+T0, RR = TL['T0'], TL['r']
+Tk = lambda k: T0 * RR ** k
+tk = lambda k: START + T0 * (1 - RR ** k) / (1 - RR)
+NB = TL['rungsTotal'] - TL['rungsStart']; BEND = tk(NB)
 P = TL['pPlace']
 
 
@@ -41,30 +44,48 @@ def at_start(bus, name, t0, gain, pan, off=0.0, dur=None):
     place(bus, s, t0, gain, pan)
 
 
+def hit(bus, name, t, gain, pan, tail=0.2):
+    """First transient of a sample lined up on t (onset = first 25% of peak), cut to `tail` s with a fade."""
+    s, _ = samp(name); on = int(np.argmax(np.abs(s) > 0.25)); a = max(0, on - int(0.004 * SR)); c = s[a:a + int(tail * SR)].copy()
+    f = int(min(len(c), 0.05 * SR)); c[-f:] *= np.linspace(1, 0, f); place(bus, c, t - 0.004, gain, pan)
+
+
 bus = K.new_buses(N)
-room_g = curve(N, [(0, 0.4), (DUR, 0.4)])
-drone_g = curve(N, [(0, 0.12), (BEND, 0.6), (TL['flareT'], 0.9), (TL['flareT'] + 1.0, 0.3), (DUR, 0.2)])
+room_g = curve(N, [(0, 0.22), (DUR, 0.22)])
+drone_g = curve(N, [(0, 0.15), (BEND, 0.9), (TL['flareT'], 1.0), (TL['flareT'] + 1.0, 0.3), (DUR, 0.2)])
 duck = curve(N, [(0, 1), (P - 0.45, 1), (P - 0.4, 0.06), (P - 0.01, 0.06), (P, 1), (DUR, 1)])
 K.bed(bus, room_g, drone_g, duck)
 PA, PP = 0.35, -0.45
 rng = np.random.default_rng(3)
 # camera leaves the ground: ground sounds get quieter as the frame rises; climber sounds stay present
-gnd = lambda t: float(np.interp(t, [0, 6, 10, 12, 16, 17], [1.0, 0.8, 0.35, 0.0, 0.0, 1.0]))
+gnd = lambda t: float(np.interp(t, [0, 3, 5, 6.5, 8.5, 9.0], [1.0, 0.8, 0.3, 0.0, 0.0, 1.0]))
+
+def pitched(name, rate, tail):
+    s, _ = samp(name); on = int(np.argmax(np.abs(s) > 0.25)); c = s[max(0, on - int(0.004 * SR)):][:int(tail * rate * SR)]
+    c = np.interp(np.arange(0, len(c) - 1, rate), np.arange(len(c)), c); f = int(min(len(c), 0.04 * SR)); c = c.copy(); c[-f:] *= np.linspace(1, 0, f); return c
+
+
+def swish(dur, f, g):
+    n = int(dur * SR); x = K.bp(K.noise(n), f, 0.9); return x * np.sin(np.pi * np.arange(n) / n) ** 2 * g
+
 
 for k in range(NB):
-    t0 = START + k * T
-    at_start(bus['fol'], 'plank_grab', t0 + BU * T * 0.12, 0.35, PA, off=0.0, dur=0.45)
+    t0 = tk(k); T = Tk(k); prog = k / (NB - 1)
+    at_start(bus['fol'], 'plank_grab', t0 + BU * T * 0.12, 0.22, PA, off=0.0, dur=min(0.4, T * 0.5))
     for i, wh in enumerate(WH):
         th = t0 + BU * T * wh
-        at_peak(bus['hit'], f'hammer{(2 * k + i) % 4 + 1}', th, 0.8 + 0.12 * rng.random(), PA, trim=0.5)
-    v0 = t0 + BU * T
-    if k >= 3:
-        for q in (0.42, 0.88):
-            at_peak(bus['fol'], 'step1' if q < 0.5 else 'step2', v0 + (1 - BU) * T * q, 0.35, PA, trim=0.35)
+        rate = 1.0 + 0.55 * prog + (0.06 if i else 0)            # the blows climb in pitch and bite as he speeds up
+        c = pitched(f'hammer{(2 * k + i) % 4 + 1}', rate, 0.2)
+        place(bus['hit'], c, th - 0.004, (0.85 + 0.25 * prog) * (0.9 + 0.2 * rng.random()), PA)
+        place(bus['hit'], K.thud(40 + 2 * k + i, f=95 + 70 * prog, dec=0.05, gain=0.55 + 0.3 * prog), th, 1.0, PA)   # the weight behind each blow
+        place(bus['air'], swish(0.07, 1800 + 1500 * prog, 0.16), th - 0.075, 1.0, PA)                               # the arm coming down
+# tension: a filtered-noise riser under the whole build, and the drone climbs with him
+nn = int((BEND + 0.3) * SR); rs = K.bp(K.noise(nn), 900, 0.6) + 0.5 * K.bp(K.noise(nn), 2600, 0.8)
+rs *= np.linspace(0, 1, nn) ** 3 * 0.05; place(bus['air'], rs, 0.0, 1.0, 0.0)
 for j in range(4):
     for q, nm in ((0.42, 'step1'), (0.88, 'step2')):
         ts = BEND + j * FAST + FAST * q
-        if ts < TL['flareT'] + 0.1: at_peak(bus['fol'], nm, ts, 0.3, PA, trim=0.35)
+        if ts < TL['flareT'] + 0.1: at_peak(bus['fol'], nm, ts, 0.18, PA, trim=0.3)
 # perfectionist: tape and sanding
 ins = TL['inspect']
 for a, b in ins:
@@ -74,16 +95,16 @@ gaps = [(0.0, 0.2)] + [(ins[i][1], ins[i + 1][0]) for i in range(len(ins) - 1)] 
 for a, b in gaps:
     t = a
     while t < b - 0.15:
-        d = min(3.8, b - t); at_start(bus['fol'], 'sand', t, 0.5 * gnd(t) + 0.05 * (t > 9), PP, off=rng.random() * 0.2, dur=d); t += d - 0.12
+        d = min(3.8, b - t); at_start(bus['fol'], 'sand', t, 0.5 * gnd(t), PP, off=rng.random() * 0.2, dur=d); t += d - 0.12
 # the light
-at_peak(bus['air'], 'light', TL['flareT'] + 0.35, 0.8, 0.0)
+at_peak(bus['air'], 'light', TL['flareT'] + 0.35, 1.3, 0.0)
 rh = K.load('822420__audiopapkin__riser-hit-sfx-120.wav'); rh /= np.abs(rh).max()
 e = np.convolve(rh ** 2, np.ones(2400) / 2400, 'same'); pk = int(np.argmax(e))
 place(bus['hit'], rh, TL['flareT'] + 0.1 - pk / SR, 0.55, 0.2)
 # end: his one rung
 at_start(bus['fol'], 'step1', TL['pStand'] + 0.25, 0.3, PP, dur=0.35)
-at_peak(bus['hit'], 'click', P + 0.02, 0.9, PP, trim=0.7)
-at_peak(bus['fol'], 'thud', TL['pSit'] + 0.8, 0.8, PP, trim=0.8)
+at_peak(bus['hit'], 'click', P + 0.02, 1.8, PP, trim=0.7)
+at_peak(bus['fol'], 'thud', TL['pSit'] + 0.8, 1.4, PP, trim=0.8)
 mix = K.finish(bus, duck)
 xf = int(TL['loopXfade'] * SR); mix[:, -xf:] *= np.linspace(1, 0, xf) ** 1.5
 write_wav(mix, sys.argv[1])

@@ -1,31 +1,30 @@
 {
- "duration": 19.6,
+ "duration": 10.4,
  "fps": 30,
  "_comment": "Seconds. Remake of the neuronvisuals ladder reel (Perfectionist vs Action Taker). Ladder: rungsTotal rungs at spacing m; rungsStart already built on frame 0. Each build cycle (cycle s): buildFrac of it pulls a plank off his back and lashes it on above his head, the rest steps up one rung. After the last plank, fastStep-second steps carry him up into the hatch. Perfectionist sands his red rung (inspect = lift-and-look windows), stands at pStand, sets it between his pillars at pPlace (slotY m), looks up at the light, sits at pSit. Text: caption at caption, end label at endLabel. The last loopXfade s dissolve into frame 0.",
- "spacing": 0.42,
- "rungsTotal": 15,
+ "spacing": 0.45,
+ "rungsTotal": 12,
  "rungsStart": 0,
- "cycle": 0.75,
  "buildFrac": 0.7,
- "fastStep": 0.4,
+ "fastStep": 0.3,
  "spot": 42,
  "inspect": [
   [
-   0.2,
-   2.3
+   0.1,
+   1.6
   ],
   [
-   3.0,
-   5.0
+   2.2,
+   3.5
   ],
   [
-   5.8,
-   7.4
+   4.1,
+   5.2
   ]
  ],
- "pStand": 15.7,
- "pPlace": 16.8,
- "pSit": 17.9,
+ "pStand": 8.2,
+ "pPlace": 8.8,
+ "pSit": 9.4,
  "slotY": 0.5,
  "pay": [
   [
@@ -33,51 +32,47 @@
    0.0
   ],
   [
-   10.5,
+   4.5,
    0.1
   ],
   [
-   12.9,
+   6.45,
    0.7
   ],
   [
-   14.3,
+   7.7,
    0.35
   ],
   [
-   19.6,
+   10.4,
    0.15
   ]
  ],
- "caption": 13.7,
- "endLabel": 17.6,
+ "caption": 7.3,
+ "endLabel": 9.0,
  "loopXfade": 0.4,
  "reviewTimes": [
   0.0,
-  1.2,
-  2.0,
-  3.2,
-  4.5,
-  6.0,
-  9.0,
-  12.0,
-  13.2,
-  16.8,
-  18.5
+  1.0,
+  3.0,
+  5.0,
+  6.5,
+  9.5,
+  11.5
  ],
- "start": 0.5,
+ "start": 0.3,
  "hitW": [
-  0.66,
+  0.58,
   0.88
  ],
- "flareT": 12.9,
+ "flareT": 6.45,
  "labelsOutPerf": [
-  8.0,
-  9.4
+  4.2,
+  5.0
  ],
  "labelsOutAct": [
-  11.9,
-  12.7
+  6.0,
+  6.7
  ],
  "cam": {
   "tx": [
@@ -86,27 +81,27 @@
     -0.25
    ],
    [
-    1.4,
+    0.8,
     -0.25
    ],
    [
-    11.75,
+    5.45,
     -0.1
    ],
    [
-    13.05,
+    6.75,
     0.6
    ],
    [
-    14.1,
+    7.7,
     0.6
    ],
    [
-    15.6,
+    8.3,
     -0.2
    ],
    [
-    19.6,
+    10.4,
     -0.2
    ]
   ],
@@ -116,27 +111,27 @@
     1.8
    ],
    [
-    1.4,
+    0.8,
     1.9
    ],
    [
-    11.75,
-    3.5
+    5.45,
+    3.0
    ],
    [
-    13.05,
-    6.2
+    6.75,
+    5.5
    ],
    [
-    14.1,
-    6.3
+    7.7,
+    5.6
    ],
    [
-    15.6,
+    8.3,
     1.05
    ],
    [
-    19.6,
+    10.4,
     1.0
    ]
   ],
@@ -146,27 +141,27 @@
     2.0
    ],
    [
-    1.4,
+    0.8,
     2.1
    ],
    [
-    11.75,
-    3.6
+    5.45,
+    3.2
    ],
    [
-    13.05,
-    4.7
+    6.75,
+    4.2
    ],
    [
-    14.1,
-    4.8
+    7.7,
+    4.3
    ],
    [
-    15.6,
+    8.3,
     1.35
    ],
    [
-    19.6,
+    10.4,
     1.3
    ]
   ],
@@ -176,23 +171,23 @@
     0.35
    ],
    [
-    11.75,
+    5.45,
     0.45
    ],
    [
-    13.05,
+    6.75,
     1.0
    ],
    [
-    14.1,
+    7.7,
     1.0
    ],
    [
-    15.6,
+    8.3,
     0.05
    ],
    [
-    19.6,
+    10.4,
     0.0
    ]
   ],
@@ -202,29 +197,31 @@
     7.5
    ],
    [
-    1.4,
+    0.8,
     7.7
    ],
    [
-    11.75,
-    10.4
+    5.45,
+    9.2
    ],
    [
-    13.05,
+    6.75,
     6.4
    ],
    [
-    14.1,
+    7.7,
     6.0
    ],
    [
-    15.6,
+    8.3,
     6.4
    ],
    [
-    19.6,
+    10.4,
     6.1
    ]
   ]
- }
+ },
+ "T0": 0.62,
+ "r": 0.93
 }
