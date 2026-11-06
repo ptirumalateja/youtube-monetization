@@ -76,6 +76,9 @@ CUT = [
 
 if os.environ.get('AB'):
     from ab_cut import CUT
+if os.environ.get('LAB'):            # Teja 6 Nov: V5 cut, but the DNA beat opens on the Flow tooth-drilling shot
+    C['storm'] = 'v6/pilgrims_storm.mp4'; FLOW.add('storm')
+    CUT = [('storm', 4.10) + tuple(c[2:]) if c[0] == 'pipette' else c for c in CUT]
 if os.environ.get('V6'):
     from v6_cut import CUT, C6, FLOW6
     C.update(C6); FLOW |= FLOW6
