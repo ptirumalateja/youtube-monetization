@@ -1,0 +1,69 @@
+{
+  "duration": 15.0,
+  "fps": 30,
+  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this (overlay and mix through output/meta.json). Each beat: [start, seat, caption lines]; the friend at that seat does their thing and gets their number.",
+  "hookOut": 1.25,
+  "beats": [
+    [
+      1.2,
+      "R1",
+      [
+        "THE ONE WHO'S",
+        "ALWAYS LATE"
+      ]
+    ],
+    [
+      3.1,
+      "L2",
+      [
+        "THE ONE WHO NEEDS",
+        "ONE MORE PHOTO"
+      ]
+    ],
+    [
+      5.0,
+      "R2",
+      [
+        "THE ONE WHO LAUGHS",
+        "AT EVERYTHING"
+      ]
+    ],
+    [
+      6.9,
+      "L1",
+      [
+        "THE ONE WHO",
+        "FALLS ASLEEP"
+      ]
+    ],
+    [
+      8.8,
+      "L0",
+      [
+        "THE ONE WHO",
+        "EATS YOUR FOOD"
+      ]
+    ],
+    [
+      10.7,
+      "R0",
+      [
+        "THE ONE WHO",
+        "NEVER PAYS"
+      ]
+    ]
+  ],
+  "beatLen": 1.9,
+  "endCard": 12.6,
+  "reviewTimes": [
+    0.2,
+    1.9,
+    3.9,
+    5.8,
+    7.6,
+    9.6,
+    11.6,
+    13.5,
+    14.8
+  ]
+}

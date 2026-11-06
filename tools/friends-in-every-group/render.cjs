@@ -1,5 +1,5 @@
 // node render.cjs stills            review stills (TIMES=0.5,2.9 to pick) -> $OUT/still-*.jpg
-// node render.cjs meta              per-frame overlay/sound data + number-tag check -> $OUT/meta.json
+// node render.cjs meta              per-frame overlay/sound data + shot list -> $OUT/meta.json
 // node render.cjs frames WORKER N   render every Nth frame starting at WORKER -> $OUT/frames/f00000.jpg
 // env: W, H (render size, default 1080x1920), SUB (motion-blur sub-frames, default 3), OUT (default ./output)
 const { chromium } = require(process.env.PW || 'playwright');
@@ -30,8 +30,7 @@ const server = http.createServer((req, res) => {
       for (const t of times) { const t0 = Date.now(); await shot(t, path.join(out, `still-${t.toFixed(2).padStart(5, '0')}.jpg`)); console.log('still', t, Date.now() - t0, 'ms'); }
     } else if (mode === 'meta') {
       const meta = await page.evaluate(({ total, fps }) => { const m = []; for (let f = 0; f < total; f++) m.push(window.metaAt(f / fps)); return { frames: m, events: window.events }; }, { total, fps: spec.fps });
-      let prev = 0; meta.frames.forEach((m, f) => { const n = m.tags.filter(g => g.a > 0.5).length; if (n < prev) throw Error(`a number tag disappears at frame ${f}`); prev = n; });
-      console.log('number tags only ever add up: ok; final', prev, 'of 6');
+      const shots = new Set(meta.frames.map(m => m.shot)); console.log('meta ok:', meta.frames.length, 'frames, shots', [...shots].join(' '));
       fs.writeFileSync(path.join(out, 'meta.json'), JSON.stringify(meta));
     } else if (mode === 'frames') {
       const wk = Number(a1 || 0), n = Number(a2 || 1); const t0 = Date.now();

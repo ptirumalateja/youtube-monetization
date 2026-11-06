@@ -1,11 +1,11 @@
-# Friends in Every Group (stickman, Slow Light Dark)
+# Friends in Every Group (warm café, four friends)
 
 | | |
 |---|---|
-| Status | v5 rendered (15.0 s, -15.1 LUFS, -1.1 dBTP after AAC): no whoosh, no gold glow, natural late walk. Waiting for owner review |
+| Status | v6 rendered (14.0 s). A full redo after the owner's v5 review: warm café, four colourful friends, hard cuts, a selfie at both ends. Waiting for owner review |
 | Upload file | `friends-in-every-group.mp4` (master with sound); `friends-in-every-group_music-ready.mp4` (silent: add a trending sound in the IG/FB app) |
-| Length | 15.0 s; end card "WHICH ONE ARE YOU? / COMMENT YOUR NUMBER" from 12.6 s |
-| Voice | None (wordless) |
+| Length | 14.0 s; end card "WHICH ONE ARE YOU? / COMMENT 1-4" from 12.25 s |
+| Voice | None (wordless; captions in English only) |
 | Build | `tools/friends-in-every-group/` |
 
 ## Publish copy
@@ -13,30 +13,28 @@
 **YouTube Shorts title:** Friends in Every Group (Which One Are You?) #shorts
 
 **YouTube description:**
-> Every friend group has these six.
-> 1. The one who's always late
-> 2. The one who needs one more photo
-> 3. The one who laughs at everything
-> 4. The one who falls asleep
-> 5. The one who eats your food
-> 6. The one who never pays
+> Every friend group has these four.
+> 1. The one who's "5 minutes away"
+> 2. The one who says "one last photo"
+> 3. The one who's "not hungry"
+> 4. The one who'll "pay you back later"
 >
-> Which one are you? Comment your number. Then tag your group.
+> Which one are you? Comment 1-4. Then tag the friend who's a 4.
 >
 > A Slow Light short, made in code (three.js, rendered frame by frame). Sound synthesised for this short, plus one CC0 sound from Freesound (sleepCircle).
 >
-> #friends #friendgroup #bestfriends #relatable #stickman #animation #slowlight #shorts
+> #friends #friendgroup #bestfriends #relatable #animation #slowlight #shorts
 
 **Instagram / Facebook caption:**
-> Every group has these 6 😂
-> Which one are you? Comment your number 👇
-> Tag your group.
+> Every group has these 4 😂
+> Which one are you? Comment 1-4 👇
+> Tag the one who still owes you money.
 >
-> #friends #friendgroup #bestfriends #relatable #stickman #reels
+> #friends #friendgroup #bestfriends #relatable #reels
 
-**Pinned comment (post it yourself first):** I'm a 3. Every single time 😂 Which one are you?
+**Pinned comment (post it yourself first):** I'm a 1. "5 minutes away" since 2019 😂 Which one are you?
 
-**Hashtags:** #friends #friendgroup #bestfriends #relatable #stickman #animation #slowlight #shorts
+**Hashtags:** #friends #friendgroup #bestfriends #relatable #animation #slowlight #shorts
 
 **Upload settings:** 9:16, made with AI/synthetic media label on (synthetic scene and synthesised sound), no music claimed on the master. On IG/FB, post the `_music-ready` file with a trending sound added in the app. Sound credit line: not required (synthesised + CC0); optional courtesy line "CC0 room tone by sleepCircle via Freesound."
 

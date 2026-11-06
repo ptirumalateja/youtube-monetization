@@ -1,88 +1,98 @@
-"""Text layer for Friends in Every Group (Slow Light Dark look, shared kit ../slow-light-dark-common/sld_text.py).
+"""Text and UI layer for Friends in Every Group v6 (warm cafe). English only.
 
-Hook "FRIENDS IN EVERY GROUP" big from frame 0; then one caption per friend (two lines) while a numbered tag pops above
-their head (placed through the real camera, render.cjs meta); the tags stay, so the end card shows all six numbered:
-"WHICH ONE ARE YOU?" / "COMMENT YOUR NUMBER".
+- Selfie shots: a phone-camera frame (corner brackets, shutter button), a white flash on the shutter, and the hook
+  "FRIENDS IN / EVERY GROUP" (on from frame 0, punches on the flash).
+- One caption per friend, in their own words, plus their counter: "5 MIN AWAY" ticking to "47 MIN LATE";
+  "PHOTO #1" to "#47" in step with the flashes.
+- Their number pops over their head (placed through the real camera, render.cjs meta); the end selfie shows all four
+  with "WHICH ONE ARE YOU?" / "COMMENT 1-4".
 
   python3 overlay.py still IN.jpg T META.json OUT.jpg     overlay one rendered frame at time T (seconds)
   (compose.py imports draw() for the full video)
 """
-import json, os, sys
+import json, math, os, sys
 from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'slow-light-dark-common'))
 import sld_text
-from sld_text import sstep, font, CREAM
+from sld_text import sstep, font, tracked, CREAM
 
 TL = json.load(open(os.path.join(HERE, 'timeline.json')))
 FPS = TL['fps']
+W, H = 1080, 1920
 RED = (216, 58, 46)
+WHITE = (255, 255, 255)
+SHOT = {name: (t0, (TL['shots'][i + 1][0] if i + 1 < len(TL['shots']) else TL['duration'])) for i, (t0, name) in enumerate(TL['shots'])}
+SEAT_OF = {1: 'LATE', 2: 'PHOTO', 3: 'HUNGRY', 4: 'PAYS'}
 
 
-def blocks(t):
+def flash_k(t, times, decay=9.0):
+    k = 0.0
+    for ft in times:
+        if t >= ft: k = max(k, math.exp(-(t - ft) * decay))
+    return k
+
+
+def blocks(t, m):
     out = []
-    a = 1 - sstep(TL['hookOut'] - 0.2, TL['hookOut'], t)          # on from frame 0, no fade-in
-    out.append((['FRIENDS IN', 'EVERY GROUP'], 76, 12, 230, a))
-    for t0, seat, lines in TL['beats']:
-        b = sstep(t0, t0 + 0.06, t) * (1 - sstep(t0 + TL['beatLen'] - 0.06, t0 + TL['beatLen'], t))   # near-hard swap between friends: no empty gap
-        if b > 0: out.append((lines, 54, 8, 250, b))
-    e = sstep(TL['endCard'], TL['endCard'] + 0.3, t)
-    out.append((['WHICH ONE', 'ARE YOU?'], 76, 12, 230, e))
-    out.append((['COMMENT YOUR NUMBER'], 38, 8, 470, sstep(TL['endCard'] + 0.5, TL['endCard'] + 0.8, t)))
+    in_shot = lambda n: SHOT[n][0] <= t < SHOT[n][1]
+    if in_shot('selfie'):
+        punch = 1 + 0.18 * math.exp(-max(0, t - TL['flash0']) * 12) * (t >= TL['flash0'])
+        out.append((['FRIENDS IN', 'EVERY GROUP'], int(80 * punch), 12, 230, 1.0))
+    for t0, t1, lines in TL['captions']:
+        if t0 <= t < t1:
+            out.append((lines, 52, 7, 210, sstep(t0, t0 + 0.08, t)))
+    if in_shot('late'):
+        L = TL['late']; u = min(1.0, max(0.0, (t - L['min0']) / (L['min1'] - L['min0'])))
+        mins = int(round(5 + 42 * u ** 1.6))
+        out.append(([f'{mins} MIN AWAY' if mins < 47 else '47 MIN LATE'], 66, 10, 380, sstep(L['min0'] - 0.1, L['min0'], t)))
+    if in_shot('photo'):
+        fl = TL['photoFlashes']; k = sum(1 for f in fl if t >= f)
+        if k:
+            n = int(round(1 + 46 * ((k - 1) / (len(fl) - 1)) ** 1.6))
+            out.append(([f'PHOTO #{n}'], 66, 10, 380, 1.0))
+    if t >= TL['endCard']:
+        out.append((['WHICH ONE', 'ARE YOU?'], 80, 12, 210, sstep(TL['endCard'], TL['endCard'] + 0.15, t)))
+        out.append((['COMMENT 1-4'], 46, 10, 420, sstep(TL['endCard'] + 0.4, TL['endCard'] + 0.6, t)))
     return out
 
 
-def tags(img, m, t):
-    """Numbered discs above heads: cream ring, dark fill; the one being named is bigger and red-ringed."""
+def ui(img, m, t):
     base = img.convert('RGBA'); layer = Image.new('RGBA', base.size, (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
-    for g in m['tags']:
-        if g['a'] <= 0: continue
-        r = 34 + 10 * g['active'] + 8 * sstep(TL['endCard'], TL['endCard'] + 0.4, t)
-        x, y = min(max(g['x'], 60), 1020), min(max(g['y'], 560), 1500)
-        al = int(255 * g['a'])
-        ring = tuple(int(CREAM[i] + (RED[i] - CREAM[i]) * g['active']) for i in range(3))
-        d.ellipse((x - r, y - r, x + r, y + r), fill=(10, 11, 14, int(al * 0.82)), outline=ring + (al,), width=5)
-        f = font(int(r * 1.15)); s = str(g['n']); w = d.textlength(s, font=f)
-        d.text((x - w / 2, y - r * 0.78), s, font=f, fill=CREAM + (al,))
+    selfie = m['shot'] in ('selfie', 'selfieEnd')
+    if selfie:   # phone camera frame: corner brackets + shutter button
+        a = 200; L = 90; pad = 60; w = 7
+        for (x, y, sx, sy) in [(pad, 520, 1, 1), (W - pad, 520, -1, 1), (pad, 1640, 1, -1), (W - pad, 1640, -1, -1)]:
+            d.line([(x, y), (x + sx * L, y)], fill=WHITE + (a,), width=w); d.line([(x, y), (x, y + sy * L)], fill=WHITE + (a,), width=w)
+        d.ellipse((W / 2 - 55, 1700 - 55, W / 2 + 55, 1700 + 55), outline=WHITE + (220,), width=8)
+        d.ellipse((W / 2 - 40, 1700 - 40, W / 2 + 40, 1700 + 40), fill=WHITE + (200,))
+    # numbers: the friend being named gets theirs (big, red ring); the end selfie shows all four
+    for n, seat in SEAT_OF.items():
+        h = m['heads'][seat]
+        if not h['on']: continue
+        beat = TL['captions'][n - 1]
+        active = beat[0] <= t < beat[1]
+        show_end = m['shot'] == 'selfieEnd' and t >= TL['endCard'] + 0.15 * n
+        if not (active or show_end): continue
+        t_on = beat[0] + 0.25 if active else TL['endCard'] + 0.15 * n
+        pop = 1 + 0.35 * math.exp(-max(0, t - t_on) * 10)
+        r = (48 if active else 42) * pop
+        # beside the head (upper right), never on the face
+        x = h['x'] + h['r'] * 1.45 + r * 0.6; y = h['y'] - h['r'] * 0.9
+        x, y = min(max(x, 70), W - 70), min(max(y, 520), 1560)
+        d.ellipse((x - r, y - r, x + r, y + r), fill=(18, 12, 10, 225), outline=(RED if active else CREAM) + (255,), width=7)
+        f = font(int(r * 1.15), 'Bold'); s = str(n); tw = d.textlength(s, font=f)
+        d.text((x - tw / 2, y - r * 0.78), s, font=f, fill=CREAM + (255,))
     base.alpha_composite(layer)
-    return base.convert('RGB')
-
-
-BEAT = {seat: t0 for t0, seat, _ in TL['beats']}
-
-
-def bump(t, a, d):
-    x = (t - a) / d
-    return 0.0 if x <= 0 or x >= 1 else __import__('math').sin(__import__('math').pi * x) ** 2
-
-
-def fx(img, m, t):
-    """Cartoon accents: shake lines around the laugher, Z z z drifting up from the sleeper."""
-    import math
-    base = img.convert('RGBA'); layer = Image.new('RGBA', base.size, (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
-    pos = {g['seat']: (g['x'], g['y']) for g in m['tags']}
-    u = t - BEAT['R2']
-    k = max(bump(u, -0.05, 1.45), bump(u, 1.9, 1.2) * 0.6, bump(u, 4.2, 1.1) * 0.45)
-    if k > 0.05 and 'R2' in pos:
-        x, y = pos['R2']; y += 70                       # tag sits 0.3 m above the head
-        for side in (-1, 1):
-            for j, rr in enumerate((62, 84)):
-                a0 = 200 if side < 0 else -20; wob = 6 * math.sin(t * 40 + j)
-                box = (x - rr + wob, y - rr, x + rr + wob, y + rr)
-                d.arc(box, a0 - 22, a0 + 22, fill=CREAM + (int(230 * k),), width=6)
-    u = t - BEAT['L1'] - 0.6
-    if u > 0 and 'L1' in pos:
-        x, y = pos['L1']; y += 60
-        for j in range(3):
-            ph = (u * 0.55 + j / 3) % 1
-            f = font(int(30 + 26 * ph), 'Bold')
-            d.text((x + 30 + 60 * ph, y - 40 - 150 * ph), 'Z', font=f, fill=CREAM + (int(255 * math.sin(math.pi * ph) * min(1, u * 2)),))
-    base.alpha_composite(layer)
+    # the shutter flash: a white frame flash on the selfies, a softer one on the photographer's burst
+    k = max(flash_k(t, [TL['flash0'], TL['flashEnd']]) * 0.75, flash_k(t, TL['photoFlashes'], 14) * 0.3 * (m['shot'] == 'photo'))
+    if k > 0.01:
+        base.alpha_composite(Image.new('RGBA', base.size, WHITE + (int(255 * k),)))
     return base.convert('RGB')
 
 
 def draw(img, t, m):
-    return tags(fx(sld_text.draw(img, blocks(t)), m, t), m, t)
+    return sld_text.draw(ui(img, m, t), blocks(t, m))
 
 
 if __name__ == '__main__':

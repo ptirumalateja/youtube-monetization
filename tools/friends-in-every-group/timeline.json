@@ -1,69 +1,22 @@
 {
-  "duration": 15.0,
+  "duration": 14.0,
   "fps": 30,
-  "_comment": "All times in seconds. scene.js, overlay.py and mix.py read this (overlay and mix through output/meta.json). Each beat: [start, seat, caption lines]; the friend at that seat does their thing and gets their number.",
-  "hookOut": 1.25,
-  "beats": [
-    [
-      1.2,
-      "R1",
-      [
-        "THE ONE WHO'S",
-        "ALWAYS LATE"
-      ]
-    ],
-    [
-      3.1,
-      "L2",
-      [
-        "THE ONE WHO NEEDS",
-        "ONE MORE PHOTO"
-      ]
-    ],
-    [
-      5.0,
-      "R2",
-      [
-        "THE ONE WHO LAUGHS",
-        "AT EVERYTHING"
-      ]
-    ],
-    [
-      6.9,
-      "L1",
-      [
-        "THE ONE WHO",
-        "FALLS ASLEEP"
-      ]
-    ],
-    [
-      8.8,
-      "L0",
-      [
-        "THE ONE WHO",
-        "EATS YOUR FOOD"
-      ]
-    ],
-    [
-      10.7,
-      "R0",
-      [
-        "THE ONE WHO",
-        "NEVER PAYS"
-      ]
-    ]
+  "_comment": "v6 (warm cafe, four friends). All times in seconds; scene.js, overlay.py and mix.py read this. shots: hard cuts [start, name]. Sound effects are placed on the action times below, so picture and sound land together.",
+  "shots": [[0.0, "selfie"], [1.5, "late"], [4.1, "photo"], [6.7, "hungry"], [9.3, "pays"], [11.9, "selfieEnd"]],
+  "flash0": 0.45,
+  "late": {"min0": 1.65, "min1": 3.0, "door": 2.35, "inFrame": 2.45, "sit0": 3.15, "sit1": 3.55, "wave": 3.6},
+  "photoFlashes": [4.35, 4.75, 5.08, 5.35, 5.57, 5.75, 5.9, 6.02, 6.12],
+  "photoCount": [4.35, 6.12],
+  "oneMore": 6.25,
+  "hungry": {"no0": 6.8, "no1": 7.4, "grabs": [7.55, 8.05, 8.55], "toMouth": 0.3},
+  "pays": {"billLand": 9.5, "ring": 9.85, "stand0": 10.2, "stand1": 10.6, "walk1": 11.7},
+  "flashEnd": 12.15,
+  "endCard": 12.25,
+  "captions": [
+    [1.5, 4.1, ["THE ONE WHO'S", "\"5 MINUTES AWAY\""]],
+    [4.1, 6.7, ["THE ONE WHO SAYS", "\"ONE LAST PHOTO\""]],
+    [6.7, 9.3, ["THE ONE WHO'S", "\"NOT HUNGRY\""]],
+    [9.3, 11.9, ["THE ONE WHO'LL", "\"PAY YOU BACK LATER\""]]
   ],
-  "beatLen": 1.9,
-  "endCard": 12.6,
-  "reviewTimes": [
-    0.2,
-    1.9,
-    3.9,
-    5.8,
-    7.6,
-    9.6,
-    11.6,
-    13.5,
-    14.8
-  ]
+  "reviewTimes": [0.1, 0.5, 1.2, 2.0, 2.8, 3.5, 4.6, 5.8, 6.9, 7.8, 8.6, 9.6, 10.4, 11.2, 12.4, 13.8]
 }
