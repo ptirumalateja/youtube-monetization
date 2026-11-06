@@ -1,7 +1,7 @@
 # Build It As You Climb (Slow Light Dark)
 
-Remake of the neuronvisuals "Perfectionist vs Action Taker" ladder reel (Teja, 6 Nov 2026). 13 s, 1080x1920, 30 fps.
-Same composition as the reference (two lanes, the ladder grows as he climbs into a light at the top, the perfectionist
+Remake of the neuronvisuals "Perfectionist vs Action Taker" ladder reel (Teja, 6 Nov 2026). 19.6 s, 1080x1920, 30 fps.
+V2: from the ground up. The perfectionist measures his rung with a tape; the action taker nails planks to the rails with a hammer, 15 rungs, two blows each. Same composition as the reference (two lanes, ladder grows as he climbs into a light, the perfectionist is left with one perfect rung), rebuilt in the 30 Friends dark-warm look:
 is left with one perfect rung), rebuilt in the 30 Friends dark-warm look: gold hatch and beam, ember glints on every
 lashing, a plank bundle on his back that runs out at the top, rung counters, his look up at the light, a seamless loop.
 
@@ -14,5 +14,4 @@ lashing, a plank bundle on his back that runs out at the top, rung counters, his
 
 - `scene.js`: the scene. Timing lives in `timeline.json` (cycle, buildFrac, pStand/pPlace/pSit, camera keys in CK).
 - `overlay.py`: lane labels + RUNGS counters riding over the lanes, then BUILD IT AS YOU CLIMB., then PERFECTIONIST / RUNGS 01.
-- `mix.py`: no music. Wood knocks, rope squeaks, footfalls, sanding, a CC0 riser-hit through the hatch, one click.
-  ElevenLabs SFX was tried first but the account had a failed payment on 6 Nov, so the foley is the series kit.
+- `mix.py`: no music. All foley from the ElevenLabs sound-effects API (`sfx/gen.sh`), peaks aligned to hammer blows, tape locks, steps; CC0 riser-hit through the hatch.

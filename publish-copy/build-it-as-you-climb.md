@@ -2,15 +2,15 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 6 Nov 2026, awaiting Teja's review |
-| Upload file | `final-reels/build-as-you-climb/build-as-you-climb.mp4` (silent for platform music: `build-as-you-climb_music-ready.mp4`) |
-| Length | 13 s, 9:16, 1080x1920, seamless loop |
+| Status | v2 delivered 6 Nov 2026 (measuring tape + hammer-and-nail build, ElevenLabs foley), awaiting Teja's review; v1 superseded |
+| Upload file | `final-reels/build-as-you-climb/build-as-you-climb_v2.mp4` (silent for platform music: `_v2_music-ready.mp4`) |
+| Length | 19.6 s, 9:16, 1080x1920, seamless loop |
 | Look | Slow Light Dark (30 Friends look): two cream stickmen, gold light hatch, warm beam, motes |
-| Sound | No music, no voice. Wood knocks, rope squeaks, footsteps, sanding, a riser-hit through the light, one click |
+| Sound | No music, no voice. ElevenLabs sound-effects foley cut to picture: hammer blows, tape measure, sanding, plank pulls, footsteps, a light swell, one click |
 | Renderer | `tools/climb` on branch `claude/project-thread-xwz8zt` |
 
 ## Version notes
-- Remake of a proven quote-animation format (perfectionist vs action taker, "build it as you climb"). Composition and premise are kept. Our additions are the gold light hatch, ember glints on each lashing, a plank bundle that runs out exactly at the top, RUNGS counters (15 vs 01), the perfectionist looking up at the light before he sits, and the loop.
+- Remake of a proven quote-animation format (perfectionist vs action taker, "build it as you climb"). Composition and premise are kept. Our additions are the gold light hatch, ember glints on each lashing, a plank bundle that runs out exactly at the top, RUNGS counters (15 vs 01), a tape measure and a hammer, the perfectionist looking up at the light before he sits, and the loop.
 - People search for: "perfectionism", "stop overthinking and start", "action over perfection", "done is better than perfect", "motivation animation", "stickman motivation".
 - The CTA is a self-label ("which one are you?") so every caption ends on a one-word comment: CLIMBING or SANDING.
 - For IG, Teja can add a trending sound in-app on top of the silent file (the reference used a music bed). For FB and YouTube, post the mixed master.

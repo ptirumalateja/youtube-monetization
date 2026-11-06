@@ -21,10 +21,9 @@ GOLD = (255, 196, 110)
 def draw(img, t, m):
     img = sld_text.draw(img, [])
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
-    a0, a1 = TL['labelsOut']
-    la = 1 - sstep(a0, a1, t)
-    if la > 0:
-        for key, name, n, col in (('perf', 'PERFECTIONIST', m['prung'], CREAM), ('act', 'ACTION TAKER', m['rungs'], CREAM)):
+    for key, name, n, col, (a0, a1) in (('perf', 'PERFECTIONIST', m['prung'], CREAM, TL['labelsOutPerf']), ('act', 'ACTION TAKER', m['rungs'], CREAM, TL['labelsOutAct'])):
+        la = 1 - sstep(a0, a1, t)
+        if la > 0:
             x = min(max(m['lane'][key][0] * W, 210), W - 210)
             tracked(d, name, font(38), x, 232, 5, col + (int(255 * la),))
             tracked(d, f'RUNGS {n:02d}', font(28, 'Medium'), x, 288, 6, GOLD + (int(220 * la),))
