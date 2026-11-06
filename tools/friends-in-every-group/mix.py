@@ -121,8 +121,9 @@ place(bus['fol'], chair(210), t1 + 0.6, 0.22, 0.35)
 def shutter(seed):
     n = int(0.12 * SR); t = np.arange(n) / SR
     c = hp(noise(n), 2500) * (env(n, 0.0003, 0.004) + 0.7 * np.exp(-((t - 0.045) / 0.004) ** 2))
-    return c + np.sin(2 * np.pi * 900 * t) * np.exp(-t / 0.01) * 0.3
-place(bus['fol'], shutter(300), BEAT['L2'][0] + 0.72, 0.3, PAN['L2'])
+    return lp(c + np.sin(2 * np.pi * 900 * t) * np.exp(-t / 0.01) * 0.3, 8000) * np.minimum(1, t / 0.0015)   # soft-edged: the raw click read -0.8 dBTP after AAC
+for dt in (0.75, 1.35):   # two flashes: 'one more'
+    place(bus['fol'], shutter(300 + int(dt * 10)), BEAT['L2'][0] + dt, 0.22, PAN['L2'])
 
 # the big laugh: a burst of "ha"s from the laugher (reuses the voice laugh model)
 r = np.random.default_rng(400); n = int(1.6 * SR); t = np.arange(n) / SR
