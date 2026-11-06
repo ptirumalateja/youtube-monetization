@@ -76,6 +76,9 @@ CUT = [
 
 if os.environ.get('AB'):
     from ab_cut import CUT
+if os.environ.get('V6'):
+    from v6_cut import CUT, C6, FLOW6
+    C.update(C6); FLOW |= FLOW6
 
 if os.environ.get('CUTMOD'):
     import importlib.util as _u; _sp = _u.spec_from_file_location('cm', os.environ['CUTMOD']); _m = _u.module_from_spec(_sp); _sp.loader.exec_module(_m)
