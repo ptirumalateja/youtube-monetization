@@ -121,12 +121,12 @@ function act(st,t){
       { const w=Math.max(t<sat?0.9:0,bump(t,sat-0.2,1.1)); P.tL=(t<sat?root.clone().add(V(-0.12,1.55,0.25)):seatPt(st,0.1,1.48,0.2*st.s)).add(V(0,0.04*Math.sin(t*18),0)); P.wL=w; P.pL=V(0,-0.3,1); }   // 'sorry sorry' hand up
       break; }
     case 'L2': {   // the photographer: phone up high, "one more", flash
-      const up=sstep(-0.15,0.25,u)*(1-sstep(1.15,1.5,u));
+      const up=sstep(-0.15,0.3,u)*(1-sstep(1.65,2.0,u));
       P.tR=P.tR.clone().lerp(seatPt(st,0.18,1.72,-0.12),up); P.p+=0.12*up; P.tilt-=0.35*up; P.hy=lerp(P.hy,0,up);
       P.tL=P.tL.clone().lerp(seatPt(st,0.45,1.35,0.18+0.09*Math.sin(t*16)),up); P.wL=1;   // 'wait wait': the free hand waves the others in
       break; }
     case 'R2': {   // laughs at everything: rocks back, bounces, slaps the table
-      const k=Math.max(bump(u,-0.05,1.45),bump(u,1.9,1.2)*0.6,bump(u,4.2,1.1)*0.45,bump(u,6.4,1.0)*0.4);
+      const k=Math.max(bump(u,-0.05,2.0),bump(u,2.6,1.3)*0.6,bump(u,5.4,1.2)*0.45,bump(u,8.2,1.1)*0.4);
       P.p+=-0.38*k+0.07*k*Math.sin(t*30); P.tilt+=-0.75*k; P.hy*=(1-k);   // head thrown right back
       P.tR=P.tR.clone().lerp(seatPt(st,0.38,TOP+0.03+0.13*Math.abs(Math.sin(t*11)),-0.08*st.s),k);
       break; }
@@ -136,11 +136,11 @@ function act(st,t){
       P.tR=P.tR.clone().lerp(seatPt(st,0.36,TOP+0.05,-0.08*st.s),sl); P.tL=P.tL.clone().lerp(seatPt(st,-0.02,0.3,0.26*st.s),sl);   // one arm dangling off the side
       break; }
     case 'L0': {   // eats your food: reaches over to the sleeper's plate twice
-      const g1=bump(u,0.05,0.75), g2=bump(u,0.75,0.6), grab=Math.max(g1,g2);
+      const g1=bump(u,0.05,0.8), g2=bump(u,0.85,0.65), g3=bump(u,1.45,0.5), grab=Math.max(g1,g2,g3);
       const plate=V(-0.24,TOP+0.06,ZS[1]+0.1), mouth=seatPt(st,0.06,1.28,0);
       const reach=Math.min(1,grab*1.5);
       P.tR=P.tR.clone().lerp(plate,reach); P.p+=0.2*reach; P.hy=lerp(P.hy,0.4,reach); P.ty=lerp(P.ty,-0.25,reach);
-      const eat=bump(u,0.55,0.4)+bump(u,1.2,0.45)+bump(u,2.0,0.4)*0.5;
+      const eat=bump(u,0.55,0.4)+bump(u,1.3,0.45)+bump(u,1.85,0.4)+bump(u,2.6,0.4)*0.5;
       P.tR=P.tR.clone().lerp(mouth,Math.min(1,eat)); P.tilt+=-0.12*eat;
       break; }
     case 'R0': {   // never pays: pushes the red bill across to the sleeper, leans back, hands behind his head
@@ -155,12 +155,18 @@ function act(st,t){
 }
 
 // ---------------------------------------------------------------- camera: near end of the table, raised, a little right; slow push in, pull back for the end card
+const BEAT_SEAT_POS=Object.fromEntries(TL.beats.map(([t0,seat])=>[seat,V(seat[0]==='L'?-0.72:(seat==='R2'?1.0:0.72),1.0,ZS[+seat[1]])]));   // the laugher throws his head out to the right
 function camAt(t){
   const push=sm5(clamp(t/TL.endCard)), back=sstep(TL.endCard,TL.endCard+1.2,t);
+  // glide in toward whoever is being named (bigger faces, clearer actions), back out to the whole table for the end card
+  let fx=0, fy=0, fz=0, wsum=0;
+  for(const [t0,seat] of TL.beats){ const w=sstep(t0-0.25,t0+0.45,t)*(1-sstep(t0+TL.beatLen-0.3,t0+TL.beatLen+0.4,t)); const p=BEAT_SEAT_POS[seat]; fx+=p.x*w; fy+=p.y*w; fz+=p.z*w; wsum+=w; }
+  const wz=Math.min(1,wsum), foc=wsum>0?V(fx/wsum,fy/wsum,fz/wsum):V(0,1,-1.2);
   const tg=V(0.2,lerp(1.0,1.05,push),lerp(-1.2,-1.15,push));   // shifted so the right-hand seats (late one, laugher) never clip
   const dist=lerp(6.6,6.2,push)+0.4*back, az=lerp(0.1,0.06,push), el=lerp(0.95,0.9,push)+0.03*back;   // high: the table runs up the frame
+  const tg2=tg.clone().lerp(foc,0.5*wz), dist2=dist-1.7*wz;
   const dir=V(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el));
-  return {pos:tg.clone().addScaledVector(dir,dist),tg};
+  return {pos:tg2.clone().addScaledVector(dir,dist2),tg:tg2};
 }
 
 // ---------------------------------------------------------------- the ki aura (owner request): gold flames rise off whoever is being named
@@ -211,13 +217,13 @@ function setT(t){
   }
   // phone: in the photographer's right hand, screen toward the table
   const ph=SEATS.L2.fig.joints[11].position; phone.position.copy(ph).add(V(0.03,0.06,0)); phone.rotation.set(0,-Math.PI/2,0.2);
-  const u2=t-BEAT.L2.t0, f=Math.exp(-Math.max(0,u2-0.72)*14)*(u2>0.72?1:0);
+  const u2=t-BEAT.L2.t0, f=Math.max(u2>0.75?Math.exp(-(u2-0.75)*14):0,u2>1.35?Math.exp(-(u2-1.35)*14):0);   // two flashes: 'one more'
   flash.position.copy(phone.position).add(V(0.05,0,0)); flash.scale.setScalar(0.6); flash.material.opacity=0.9*f; flashLight.position.copy(flash.position); flashLight.intensity=6*f;
   // the bill: in front of R0, slid across to the sleeper
   const u6=t-BEAT.R0.t0, sl=sm5(sstep(0.15,0.6,u6));
   bill.position.set(lerp(0.3,-0.2,sl),TOP+0.008,lerp(ZS[0]-0.02,ZS[1]+0.12,sl)); bill.rotation.y=lerp(0.2,-0.5,sl);
   // the stolen fry rides in the thief's hand between plate and mouth
-  const u5=t-BEAT.L0.t0, carry=(u5>0.35&&u5<0.75)||(u5>1.0&&u5<1.4);
+  const u5=t-BEAT.L0.t0, carry=(u5>0.35&&u5<0.75)||(u5>1.1&&u5<1.5)||(u5>1.65&&u5<1.95);
   heldFry.visible=carry; heldFry.position.copy(SEATS.L0.fig.joints[11].position).add(V(0.02,0.02,0)); heldFry.rotation.set(0.6,0.3,0);
   updateAura(t);
   const c=camAt(t); S.cam.position.copy(c.pos); S.cam.lookAt(c.tg);

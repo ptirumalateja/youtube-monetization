@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | v2 rendering (Meta AI notes: faces, gold glow on the named friend, others watch, stronger acting) |
+| Status | v4: 15.0 s, six beats of 1.9 s, camera glides in on each friend; rendering |
 | Upload file | `friends-in-every-group.mp4` (master with sound); `friends-in-every-group_music-ready.mp4` (silent: add a trending sound in the IG/FB app) |
-| Length | 12.0 s; end card "WHICH ONE ARE YOU? / COMMENT YOUR NUMBER" from 8.9 s |
+| Length | 15.0 s; end card "WHICH ONE ARE YOU? / COMMENT YOUR NUMBER" from 12.6 s |
 | Voice | None (wordless) |
 | Build | `tools/friends-in-every-group/` |
 

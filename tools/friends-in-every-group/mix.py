@@ -148,7 +148,7 @@ def crunch(seed):
         a = int(r.random() * 0.25 * SR); m = int(0.012 * SR)
         y[a:a + m] += bp(r.standard_normal(m), 2400 + 1500 * r.random(), 1.0) * np.exp(-np.arange(m) / (0.004 * SR))
     return y
-for dt in (0.62, 1.28):
+for dt in (0.62, 1.38, 1.92):
     place(bus['fol'], crunch(600 + int(dt * 10)), BEAT['L0'][0] + dt, 0.3, PAN['L0'])
 
 n = int(0.55 * SR); ts = np.arange(n) / SR
