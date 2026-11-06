@@ -8,6 +8,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 
 | Reel | Status | Upload file |
 |---|---|---|
+| [The Door They Never Opened (Padmanabhaswamy Vault B)](vault-b-the-door.md) | Final (v4, Viraj VO), Teja said solid 6 Nov 2026 | `final-reels/vault-b-v4/vault-b-v4.mp4` |
 | [You Will Die Inside This Bubble (heliosphere + Voyager 1)](you-will-die-inside-this-bubble.md) | Final (v20), approved 4 Nov 2026; post by ~15 Nov | `final-reels/heliosphere-v20/slowlight_heliosphere_v20.mp4` |
 | [16 Sunrises a Day (ISS free fall)](iss-16-sunrises.md) | Delivered, awaiting Teja's review | `iss_16_sunrises_v1.mp4` (project files root) / `final-reels/iss-16-sunrises.mp4` on the Mac |
 | [Born From Static (how AI art is made)](born-from-static.md) | Final (v1), awaiting Teja's review | `final-reels/born-from-static_master.mp4` (share: `born-from-static.mp4`; silent: `_music-ready.mp4`) |
