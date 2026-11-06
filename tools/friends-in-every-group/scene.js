@@ -115,8 +115,8 @@ function act(st,t){
   switch(st.id){
     case 'R1': {   // the late one: walks in from the dark, sits down as his caption lands
       const arrive=b.t0+0.55, sat=b.t0+1.05;
-      if(t<sat){ const x=lerp(2.9,1.12,clamp(t/arrive)); const standRoot=V(x,0,st.z);
-        let Q=R.gait({...STANDP,p:0.22},(2.9-x)/1.1*Math.PI*2,1.25*(1-sstep(arrive-0.2,arrive,t)));   // hurrying in
+      if(t<sat){ const x=lerp(2.2,1.12,clamp(t/arrive)); const standRoot=V(x,0,st.z);   // in frame from frame 0
+        let Q=R.gait({...STANDP,p:0.22},(2.2-x)/1.1*Math.PI*2,1.25*(1-sstep(arrive-0.2,arrive,t)));   // hurrying in
         const sit=sstep(arrive,sat,t); P=R.blend(Q,P,sit); root=standRoot.lerp(st.root,sit); }
       { const w=Math.max(t<sat?0.9:0,bump(t,sat-0.2,1.1)); P.tL=(t<sat?root.clone().add(V(-0.12,1.55,0.25)):seatPt(st,0.1,1.48,0.2*st.s)).add(V(0,0.04*Math.sin(t*18),0)); P.wL=w; P.pL=V(0,-0.3,1); }   // 'sorry sorry' hand up
       break; }
@@ -132,7 +132,7 @@ function act(st,t){
       break; }
     case 'L1': {   // falls asleep: slumps onto folded arms and stays there
       const sl=sm5(sstep(0.0,0.55,u)), br=0.012*Math.sin(t*2.2);
-      P.p=lerp(P.p,1.28+br,sl); P.tilt=lerp(P.tilt,0.45,sl); P.hy=lerp(P.hy,0.35,sl); P.ty=lerp(P.ty,0,sl);   // head down on the table
+      P.p=lerp(P.p,0.86+br,sl); P.tilt=lerp(P.tilt,0.55,sl); P.hy=lerp(P.hy,0.35,sl); P.ty=lerp(P.ty,0,sl);   // head down on the table
       P.tR=P.tR.clone().lerp(seatPt(st,0.36,TOP+0.05,-0.08*st.s),sl); P.tL=P.tL.clone().lerp(seatPt(st,-0.02,0.3,0.26*st.s),sl);   // one arm dangling off the side
       break; }
     case 'L0': {   // eats your food: reaches over to the sleeper's plate twice
@@ -157,8 +157,8 @@ function act(st,t){
 // ---------------------------------------------------------------- camera: near end of the table, raised, a little right; slow push in, pull back for the end card
 function camAt(t){
   const push=sm5(clamp(t/TL.endCard)), back=sstep(TL.endCard,TL.endCard+1.2,t);
-  const tg=V(0.1,lerp(1.0,1.05,push),lerp(-1.2,-1.15,push));
-  const dist=lerp(6.3,5.9,push)+0.4*back, az=lerp(0.1,0.06,push), el=lerp(0.95,0.9,push)+0.03*back;   // high: the table runs up the frame
+  const tg=V(0.2,lerp(1.0,1.05,push),lerp(-1.2,-1.15,push));   // shifted so the right-hand seats (late one, laugher) never clip
+  const dist=lerp(6.6,6.2,push)+0.4*back, az=lerp(0.1,0.06,push), el=lerp(0.95,0.9,push)+0.03*back;   // high: the table runs up the frame
   const dir=V(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el));
   return {pos:tg.clone().addScaledVector(dir,dist),tg};
 }
@@ -174,7 +174,7 @@ const auraMat=new THREE.ShaderMaterial({uniforms:{uH:{value:H}},transparent:true
 const aura=new THREE.Points(auraGeo,auraMat); aura.frustumCulled=false; aura.renderOrder=6; S.scene.add(aura); S.NOREFL.push(aura);
 const auraGlow=SLD.glowSprite(S.scene,0xffc860,0); S.NOREFL.push(auraGlow);
 const auraLight=new THREE.PointLight(0xffc860,0,2.2,2); S.scene.add(auraLight);
-const auraK=(st,t)=>{ const t0=BEAT[st.id].t0+(st.id==='R1'?0.55:0); return sstep(t0-0.02,t0+0.12,t)*(1-sstep(BEAT[st.id].t0+TL.beatLen-0.2,BEAT[st.id].t0+TL.beatLen+0.05,t)); };
+const auraK=(st,t)=>{ const t0=BEAT[st.id].t0; return sstep(t0-0.02,t0+0.12,t)*(1-sstep(BEAT[st.id].t0+TL.beatLen-0.2,BEAT[st.id].t0+TL.beatLen+0.05,t)); };
 function updateAura(t){
   let st=null, k=0; for(const s of Object.values(SEATS)){ const v=auraK(s,t); if(v>k){ k=v; st=s; } }
   if(!st||k<0.003){ aura.visible=false; auraGlow.material.opacity=0; auraLight.intensity=0; return; }
@@ -185,10 +185,10 @@ function updateAura(t){
     const ph=(t*(2.6+1.8*b)+c)%1;                                   // each flame licks upward fast and dies, then starts again
     const ang=d*6.283, r=(0.06+0.06*e)*(1-0.5*ph);                   // hugs the body, narrows as it rises (flame shape)
     auraPos[i*3]=base.x+Math.cos(ang)*r; auraPos[i*3+1]=base.y-0.02+ph*(0.3+0.25*e); auraPos[i*3+2]=base.z+Math.sin(ang)*r;
-    auraA[i]=k*0.3*Math.pow(Math.sin(Math.PI*ph),1.5)*(0.6+0.4*Math.sin(t*41+i)); }
+    auraA[i]=k*0.14*Math.pow(Math.sin(Math.PI*ph),1.5)*(0.6+0.4*Math.sin(t*41+i)); }
   auraGeo.attributes.position.needsUpdate=true; auraGeo.attributes.alpha.needsUpdate=true;
-  const hip=st.fig.joints[12].position; auraGlow.position.copy(hip).add(V(0,0.35,0)); auraGlow.scale.set(1.3,1.9,1); auraGlow.material.opacity=0.32*k*(0.9+0.1*Math.sin(t*23));
-  auraLight.position.copy(hip).add(V(0,0.5,0)); auraLight.intensity=2.2*k*(0.9+0.1*Math.sin(t*19));
+  const hip=st.fig.joints[12].position; auraGlow.position.copy(hip).add(V(0,0.35,0)); auraGlow.scale.set(1.3,1.9,1); auraGlow.material.opacity=0.14*k*(0.9+0.1*Math.sin(t*23));
+  auraLight.position.copy(hip).add(V(0,0.5,0)); auraLight.intensity=1.0*k*(0.9+0.1*Math.sin(t*19));
 }
 
 // ---------------------------------------------------------------- one frame
@@ -198,12 +198,16 @@ function setT(t){
     const {P,root}=act(st,t); R.poseFig(st.fig,R.skel(P,root,st.yaw));
     { const hd=P.p+P.tilt, fl=SLD.rotY(SLD.rotY(V(Math.cos(hd),-Math.sin(hd),0),P.hy),P.ty), ul=SLD.rotY(SLD.rotY(V(Math.sin(hd),Math.cos(hd),0),P.hy),P.ty);
       const h=st.fig.head.position, toCam=S.cam.position.clone().sub(h).normalize();
-      const fw=SLD.rotY(fl,st.yaw).lerp(toCam,0.65).normalize(), uw=SLD.rotY(ul,st.yaw);   // cartoon cheat: faces turn toward the camera so every expression reads
-      st.face3.position.copy(h).addScaledVector(fw,0.132); st.face3.up.copy(uw); st.face3.lookAt(h.clone().addScaledVector(fw,1)); st.face3.material=FACES[faceKind(st,t)]; }
+      // cartoon cheat, sideways only: faces swing toward the camera around the vertical axis but keep the head's own up/down
+      // angle (cheating the pitch too made every face look up at the high camera)
+      const fT=SLD.rotY(fl,st.yaw), hz=V(fT.x,0,fT.z), hl=hz.length(), tc=V(toCam.x,0,toCam.z).normalize();
+      hz.normalize().lerp(tc,0.55).normalize().multiplyScalar(hl);
+      const fw=V(hz.x,fT.y,hz.z).normalize(), uw=SLD.rotY(ul,st.yaw);
+      st.face3.position.copy(h).addScaledVector(fw,0.132); st.face3.up.copy(uw); st.face3.lookAt(h.clone().addScaledVector(fw,1)); st.face3.material=FACES[faceKind(st,t)]; st.face3.visible=!(st.id==='L1'&&t>BEAT.L1.t0+0.45); }   // face-down sleeper: the Z z z tells it
     // spotlight: the one being named stays bright cream, the other five sink toward slate (owner: highlight the selected one)
     let mine=auraK(st,t), any=0; for(const o of Object.values(SEATS)) any=Math.max(any,auraK(o,t));
     const dim=0.75*Math.max(0,any-mine);
-    st.fig.mat.color.copy(CREAM_C).lerp(SLATE_C,dim); st.fig.mat.emissive.copy(st.fig.mat.color).lerp(GOLD_C,mine); st.fig.mat.emissiveIntensity=0.07*(1-dim)+0.5*mine;   // the named one glows gold head to toe
+    st.fig.mat.color.copy(CREAM_C).lerp(SLATE_C,dim); st.fig.mat.emissive.copy(st.fig.mat.color).lerp(GOLD_C,mine); st.fig.mat.emissiveIntensity=0.07*(1-dim)+0.26*mine;   // the named one glows gold head to toe
   }
   // phone: in the photographer's right hand, screen toward the table
   const ph=SEATS.L2.fig.joints[11].position; phone.position.copy(ph).add(V(0.03,0.06,0)); phone.rotation.set(0,-Math.PI/2,0.2);
@@ -223,10 +227,12 @@ function setT(t){
 // ---------------------------------------------------------------- overlay / sound data: each friend's number sits above their head
 const v3=new THREE.Vector3();
 window.metaAt=t=>{ setT(t); S.cam.updateMatrixWorld(); const tags=[];
-  for(const st of Object.values(SEATS)){ const b=BEAT[st.id]; const a=sstep(b.t0+0.1,b.t0+0.35,t)*(st.id==='R1'?sstep(b.t0+0.4,b.t0+0.7,t):1);
+  for(const st of Object.values(SEATS)){ const b=BEAT[st.id]; const a=sstep(b.t0+0.1,b.t0+0.35,t)*1;
     v3.copy(st.fig.head.position).add(V(0,0.3,0)).project(S.cam);
     tags.push({seat:st.id,n:b.k+1,x:(v3.x*0.5+0.5)*1080,y:(0.5-v3.y*0.5)*1920,a,active:bump(t,b.t0,TL.beatLen)}); }
   return {tags}; };
 window.events={...TL};
 window.renderAt=(t,K=3)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
 window.ready=true;
+
+
