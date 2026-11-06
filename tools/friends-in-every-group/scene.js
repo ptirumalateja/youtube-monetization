@@ -35,10 +35,11 @@ function wallTex(){ const c=document.createElement('canvas'); c.width=1024; c.he
   wall.position.set(0,2.0,-1.25); wall.receiveShadow=true; S.scene.add(wall);
   const glow=new THREE.Mesh(wallGeo,new THREE.MeshBasicMaterial({map:wall.material.map,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false}));
   glow.position.set(0,2.0,-1.24); S.scene.add(glow); }
-// pendant bulbs over the table
+// pendant bulbs over the table (setT dims one when a standing head passes right under it, else the face burns out)
+const PENDANTS=[];
 for(const x of [-1.1,0,1.1]){ const b=new THREE.Mesh(new THREE.SphereGeometry(0.06,20,12),new THREE.MeshBasicMaterial({color:0xffe1a8})); b.position.set(x,2.35,-0.1); S.scene.add(b);
   const cord=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,1.6),new THREE.MeshBasicMaterial({color:0x111111})); cord.position.set(x,3.15,-0.1); S.scene.add(cord);
-  const pl=new THREE.PointLight(0xffc98a,0.9,3.2,2); pl.position.set(x,2.25,-0.1); S.scene.add(pl); SLD.glowSprite(S.scene,0xffc98a,0.35).position.set(x,2.35,-0.1); }
+  const pl=new THREE.PointLight(0xffc98a,0.9,3.2,2); pl.position.set(x,2.25,-0.1); S.scene.add(pl); PENDANTS.push(pl); SLD.glowSprite(S.scene,0xffc98a,0.35).position.set(x,2.35,-0.1); }
 
 // ---------------------------------------------------------------- wood, bench, table, door, plates, glasses
 function woodTex(seed,base){ const c=document.createElement('canvas'); c.width=1024; c.height=256; const g=c.getContext('2d'); const Rn=rng(seed);
@@ -200,6 +201,7 @@ function camFor(sh,t){ const u=clamp((t-sh.t0)/(sh.t1-sh.t0));
   const pos=C[0].clone(), tg=C[1].clone(); let fov=C[2];
   if(sh.name.startsWith('selfie')){ pos.add(V(0.02*Math.sin(t*3.1),0.015*Math.sin(t*2.3),-0.12*u)); fov-=4*u; }   // handheld, a tiny push
   else pos.addScaledVector(tg.clone().sub(pos).normalize(),0.35*sm5(u));                                      // slow push in
+  if(sh.name==='late'){ const w=sstep(TL.late.sit0-0.35,TL.late.sit1,t); pos.x-=0.6*w; tg.x-=0.6*w; }            // follow him to his seat
   if(sh.name==='pays'){ const w=sstep(TL.pays.stand1,TL.pays.walk1,t); pos.x-=0.9*w; tg.x-=0.9*w; }                 // pan with him as he walks out
   return {pos,tg,fov}; }
 
@@ -214,6 +216,8 @@ function setT(t){
     const h=f.fig.head.position, fw=SLD.rotY(fl,yaw).normalize(), uw=SLD.rotY(ul,yaw).normalize();
     f.face.position.copy(h).addScaledVector(fw,0.132); f.face.up.copy(uw); f.face.lookAt(h.clone().addScaledVector(fw,1)); f.face.material=FACES[o.face];
     f.prop.position.copy(h); f.prop.up.copy(uw); f.prop.lookAt(h.clone().addScaledVector(fw,1)); }
+  for(const pl of PENDANTS){ let d=9; for(const f of Object.values(F)) if(out[f.id].vis) d=Math.min(d,f.fig.head.position.distanceTo(pl.position));
+    pl.intensity=0.9*clamp((d-0.35)/0.5,0.35,1); }
   // phones
   const hand=(id,side)=>F[id].fig.joints[side==='R'?11:10].position;
   PHONES.PHOTO.visible=true; PHONES.PHOTO.position.copy(hand('PHOTO','R')).add(V(0,0.13,0.02)); PHONES.PHOTO.lookAt(S.cam.position.clone().setY(PHONES.PHOTO.position.y)); PHONES.PHOTO.rotateY(Math.PI);

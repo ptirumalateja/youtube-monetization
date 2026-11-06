@@ -53,7 +53,7 @@ def blocks(t, m):
             out.append(([f'PHOTO #{n}'], 66, 10, 380, 1.0))
     if t >= TL['endCard']:
         out.append((['WHICH ONE', 'ARE YOU?'], 80, 12, 210, sstep(TL['endCard'], TL['endCard'] + 0.15, t)))
-        out.append((['COMMENT 1-4'], 46, 10, 420, sstep(TL['endCard'] + 0.4, TL['endCard'] + 0.6, t)))
+        out.append((['COMMENT 1-4'], 50, 10, 460, sstep(TL['endCard'] + 0.4, TL['endCard'] + 0.6, t)))
     return out
 
 
