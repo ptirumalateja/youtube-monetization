@@ -24,12 +24,12 @@ CUT = [
  ('valley',    4.00, 16.55, 1.00, 1.08, .50, 0.7, 'NLK'),
  ('ice',       5.00, 18.00, 1.10, 1.22, .50, 1.0, 'PFS'),   # they didn't
  ('storm',     4.10, 19.60, 1.00, 1.10, .50, 1.0, 'G'),     # DNA: tooth drilled in the lab
- ('dates_800', 0.00, 22.45, 1.00, 1.10, .50, 1.0, 'GF'),    # paper: radiocarbon, ~800
- ('dates_1800',0.00, 25.10, 1.10, 1.00, .50, 1.0, 'S'),     # ~1800
- ('dates_full',0.00, 26.80, 1.25, 1.00, .50, 1.0, 'B'),     # both clusters: 1,000 years apart
+ ('helixB',    5.30, 22.45, 1.00, 1.12, .50, 1.0, 'GF'),    # 800 AD (Teja: keep the DNA clips, no charts)
+ ('helixR',    4.00, 25.10, 1.12, 1.00, .50, 1.0, 'MS'),    # 1800
+ ('drone',     10.0, 26.80, 1.00, 1.08, .55, 1.0, 'B'),     # a thousand years apart
  ('rise',      4.20, 28.90, 1.00, 1.10, .50, 1.0, 'D'),     # same frozen lake
  ('travellers',0.00, 30.40, 1.00, 1.12, .50, 1.0, 'GS'),    # and the second group?
- ('pca_greek', 0.00, 31.90, 1.00, 1.08, .50, 1.0, 'B'),     # closest match: Greek / Cretan
+ ('valley',    8.00, 31.90, 1.00, 1.10, .50, 1.0, 'BD'),    # closest match
  ('map',       0.00, 34.85, 1.00, 1.00, .50, 1.0, 'G'),
  ('cracked',   0.20, 37.20, 1.00, 1.15, .50, 1.0, 'P'),     # skulls cracked
  ('cracked',   6.00, 38.40, 1.08, 1.00, .50, 1.0, 'B'),     # from above

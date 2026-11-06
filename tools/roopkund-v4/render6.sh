@@ -24,5 +24,5 @@ else
   CAPSIZE=$CS CUTMOD=$CM TEMPO=$TP python3 $T/capspng.py $F $O/caps
   CAPPNG=$O/caps/list.json CUTMOD=$CM TEMPO=$TP python3 $T/mix4.py $O/picture.mp4 $VO /tmp/claude-0/rk/sfx none $W/v6-$L.mp4
 fi
-rm -f $O/s*.mp4 $O/raw.mp4
+rm -f $O/raw.mp4
 echo $L done
