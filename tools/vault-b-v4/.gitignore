@@ -1,0 +1,5 @@
+plates/
+flow/*_frames/
+output/
+flow/*.mp4
+audio/*.wav
