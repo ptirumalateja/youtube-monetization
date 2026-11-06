@@ -35,9 +35,9 @@ def blocks(t, m):
     if TX['never'] <= t < TX['never1']:
         out.append((['IT NEVER MOVED.'], 62, 12, 300, sstep(TX['never'], TX['never'] + 0.12, t)))
     if t >= TX['end1']:
-        out.append((['THE ROCK WAS', 'NEVER THE POINT.'], 62, 11, 260, sstep(TX['end1'], TX['end1'] + 0.2, t)))
+        out.append((['THE ROCK WAS', 'NEVER THE POINT.'], 62, 11, 220, sstep(TX['end1'], TX['end1'] + 0.2, t)))
     if t >= TX['end2']:
-        out.append((['IT WAS BUILDING YOU.'], 50, 10, 430, sstep(TX['end2'], TX['end2'] + 0.25, t)))
+        out.append((['IT WAS BUILDING YOU.'], 50, 10, 410, sstep(TX['end2'], TX['end2'] + 0.25, t)))
     return out
 
 
@@ -51,7 +51,7 @@ def words(img, t, m):
         if not on: continue
         k = sstep(t0 + 0.12 + 0.15 * j, t0 + 0.22 + 0.15 * j, t)
         if k <= 0: continue
-        s = int(46 * (1 + 0.3 * (1 - k)))
+        s = int(58 * (1 + 0.3 * (1 - k)))
         f = font(s, 'Bold'); x = min(max(x + 40, 260), W - 260); y = max(y - 120 - 70 * j, 600)
         tracked(hd, text, f, x, y, 4, int(255 * k)); tracked(d, text, f, x, y, 4, WORD + (int(255 * k),))
     base.alpha_composite(Image.merge('RGBA', (Image.new('L', (W, H), 0),) * 3 + (halo.filter(ImageFilter.GaussianBlur(8)).point(lambda v: int(v * 0.7)),)))
