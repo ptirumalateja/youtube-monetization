@@ -17,9 +17,9 @@ const TL=await (await fetch('./timeline.json')).json();
 const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960, DUR=TL.duration;
 
 // ---------------------------------------------------------------- layout (metres; floor y = 0; camera on +z)
-const SP=TL.spacing, X=0.65, RAILX=0.31, ZB=0.33, NR=TL.rungsTotal, N0=TL.rungsStart;
+const SP=TL.spacing, X=0.65, RAILX=0.31, ZB=0.36, NR=TL.rungsTotal, N0=TL.rungsStart;
 const HATCH=NR*SP+0.3;                       // underside of the light hatch
-const PX=-1.05, PZ=-0.3, PILX=0.31;          // perfectionist lane: centre, his z, pillar half-gap
+const PX=-0.7, PZ=-0.3, PILX=0.31;          // perfectionist lane: centre, his z, pillar half-gap
 const NB=NR-N0;                              // planks he builds
 const START=TL.start, R_=TL.r, T0=TL.T0;
 const Tk=k=>T0*Math.pow(R_,k), tk=k=>START+T0*(1-Math.pow(R_,k))/(1-R_);   // cycles speed up: tap, tap, tap... faster
@@ -146,7 +146,7 @@ function climber(t){
 function poseClimber(o){
   const hip=V(X,o.hip,ZB), J={};
   J.hip=hip; J.hipL=hip.clone().add(V(-0.07,0,0)); J.hipR=hip.clone().add(V(0.07,0,0));
-  const lL=ik2(J.hipL,o.fL,V(-0.7,0.1,-0.25)), lR=ik2(J.hipR,o.fR,V(0.7,0.1,-0.25));
+  const lL=ik2(J.hipL,o.fL,V(-0.5,0.08,-0.2)), lR=ik2(J.hipR,o.fR,V(0.5,0.08,-0.2));
   J.kL=lL.E; J.fL=lL.Hd; J.kR=lR.E; J.fR=lR.Hd;
   J.neck=hip.clone().add(V(0,0.56*Math.cos(o.lean),-0.56*Math.sin(o.lean)));
   const hd=V(0,Math.cos(o.look*0.6),-0.25+0.4*Math.sin(-o.look*0.5)+0.18*o.look).normalize();

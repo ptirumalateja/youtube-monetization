@@ -22,14 +22,18 @@ def draw(img, t, m):
     img = sld_text.draw(img, [])
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
     for key, name, n, col, (a0, a1) in (('perf', 'PERFECTIONIST', m['prung'], CREAM, TL['labelsOutPerf']), ('act', 'ACTION TAKER', m['rungs'], CREAM, TL['labelsOutAct'])):
-        la = 1 - sstep(a0, a1, t)
+        la = (1 - sstep(a0, a1, t)) * sstep(TL['labelsIn'][0], TL['labelsIn'][1], t)
         if la > 0:
             x = min(max(m['lane'][key][0] * W, 210), W - 210)
-            tracked(d, name, font(38), x, 232, 5, col + (int(255 * la),))
-            tracked(d, f'RUNGS {n:02d}', font(28, 'Medium'), x, 288, 6, GOLD + (int(220 * la),))
-    ca = sstep(TL['caption'], TL['caption'] + 0.5, t)
+            tracked(d, name, font(38), x, 372, 5, col + (int(255 * la),))
+            tracked(d, f'RUNGS {n:02d}', font(28, 'Medium'), x, 428, 6, GOLD + (int(220 * la),))
+    ha = 1 - sstep(TL['hookEnd'] - 0.35, TL['hookEnd'], t)
+    if ha > 0:
+        for i, line in enumerate(["HE DIDN'T WAIT FOR", 'A PERFECT LADDER.']):
+            tracked(d, line, font(60), W / 2, 200 + i * 86, 7, CREAM + (int(255 * ha),))
+    ca = sstep(TL['caption'], TL['caption'] + 0.4, t)
     if ca > 0:
-        tracked(d, 'BUILD IT AS YOU CLIMB.', font(50), W / 2, 250, 7, CREAM + (int(255 * ca),))
+        tracked(d, 'BUILD IT AS YOU CLIMB.', font(56), W / 2, 250, 7, CREAM + (int(255 * ca),))
     ea = sstep(TL['endLabel'], TL['endLabel'] + 0.5, t)
     if ea > 0:
         x = m['lane']['perfFeet'][0] * W; y = min(m['lane']['perfFeet'][1] * H + 30, 1470)

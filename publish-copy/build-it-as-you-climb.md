@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v3 delivered 6 Nov 2026 (10.4 s: tape + hammer-and-nail build speeding up, ElevenLabs foley, short perfectionist ending), awaiting Teja's review; v1-v2 superseded |
-| Upload file | `final-reels/build-as-you-climb/build-as-you-climb_v3.mp4` (silent for platform music: `_v3_music-ready.mp4`) |
+| Status | v4 delivered 6 Nov 2026 (10.4 s: hook line on frame 0 "He didn't wait for a perfect ladder." + payoff "Build it as you climb.", bigger figures, tape + accelerating hammer build, ElevenLabs foley), awaiting Teja's review; v1-v3 superseded |
+| Upload file | `final-reels/build-as-you-climb/build-as-you-climb_v4.mp4` (silent for platform music: `_v4_music-ready.mp4`) |
 | Length | 10.4 s, 9:16, 1080x1920, seamless loop |
 | Look | Slow Light Dark (30 Friends look): two cream stickmen, gold light hatch, warm beam, motes |
 | Sound | No music, no voice. ElevenLabs sound-effects foley cut to picture: hammer blows, tape measure, sanding, plank pulls, footsteps, a light swell, one click |

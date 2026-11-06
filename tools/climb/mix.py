@@ -96,6 +96,9 @@ for a, b in gaps:
     t = a
     while t < b - 0.15:
         d = min(3.8, b - t); at_start(bus['fol'], 'sand', t, 0.5 * gnd(t), PP, off=rng.random() * 0.2, dur=d); t += d - 0.12
+# frame-0 hook: an arm swish and a thump so the reel starts loud
+place(bus['air'], swish(0.3, 1500, 0.35), 0.0, 1.0, PA)
+place(bus['hit'], K.thud(77, f=90, dec=0.08, gain=0.6), 0.0, 1.0, PA)
 # the light
 at_peak(bus['air'], 'light', TL['flareT'] + 0.35, 1.3, 0.0)
 rh = K.load('822420__audiopapkin__riser-hit-sfx-120.wav'); rh /= np.abs(rh).max()
