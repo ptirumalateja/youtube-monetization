@@ -75,6 +75,8 @@ for buf in (mix, bed):
 beat = S["05_heartbeat"][:int(0.75 * SR)]
 put(mix, beat, w["then"] - 0.25, -4)
 put(mix, S["08_boom"], w["vaultb"] - 0.03, -5, fade_out=1.8)
+put(mix, S["03_iron_door"], w["vaultb"] - 0.1, -9, b=1.6, fade_out=0.6)   # stone/iron grind on the door reveal
+put(mix, S["07_breath"], w["vaultb"] - 0.55, -9, b=0.5, fade_out=0.15, pan=0.5)
 for k in ["handle", "lock", "keyhole"]:
     put(mix, S["03_iron_door"], w[k] - 0.05, -14, a=0.55, b=1.4, fade_out=0.3)
     put(mix, S["impact"], w[k] - 0.02, -14, b=0.8, fade_out=0.4)
@@ -87,6 +89,7 @@ put(bed, S["06_choir_drone"], w["legend"] - 0.3, -16, a=2.0, b=8.4, fade_in=0.8,
 t = w["weeks"] - 0.2; iv = 1.0
 while t < w["was"] - 0.1:
     put(mix, beat, t, -6); t += iv; iv = max(0.42, iv * 0.86)
+put(mix, S["w1_whoosh"], w["was"] - 0.45, -15, b=0.5, fade_out=0.2)   # lamp snuffed
 put(mix, S["08_boom"], w["dead"] - 0.05, -5, fade_out=1.5)
 put(mix, S["w5_drip"], w["dead"] + 0.3, -8, fade_out=0.5)
 # --- 8 still shut / would you open it: rumble, then the last strike and a big boom

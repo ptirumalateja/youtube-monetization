@@ -70,6 +70,7 @@ def fit(im, zoom=1.0, cx=0.5, cy=0.5, rot=0.0, wm=False):
 def grade(f, mode, amt=1.0):
     if mode == "warm":
         f = f * np.array([0.9, 1.0, 1.06], np.float32); f = f / (1 + 0.12 * f) * 1.08
+        l = f.mean(2, keepdims=True); f = l + (f - l) * 0.9 + np.clip(0.35 - l, 0, None) ** 2 * np.array([0.10, 0.05, -0.04], np.float32)   # a touch less orange, teal in the shadows
     elif mode == "horror":   # crushed, red-gold, high contrast for the hook flashes
         f = np.clip((f - 0.06) * 1.35, 0, None) * np.array([0.78, 0.92, 1.12], np.float32)
     elif mode == "cold":
@@ -166,7 +167,7 @@ def tag(f, alpha):
 s = st
 HOOK = [  # flashes under "They were warned... never to open the door"
     ("flow", "coins", dict(src=5.2, z0=1.25, z1=1.4, c0=(0.42, 0.62))),        # cobra eye over the gold
-    ("flow", "blood", dict(src=7.4, z0=1.2, z1=1.35, c0=(0.5, 0.7))),          # blood spreading
+    ("flow", "blood", dict(src=5.6, z0=1.2, z1=1.35, c0=(0.5, 0.7))),          # blood spreading (not the "dead" frame)
     ("flow", "corridor", dict(src=7.6, z0=1.15, z1=1.3, c0=(0.5, 0.35))),      # giant hood in the corridor
     ("gold", "gold", dict(z0=1.35, z1=1.5, c0=(0.5, 0.55))),                   # the gold
     ("flow", "carvings", dict(src=5.1, z0=1.3, z1=1.45, c0=(0.5, 0.58))),      # red eyes ignite
@@ -183,10 +184,10 @@ EDL += [
     (STRIKE_END, BENEATH - 0.06, "black", "", {}, None),
     (BENEATH - 0.06, s("six") - 0.06, "flow", "temple", dict(src=0.4, speed=1.0, z0=1.0, z1=1.05, c0=(0.5, 0.45), c1=(0.5, 0.42)), None),   # real gopuram over Padma Theertham (Flow, Teja)
     (s("six") - 0.06, s("gold") - 0.06, "plate", "vaults", dict(src=0, speed=0.52, z0=1.0, z1=1.04), "warm"),          # slow-mo doors opening
-    (s("gold") - 0.06, s("eighteen") - 0.06, "gold", "gold", dict(z0=1.0, z1=1.1, c0=(0.5, 0.56), c1=(0.52, 0.5), coins=0.6), "warm"),
+    (s("gold") - 0.06, s("eighteen") - 0.06, "gold", "gold", dict(z0=1.0, z1=1.1, c0=(0.5, 0.56), c1=(0.52, 0.5)), "warm"),
     (s("eighteen") - 0.06, s("sacks") - 0.06, "flow", "coins", dict(src=0.9, z0=1.0, z1=1.06), "warm"),                # cobra sliding over coins
     (s("sacks") - 0.06, s("crowns") - 0.06, "flow", "coins", dict(src=3.1, z0=1.0, z1=1.08), "warm"),
-    (s("crowns") - 0.06, s("diamonds") - 0.06, "gold", "gold", dict(z0=1.7, z1=1.85, c0=(0.47, 0.42), c1=(0.47, 0.40), coins=0.4), "warm"),
+    (s("crowns") - 0.06, s("diamonds") - 0.06, "plate", "vaults", dict(src=1.6, speed=0.5, z0=1.25, z1=1.35, c0=(0.5, 0.62)), "warm"),   # open vault, gold on the floor
     (s("diamonds") - 0.06, s("over") - 0.08, "flow", "coins", dict(src=5.0, z0=1.0, z1=1.08), "warm"),                # the eye passes
     (s("over") - 0.08, s("then") - 0.45, "flow", "corridor", dict(src=0.6, speed=1.0, z0=1.0, z1=1.06), "warm"),       # 30-ft cobra in the money
     (s("then") - 0.45, s("then"), "black", "", {}, None),
@@ -196,10 +197,11 @@ EDL += [
     (s("lock") - 0.06, s("keyhole") - 0.06, "plate", "seam", dict(src=0, speed=0.9, z0=1.0, z1=1.06), "cold"),
     (s("keyhole") - 0.06, s("just") - 0.1, "plate", "seam", dict(src=1.0, speed=0.9, z0=1.25, z1=1.35, c0=(0.5, 0.5)), "cold"),
     (s("just") - 0.1, s("legend") - 0.08, "flow", "carvings", dict(src=2.6, speed=1.0, z0=1.0, z1=1.05), "cold"),       # the two cobras turn, eyes ignite
-    (s("legend") - 0.08, s("naga") - 0.08, "plate", "heads", dict(src=0.6, speed=0.6, z0=1.15, z1=1.3, c0=(0.5, 0.42)), "cold"),
+    (s("legend") - 0.08, s("naga") - 0.08, "flow", "strike", dict(src=2.3, speed=1.0, z0=1.0, z1=1.08, c0=(0.5, 0.45)), "cold"),   # the living guardian rises in front of the door
     (s("naga") - 0.08, s("weeks") - 0.3, "flow", "carvings", dict(src=5.25, speed=1.0, z0=1.0, z1=1.08), "cold"),       # mouths open, hiss
-    (s("weeks") - 0.3, s("dead") - 0.06, "plate", "hand", dict(src=0, speed=0.4, z0=1.0, z1=1.1, c0=(0.5, 0.5), c1=(0.5, 0.55)), "cold"),
-    (s("dead") - 0.06, s("still") - 0.12, "flow", "blood", dict(src=7.2, speed=1.0, z0=1.0, z1=1.05), "cold"),
+    (s("weeks") - 0.3, s("man") + 0.9, "plate", "hand", dict(src=0, speed=0.62, z0=1.0, z1=1.1, c0=(0.5, 0.5), c1=(0.5, 0.55)), "cold"),
+    (s("man") + 0.9, s("was") - 0.04, "plate", "lamp", dict(src=0.2, speed=0.5, z0=1.3, z1=1.45, c0=(0.88, 0.62), gutter=True), "cold"),   # the lamp gutters out before "was dead"
+    (s("was") - 0.04, s("still") - 0.12, "flow", "blood", dict(src=8.2, speed=1.0, z0=1.0, z1=1.05), "cold"),
     (s("still") - 0.12, s("would") - 0.08, "plate", "door", dict(src=0.5, speed=0.6, z0=1.15, z1=1.0, c0=(0.5, 0.45)), "cold"),
     (s("would") - 0.08, s("end") + 0.55, "flow", "corridor", dict(src=8.0, speed=1.0, z0=1.0, z1=1.1, c0=(0.5, 0.45)), "warm"),
     (s("end") + 0.55, s("end") + 0.85, "flow", "strike", dict(src=8.6, speed=1.0, z0=1.05, z1=1.25, c0=(0.5, 0.5)), "horror"),  # last strike
@@ -259,6 +261,8 @@ def shot(t):
     else:
         f = src_frame(kind, name, a.get("src", 0) + lt * a.get("speed", 1.0))
         f = fit(f, z, cx, cy, wm=(kind == "flow"))
+    if a.get("gutter"):  # flame flickers, then dies
+        fl = 1 + 0.18 * math.sin(t * 41) * math.sin(t * 13.7); f = f * max(0.04, (1 - u ** 2.2) * fl)
     if a.get("flash"):  # hook flashes: hot first frame, fast decay
         f = f * (1 + 0.9 * max(0, 1 - lt / 0.06))
     amt = 1.0
