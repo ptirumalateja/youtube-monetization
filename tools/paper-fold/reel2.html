@@ -248,7 +248,7 @@ SC.G=async function(){
   const gr=new THREE.Mesh(new THREE.PlaneGeometry(2,2),gmat); gr.rotation.x=-Math.PI/2; S.add(gr);
   const sun=new THREE.DirectionalLight('#ffd6a8',3.4); sun.position.set(-300,380,900); S.add(sun); S.add(new THREE.HemisphereLight('#e0b098','#4a3430',1.0));
   // the lineup, each at true size, left of the paper
-  const items=[['mug',mkMug(),0.095],['bat',mkBat(),0.86],['person',mkPerson(),1.72],['hoop',mkHoop(),3.05],['giraffe',mkGiraffe(),5.7],['liberty',mkLiberty(),93],['eiffel',mkEiffel(),330],['burj',mkBurj(),828]];
+  const items=[['mug',mkMug(),0.095],['bat',mkBat(),0.86],['person',(()=>{const o=mkPerson();o.scale.setScalar(0.96);return o;})(),1.65],['hoop',mkHoop(),3.05],['giraffe',mkGiraffe(),5.7],['liberty',mkLiberty(),93],['eiffel',mkEiffel(),330],['burj',mkBurj(),828]];
   const pos={}; items.forEach(([k,o,hh])=>{const x=(k==='giraffe'?-0.62:-0.42)*hh-(k==='mug'?0.03:0); o.position.set(x,0,k==='hoop'?-0.4:0); S.add(o); pos[k]=[x,hh];});
   const ev=mkEverest(); ev.position.set(-9000,0,-40000); ev.visible=false; S.add(ev); pos.everest=[-9000,8849,-40000];
   const plane=mkAirliner(); plane.position.set(-2400,11000,-4000); plane.scale.setScalar(1); S.add(plane);
@@ -261,18 +261,18 @@ SC.G=async function(){
   const C=compose(S,cam,[0.3,0.55,0.9]);
   return {render(p){
     const n=clamp(p.n,6,30); const Hh=Lof(n); const w=Math.max(0.0262,0.02*Hh);
-    col.scale.set(w,Hh,w*0.7); col.position.set(0,Hh/2,0);
+    col.visible=false; col.scale.set(w,Hh,w*0.7); col.position.set(0,Hh/2,0);
     colMat.map.repeat.set(1,clamp(Hh/(w*3),1,40));
     const d=Math.max(0.1,3.2*Hh); const yaw=0.10+0.06*Math.sin(p.t*0.5);
     const cy=Hh*0.34+0.01, ty=Hh*0.5;
-    cam.position.set(-0.12*Hh+Math.sin(yaw)*d*0.4, cy, d*Math.cos(yaw)); cam.lookAt(-0.12*Hh, ty, 0);
+    cam.position.set(-0.04*Hh+Math.sin(yaw)*d*0.4, cy, d*Math.cos(yaw)); cam.lookAt(-0.04*Hh, ty, 0);
     const far=clamp(d*500,60,400000); cam.far=far; cam.near=Math.max(0.002,d*0.01); cam.updateProjectionMatrix();
     gmat.uniforms.camH.value=Math.max(cy,0.02); gmat.uniforms.cp.value.copy(cam.position);
     const fd=4.0/far; S.fog.density=fd; gmat.uniforms.fogD.value=fd;
     const ks=far*0.8/60000; sky.scale.setScalar(ks); sky.position.copy(cam.position); const kr=far*0.8/20000; ridges.scale.setScalar(kr); ridges.position.set(cam.position.x*(1-kr),0,cam.position.z*(1-kr)); gr.scale.setScalar(far*1.2); gr.position.set(cam.position.x,0,cam.position.z);
     decks.forEach(dk=>{dk.visible=cam.position.y>1200;}); ev.visible=n>=25;
     const marks=[]; for(const k in pos){const q=pos[k]; marks.push({id:k,...project(cam,new THREE.Vector3(q[0],q[1],q[2]||0))});}
-    marks.push({id:'plane',...project(cam,plane.position)}); marks.push({id:'top',...project(cam,new THREE.Vector3(0,Hh,0))});
+    marks.push({id:'plane',...project(cam,plane.position)}); marks.push({id:'top',...project(cam,new THREE.Vector3(0,Hh,0))}); marks.push({id:'base',...project(cam,new THREE.Vector3(0,0,0))});
     C.render(); return {marks};
   }};
 };
@@ -335,7 +335,7 @@ SC.S=async function(){
       c=mix(c,vec3(1.,0.9,0.78),smoothstep(0.62,0.8,a)*0.5); vec3 v=normalize(cameraPosition-wp); float fr=pow(1.-abs(dot(normalize(vn),v)),2.); c+=vec3(0.7,0.8,1.)*fr*0.35; gl_FragColor=vec4(c*0.62,op);}`})); root.add(uni);
   // the column
   const ribM=new THREE.MeshStandardMaterial({color:'#f6efe2',roughness:0.7,emissive:'#efe2c8',emissiveIntensity:0.22,map:strataTex(160,false)});
-  const beam=new THREE.Mesh(new THREE.BoxGeometry(0.014,1,0.014),ribM); beam.position.y=0.5; root.add(beam);
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(0.014,1,0.014),ribM); beam.position.y=0.5; beam.visible=false; root.add(beam);
   const iss=new THREE.Group(); {const tm=new THREE.MeshStandardMaterial({color:'#d8dce4',roughness:0.4,metalness:0.6,emissive:'#6a7280',emissiveIntensity:0.4}); const pm=new THREE.MeshStandardMaterial({color:'#2a3f7a',roughness:0.3,metalness:0.4,emissive:'#1a2a5a',emissiveIntensity:0.7});
     const truss=new THREE.Mesh(new THREE.BoxGeometry(1,0.06,0.06),tm); iss.add(truss); for(const x of [-0.42,-0.26,0.26,0.42]){const pn=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.01,0.34),pm); pn.position.set(x,0,0); iss.add(pn);} const mod=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,12),tm); mod.rotation.z=Math.PI/2; mod.position.z=0.07; iss.add(mod);} root.add(iss);
   const C=compose(S,cam0(),[0.8,0.55,0.55]);
@@ -345,7 +345,7 @@ SC.S=async function(){
   const place=(obj,glow,y,r,minR,vis,gs)=>{obj.visible=vis; if(glow)glow.visible=vis; if(!vis)return; const rr=Math.max(r,minR); obj.position.set(X,y,0); obj.scale.setScalar(rr); if(glow){glow.position.set(X,y,0); glow.scale.setScalar(rr*gs);} };
   return {render(p){
     const n=p.n, L=Lof(n), u=1/L; const t=p.t;
-    const s=sstep(99.5,103,n); const dist=lerp(1.9,3.35,s)*(1+ (p.push||0)); const lx=lerp(-0.171,-0.36,s), ly=lerp(0.5,0.66,s);
+    const s=sstep(99.5,103,n); const dist=lerp(1.9,3.35,s)*(1+ (p.push||0)); const lx=lerp(-0.09,-0.3,s), ly=lerp(0.5,0.66,s);
     const orb=0.10*Math.sin(t*0.45);
     cam.position.set(lx+Math.sin(orb)*dist*0.4, ly+0.05*Math.sin(t*0.3), dist*Math.cos(orb)); cam.lookAt(lx,ly,0); cam.near=0.02; cam.far=4e6; cam.fov=40; cam.updateProjectionMatrix();
     const RE=6.371e6*u; earth.visible=atm.visible=RE>1e-3&&n<66;
@@ -364,7 +364,7 @@ SC.S=async function(){
     uni.visible=n>=100.6; uni.material.uniforms.op.value=sstep(100.6,102,n)*0.92; uni.scale.setScalar(Ru); uni.position.set(-(Ru+0.14),Ru,0);
     iss.visible=n>=30&&n<=40; iss.position.set(X,4.08e5*u,0); iss.scale.setScalar(Math.max(109*u,0.085)); iss.rotation.z=0.25;
     const marks=[]; const P=(id,y,x=X)=>marks.push({id,...project(cam,new THREE.Vector3(x,y,0))});
-    P('moon',mY); P('iss',4.08e5*u); P('sun',sY); P('nep',nY); P('prox',pY); P('mw',0.0,-0.26*mwD+0.0); marks.find(m=>m.id==='mw').y+=0; P('and',anY); marks.push({id:'uni',...project(cam,new THREE.Vector3(-(Ru+0.14),Ru*0.2,0))}); P('top',1.0,0);
+    P('moon',mY); P('iss',4.08e5*u); P('sun',sY); P('nep',nY); P('prox',pY); P('mw',0.0,-0.26*mwD+0.0); marks.find(m=>m.id==='mw').y+=0; P('and',anY); marks.push({id:'uni',...project(cam,new THREE.Vector3(-(Ru+0.14),Ru*0.2,0))}); P('top',1.0,0); P('base',0.0,0);
     C.passes[1].strength=lerp(0.35,0.2,s); C.render(); return {marks,L};
   }};
 };

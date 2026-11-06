@@ -34,7 +34,7 @@ SC.G=async function(){
   const C=compose(S,cam,[0.3,0.55,0.9]);
   return {render(p){
     const n=clamp(p.n,6,30); const Hh=Lof(n); const w=Math.max(0.0262,0.02*Hh);
-    col.scale.set(w,Hh,w*0.7); col.position.set(0,Hh/2,0);
+    col.visible=false; col.scale.set(w,Hh,w*0.7); col.position.set(0,Hh/2,0);
     colMat.map.repeat.set(1,clamp(Hh/(w*3),1,40));
     const d=Math.max(0.1,3.2*Hh); const yaw=0.10+0.06*Math.sin(p.t*0.5);
     const cy=Hh*0.34+0.01, ty=Hh*0.5;
@@ -45,7 +45,7 @@ SC.G=async function(){
     const ks=far*0.8/60000; sky.scale.setScalar(ks); sky.position.copy(cam.position); const kr=far*0.8/20000; ridges.scale.setScalar(kr); ridges.position.set(cam.position.x*(1-kr),0,cam.position.z*(1-kr)); gr.scale.setScalar(far*1.2); gr.position.set(cam.position.x,0,cam.position.z);
     decks.forEach(dk=>{dk.visible=cam.position.y>1200;}); ev.visible=n>=25;
     const marks=[]; for(const k in pos){const q=pos[k]; marks.push({id:k,...project(cam,new THREE.Vector3(q[0],q[1],q[2]||0))});}
-    marks.push({id:'plane',...project(cam,plane.position)}); marks.push({id:'top',...project(cam,new THREE.Vector3(0,Hh,0))});
+    marks.push({id:'plane',...project(cam,plane.position)}); marks.push({id:'top',...project(cam,new THREE.Vector3(0,Hh,0))}); marks.push({id:'base',...project(cam,new THREE.Vector3(0,0,0))});
     C.render(); return {marks};
   }};
 };

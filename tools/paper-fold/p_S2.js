@@ -57,7 +57,7 @@ SC.S=async function(){
       c=mix(c,vec3(1.,0.9,0.78),smoothstep(0.62,0.8,a)*0.5); vec3 v=normalize(cameraPosition-wp); float fr=pow(1.-abs(dot(normalize(vn),v)),2.); c+=vec3(0.7,0.8,1.)*fr*0.35; gl_FragColor=vec4(c*0.62,op);}`})); root.add(uni);
   // the column
   const ribM=new THREE.MeshStandardMaterial({color:'#f6efe2',roughness:0.7,emissive:'#efe2c8',emissiveIntensity:0.22,map:strataTex(160,false)});
-  const beam=new THREE.Mesh(new THREE.BoxGeometry(0.014,1,0.014),ribM); beam.position.y=0.5; root.add(beam);
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(0.014,1,0.014),ribM); beam.position.y=0.5; beam.visible=false; root.add(beam);
   const iss=new THREE.Group(); {const tm=new THREE.MeshStandardMaterial({color:'#d8dce4',roughness:0.4,metalness:0.6,emissive:'#6a7280',emissiveIntensity:0.4}); const pm=new THREE.MeshStandardMaterial({color:'#2a3f7a',roughness:0.3,metalness:0.4,emissive:'#1a2a5a',emissiveIntensity:0.7});
     const truss=new THREE.Mesh(new THREE.BoxGeometry(1,0.06,0.06),tm); iss.add(truss); for(const x of [-0.42,-0.26,0.26,0.42]){const pn=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.01,0.34),pm); pn.position.set(x,0,0); iss.add(pn);} const mod=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,12),tm); mod.rotation.z=Math.PI/2; mod.position.z=0.07; iss.add(mod);} root.add(iss);
   const C=compose(S,cam0(),[0.8,0.55,0.55]);
@@ -86,7 +86,7 @@ SC.S=async function(){
     uni.visible=n>=100.6; uni.material.uniforms.op.value=sstep(100.6,102,n)*0.92; uni.scale.setScalar(Ru); uni.position.set(-(Ru+0.14),Ru,0);
     iss.visible=n>=30&&n<=40; iss.position.set(X,4.08e5*u,0); iss.scale.setScalar(Math.max(109*u,0.085)); iss.rotation.z=0.25;
     const marks=[]; const P=(id,y,x=X)=>marks.push({id,...project(cam,new THREE.Vector3(x,y,0))});
-    P('moon',mY); P('iss',4.08e5*u); P('sun',sY); P('nep',nY); P('prox',pY); P('mw',0.0,-0.26*mwD+0.0); marks.find(m=>m.id==='mw').y+=0; P('and',anY); marks.push({id:'uni',...project(cam,new THREE.Vector3(-(Ru+0.14),Ru*0.2,0))}); P('top',1.0,0);
+    P('moon',mY); P('iss',4.08e5*u); P('sun',sY); P('nep',nY); P('prox',pY); P('mw',0.0,-0.26*mwD+0.0); marks.find(m=>m.id==='mw').y+=0; P('and',anY); marks.push({id:'uni',...project(cam,new THREE.Vector3(-(Ru+0.14),Ru*0.2,0))}); P('top',1.0,0); P('base',0.0,0);
     C.passes[1].strength=lerp(0.35,0.2,s); C.render(); return {marks,L};
   }};
 };

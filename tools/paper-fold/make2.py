@@ -7,11 +7,27 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import make as mk
 from make import font, draw_shadow_text, bigtext, fade, sstep, thick_text, flash, FPS, W, H, CREAM, RED
 
-DUR = 37.0
+
+# ---- retime: v2 timings (old) -> faster VO (new). old line starts/durs at atempo 1.17, new at 1.30
+OLD_START = dict(A=0.20, B=5.22, C=7.63, D=10.32, E=12.70, F=15.30, G=17.99, H=23.14, I=25.62, J=28.10, K=32.64)
+DUR110 = dict(A=5.175, B=2.403, C=2.697, D=2.377, E=2.607, F=2.707, G=5.315, H=2.482, I=2.477, J=4.671, K=2.773)
+TEMPO = 1.30; GAP = 0.12
+_k = []; _t = 0.15; NEW_START = {}; NEW_DUR = {}
+for c in 'ABCDEFGHIJK':
+    do = DUR110[c] * 1.1 / 1.17; dn = DUR110[c] * 1.1 / TEMPO
+    NEW_START[c] = _t; NEW_DUR[c] = dn
+    _k += [(OLD_START[c], _t), (OLD_START[c] + do, _t + dn)]; _t += dn + GAP
+def RT(t):
+    if t <= _k[0][0]: return t - _k[0][0] + _k[0][1]
+    if t >= _k[-1][0]: return t - _k[-1][0] + _k[-1][1]
+    for (a0, b0), (a1, b1) in zip(_k, _k[1:]):
+        if a0 <= t <= a1: return b0 + (b1 - b0) * (t - a0) / max(a1 - a0, 1e-9)
+
+DUR = RT(37.0)
 NF = int(DUR * FPS)
 
 # (t, n) anchors: the number word is spoken at that time (see vo timeline below)
-NODES = [(0.4, 0.0), (5.2, 7.0), (7.7, 14.0), (10.4, 22.0), (12.8, 23.0), (15.4, 30.0), (18.1, 42.0), (20.5, 51.0), (23.25, 69.0), (25.7, 83.0), (28.3, 103.0), (60.0, 103.0)]
+NODES = [(RT(a), b) for a, b in [(0.4, 0.0), (5.2, 7.0), (7.7, 14.0), (10.4, 22.0), (12.8, 23.0), (15.4, 30.0), (18.1, 42.0), (20.5, 51.0), (23.25, 69.0), (25.7, 83.0), (28.3, 103.0)]] + [(90.0, 103.0)]
 
 def n_of(t):
     if t <= NODES[0][0]: return 0.0
@@ -25,7 +41,7 @@ def t_of(n):
     return NODES[-1][0]
 
 # voiceover clips: name, start (s), file
-VO = [('A', 0.20), ('B', 5.22), ('C', 7.63), ('D', 10.32), ('E', 12.70), ('F', 15.30), ('G', 17.99), ('H', 23.14), ('I', 25.62), ('J', 28.10), ('K', 32.64)]
+VO = [(c, NEW_START[c]) for c in 'ABCDEFGHIJK']
 
 # callouts: id, title, sub, fold at which it is passed, scene, dur
 CALLS = [('mug', 'A COFFEE MUG', '9.5 cm', 10, 'G', 1.0), ('person', 'A PERSON', '1.65 m', 14, 'G', 1.5), ('hoop', 'BASKETBALL HOOP', '3.05 m', 15, 'G', 1.1),
@@ -46,19 +62,26 @@ def caption_for(f):
         if f >= a: c = tx
     return c
 
+SWING = 0.78
+def cam_state(t):
+    """column state: k folds done, u progress, hinge angle theta (-90 = folded half hangs down, 0 = horizontal, +90 = landed on top), n_cam frames the whole column"""
+    n = n_of(t); k = int(math.floor(n + 1e-9)); u = n - k
+    if k >= 103: return 103, 0.0, -90.0, 103.0
+    x = max(0.0, min(1.0, u / SWING)); E = x * x * (3 - 2 * x)
+    th = -90 + 180 * E; ec = max(0.0, math.sin(math.radians(th)))
+    return k, u, th, k + math.log2(1 + ec)
+
 def layers_at(t):
     out = []
-    if t < 4.65:
+    if t < RT(4.65):
         out.append(('D', {'k': max(0.0, min(7.0, (n_of(t)))), 't': t}, 1.0))
-    elif t < 5.2:
-        a = sstep(4.65, 5.2, t)
-        out += [('D', {'k': 7.0, 't': t}, 1 - a), ('G', {'n': 7.0, 't': t}, a)]
-    elif t < 14.75:
-        out.append(('G', {'n': n_of(t), 't': t}, 1.0))
+    elif t < RT(5.2):
+        a = sstep(RT(4.65), RT(5.2), t)
+        out += [('D', {'k': 7.0, 't': t}, 1 - a), ('G', {'n': cam_state(t)[3], 't': t}, a)]
+    elif t < RT(14.75):
+        out.append(('G', {'n': cam_state(t)[3], 't': t}, 1.0))
     else:
-        out.append(('S', {'n': n_of(t), 't': t, 'push': 0.0 if t < 28.3 else 0.03 * min(1, (t - 28.3) / 3)}, 1.0))
-    if t >= 5.0 and t < 28.9:
-        out.append(('L', {'n': n_of(t), 't': t}, 1.0))
+        out.append(('S', {'n': cam_state(t)[3], 't': t, 'push': 0.0 if t < RT(28.3) else 0.03 * min(1, (t - RT(28.3)) / 3)}, 1.0))
     return out
 
 def frame_state(i):
@@ -80,7 +103,7 @@ def hud_items(t, f):
     fc = font('InterDisplay-SemiBold.otf', 42); fl = font('InterDisplay-Bold.otf', 30)
     fn = font('InterDisplay-Black.otf', 260); fv = font('InterDisplay-ExtraBold.otf', 74)
     items = []
-    if t < 5.1:
+    if t < RT(5.1):
         items.append(((x0, ycap), "What if you folded a sheet of paper in half", fc, CREAM, 'la'))
         items.append(((x0, ycap + 54), "103 times?", font('InterDisplay-Bold.otf', 46), RED, 'la'))
         yb = ycap + 70
@@ -91,6 +114,50 @@ def hud_items(t, f):
     items.append(((x0 + 6, yb + 396), 'THICKNESS', fl, RED, 'la'))
     items.append(((x0, yb + 434), thick_text(f), fv, CREAM, 'la'))
     return items
+
+PAPER = (247, 241, 228); EDGE = (150, 128, 96)
+def hinge(im, t, marks, scene):
+    """draw the paper stack column as a real hinge fold: top copy swings 180 deg around the stack's top, thin arc trail, orange tip dot"""
+    if scene == 'D' or t < RT(4.9): return
+    a = sstep(RT(4.9), RT(5.4), t)
+    mb = next((q for q in marks if q['id'] == 'base'), None); mt = next((q for q in marks if q['id'] == 'top'), None)
+    if not mb or not mt: return
+    k, u, th, nc = cam_state(t)
+    ec = max(0.0, math.sin(math.radians(th)))
+    S = 2; w, h = im.size
+    xb, yb, yt = mb['x'] * S, mb['y'] * S, mt['y'] * S
+    Hk = (yb - yt) / (1 + ec)
+    if Hk < 6: return
+    BW = 26 * S
+    lay = Image.new('RGBA', (w * S, h * S), (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
+    nl = min(2 ** k, 26)
+    def bar(p0, p1, n_ticks):
+        dx, dy = p1[0] - p0[0], p1[1] - p0[1]; L = math.hypot(dx, dy) or 1; nx, ny = -dy / L * BW / 2, dx / L * BW / 2
+        quad = [(p0[0] + nx, p0[1] + ny), (p1[0] + nx, p1[1] + ny), (p1[0] - nx, p1[1] - ny), (p0[0] - nx, p0[1] - ny)]
+        d.polygon(quad, fill=PAPER + (255,), outline=EDGE + (255,), width=2)
+        for i in range(1, n_ticks):
+            f = i / n_ticks; cx, cy = p0[0] + dx * f, p0[1] + dy * f
+            d.line([(cx + nx, cy + ny), (cx - nx, cy - ny)], fill=(205, 186, 156, 255), width=2)
+    # lower stack (stays put)
+    ptop = (xb, yb - Hk)
+    bar((xb, yb), ptop, nl)
+    # swinging copy, pivot at the top of the stack
+    r = Hk; rad = math.radians(th); tip = (ptop[0] - r * math.cos(rad), ptop[1] - r * math.sin(rad))
+    if u > 0.001 and k < 103:
+        # arc trail
+        pts = []
+        for ang in range(-90, int(th) + 1, 3):
+            rr = math.radians(ang); pts.append((ptop[0] - r * math.cos(rr), ptop[1] - r * math.sin(rr)))
+        if len(pts) > 1: d.line(pts, fill=(255, 255, 255, 235), width=3 * S // 2 + 1)
+        bar(ptop, tip, nl)
+        d.ellipse([tip[0] - 7 * S, tip[1] - 7 * S, tip[0] + 7 * S, tip[1] + 7 * S], fill=RED + (255,))
+    elif k < 103:
+        pass
+    d.ellipse([ptop[0] - 5 * S, ptop[1] - 5 * S, ptop[0] + 5 * S, ptop[1] + 5 * S], fill=(90, 70, 50, 255))
+    lay = lay.resize((w, h), Image.LANCZOS)
+    sh = lay.split()[3].filter(ImageFilter.GaussianBlur(9)).point(lambda v: int(v * 0.55 * a))
+    im.paste((12, 8, 6), (6, 8), sh)
+    al = lay.split()[3].point(lambda v: int(v * a)); lay.putalpha(al); im.paste(lay, (0, 0), lay)
 
 def callouts(im, t, marks, scene):
     for cid, ti, su, pn, sc, dur in CALLS:
@@ -130,12 +197,12 @@ def overlay(im, lim, t, f, marks, scene):
     draw_shadow_text(im, hud_items(t, f))
     callouts(im, t, marks, scene)
     if lim is not None: lens(im, lim, t, f)
-    if 15.3 <= t < 16.8:
-        bigtext(im, ['30 FOLDS.', 'IT REACHES SPACE.'], 1480, 84, mul=fade(t, 15.3, 16.8, 0.08, 0.3), scale=mk.pulse(t, 15.3))
-    if 32.7 <= t < 35.3:
-        bigtext(im, ['REAL RECORD:', '12 FOLDS.'], 1330, 104, mul=fade(t, 32.7, 35.3, 0.25, 0.3), sub='Guinness: 1,219 m of tissue paper')
-    if 35.4 <= t <= DUR:
-        bigtext(im, ['HOW MANY FOLDS TO PASS', "YOUR CITY'S TALLEST", 'BUILDING?'], 1260, 62, mul=fade(t, 35.4, DUR + 0.5, 0.25, 0.1), sub='Comment it.  Follow @slowlighttv')
+    if RT(15.3) <= t < RT(16.8):
+        bigtext(im, ['30 FOLDS.', 'IT REACHES SPACE.'], 1480, 84, mul=fade(t, RT(15.3), RT(16.8), 0.08, 0.3), scale=mk.pulse(t, RT(15.3)))
+    if RT(32.7) <= t < RT(35.3):
+        bigtext(im, ['REAL RECORD:', '12 FOLDS.'], 1330, 104, mul=fade(t, RT(32.7), RT(35.3), 0.25, 0.3), sub='Guinness: 1,219 m of tissue paper')
+    if RT(35.4) <= t <= DUR:
+        bigtext(im, ['HOW MANY FOLDS TO PASS', "YOUR CITY'S TALLEST", 'BUILDING?'], 1260, 62, mul=fade(t, RT(35.4), DUR + 0.5, 0.25, 0.1), sub='Comment it.  Follow @slowlighttv')
 
 def compose_frame(i, layerdir, marks_by_file):
     t, L, f, nn, sc = frame_state(i)
@@ -149,10 +216,11 @@ def compose_frame(i, layerdir, marks_by_file):
         if name == 'L': lim = Image.open(f"{layerdir}/f{i:04d}_{li}.jpg")
     lastli = main[-1][0]; marks = marks_by_file.get(f"{layerdir}/f{i:04d}_{lastli}.jpg", [])
     wa = 0.0
-    if 14.2 <= t < 15.4: wa = sstep(14.2, 14.75, t) if t < 14.78 else 1 - sstep(14.78, 15.4, t)
+    if RT(14.2) <= t < RT(15.4): wa = sstep(RT(14.2), RT(14.75), t) if t < RT(14.78) else 1 - sstep(RT(14.78), RT(15.4), t)
     if wa > 0: im = flash(im, wa * 0.97, (255, 228, 214))
-    for t0, dur, col, amp in [(15.3, 0.22, (255, 245, 230), 0.4), (28.3, 0.5, (255, 245, 230), 0.6)]:
+    for t0, dur, col, amp in [(RT(15.3), 0.22, (255, 245, 230), 0.4), (RT(28.3), 0.5, (255, 245, 230), 0.6)]:
         if t0 <= t < t0 + dur: im = flash(im, amp * (1 - (t - t0) / dur) ** 2, col)
+    hinge(im, t, marks, sc)
     overlay(im, lim, t, f, marks, sc)
     return im
 
