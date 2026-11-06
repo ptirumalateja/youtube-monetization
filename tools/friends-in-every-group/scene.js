@@ -217,7 +217,7 @@ function setT(t){
     f.face.position.copy(h).addScaledVector(fw,0.132); f.face.up.copy(uw); f.face.lookAt(h.clone().addScaledVector(fw,1)); f.face.material=FACES[o.face];
     f.prop.position.copy(h); f.prop.up.copy(uw); f.prop.lookAt(h.clone().addScaledVector(fw,1)); }
   for(const pl of PENDANTS){ let d=9; for(const f of Object.values(F)) if(out[f.id].vis) d=Math.min(d,f.fig.head.position.distanceTo(pl.position));
-    pl.intensity=0.9*clamp((d-0.35)/0.5,0.35,1); }
+    pl.intensity=0.9*clamp((d-0.45)/0.6,0.08,1); }
   // phones
   const hand=(id,side)=>F[id].fig.joints[side==='R'?11:10].position;
   PHONES.PHOTO.visible=true; PHONES.PHOTO.position.copy(hand('PHOTO','R')).add(V(0,0.13,0.02)); PHONES.PHOTO.lookAt(S.cam.position.clone().setY(PHONES.PHOTO.position.y)); PHONES.PHOTO.rotateY(Math.PI);
