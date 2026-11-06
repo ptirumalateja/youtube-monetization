@@ -1,1 +1,109 @@
-{"duration": 4.5, "fps": 30, "lift": 2.3, "hookOut": 2.75, "counterIn": 2.85, "reviewTimes": [0.0, 1.2, 2.6, 3.6, 4.4]}
+{
+ "duration": 19.2,
+ "fps": 30,
+ "hookOut": 2.85,
+ "counterIn": 2.85,
+ "counterOut": 12.7,
+ "payoffIn": 12.7,
+ "growA": 3.5,
+ "growB": 11.0,
+ "phoneIn": 4.2,
+ "flickerFrom": 11.15,
+ "deadAt": 11.6,
+ "depart": [
+  [
+   "TUITION",
+   4.9
+  ],
+  [
+   "SURESH UNCLE",
+   5.9
+  ],
+  [
+   "MAMAYYA",
+   6.7
+  ],
+  [
+   "ARJUN",
+   7.45
+  ],
+  [
+   "CHINTU",
+   8.1
+  ],
+  [
+   "KAVYA",
+   8.7
+  ],
+  [
+   "PRIYA",
+   9.25
+  ],
+  [
+   "RAHUL",
+   9.8
+  ],
+  [
+   "NANI",
+   10.35
+  ]
+ ],
+ "fly": 0.65,
+ "recv1": [
+  1.9,
+  3.2
+ ],
+ "recv2": [
+  15.35,
+  99
+ ],
+ "pullsIntro": [
+  [
+   0.15,
+   2,
+   1.5
+  ],
+  [
+   0.95,
+   7,
+   2.0
+  ]
+ ],
+ "pullsEnd": [
+  [
+   13.0,
+   2,
+   1.4
+  ],
+  [
+   13.65,
+   7,
+   2.0
+  ],
+  [
+   14.3,
+   5,
+   1.8
+  ],
+  [
+   14.95,
+   4,
+   1.6
+  ]
+ ],
+ "shake": [
+  11.8,
+  12.35
+ ],
+ "setDown": 12.55,
+ "ringAt": [
+  15.95,
+  17.15
+ ],
+ "answer": 18.0,
+ "warmAt": 18.0,
+ "loopFade": 0.55,
+ "homeCenterFrom": 11.2,
+ "homeCenterTo": 12.3,
+ "hookQ": 1.0
+}

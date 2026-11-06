@@ -1,7 +1,9 @@
 """Text layer for Ten Numbers (Slow Light logo palette: cream text, amber for the one number that matters).
 
-Hook "YOU KNEW 10 PHONE / NUMBERS BY HEART." on from frame 0; then the counter "AGE 10" (cream) over "10 NUMBERS" (amber).
-Uses the series kit ../slow-light-dark-common/sld_text.py for font, tracking, halo and the SLOW LIGHT watermark.
+0 - hookOut        "AT 10, YOU KNEW / 10 PHONE NUMBERS." (cream, frame 0), "HOW MANY NOW?" (amber) pops at hookQ
+counterIn - counterOut   AGE n (cream) over "n NUMBERS" (amber)
+payoffIn - end     "NOW YOU KNOW" (cream) over "ONE." (amber, bigger)
+Series kit ../slow-light-dark-common/sld_text.py supplies font, tracking, halo and the SLOW LIGHT watermark.
 """
 import json, os, sys
 from PIL import Image, ImageDraw, ImageFilter
@@ -29,12 +31,18 @@ def amber_line(img, text, size, track, y, a):
     return base.convert('RGB')
 
 
-def draw(img, t, m):
+def draw(img, t, m, end_k=1.0, hook_k=None):
+    """end_k scales the payoff (fades it out in the loop dissolve); hook_k (0..1) forces the hook on at that alpha (fades it in)."""
     blocks = []
     a = 1 - sstep(TL['hookOut'] - 0.25, TL['hookOut'], t)
-    blocks.append((['YOU KNEW 10 PHONE', 'NUMBERS BY HEART.'], 64, 9, 230, a))
-    c = sstep(TL['counterIn'], TL['counterIn'] + 0.3, t)
+    if hook_k is not None: a = hook_k
+    blocks.append((['AT 10, YOU KNEW', '10 PHONE NUMBERS.'], 60, 9, 170, a))
+    c = sstep(TL['counterIn'], TL['counterIn'] + 0.3, t) * (1 - sstep(TL['counterOut'] - 0.25, TL['counterOut'], t))
     blocks.append(([f"AGE {m['age']}"], 56, 14, 236, c))
+    p = sstep(TL['payoffIn'], TL['payoffIn'] + 0.35, t) * end_k
+    blocks.append((['NOW YOU KNOW'], 64, 9, 236, p))
     img = sld_text.draw(img, blocks)
     n = m['count']
-    return amber_line(img, f"{n} NUMBER" + ('S' if n != 1 else ''), 44, 12, 326, c)
+    img = amber_line(img, f"{n} NUMBER" + ('S' if n != 1 else ''), 44, 12, 326, c)
+    img = amber_line(img, 'HOW MANY NOW?', 60, 9, 170 + 2 * int(60 * 1.45), (a * sstep(TL['hookQ'], TL['hookQ'] + 0.3, t) if hook_k is None else 0))
+    return amber_line(img, 'ONE.', 110, 14, 330, p)
