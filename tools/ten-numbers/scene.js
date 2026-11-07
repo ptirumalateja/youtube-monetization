@@ -165,7 +165,7 @@ function setT(t){
   receiver.position.copy(recvAt); receiver.rotation.set(0,lerp(0.35,0.2,lift),lerp(0,1.25,lift));
   setCord(CORD_A,receiver.localToWorld(V(0.1,-0.01,0)));
   // smartphone: appears, taps, shaken at the end, goes dark
-  const spPop=sm5(sstep(TL.phoneIn,TL.phoneIn+0.3,t)); spGroup.visible=spPop>0.01; spGroup.scale.setScalar(Math.max(0.01,spPop)*1.0);
+  const spPop=sm5(sstep(TL.phoneIn,TL.phoneIn+0.3,t)); spGroup.visible=false; spGroup.scale.setScalar(Math.max(0.01,spPop)*1.0);
   const shaking=0, held=0;
   const spHold=headW.clone().add(V(0.12,-0.34,0.28)); spHold.y=Math.max(spHold.y,DESK_TOP+0.2);
   const spPos=SP_BASE.clone().lerp(spHold,sm5(held));
@@ -177,7 +177,7 @@ function setT(t){
   const tapD=x=>{ const f=x%1; return 0.022*sstep(0,0.08,f)*(1-sstep(0.08,0.22,f)); }, dip=tapD(t*2.7)*(1-shaking)+0.03*tapD(t*5.6)*shaking;
   const tapPos=SP_BASE.clone().add(V(0.03*Math.sin(t*3.1),0.066+0.006*Math.sin(t*9),0.045*Math.sin(t*2.3+1)));
   const restR=SP_BASE.clone().add(V(0.0,0.075,0.0));
-  let baseR=restR.clone().lerp(tapPos,using);
+  let baseR=restR.clone();
   baseR=baseR.lerp(spPos.clone().add(V(0.0,0.07,0.0)),sm5(held));
   const handR=baseR.clone().lerp(recvAt.clone().add(V(0.02,-0.03,0)),useRecv);
   Object.assign(P,{tL:unK(handL),wL:1,pL:V(-0.3,-0.8,0.6),tR:unK(handR),wR:1,pR:V(-0.2,-1,0.25)});
