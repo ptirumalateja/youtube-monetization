@@ -16,9 +16,10 @@ const S=SLD.createStage({W,H,lamp:LAMP,lampTarget:AIM,cone:0.36,spot:17,beam:0.0
 S.spot.color.set(0xffc070); S.beamU.uCol.value.set(0xffb860);
 S.spot.shadow.camera.far=6;
 const R=SLD.createRig(S.scene);
+let WALL=null;
 { const wt=SLD.noiseTex(256,11,70,26,60,0.04); wt.repeat.set(3,2);
   const wall=new THREE.Mesh(new THREE.PlaneGeometry(14,7),new THREE.MeshStandardMaterial({color:0x2c3554,roughness:0.95,map:wt,emissive:0x182036}));
-  wall.position.set(0,3.5,-1.9); wall.receiveShadow=true; S.scene.add(wall); }
+  wall.position.set(0,3.5,-1.9); wall.receiveShadow=true; S.scene.add(wall); WALL=wall; }
 
 function woodTex(seed,base){ const c=document.createElement('canvas'); c.width=1024; c.height=256; const g=c.getContext('2d'); const Rn=rng(seed);
   g.fillStyle=base; g.fillRect(0,0,1024,256);
@@ -82,6 +83,26 @@ const spGroup=new THREE.Group(); S.scene.add(spGroup);   // a school notebook (h
 add(new THREE.BoxGeometry(0.17,0.016,0.23),new THREE.MeshStandardMaterial({color:0x4a5f8f,roughness:0.6,emissive:0x141c30}),0,0,0,spGroup);
 add(new THREE.BoxGeometry(0.15,0.01,0.21),new THREE.MeshStandardMaterial({color:0xe8dcc0,roughness:0.8,emissive:0x3a3326}),0.004,0.012,0,spGroup);
 const spLight={position:V(0,0,0),intensity:0}; const spScreenMat={color:{setScalar(){}}};
+
+
+// ---------------------------------------------------------------- the world changes at college age: a window with city lights appears, the wall cools
+const winMat=(()=>{ const c=document.createElement('canvas'); c.width=512; c.height=640; const g=c.getContext('2d'), Rn=rng(77);
+  g.fillStyle='#0d1424'; g.fillRect(0,0,512,640);
+  for(let i=0;i<170;i++){ const x=Rn()*512, y=380+Rn()*250, w=2+Rn()*4, h=3+Rn()*6; g.fillStyle=Rn()<0.7?'rgba(255,190,110,'+(0.18+Rn()*0.3)+')':'rgba(170,200,255,'+(0.15+Rn()*0.25)+')'; g.fillRect(x,y,w,h); }
+  g.strokeStyle='#3a2c22'; g.lineWidth=14; g.strokeRect(7,7,498,626); g.beginPath(); g.moveTo(256,0); g.lineTo(256,640); g.moveTo(0,300); g.lineTo(512,300); g.stroke();
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return new THREE.MeshBasicMaterial({map:t,toneMapped:false,transparent:true,opacity:0,fog:false,depthWrite:false}); })();
+const win=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.88),winMat); win.position.set(0,2.15,-1.86); S.scene.add(win);
+
+// new city (age 26): a different, denser skyline in cooler light
+const win2Mat=(()=>{ const c=document.createElement('canvas'); c.width=512; c.height=640; const g=c.getContext('2d'), Rn=rng(91);
+  g.fillStyle='#0b1a26'; g.fillRect(0,0,512,640);
+  for(let b=0;b<9;b++){ const x=b*58-10, h=140+Rn()*230, y=640-h; g.fillStyle='#10283a'; g.fillRect(x,y,52,h);
+    for(let r=0;r<h/16;r++) for(let k=0;k<4;k++) if(Rn()<0.5){ g.fillStyle=Rn()<0.75?'rgba(190,220,255,'+(0.2+Rn()*0.3)+')':'rgba(255,200,130,'+(0.2+Rn()*0.3)+')'; g.fillRect(x+5+k*12,y+6+r*16,6,8); } }
+  g.strokeStyle='#3a2c22'; g.lineWidth=14; g.strokeRect(7,7,498,626); g.beginPath(); g.moveTo(256,0); g.lineTo(256,640); g.moveTo(0,300); g.lineTo(512,300); g.stroke();
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return new THREE.MeshBasicMaterial({map:t,toneMapped:false,transparent:true,opacity:0,fog:false,depthWrite:false}); })();
+const win2=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.88),win2Mat); win2.position.set(0,2.15,-1.855); S.scene.add(win2);
+const WALL_C=new THREE.Color(0x1f3a48);
+const WALL_A=new THREE.Color(0x2c3554), WALL_B=new THREE.Color(0x24394f);
 
 // ---------------------------------------------------------------- the ten numbers
 const NUMS={HOME:'2754 3189',NANI:'2471 0638',RAHUL:'2765 4402',PRIYA:'2331 9087',CHINTU:'2490 1176',TUITION:'2718 5530',ARJUN:'2385 6621',MAMAYYA:'2603 7714',KAVYA:'2444 9015','SURESH UNCLE':'2559 2048'};
@@ -194,6 +215,7 @@ function setT(t){
     else { const center=V(-0.03,cy+0.3,CH_Z-0.1); pos.lerp(center,homeC); let pl=0; for(const [t0] of TL.pullsEnd) pl+=bump(t,t0,0.5)*0.5; for(const r of TL.ringAt) pl+=bump(t,r+0.02,1.0)*0.9; pl+=0.8*bump(t,TL.answer,1.4);
       sc=lerp(1,1.55,homeC)*(1+0.1*pl); k=lerp(k,1.15+0.2*Math.sin(t*3.2),homeC)+0.55*pl; }
     c.m.visible=vis; c.m.position.copy(pos); c.m.scale.setScalar(sc); c.m.lookAt(S.cam.position); c.mat.color.setScalar(k); }
+  const bgT=sm5(sstep(6.4,7.9,t)); const cityT=sm5(sstep(8.0,9.2,t)); winMat.opacity=0.6*bgT*(1-cityT); win2Mat.opacity=0.6*cityT; WALL.material.color.copy(WALL_A).lerp(WALL_B,bgT).lerp(WALL_C,cityT);
   // lamp: dips when the phone dies, warms when the line is answered
   const dipL=sm5(sstep(TL.deadAt-0.1,TL.deadAt+0.25,t))*(1-sm5(sstep(TL.setDown,TL.setDown+0.9,t)));
   const warm=sm5(sstep(TL.warmAt,TL.warmAt+0.9,t));
