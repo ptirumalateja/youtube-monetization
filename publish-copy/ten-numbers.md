@@ -1,20 +1,16 @@
-# Ten Numbers: publish copy
+# Ten Numbers (15.6 s) - publish copy
 
-**On-screen hook:** AT 10, YOU KNEW 10 PHONE NUMBERS. / HOW MANY DID YOU LOSE?  **Payoff:** NOW YOU KNOW ONE.
-
-**YouTube Short title (36 chars, 100/100):** 10 numbers at age 10, 1 number at 30
-Alt: Name 3 phone numbers you know by heart
-
-**Facebook / Instagram caption:**
+Facebook caption:
 At 10, you knew 10 phone numbers by heart.
 How many do you know now?
-Tag the one whose number you still know. 👇
+Tag the one person whose number you still know by heart.
 
-**Pinned first comment:** I know exactly one. Which is yours, and whose is it?
+Instagram caption:
+At 10, you knew 10 phone numbers by heart. Now? One.
+Tag the person whose number you still know. 📞
 
-**Hashtags (IG/FB, 5 max):** #slowlight #relatable #childhood #nostalgia #phonenumber
-**YouTube tags:** phone numbers, nostalgia, childhood, growing up, smartphone, relatable, short story, animation
+Hashtags (FB, keep to 3-5): #nostalgia #growingup #family
+Hashtags (IG, 8-10): #nostalgia #growingup #90skids #landline #phonenumbers #family #lifeinperspective #relatable #reels #slowlight
 
-**Cover frame:** cover-frame.jpg (14 s: HOME card + "NOW YOU KNOW ONE.").
-**Post:** FB first (the 30 Friends pattern), same file to IG and YT. IG: add a song in-app only if wanted; a music-ready silent file is included.
-**Fact note:** the numbers on the cards are made-up dummy numbers, "10 numbers at 10, 1 at 30" is a story device, not a statistic.
+Title / alt: 10 numbers at age 10, 1 number at 30
+Cover: final-reels/ten-numbers/cover-frame.jpg (check it still matches v2.2 before posting)
