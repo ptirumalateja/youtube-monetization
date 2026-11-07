@@ -6,7 +6,7 @@ const { chromium } = require(process.env.PW || 'playwright');
 const fs = require('node:fs'), path = require('node:path'), http = require('node:http');
 const root = __dirname, out = process.env.OUT || path.join(root, 'output'); fs.mkdirSync(path.join(out, 'frames'), { recursive: true });
 const spec = JSON.parse(fs.readFileSync(path.join(root, 'timeline.json'), 'utf8'));
-const total = Math.round(spec.duration * spec.fps);
+const total = Math.round((spec.outDuration || spec.duration) * spec.fps);
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.ttf': 'font/ttf' };
 const server = http.createServer((req, res) => {
   const u = req.url.split('?')[0]; const file = path.resolve(root, '.' + decodeURIComponent(u === '/' ? '/index.html' : u));

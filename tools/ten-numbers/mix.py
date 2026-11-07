@@ -2,7 +2,13 @@
 Every time comes from timeline.json (the same file the scene reads). Silence is a beat: the room tone drops when the phone dies."""
 import json, os, subprocess, sys, wave
 import numpy as np
-HERE = os.path.dirname(os.path.abspath(__file__)); TL = json.load(open(os.path.join(HERE, 'timeline.json')))
+HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
+from warp import inv, TL
+for k in ['hookOut','counterIn','counterOut','payoffIn','phoneIn','deadAt','flickerFrom','setDown','answer','warmAt','hookQ']: TL[k] = inv(TL[k])
+for k in ['recv1','recv2','ringAt']: TL[k] = [inv(x) if x < 90 else x for x in TL[k]]
+for k in ['pullsIntro','pullsEnd']: TL[k] = [[inv(a), b, c] for a, b, c in TL[k]]
+TL['depart'] = [[n, inv(t)] for n, t in TL['depart']]; TL['shake'] = [inv(x) for x in TL['shake']]; TL['fly'] = 0.55
+TL['duration'] = TL['outDuration']
 SR = 48000; D = TL['duration']; N = int(D * SR); S = os.path.join(HERE, 'sfx')
 rng = np.random.default_rng(7)
 

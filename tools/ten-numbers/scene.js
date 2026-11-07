@@ -221,7 +221,8 @@ function setT(t){
   const warm=sm5(sstep(TL.warmAt,TL.warmAt+0.9,t));
   S.tick(t,0.16*warm-0.62*dipL-0.3*g*(1-0.5*warm)); light.intensity=(0.3+0.04*Math.sin(t*1.3))*(1-0.5*dipL)+0.1*warm;
 }
-window.metaAt=t=>({age:ageAt(t),count:countAt(t)});
+const WK=TL.warp, wf=o=>{ for(let i=1;i<WK.length;i++){ const [s0,o0]=WK[i-1],[s1,o1]=WK[i]; if(o<=o1) return s0+(o-o0)/(o1-o0)*(s1-s0); } return WK[WK.length-1][0]; };
+window.metaAt=o=>{ const t=wf(o); return {age:ageAt(t),count:countAt(t)}; };
 window.events={...TL};
-window.renderAt=(t,Ks=3)=>S.renderAt(setT,t,Ks,{t0:0,t1:DUR});
+window.renderAt=(o,Ks=3)=>{ const t=wf(o), sp=(wf(o+0.01)-wf(o))/0.01||1; return S.renderAt(setT,t,Ks,{t0:0,t1:DUR,shutter:sp/60}); };
 window.ready=true;

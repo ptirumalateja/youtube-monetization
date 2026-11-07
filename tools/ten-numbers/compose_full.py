@@ -5,8 +5,9 @@ import glob, json, os, re, subprocess, sys
 from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import overlay
+from warp import fwd
 src, out = sys.argv[1], sys.argv[2]; os.makedirs(out, exist_ok=True)
-fps = overlay.TL['fps']; total = round(overlay.TL['duration'] * fps); LF = overlay.TL['loopFade']
+fps = overlay.TL['fps']; total = round(overlay.TL['outDuration'] * fps); LF = overlay.TL['loopFade']
 meta = json.load(open(os.path.join(src, 'meta.json')))['frames']
 frames = sorted(glob.glob(os.path.join(src, 'frames', 'f*.jpg')))
 assert len(frames) == total == len(meta), (len(frames), len(meta), total)
@@ -17,12 +18,12 @@ f0raw = Image.open(frames[0]).convert('RGB')
 for f, path in enumerate(frames):
     t = f / fps
     raw = Image.open(path).convert('RGB')
-    u = overlay.sstep(overlay.TL['duration'] - LF, overlay.TL['duration'], t)
+    u = overlay.sstep(overlay.TL['outDuration'] - LF, overlay.TL['outDuration'], t); ts = fwd(t)
     if u > 0:                     # loop: picture dissolves into frame 0; the payoff text leaves first, the hook arrives after
         raw = Image.blend(raw, f0raw, u)
-        img = overlay.draw(raw, t, meta[f], end_k=1 - overlay.sstep(0.0, 0.5, u), hook_k=overlay.sstep(0.5, 1.0, u))
+        img = overlay.draw(raw, ts, meta[f], end_k=1 - overlay.sstep(0.0, 0.5, u), hook_k=overlay.sstep(0.5, 1.0, u))
     else:
-        img = overlay.draw(raw, t, meta[f])
+        img = overlay.draw(raw, ts, meta[f])
     enc.stdin.write(img.tobytes())
 enc.stdin.close(); assert enc.wait() == 0
 wav = os.path.join(src, 'mix.wav'); master = os.path.join(out, 'ten-numbers.mp4')
