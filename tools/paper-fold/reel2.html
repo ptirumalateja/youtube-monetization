@@ -302,10 +302,13 @@ SC.S=async function(){
   const sunDir=new THREE.Vector3(0.9,0.18,0.5).normalize();
   const neb=new THREE.Mesh(new THREE.SphereGeometry(5e6,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{},
     vertexShader:`varying vec3 vd; void main(){vd=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-    fragmentShader:`varying vec3 vd; ${NOISE} float h(vec3 p){return h3(p);} void main(){vec3 d=normalize(vd); vec3 c=vec3(0.035,0.045,0.10);
-      float band=exp(-pow(dot(d,normalize(vec3(0.8,-0.25,0.35))),2.)*9.); float f=fbm3(d*3.5),f2=fbm3(d*9.+3.);
-      c+=vec3(0.20,0.09,0.26)*band*f*0.8+vec3(0.08,0.14,0.30)*f2*0.3+vec3(0.55,0.32,0.22)*band*pow(f2,3.)*1.0;
-      float st=pow(h(floor(d*900.)),400.)*2.5+pow(h(floor(d*400.)+7.),900.)*5.; c+=vec3(st)*(0.6+band); gl_FragColor=vec4(c,1.);}`})); neb.renderOrder=-5; S.add(neb);
+    fragmentShader:`varying vec3 vd; ${NOISE} float h(vec3 p){return h3(p);} void main(){vec3 d=normalize(vd); vec3 c=vec3(0.004,0.006,0.020);
+      float band=exp(-pow(dot(d,normalize(vec3(0.8,-0.25,0.35))),2.)*5.5); float f=fbm3(d*2.4),f2=fbm3(d*6.+3.),f3=fbm3(d*17.+5.);
+      c+=vec3(0.03,0.05,0.16)*(0.35+0.65*f)*0.5;
+      c+=vec3(0.50,0.09,0.36)*smoothstep(0.5,0.85,f)*(0.1+band)*0.30; c+=vec3(0.04,0.34,0.52)*smoothstep(0.55,0.88,f2)*(0.15+band)*0.28; c+=vec3(0.9,0.5,0.2)*pow(f3,3.)*band*0.35;
+      c*=1.-0.75*smoothstep(0.52,0.72,fbm3(d*4.5+9.))*band;
+      float h1=h(floor(d*1300.)), h2=h(floor(d*600.)+7.), h3b=h(floor(d*260.)+13.); vec3 tint=mix(vec3(0.7,0.8,1.),vec3(1.,0.8,0.6),h(floor(d*900.)+3.));
+      float st=pow(h1,500.)*2.2+pow(h2,900.)*4.5+pow(h3b,1400.)*9.; c+=tint*st*(0.7+band*1.2); gl_FragColor=vec4(c,1.);}`})); neb.renderOrder=-5; S.add(neb);
   const root=new THREE.Group(); S.add(root);
   // Earth
   const earthMat=new THREE.ShaderMaterial({uniforms:{d:{value:eT},l:{value:eL},c:{value:cl},sd:{value:sunDir},detail:{value:1}},
@@ -327,6 +330,10 @@ SC.S=async function(){
   bodies.moon=mkBall(mT); bodies.sun=mkBall(null,'#ffd9a0'); bodies.nep=mkBall(null,'#5f8fe8');
   const dot=softDot(); const mkGlow=(col,op)=>{const sp=sprite(dot,col,1,new THREE.Vector3(),op); root.add(sp); return sp;};
   const sunGlow=mkGlow('#ffb060',0.95), sunGlow2=mkGlow('#ff8a40',0.4), nepGlow=mkGlow('#6a9cff',0.6), proxGlow=mkGlow('#ff7a4a',1.0), proxGlow2=mkGlow('#ff9a60',0.5), moonGlow=mkGlow('#cfd8ff',0.25);
+  const rayTex=canvasTex(512,512,(g,w,h)=>{g.clearRect(0,0,w,h); g.translate(w/2,h/2); g.filter='blur(3px)'; for(let i=0;i<28;i++){const a=i/28*Math.PI*2+rnd()*0.1, L=120+rnd()*130, wd=0.02+rnd()*0.03; const gr=g.createLinearGradient(0,0,Math.cos(a)*L,Math.sin(a)*L); gr.addColorStop(0,'rgba(255,225,170,0.30)'); gr.addColorStop(1,'rgba(255,200,140,0)'); g.fillStyle=gr; g.beginPath(); g.moveTo(0,0); g.lineTo(Math.cos(a-wd)*L,Math.sin(a-wd)*L); g.lineTo(Math.cos(a+wd)*L,Math.sin(a+wd)*L); g.closePath(); g.fill();} });
+  const sunRays=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:rayTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})); root.add(sunRays);
+  const dustN=260, dustPos=new Float32Array(dustN*3); for(let i=0;i<dustN*3;i++)dustPos[i]=(rnd()-0.5)*2; const dustG=new THREE.BufferGeometry(); dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
+  const dust=new THREE.Points(dustG,new THREE.PointsMaterial({color:'#cfd8ff',size:0.006,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending})); dust.frustumCulled=false; root.add(dust);
   const sl=new THREE.DirectionalLight('#fff4e6',3.0); sl.position.copy(sunDir).multiplyScalar(10); S.add(sl); S.add(new THREE.AmbientLight('#56607e',0.6));
   // galaxies (procedural spiral sprites)
   const spiral=(core,arm,sz)=>canvasTex(512,512,(g,w,h)=>{g.fillStyle='rgba(0,0,0,0)';g.clearRect(0,0,w,h); g.translate(w/2,h/2);
@@ -371,15 +378,16 @@ SC.S=async function(){
     const RE=6.371e6*u; earth.visible=atm.visible=RE>1e-3&&n<66;
     if(earth.visible){earth.scale.setScalar(RE); earth.position.set(0,-RE,0); atm.scale.setScalar(RE); atm.position.copy(earth.position); earthMat.uniforms.detail.value=sstep(0.02,2,RE/dist*0.2)*1.0+0.15;}
     const mY=3.844e8*u, sY=1.496e11*u, nY=4.5e12*u, pY=4.02e16*u;
-    place(bodies.moon,moonGlow,mY,1.737e6*u,0.034,n>=37&&n<=48,3.2);
-    place(bodies.sun,sunGlow,sY,6.96e8*u,0.05,n>=44&&n<=63,3.6); sunGlow2.visible=bodies.sun.visible; sunGlow2.position.copy(sunGlow.position); sunGlow2.scale.setScalar(sunGlow.scale.x*2.4);
-    place(bodies.nep,nepGlow,nY,2.46e7*u,0.034,n>=50&&n<=66,3.0);
-    proxGlow.visible=proxGlow2.visible=(n>=62&&n<=78); proxGlow.position.set(X,pY,0); proxGlow.scale.setScalar(0.11); proxGlow2.position.copy(proxGlow.position); proxGlow2.scale.setScalar(0.26);
+    place(bodies.moon,moonGlow,mY,1.737e6*u,0.075,n>=37&&n<=48,3.2);
+    place(bodies.sun,sunGlow,sY,6.96e8*u,0.11,n>=44&&n<=63,3.4); sunGlow2.visible=bodies.sun.visible; sunGlow2.position.copy(sunGlow.position); sunGlow2.scale.setScalar(sunGlow.scale.x*2.4);
+    place(bodies.nep,nepGlow,nY,2.46e7*u,0.075,n>=50&&n<=66,2.6);
+    proxGlow.visible=proxGlow2.visible=(n>=62&&n<=78); proxGlow.position.set(X,pY,0); proxGlow.scale.setScalar(0.2); proxGlow2.position.copy(proxGlow.position); proxGlow2.scale.setScalar(0.5);
     // galaxies
     const mwD=9.46e20*u; mw.visible=n>=76&&n<=96; mw.scale.setScalar(mwD); mw.position.set(-0.26*mwD,0,-0.01); mw.rotation.z=0.0;
-    const anY=2.37e22*u, anD=2.08e21*u; an.visible=n>=82&&n<=97; an.scale.setScalar(Math.max(anD,0.13)); an.position.set(X,anY,-0.01);
+    const anY=2.37e22*u, anD=2.08e21*u; an.visible=n>=82&&n<=97; an.scale.setScalar(Math.max(anD,0.22)); an.position.set(X,anY,-0.01);
     // cosmic web: ball of radius 46.5 Gly centred on Earth, only rendered once it is big enough to matter
     const Ru=46.5*GLY*u; layers.forEach(Ly=>{const rr=Ru*Ly.r; const rl=rr/1; const o=sstep(2.5,8,rl)*(1-sstep(60,300,rl))*sstep(82,86,n); Ly.pts.visible=o>0.01; Ly.pts.scale.setScalar(rr); Ly.pts.position.set(0,0,0); Ly.pts.material.uniforms.base.value=rr*0.0022; Ly.pts.material.uniforms.op.value=o;});
+    sunRays.visible=bodies.sun.visible; sunRays.position.copy(bodies.sun.position); sunRays.scale.setScalar(bodies.sun.scale.x*9); sunRays.rotation.z=t*0.06; dust.position.set(cam.position.x,cam.position.y-((t*0.02)%1)*0.0,0); dust.scale.setScalar(1.6);
     baseDot.visible=n>=38&&n<=64; baseDot.position.set(0,0,0); baseDot.scale.setScalar(0.07+0.03*Math.sin(t*3));
     uni.visible=n>=100.6; uni.material.uniforms.op.value=sstep(100.6,102,n)*0.92; uni.scale.setScalar(Ru); uni.position.set(-(Ru+0.14),Ru,0);
     iss.visible=n>=30&&n<=40; iss.position.set(X,4.08e5*u,0); iss.scale.setScalar(Math.max(109*u,0.085)); iss.rotation.z=0.25;
