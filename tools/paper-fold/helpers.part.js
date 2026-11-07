@@ -7,7 +7,7 @@ function bokehDisc(){return canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGr
 function sprite(tex,color,size,pos,opacity=1){const m=new THREE.SpriteMaterial({map:tex,color,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending});
   const s=new THREE.Sprite(m); s.scale.set(size,size,1); s.position.copy(pos); return s;}
 
-function compose(scene,cam,bloom){const c=new EffectComposer(R); c.setSize(W,H); c.addPass(new RenderPass(scene,cam));
+function compose(scene,cam,bloom){const c=new EffectComposer(R,new THREE.WebGLRenderTarget(W,H,{type:THREE.HalfFloatType,samples:4})); c.setSize(W,H); c.addPass(new RenderPass(scene,cam));
   c.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),bloom[0],bloom[1],bloom[2])); c.addPass(new OutputPass()); return c;}
 
 // Paper layers texture: fine strata lines for the side faces of a folded block.
