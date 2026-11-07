@@ -38,7 +38,8 @@ def draw(img, t, m, end_k=1.0, hook_k=None):
     if hook_k is not None: a = hook_k
     blocks.append((['AT 10, YOU KNEW', '10 PHONE NUMBERS.'], 60, 9, 170, a))
     c = sstep(TL['counterIn'], TL['counterIn'] + 0.3, t) * (1 - sstep(TL['counterOut'] - 0.25, TL['counterOut'], t))
-    blocks.append(([f"AGE {m['age']}"], 56, 14, 236, c))
+    ag = m['age']; stage = 'SCHOOL' if ag < 14 else 'NEW CLASS' if ag < 18 else 'COLLEGE' if ag < 22 else 'FIRST JOB' if ag < 26 else 'NEW CITY'
+    blocks.append(([f"AGE {ag} · {stage}"], 46, 8, 236, c))
     p = sstep(TL['payoffIn'], TL['payoffIn'] + 0.35, t) * end_k
     blocks.append((['NOW YOU KNOW'], 64, 9, 236, p))
     img = sld_text.draw(img, blocks)

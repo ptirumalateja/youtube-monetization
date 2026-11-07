@@ -1,6 +1,6 @@
 // Ten Numbers (Slow Light, logo palette: navy room, amber light, cream text). 19.2 s, one boy, one desk, one counter.
-// A boy dials the red landline (10 amber number cards float around him). He grows up at the same desk; a smartphone
-// arrives and the cards fly into it one by one; the phone dies; one card (HOME) is left; he dials the old landline.
+// A boy dials the red landline (10 amber number cards float around him). He grows up at the same desk, busy with school, work
+// and life; people drift out of his days and their cards fade away one by one; one card (HOME) is left; he dials the old landline.
 // renderAt(t) is pure (no state between frames). All story times come from timeline.json (the mix reads the same file).
 import * as THREE from 'three';
 import * as SLD from './sld.js';
@@ -46,7 +46,7 @@ const CH_Z=-0.62;
 // ---------------------------------------------------------------- the red landline (the one red object; dulls with the years)
 const RED=new THREE.MeshStandardMaterial({color:PAL.RED,roughness:0.35,emissive:PAL.RED,emissiveIntensity:0.04});
 SLD.rimify(RED,0xff9a80,0.14,'phone');
-const PH=V(-0.1,DESK_TOP,-0.4);
+const PH=V(-0.03,DESK_TOP,-0.4);
 function holeAng(k){ return k/10*Math.PI*2*0.8+0.5; }
 let dialMesh=null;
 const phone=new THREE.Group(); phone.position.copy(PH); phone.rotation.y=0.35; S.scene.add(phone);
@@ -73,16 +73,15 @@ function setCord(a,b){ if(cord){ S.scene.remove(cord); cord.geometry.dispose(); 
 
 // ---------------------------------------------------------------- the smartphone (arrives at phoneIn, dies at deadAt)
 const SP_BASE=V(0.18,DESK_TOP+0.006,-0.38), SP_YAW=-0.3;
-function screenTex(){ const c=document.createElement('canvas'); c.width=256; c.height=512; const g=c.getContext('2d');
+function screenTexUnused(){ const c=document.createElement('canvas'); c.width=256; c.height=512; const g=c.getContext('2d');
   const gr=g.createLinearGradient(0,0,0,512); gr.addColorStop(0,'#c9d6ff'); gr.addColorStop(1,'#6f86d6'); g.fillStyle=gr; g.fillRect(0,0,256,512);
   g.fillStyle='rgba(20,28,60,0.75)'; g.font='700 36px "JetBrains Mono"'; g.textAlign='center'; g.fillText('CONTACTS',128,70);
   for(let i=0;i<9;i++){ g.fillStyle=`rgba(30,40,70,${0.18+0.05*(i%3)})`; g.beginPath(); g.roundRect(26,110+i*44,204,28,8); g.fill(); g.fillStyle='rgba(255,178,77,0.8)'; g.beginPath(); g.arc(40,124+i*44,7,0,6.3); g.fill(); }
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
-const spGroup=new THREE.Group(); S.scene.add(spGroup);
-add(new THREE.BoxGeometry(0.118,0.018,0.222),new THREE.MeshStandardMaterial({color:0x0c0e16,roughness:0.25,metalness:0.5}),0,0,0,spGroup);
-const spScreenMat=new THREE.MeshBasicMaterial({map:screenTex(),toneMapped:false,color:0xffffff});
-const spScreen=new THREE.Mesh(new THREE.PlaneGeometry(0.1,0.196),spScreenMat); spScreen.rotation.x=-Math.PI/2; spScreen.position.y=0.0095; spGroup.add(spScreen);
-const spLight=new THREE.PointLight(0xcfe0ff,0.0,2.2,2); S.scene.add(spLight);
+const spGroup=new THREE.Group(); S.scene.add(spGroup);   // a school notebook (his days fill up): cover + pages
+add(new THREE.BoxGeometry(0.17,0.016,0.23),new THREE.MeshStandardMaterial({color:0x4a5f8f,roughness:0.6,emissive:0x141c30}),0,0,0,spGroup);
+add(new THREE.BoxGeometry(0.15,0.01,0.21),new THREE.MeshStandardMaterial({color:0xe8dcc0,roughness:0.8,emissive:0x3a3326}),0.004,0.012,0,spGroup);
+const spLight={position:V(0,0,0),intensity:0}; const spScreenMat={color:{setScalar(){}}};
 
 // ---------------------------------------------------------------- the ten numbers
 const NUMS={HOME:'2754 3189',NANI:'2471 0638',RAHUL:'2765 4402',PRIYA:'2331 9087',CHINTU:'2490 1176',TUITION:'2718 5530',ARJUN:'2385 6621',MAMAYYA:'2603 7714',KAVYA:'2444 9015','SURESH UNCLE':'2559 2048'};
@@ -125,7 +124,7 @@ function dialWeight(t){ let w=0; for(const g of [TL.pullsIntro,TL.pullsEnd]){ co
 
 // ---------------------------------------------------------------- camera: slow push-in that follows him up as he grows
 function camAt(t){ const u=sm5(clamp(t/19.2)), g=grow(t);   // camera time base fixed at 19.2 s so trimming the tail never shifts earlier frames
-  const tg=V(0.05,lerp(1.27,1.34,g),lerp(-0.4,-0.45,u)), dist=lerp(3.0,2.75,u)+0.3*g-0.28*sstep(14.5,TL.duration,t), az=lerp(0.3,0.16,u), el=lerp(0.15,0.1,u);
+  const tg=V(0.05,lerp(1.31,1.38,g),lerp(-0.4,-0.45,u)), dist=lerp(3.0,2.75,u)+0.3*g-0.28*sstep(14.5,TL.duration,t), az=lerp(0.3,0.16,u)-0.06*sstep(15.0,TL.duration,t), el=lerp(0.15,0.1,u);
   return {pos:tg.clone().add(V(Math.sin(az)*Math.cos(el),Math.sin(el),Math.cos(az)*Math.cos(el)).multiplyScalar(dist)),tg}; }
 
 // ---------------------------------------------------------------- one frame
@@ -147,7 +146,7 @@ function setT(t){
   const dial=dialWeight(t), late=t>TL.setDown?1:0;
   let glance=0; for(const c of CARDS){ if(c.dep!==null) glance+=bump(t,c.dep-0.1,TL.fly+0.35)*Math.max(-1,Math.min(1,c.off[0]*2.2)); }
   const P={...R.P0,p:0.14,tilt:0.05,aL:1.55,aR:1.5,kL:1.25,kR:1.35,sL:0.5,sR:0.5,eL:0.9,eR:0.9,dy:0.43/K-0.485};
-  P.p+=0.02*Math.sin(t*1.6)+0.05*using+0.1*g;
+  P.p+=0.02*Math.sin(t*1.6)+0.05*using+0.1*g+0.14*dial;
   P.tilt=0.3*(1-sstep(rv1[0]-0.2,rv1[0]+0.5,t))*(t<TL.phoneIn+0.2?1:0)+0.34*using+0.14*dial*late-0.2*lift+0.02;
   P.hy=-0.05+0.2*using-0.4*look*(1-lift)+0.18*lift-0.1*dial*late+0.28*glance*using;
   P.tilt-=0.12*Math.abs(glance)*using;
@@ -157,7 +156,7 @@ function setT(t){
   // landline dial hand (camera-left hand)
   const th=seqAt(DK.th,t), hh=seqAt(DK.hh,t), hgt=0.122+0.058*K+hh;
   const dialHand=phone.localToWorld(V(Math.cos(th)*0.043,hgt,0.02+Math.sin(th)*0.043));
-  const restL=V(-0.3,DESK_TOP+0.04,-0.26);
+  const restL=V(-0.22,DESK_TOP+0.04,-0.26);
   const handL=restL.clone().lerp(dialHand,dial);
   dialMesh.rotation.y=-wheelAt(t);
   // receiver
@@ -166,8 +165,8 @@ function setT(t){
   receiver.position.copy(recvAt); receiver.rotation.set(0,lerp(0.35,0.2,lift),lerp(0,1.25,lift));
   setCord(CORD_A,receiver.localToWorld(V(0.1,-0.01,0)));
   // smartphone: appears, taps, shaken at the end, goes dark
-  const spPop=sm5(sstep(TL.phoneIn,TL.phoneIn+0.3,t)); spGroup.visible=spPop>0.01; spGroup.scale.setScalar(Math.max(0.01,spPop)*1.45);
-  const shaking=(t>TL.shake[0]&&t<TL.shake[1])?1:0, held=0;
+  const spPop=sm5(sstep(TL.phoneIn,TL.phoneIn+0.3,t)); spGroup.visible=spPop>0.01; spGroup.scale.setScalar(Math.max(0.01,spPop)*1.0);
+  const shaking=0, held=0;
   const spHold=headW.clone().add(V(0.12,-0.34,0.28)); spHold.y=Math.max(spHold.y,DESK_TOP+0.2);
   const spPos=SP_BASE.clone().lerp(spHold,sm5(held));
   spPos.x+=0.025*Math.sin(t*38)*held*shaking; spPos.y+=0.02*Math.sin(t*31)*held*shaking;
@@ -176,7 +175,7 @@ function setT(t){
   spScreenMat.color.setScalar(bright); spLight.position.copy(spPos).add(V(0.05,0.5,0.3)); spLight.intensity=0.12*pOn;
   // right hand: smartphone (tap), shaking it, or the receiver
   const tapD=x=>{ const f=x%1; return 0.022*sstep(0,0.08,f)*(1-sstep(0.08,0.22,f)); }, dip=tapD(t*2.7)*(1-shaking)+0.03*tapD(t*5.6)*shaking;
-  const tapPos=SP_BASE.clone().add(V(0.0,0.08-dip,0.03*Math.sin(t*1.9)));
+  const tapPos=SP_BASE.clone().add(V(0.03*Math.sin(t*3.1),0.066+0.006*Math.sin(t*9),0.045*Math.sin(t*2.3+1)));
   const restR=SP_BASE.clone().add(V(0.0,0.075,0.0));
   let baseR=restR.clone().lerp(tapPos,using);
   baseR=baseR.lerp(spPos.clone().add(V(0.0,0.07,0.0)),sm5(held));
@@ -191,14 +190,14 @@ function setT(t){
     const home=V(c.off[0]*0.84-0.07,cy+c.off[1],CH_Z+c.dz).add(V(b2,b,0));
     let pos=home.clone(), sc=1, k=0.78+0.12*Math.sin(t*1.7+c.ph), vis=true;
     k+=0.55*bump(t,0.1+c.i*0.07,0.4);                                  // count-in: the ten cards flare in turn in the first second
-    if(c.dep!==null){ const u=(t-c.dep)/TL.fly; if(u>=1) vis=false; else if(u>0){ const e=sm5(u); pos=home.clone().lerp(spTarget,e); pos.y+=0.4*Math.sin(Math.PI*e); pos.z+=0.55*Math.sin(Math.PI*e); sc=lerp(1,0.3,e); k*=1-0.9*sstep(0.7,1,u); } }
+    if(c.dep!==null){ const u=(t-c.dep)/TL.fly; if(u>=1) vis=false; else if(u>0){ const e=sm5(u); pos=home.clone(); pos.x+=Math.sign(c.off[0]||1)*0.22*e; pos.y+=0.3*e; sc=lerp(1,0.82,e); k*=1-sstep(0.05,0.95,u); } }
     else { const center=V(-0.03,cy+0.3,CH_Z-0.1); pos.lerp(center,homeC); let pl=0; for(const [t0] of TL.pullsEnd) pl+=bump(t,t0,0.5)*0.5; for(const r of TL.ringAt) pl+=bump(t,r+0.02,1.0)*0.9; pl+=0.8*bump(t,TL.answer,1.4);
       sc=lerp(1,1.55,homeC)*(1+0.1*pl); k=lerp(k,1.15+0.2*Math.sin(t*3.2),homeC)+0.55*pl; }
     c.m.visible=vis; c.m.position.copy(pos); c.m.scale.setScalar(sc); c.m.lookAt(S.cam.position); c.mat.color.setScalar(k); }
   // lamp: dips when the phone dies, warms when the line is answered
   const dipL=sm5(sstep(TL.deadAt-0.1,TL.deadAt+0.25,t))*(1-sm5(sstep(TL.setDown,TL.setDown+0.9,t)));
   const warm=sm5(sstep(TL.warmAt,TL.warmAt+0.9,t));
-  S.tick(t,0.16*warm-0.62*dipL); light.intensity=(0.3+0.04*Math.sin(t*1.3))*(1-0.5*dipL)+0.1*warm;
+  S.tick(t,0.16*warm-0.62*dipL-0.3*g*(1-0.5*warm)); light.intensity=(0.3+0.04*Math.sin(t*1.3))*(1-0.5*dipL)+0.1*warm;
 }
 window.metaAt=t=>({age:ageAt(t),count:countAt(t)});
 window.events={...TL};

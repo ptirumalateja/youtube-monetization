@@ -39,15 +39,11 @@ for (t0, k, amp) in TL['pullsIntro'] + TL['pullsEnd']:
 pick = L('pickup.mp3', -29); cradle = L('cradle.mp3', -29)
 put(pick, TL['recv1'][0] + 0.12); put(cradle, TL['recv1'][1] + 0.35)
 put(pick, TL['recv2'][0] + 0.12)
-put(L('ping.mp3', -27), TL['phoneIn'] + 0.05)
 tap = L('tap.mp3', -38)
 t = TL['phoneIn'] + 0.9
-while t < TL['flickerFrom']: put(tap, t, rng.uniform(0.7, 1.1), k=rng.uniform(0.95, 1.1), maxlen=0.2, fade=0.04); t += rng.uniform(0.3, 0.5)
-t = TL['shake'][0]
-while t < TL['shake'][1]: put(tap, t, 0.9, k=rng.uniform(0.95, 1.1), maxlen=0.2, fade=0.04); t += 0.18
+while t < TL['flickerFrom']: put(tap, t, rng.uniform(0.4, 0.7), k=rng.uniform(0.95, 1.1), maxlen=0.2, fade=0.04); t += rng.uniform(0.3, 0.5)
 tick = L('tick.mp3', -33)
 for i, (n, d) in enumerate(TL['depart']): put(tick, d + TL['fly'] - 0.03, 1.0, k=0.8 + 0.08 * i, maxlen=0.4)
-put(L('powerdown.mp3', -30), TL['deadAt'] - 0.15, maxlen=1.1)
 put(L('thump.mp3', -22), TL['payoffIn'] - 0.02)
 put(L('thump.mp3', -25), TL['depart'][4][1] + TL['fly'] - 0.02)                  # rehook: half of the numbers are gone
 put(L('tick.mp3', -31), TL['hookQ'], k=0.9, maxlen=0.4)                       # the question lands
