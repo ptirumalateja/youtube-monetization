@@ -176,13 +176,13 @@ function dot(g, x, y, r, col, a, hollow) {
 
 // ---------- background (reference look: deep charcoal, soft disc glow in the middle) ----------
 function background(g, t, glowK, flash) {
-  g.fillStyle = 'rgb(11,12,15)'; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgb(9,11,18)'; g.fillRect(0, 0, W, H);
   let gr = g.createRadialGradient(540, 900, 0, 540, 900, 1250);
-  gr.addColorStop(0, 'rgba(36,39,46,1)'); gr.addColorStop(0.32, 'rgba(24,26,32,1)'); gr.addColorStop(0.62, 'rgba(15,16,20,1)'); gr.addColorStop(1, 'rgba(10,11,14,1)');
+  gr.addColorStop(0, 'rgba(27,32,46,1)'); gr.addColorStop(0.32, 'rgba(19,23,35,1)'); gr.addColorStop(0.62, 'rgba(13,16,25,1)'); gr.addColorStop(1, 'rgba(9,11,18,1)');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
   // the soft lens disc behind the content
   gr = g.createRadialGradient(540, 880, 300, 540, 880, 620);
-  gr.addColorStop(0, `rgba(255,255,255,${0.035 * glowK})`); gr.addColorStop(0.9, `rgba(255,255,255,${0.02 * glowK})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  gr.addColorStop(0, `rgba(170,190,255,${0.03 * glowK})`); gr.addColorStop(0.9, `rgba(170,190,255,${0.016 * glowK})`); gr.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
   // faint warm haze (our touch)
   gr = g.createRadialGradient(540, 980, 0, 540, 980, 700);
