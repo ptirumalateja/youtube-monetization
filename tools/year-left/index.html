@@ -176,9 +176,9 @@ function dot(g, x, y, r, col, a, hollow) {
 
 // ---------- background (reference look: deep charcoal, soft disc glow in the middle) ----------
 function background(g, t, glowK, flash) {
-  g.fillStyle = 'rgb(9,11,18)'; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgb(17,21,33)'; g.fillRect(0, 0, W, H);
   let gr = g.createRadialGradient(540, 900, 0, 540, 900, 1250);
-  gr.addColorStop(0, 'rgba(27,32,46,1)'); gr.addColorStop(0.32, 'rgba(19,23,35,1)'); gr.addColorStop(0.62, 'rgba(13,16,25,1)'); gr.addColorStop(1, 'rgba(9,11,18,1)');
+  gr.addColorStop(0, 'rgba(42,49,68,1)'); gr.addColorStop(0.35, 'rgba(31,37,54,1)'); gr.addColorStop(0.7, 'rgba(24,29,44,1)'); gr.addColorStop(1, 'rgba(18,22,35,1)');
   g.fillStyle = gr; g.fillRect(0, 0, W, H);
   // the soft lens disc behind the content
   gr = g.createRadialGradient(540, 880, 300, 540, 880, 620);
@@ -497,7 +497,7 @@ function renderAt(t) {
   }
   // gentle vignette (not to black) + grain
   const vg = ctx.createRadialGradient(540, 900, 600, 540, 900, 1300);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.25)');
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.08)');
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.06;
   const gx = Math.floor(hash(Math.floor(t * 30)) * 540), gy = Math.floor(hash(Math.floor(t * 30) + 3) * 960);
