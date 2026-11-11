@@ -217,8 +217,8 @@ function motes(g, t, a) {
 function hud(g, t, prog, dayNum, a, rewind) {
   if (a <= 0) return;
   const x0 = 108, x1 = 972, y = 230;
-  text(g, String(YEAR), x0, y - 26, 21, CREAM, 0.42 * a, { align: 'left', w: 600, ls: 3 });
-  text(g, `${String(dayNum).padStart(3, '0')}/${NDAYS}`, x1, y - 26, 21, CREAM, 0.42 * a, { align: 'right', w: 600, ls: 3 });
+  text(g, String(YEAR), x0, y - 28, 25, CREAM, 0.8 * a, { align: 'left', w: 700, ls: 3 });
+  text(g, `${String(dayNum).padStart(3, '0')}/${NDAYS}`, x1, y - 28, 25, CREAM, 0.8 * a, { align: 'right', w: 700, ls: 3 });
   g.fillStyle = rgba(CREAM, 0.16 * a); g.fillRect(x0, y, x1 - x0, 2);
   for (let m = 0; m <= 12; m++) g.fillRect(x0 + (x1 - x0) * m / 12, y - 4, 2, 8);
   const xp = x0 + (x1 - x0) * prog;
@@ -243,7 +243,7 @@ function header(g, t, a) {
   const k = ts <= 0 ? 1 : clamp((t - ts) / 0.28);
   const s = scramble(cur[1], k, Math.floor(t * 30));
   const fade = t > 9.3 ? 1 - ss(9.3, 9.6, t) : 1;
-  text(g, s, 540, 340, 44, CREAM, a * fade, { w: 600, ls: 7 });
+  text(g, s, 540, 330, 52, CREAM, a * fade, { w: 700, ls: 6 });
 }
 
 // ---------- timeline helpers ----------
@@ -272,9 +272,9 @@ function scene(t, g) {
       const p = tx([CAL.x0 + (m % 3) * CAL.dx, CAL.y0 + Math.floor(m / 3) * CAL.dy + 6]);
       const cur = t < 2 ? (days[Math.min(filled, NDAYS - 1)].m === m) : m >= days[T0].m;
       const la = (m >= days[T0].m && t >= 2 ? 1 - fly : pastA) * (cur ? 0.95 : 0.4);
-      text(g, MON[m], p[0] - 4, p[1], 19 * Math.min(camS, 1.3), CREAM, la, { align: 'left', w: 700, ls: 3 });
+      text(g, MON[m], p[0] - 4, p[1], 22 * Math.min(camS, 1.3), CREAM, Math.min(1, la * 1.4), { align: 'left', w: 800, ls: 3 });
     }
-    if (t >= 2) for (let qn = 0; qn < 4; qn++) { const p = tx([CAL.x0 - 52, CAL.y0 + qn * CAL.dy + 44 + 33]); text(g, 'Q' + (qn + 1), p[0], p[1], 17, CREAM, 0.35 * after * pastA, { w: 600, ls: 1 }); }
+    if (t >= 2) for (let qn = 0; qn < 4; qn++) { const p = tx([CAL.x0 - 52, CAL.y0 + qn * CAL.dy + 44 + 33]); text(g, 'Q' + (qn + 1), p[0] + 14, p[1], 19, CREAM, 0.6 * after * pastA, { w: 700, ls: 1 }); }
     const r = CAL.r * Math.min(camS, 1.35);
     for (let i = 0; i < NDAYS; i++) {
       let p = tx(calPos(i));
@@ -308,8 +308,8 @@ function scene(t, g) {
     // footer
     const fa = pastA;
     const fDay = t < 2 ? filled : T0;
-    text(g, t < 2 ? fmt(Math.max(0, fDay)) : `TODAY · ${fmt(T0)}`, 120, 1520, 22, CREAM, 0.75 * fa, { align: 'left', w: 700, ls: 4 });
-    text(g, `DAY ${String((t < 2 ? fDay : T0) + 1).padStart(3, '0')} / ${NDAYS}`, 960, 1520, 22, CREAM, 0.75 * fa, { align: 'right', w: 700, ls: 4 });
+    text(g, t < 2 ? fmt(Math.max(0, fDay)) : `TODAY · ${fmt(T0)}`, 120, 1520, 27, CREAM, fa, { align: 'left', w: 800, ls: 3 });
+    text(g, `DAY ${String((t < 2 ? fDay : T0) + 1).padStart(3, '0')} / ${NDAYS}`, 960, 1520, 27, CREAM, fa, { align: 'right', w: 800, ls: 3 });
     if (t > 1.85 && t < 2.15) st.flash = 0.10 * (1 - Math.abs(t - 2.0) / 0.15);
     return st;
   }
@@ -348,17 +348,17 @@ function scene(t, g) {
     const dl = scramble('DAYS LEFT', clamp((t - 4.0) / 0.3), Math.floor(t * 30));
     const dw = text(g, dl, 528, 1205, 44, CREAM, dA, { w: 800, ls: 10 });
     dot(g, 528 + dw / 2 + 4, 1218, 7, RED, dA);
-    text(g, `${fmt(T0)} – ${fmt(NDAYS - 1)}`, 540, 1270, 21, CREAM, 0.5 * dA, { w: 600, ls: 5 });
+    text(g, `${fmt(T0)} – ${fmt(NDAYS - 1)}`, 540, 1275, 27, CREAM, 0.9 * dA, { w: 700, ls: 4 });
     // grid labels
     const gA = ss(5.9, 6.2, t) * (1 - ss(9.35, 9.6, t));
     if (gA > 0) {
-      'MTWTFSS'.split('').forEach((c, j) => text(g, c, GR.cx + (j - 3) * GR.dx, GR.y0 - 70, 19, j >= 5 && t >= 8 ? GOLD : CREAM, (j >= 5 && t >= 8 ? 0.9 : 0.45) * gA, { w: 700, ls: 0 }));
-      for (let rI = 0; rI < GROWS; rI++) text(g, String(rI + 1).padStart(2, '0'), GR.cx - 3 * GR.dx - 92, GR.y0 + rI * GR.dy, 18, CREAM, (rI === GROWS - 1 ? 0.8 : 0.4) * gA, { w: 700, ls: 1 });
+      'MTWTFSS'.split('').forEach((c, j) => text(g, c, GR.cx + (j - 3) * GR.dx, GR.y0 - 70, 23, j >= 5 && t >= 8 ? GOLD : CREAM, (j >= 5 && t >= 8 ? 1 : 0.8) * gA, { w: 800, ls: 0 }));
+      for (let rI = 0; rI < GROWS; rI++) text(g, String(rI + 1).padStart(2, '0'), GR.cx - 3 * GR.dx - 92, GR.y0 + rI * GR.dy, 21, CREAM, (rI === GROWS - 1 ? 1 : 0.7) * gA, { w: 800, ls: 1 });
       const tp = gridPos(0);
-      text(g, 'TODAY', GR.cx + 3 * GR.dx + 64, GR.y0 - 22, 18, RED, 0.95 * gA, { align: 'left', w: 800, ls: 2 });
-      text(g, fmt(T0), GR.cx + 3 * GR.dx + 64, GR.y0 + 10, 17, CREAM, 0.5 * gA, { align: 'left', w: 600, ls: 2 });
+      text(g, 'TODAY', GR.cx + 3 * GR.dx + 56, GR.y0 - 22, 22, RED, gA, { align: 'left', w: 800, ls: 2 });
+      text(g, fmt(T0), GR.cx + 3 * GR.dx + 56, GR.y0 + 12, 21, CREAM, 0.85 * gA, { align: 'left', w: 700, ls: 1 });
       const lp = gridPos(LEFT - 1);
-      text(g, fmt(NDAYS - 1), GR.cx + 3 * GR.dx + 64, lp[1] + GR.dy * 0.35, 17, CREAM, 0.5 * gA, { align: 'left', w: 600, ls: 2 });
+      text(g, fmt(NDAYS - 1), GR.cx + 3 * GR.dx + 56, lp[1] + GR.dy * 0.35, 21, CREAM, 0.85 * gA, { align: 'left', w: 700, ls: 1 });
       // gold bracket around the weekend columns
       const wa = ss(8.85, 9.2, t) * gA;
       if (wa > 0) {
@@ -394,7 +394,7 @@ function scene(t, g) {
       const lit = t >= 13.9 ? 1 : 0.55 * dim;
       const gy = gp[1] - 100 * s;
       text(g, String(NEXT), 540, gy, 60 * s, mix(CREAM, [255, 255, 255], lit * 0.5), lit, { w: 800, ls: 6 * s });
-      text(g, 'JAN 01', 540, gy + 46 * s, 17 * s, CREAM, lit * 0.6, { w: 700, ls: 6 * s });
+      text(g, 'JAN 01', 540, gy + 48 * s, 21 * s, CREAM, lit * 0.85, { w: 800, ls: 5 * s });
       g.fillStyle = rgba(CREAM, 0.35 * lit); g.fillRect(540 - 120 * s, gy + 74 * s, 240 * s, Math.max(1.5, 2 * s * 0.5));
     }
     for (let k = LEFT - 1; k >= 0; k--) {
@@ -438,8 +438,8 @@ function scene(t, g) {
       const words = 'MOST PEOPLE WILL WAIT FOR JANUARY.'.split(' ');
       const nw = Math.min(words.length, Math.floor((t - 9.95) / 0.25) + 1);
       const l1 = words.slice(0, Math.min(nw, 3)).join(' '), l2 = words.slice(3, nw).join(' ');
-      text(g, l1, 540, 300, 42, CREAM, 0.95, { w: 600, ls: 7 });
-      if (l2) text(g, l2, 540, 360, 42, CREAM, 0.95, { w: 600, ls: 7 });
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); text(g, l1, 540, 300, 50, CREAM, 1, { w: 700, ls: 6 });
+      if (l2) text(g, l2, 540, 366, 50, CREAM, 1, { w: 700, ls: 6 }); g.restore();
     }
     if (t >= 12.0 && t < 13.05) {
       const sh = t < 12.15 ? (hash(Math.floor(t * 60)) - .5) * 14 : 0;
@@ -459,7 +459,7 @@ function scene(t, g) {
     }
     if (t >= 14.0) {
       const k = clamp((t - 14.0) / 0.22);
-      text(g, scramble('START', k, Math.floor(t * 30)), 540, 330, 104, [255, 255, 255], 1, { w: 800, ls: 22 });
+      g.save(); g.setTransform(1, 0, 0, 1, 0, 0); text(g, scramble('START', k, Math.floor(t * 30)), 540, 330, 104, [255, 255, 255], 1, { w: 800, ls: 22 }); g.restore();
       if (t < 14.15) st.flash = 0.14 * (1 - (t - 14) / 0.15);
     }
     st.glow = 1;
@@ -472,7 +472,7 @@ function scene(t, g) {
     const tw = text(g, 'TODAY', 515, 940, 180, [255, 255, 255], 1, { w: 800, ls: 14 });
     dot(g, 515 + tw / 2 + 8, 995, 17 * k, RED, 1);
     const ca = ss(16.3, 16.5, t);
-    text(g, CTA, 540, 1130, 28, CREAM, 0.7 * ca, { w: 700, ls: 6 });
+    text(g, CTA, 540, 1150, 34, CREAM, 0.95 * ca, { w: 800, ls: 5 });
     st.flash = t < 16.12 ? 0.22 * (1 - (t - 16) / 0.12) : 0;
     return st;
   }
@@ -485,6 +485,7 @@ function renderAt(t) {
   let ts = t, rew = 0;
   if (t >= 17.0) { const u = clamp((t - 17.0) / 1.0); ts = 11.9 * (1 - eio(u)); rew = 1; }
   lx.setTransform(1, 0, 0, 1, 0, 0); lx.clearRect(0, 0, W, H);
+  const ZM = 1.15; lx.setTransform(ZM, 0, 0, ZM, 540 * (1 - ZM), 900 * (1 - ZM));   // crop in for phone readability
   const st = scene(ts, lx);
   // compose
   background(ctx, ts, st.glow, 0);
