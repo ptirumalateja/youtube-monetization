@@ -15,11 +15,13 @@ frames = sorted(glob.glob(os.path.join(src, 'frames', 'f*.jpg'))); assert len(fr
 silent = os.path.join(out, 'rain-or-shine_music-ready.mp4')
 enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', '1080x1920', '-r', str(fps), '-i', '-',
                         '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], stdin=subprocess.PIPE)
+VIS = TL['duration']; END = 3.0
 for f, p in enumerate(frames):
-    t = f / fps; im = overlay.draw(Image.open(p).convert('RGB'), t, META[f])
-    k = 1 - sstep(TL['duration'] - 0.55, TL['duration'] - 0.05, t)
-    if k < 1: im = Image.eval(im, lambda v: int(v * k))
+    t = f / fps; im = overlay.draw(Image.open(p).convert('RGB'), t, META[f], card=sstep(VIS - 0.55, VIS - 0.05, t))
     enc.stdin.write(im.tobytes())
+last = Image.open(frames[-1]).convert('RGB')
+for f in range(round(END * fps)):
+    t = VIS + f / fps; enc.stdin.write(overlay.end_card(last, t - VIS).tobytes())
 enc.stdin.close(); assert enc.wait() == 0
 lufs, tp = master_to_mp4(silent, os.path.join(src, 'mix.wav'), os.path.join(out, 'rain-or-shine.mp4'))
 print(f'master: {lufs:.1f} LUFS, true peak {tp:.1f} dBTP')

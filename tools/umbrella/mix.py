@@ -8,7 +8,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'slow-light-dark-common'))
 from sld_sound import SR, hp, lp, place, curve, write_wav
-DUR = 11.8; N = int(DUR * SR)
+VIS = 11.8; DUR = 14.8; N = int(DUR * SR)
 
 
 def samp(name):
@@ -34,7 +34,7 @@ def loop_bed(name, g_curve, pan=0.0):
 mix = np.zeros((2, N))
 mix += loop_bed('rain', curve(N, [(0, 0.55), (2.95, 0.55), (3.05, 0.65), (3.7, 0.0), (DUR, 0)]))
 mix += loop_bed('rain_umb', curve(N, [(0, 0.28), (2.95, 0.28), (3.6, 0.0), (DUR, 0)]), -0.3)
-mix += loop_bed('heat', curve(N, [(0, 0), (3.6, 0), (4.6, 0.32), (11.2, 0.32), (11.8, 0)]))
+mix += loop_bed('heat', curve(N, [(0, 0), (3.6, 0), (4.6, 0.32), (11.2, 0.32), (12.0, 0.14), (14.2, 0.14), (14.8, 0)]))
 fol = np.zeros((2, N))
 put(fol, 'steps_wet', 0.0, 0.35, 0.0, dur=3.0)
 put(fol, 'laugh', 0.08, 0.75, 0.3, at='onset')
@@ -53,7 +53,8 @@ put(fol, 'kneel', 8.18, 0.65, 0.3, at='onset')
 put(fol, 'kneel', 8.42, 0.4, 0.35, at='onset')
 put(fol, 'umb_open', 9.12, 0.6, 0.3, at='onset')
 put(fol, 'pant', 9.6, 0.25, 0.3, off=0.3, dur=1.6)
+put(fol, 'throw', 11.9, 0.22, 0.0, at='onset')
 mix += fol
-mix *= curve(N, [(0, 1), (11.25, 1), (11.8, 0)])[None]
+mix *= curve(N, [(0, 1), (14.3, 1), (14.8, 0)])[None]
 mix = np.tanh(mix / np.abs(mix).max() * 1.4) / np.tanh(1.4)
 write_wav(mix, sys.argv[1]); print('ok')
