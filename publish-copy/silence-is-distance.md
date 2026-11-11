@@ -3,15 +3,18 @@
 Stickman split-screen remake: TEXTS FIRST builds a bridge of gold messages in 365 days; WAITS drifts apart and sends too late.
 File: project files `final-reels/silence-is-distance/silence-is-distance.mp4`. Renderer: `tools/silence-distance`.
 
-## Caption (FB / IG)
-Silence isn't patience. It's distance.
-The one you're waiting on might be waiting on you.
+## Facebook caption (sent to Teja 11 Nov)
+Silence isn't patience. It's distance. 🌉
+
+One of them texted first. One of them waited.
+365 days later, one couple is holding hands… and the other is still staring at a phone, typing and deleting.
+
+The person you're waiting on might be waiting on you too.
 Send the text. 💛
 
-Follow for one small story a week.
+Tag someone you've been meaning to message 👇
 
-## Hashtags
-#relationships #texting #stickman #love #friendship #communication #reels
+#relationships #texting #love #communication #friendship #lovequotes #relationshipgoals #stickman #animation #reels #fbreels #viralreels #lifelessons #slowlight
 
 ## YouTube Shorts title
 Silence isn't a strategy. It's distance. #shorts
