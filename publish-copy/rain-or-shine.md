@@ -7,3 +7,9 @@ Video: final-reels/rain-or-shine/rain-or-shine_v2-title-endcard.mp4 (14.8 s). Co
 **Tags:** checkers vs chess, think ahead, mindset shorts, stickman animation, stickman story, motivational shorts, umbrella story, prepare for the future, rain and drought, think three moves ahead, plan ahead, success mindset, life lesson, short animated story, 3d stickman, slow light, wise vs foolish, discipline, long term thinking, self improvement shorts, animation shorts, deep meaning video, motivation 2026, life lessons animation, shorts
 
 **Description hashtags:** #mindset #stickman #shorts
+
+**YouTube description hashtags:** #mindset #stickman #shorts #checkersvschess #thinkahead #lifelessons #motivation #animation #stickmananimation #selfimprovement
+
+**Instagram / Facebook caption:** Some people play checkers. Others play chess. One focuses on the next move. The other thinks three moves ahead. 🌧️☀️ Which one are you?
+
+#checkersvschess #thinkahead #mindset #stickman #stickmananimation #lifelessons #motivation #successmindset #planahead #selfimprovement #reels #slowlight
