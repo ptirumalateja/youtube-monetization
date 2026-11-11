@@ -16,11 +16,26 @@ A "no" doesn't keep them home. It keeps them quiet.
 
 **Pinned comment:** Which house did you grow up in? 🚪 or 🪟
 
-## Instagram / Facebook caption
-Same question. Two houses.
-One kid used the door. One used the window.
+## Facebook caption
+Same question. Two houses. 🌙
+
+One kid came home through the door.
+The other came home through the window.
+
+A "no" doesn't keep them home. It keeps them quiet.
 Kids tell the truth where the truth is safe.
 
 Which house did you grow up in? 🚪 or 🪟
 
-#parenting #strictparents #relatable #teenagers #stickman #animation #slowlight
+#parenting #strictparents #parentsvskids #relatable #teenagers #trust #stickman #animation #slowlight
+
+## Instagram caption
+Same question. Two houses. 🌙
+One used the door. One used the window.
+
+A "no" doesn't keep them home. It keeps them quiet.
+Kids tell the truth where the truth is safe.
+
+Which house did you grow up in? 🚪 or 🪟 Comment below 👇
+
+#parenting #strictparents #chillparents #parentsvskids #relatable #teenagers #trust #parentingtips #momlife #dadlife #stickmananimation #animation #reels #slowlight
