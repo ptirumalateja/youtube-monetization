@@ -6,13 +6,22 @@
 - Sound: foley made with the ElevenLabs sound-generation API (room tone, doors, steps, sash window, lamp, clock beeps, bubble pops). No third-party audio.
 
 ## YouTube Shorts
-**Title:** Strict parents vs chill parents 🌙 #shorts
+**Title:** Strict Parents vs Chill Parents 🌙 Same Question, Two Houses
 
 **Description:**
-Same question. Two houses. Only one kid came home through the door.
-A "no" doesn't keep them home. It keeps them quiet.
+Same question. Two houses.
+One kid came home through the door. The other came home through the window.
 
-**Tags:** strict parents, chill parents, parenting, teenagers, relatable, stickman animation, slow light
+A "no" doesn't keep them home. It keeps them quiet.
+Kids tell the truth where the truth is safe.
+
+Which house did you grow up in? 🚪 or 🪟 Tell me in the comments.
+
+Slow Light: stories worth slowing down for.
+
+#shorts #strictparents #parenting #relatable #teenagers #stickmananimation
+
+**Tags:** strict parents vs chill parents, strict parents, chill parents, strict parents be like, parenting, parenting tips, teenagers, sneaking out, sneaking out at night, relatable, relatable shorts, parents vs kids, trust between parents and kids, stickman animation, 3d animation, animated short, slow light, shorts
 
 **Pinned comment:** Which house did you grow up in? 🚪 or 🪟
 
