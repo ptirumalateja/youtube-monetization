@@ -1,0 +1,22 @@
+#!/bin/bash
+# Regenerates the ElevenLabs foley used by mix.py. Needs ELEVENLABS_API_KEY; one request at a time.
+cd "$(dirname "$0")"
+gen(){ n=$1; d=$2; p="$3"; [ -s $n.mp3 ] && [ -z "$FORCE" ] && return; for i in 1 2 3; do curl -sS -o $n.mp3 -X POST https://api.elevenlabs.io/v1/sound-generation -H "xi-api-key: $ELEVENLABS_API_KEY" -H "Content-Type: application/json" -d "{\"text\":\"$p\",\"duration_seconds\":$d,\"prompt_influence\":0.7}"; [ $(stat -c%s $n.mp3) -gt 2000 ] && break; sleep 4; done; echo "$n $(stat -c%s $n.mp3)"; }
+gen rain 8.0 "Steady heavy rain falling on wet pavement at night, dense close raindrops, no thunder, no music"
+gen rain_umb 6.0 "Heavy rain drumming on a taut nylon umbrella canopy close above the microphone, no music"
+gen laugh 2.6 "A man laughing mockingly, ha ha ha, short teasing laugh, dry, no music"
+gen laugh2 2.0 "A man bent over laughing hard at someone, wheezing ha ha ha, no music"
+gen thunder 4.0 "One violent close lightning strike, a sharp electric crack then a deep rolling thunder rumble, no rain, no music"
+gen throw 1.0 "A closed umbrella swung and thrown hard through the air, one fast whoosh, no music"
+gen clatter 1.4 "A folded umbrella falling and clattering onto hard dry cracked earth, plastic and metal rattle, then still, no music"
+gen heat 8.0 "Hot dry desert midday ambience, faint dry wind, distant cicadas buzzing, oppressive heat, no music"
+gen crack 2.0 "Dry mud ground cracking and splitting under hot sun, crisp crackles spreading, no music"
+gen pour 2.0 "Clear water pouring from a small spout into a plastic cup, filling up, close-up, no music"
+gen gulp 1.6 "A man drinking water from a cup, two or three clear gulps, then a satisfied breath out, close-up, no music"
+gen kneel 1.0 "A tired man collapsing onto his knees on dry dirt ground, one soft heavy thud and dust, no music"
+gen umb_open 1.0 "An umbrella popping open quickly, a fabric snap and metal click, close-up, no music"
+gen umb_close 1.0 "An umbrella snapping shut quickly, fabric swish and a metal click, close-up, no music"
+gen steps_wet 4.0 "Two people walking slowly through shallow rain puddles, soft splashing footsteps, close-up, no music"
+gen steps_dry 3.0 "Slow tired footsteps on dry crunchy dirt ground, close-up, no music"
+gen pant 2.5 "A man panting heavily from heat and thirst, dry raspy breathing, no music"
+gen drip 1.2 "A few water drops dripping from an umbrella into a puddle, close-up, no music"
