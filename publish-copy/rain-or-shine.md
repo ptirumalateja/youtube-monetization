@@ -13,3 +13,14 @@ Video: final-reels/rain-or-shine/rain-or-shine_v2-title-endcard.mp4 (14.8 s). Co
 **Instagram / Facebook caption:** Some people play checkers. Others play chess. One focuses on the next move. The other thinks three moves ahead. 🌧️☀️ Which one are you?
 
 #checkersvschess #thinkahead #mindset #stickman #stickmananimation #lifelessons #motivation #successmindset #planahead #selfimprovement #reels #slowlight
+
+**Facebook caption:**
+
+He laughed at the rain. Then the sun came. ☀️
+
+Some people play checkers. Others play chess.
+One focuses on the next move. The other thinks three moves ahead.
+
+Which one are you? Tell me in the comments 👇
+
+#checkersvschess #thinkahead #mindset #lifelessons #motivation #stickman #planahead #successmindset
