@@ -66,7 +66,10 @@ def build(cfg_path):
     # captions
     ass = os.path.join(tmp, "caps.ass")
     if cfg.get("box"):
-        st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H66000000,&H66000000,-1,0,0,0,100,100,0,0,3,14,0,{al},80,80,{mv},1")
+        def st(n, size, col, al, mv, ol):
+            if n == "Hook":
+                return f"Style: {n},{cfg['font']},{size},&H00201310,&H000000FF,&H0044B5F2,&H0044B5F2,-1,0,0,0,100,100,0,0,3,18,0,{al},80,80,{mv},1"
+            return f"Style: {n},{cfg['font']},{size},&H00FFFFFF,&H000000FF,&H38000000,&H38000000,-1,0,0,0,100,100,0,0,3,16,0,{al},80,80,{mv},1"
     else:
         st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H00102040,&H96000000,-1,0,0,0,100,100,0,0,1,{ol},2,{al},80,80,{mv},1")
     L_ = ["[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0", "ScaledBorderAndShadow: yes", "",
