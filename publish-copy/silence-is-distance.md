@@ -16,5 +16,21 @@ Tag someone you've been meaning to message 👇
 
 #relationships #texting #love #communication #friendship #lovequotes #relationshipgoals #stickman #animation #reels #fbreels #viralreels #lifelessons #slowlight
 
-## YouTube Shorts title
-Silence isn't a strategy. It's distance. #shorts
+## YouTube Shorts (sent to Teja 12 Nov)
+Title: After a fight, who texts first? 💛 #shorts
+
+Description:
+Silence isn't patience. It's distance.
+
+One of them texted first. One of them waited.
+365 days later, one is holding hands… the other is still typing and deleting.
+
+The person you're waiting on might be waiting on you too. Send the text.
+
+Which one are you, the one who texts first or the one who waits? Tell me in the comments 👇
+
+Subscribe to Slow Light for one small story every week.
+
+#shorts #relationships #texting #love #communication #stickman #animation #lifelessons #slowlight
+
+Tags: who texts first, after a fight, silence is distance, relationship advice, texting after a fight, texting first, waiting for a text, communication in relationships, love story animation, stickman animation, stick figure story, relationship shorts, couple shorts, emotional shorts, life lessons, ego in relationships, slow light, shorts
