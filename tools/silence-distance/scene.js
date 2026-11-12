@@ -4,14 +4,15 @@
 'use strict';
 const DW = 720, DH = 1280, DUR = 12.1;
 // v2 hook: output time -> scene time. Starts mid-typing and plays the opening 1.3x, so the first text fires at 0.15 s.
-const WARP = [[0, 0.3], [1.3, 2.0], [11.4, 12.1]];
+// v6: frame 0 = the text already flying (top) while he deletes his (bottom); bridge starts at 0.5 s, done by 1.6 s.
+const WARP = [[0, 0.42], [0.5, 1.85], [1.6, 3.4], [10.3, 12.1]];
 const warp = t => pw(t, WARP), unwarp = s => pw(s, WARP.map(([a, b]) => [b, a]));
-const OUT_DUR = 11.4;
+const OUT_DUR = 10.3;
 // v3: everything below the background moves down so the hook clears the Reels account-name bar.
 const SHIFT = 110;
 // v4: tighter crop + a slow push-in from frame 0. Content scales about (360, ZP) in design px.
 const ZP = 180; let ZC = 1.13, T = 0;
-const zoomAt = to => lerp(1.04, 1.15, eout(clamp(to / 2.0))) + 0.05 * clamp((to - 2) / 9.4);
+const zoomAt = to => lerp(1.04, 1.15, eout(clamp(to / 2.0))) + 0.05 * clamp((to - 2) / 8.3);
 const contentTf = () => { const k = W / DW, Z = ZC; return [k * Z, 0, 0, k * Z, k * (360 - 360 * Z), k * (ZP + (SHIFT - ZP) * Z)]; };
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
