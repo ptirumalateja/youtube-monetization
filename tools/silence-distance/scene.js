@@ -5,14 +5,15 @@
 const DW = 720, DH = 1280, DUR = 12.1;
 // v2 hook: output time -> scene time. Starts mid-typing and plays the opening 1.3x, so the first text fires at 0.15 s.
 // v6: frame 0 = the text already flying (top) while he deletes his (bottom); bridge starts at 0.5 s, done by 1.6 s.
-const WARP = [[0, 0.42], [0.5, 1.85], [1.6, 3.4], [10.3, 12.1]];
+// v7: also the stand/walk/hold plays 1.3x, so DAY 365 lands at 3.6 s.
+const WARP = [[0, 0.42], [0.5, 1.85], [1.6, 3.4], [3.6, 6.2], [9.5, 12.1]];
 const warp = t => pw(t, WARP), unwarp = s => pw(s, WARP.map(([a, b]) => [b, a]));
-const OUT_DUR = 10.3;
+const OUT_DUR = 9.5;
 // v3: everything below the background moves down so the hook clears the Reels account-name bar.
 const SHIFT = 110;
 // v4: tighter crop + a slow push-in from frame 0. Content scales about (360, ZP) in design px.
-const ZP = 180; let ZC = 1.13, T = 0;
-const zoomAt = to => lerp(1.04, 1.15, eout(clamp(to / 2.0))) + 0.05 * clamp((to - 2) / 8.3);
+const ZP = 190; let ZC = 1.13, T = 0;
+const zoomAt = to => lerp(1.13, 1.24, eout(clamp(to / 2.0))) + 0.03 * clamp((to - 2) / 7.5);
 const contentTf = () => { const k = W / DW, Z = ZC; return [k * Z, 0, 0, k * Z, k * (360 - 360 * Z), k * (ZP + (SHIFT - ZP) * Z)]; };
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
@@ -350,8 +351,8 @@ function frame(g, t) {
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 10;
   g.font = '900 54px "Inter Display"'; g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST', 360, 108);
   g.font = '800 38px "Inter Display"'; g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT?', 360, 158); g.restore();
-  label(g, 'TEXTS FIRST', 80, 237, 25, 0.95, 4, 700);
-  label(g, 'WAITS', 80, 663, 25, 0.85, 4, 700);
+  label(g, 'TEXTS FIRST', 100, 237, 25, 0.95, 4, 700);
+  label(g, 'WAITS', 100, 663, 25, 0.85, 4, 700);
   const day = Math.round(pw(t, DAYS));
   g.save(); g.font = '600 15px "JetBrains Mono"'; g.letterSpacing = '3px'; g.textBaseline = 'alphabetic'; const w1 = g.measureText('DAY ').width;
   g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; const w2 = g.measureText(String(day)).width; const x0 = 360 - (w1 + w2) / 2;
