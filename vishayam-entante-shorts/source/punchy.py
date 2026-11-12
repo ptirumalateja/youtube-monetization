@@ -50,7 +50,7 @@ def build(cfg_path):
         vf = (f"[0:v]trim={s0}:{s1},setpts=(PTS-STARTPTS)/{speed:.4f},fps={FPS},"
               f"tpad=stop_mode=clone:stop_duration={hold+0.2:.3f},"
               f"scale=w='trunc(1080*{z}/2)*2':h='trunc(1920*{z}/2)*2':eval=frame:flags=lanczos,"
-              f"crop=1080:1920:x='(in_w-1080)/2':y='(in_h-1920)*{sc.get('zy',0.5)}',"
+              f"crop=1080:1920:x='(in_w-1080)*{sc.get('zx',0.5)}':y='(in_h-1920)*{sc.get('zy',0.5)}',"
               f"setsar=1,{GRADE},trim=0:{L:.3f},setpts=PTS-STARTPTS,format=yuv420p[v]")
         if sc.get("sfx"):
             af = (f"[1:a]atrim={s0}:{s1},asetpts=PTS-STARTPTS,atempo={max(min(speed,2),0.5):.4f},aresample=48000,"
@@ -65,7 +65,10 @@ def build(cfg_path):
         print(f"scene {i}: {sc['clip']} L={L:.2f} speed={speed:.2f} hold={hold:.2f}")
     # captions
     ass = os.path.join(tmp, "caps.ass")
-    st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H00102040,&H96000000,-1,0,0,0,100,100,0,0,1,{ol},2,{al},80,80,{mv},1")
+    if cfg.get("box"):
+        st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H66000000,&H66000000,-1,0,0,0,100,100,0,0,3,14,0,{al},80,80,{mv},1")
+    else:
+        st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H00102040,&H96000000,-1,0,0,0,100,100,0,0,1,{ol},2,{al},80,80,{mv},1")
     L_ = ["[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0", "ScaledBorderAndShadow: yes", "",
           "[V4+ Styles]", "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
           st("Cap", cfg["cap_size"], "&H00E6F6FF", 2, 500, 6), st("Hook", cfg["hook_size"], "&H006BD3FF", 8, 230, 7), "",
