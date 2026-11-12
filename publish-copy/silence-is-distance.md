@@ -1,7 +1,7 @@
-# Silence Is Distance (v4, 11.4 s, 9:16)
+# Silence Is Distance (v5, 11.4 s, 9:16)
 
 Stickman split-screen remake: TEXTS FIRST builds a bridge of gold messages in 365 days; WAITS drifts apart and sends too late.
-File: project files `final-reels/silence-is-distance/silence-is-distance-v4.mp4` (v4 = tighter crop 1.08->1.16 push-in from frame 0, breathing figures, bigger hook; v3 = v2 moved 110 design px down to clear the Reels account bar; v2 hook: "AFTER A FIGHT, WHO TEXTS FIRST?" on frame 0, first text sends at 0.15 s). Renderer: `tools/silence-distance`.
+File: project files `final-reels/silence-is-distance/silence-is-distance-v5.mp4` (v5 = hook "WHO TEXTS FIRST / AFTER A FIGHT?", stronger push-in 1.04->1.15 then slow creep to 1.20; v4 = tighter crop 1.08->1.16 push-in from frame 0, breathing figures, bigger hook; v3 = v2 moved 110 design px down to clear the Reels account bar; v2 hook: "AFTER A FIGHT, WHO TEXTS FIRST?" on frame 0, first text sends at 0.15 s). Renderer: `tools/silence-distance`.
 
 ## Facebook caption (sent to Teja 11 Nov)
 Silence isn't patience. It's distance. 🌉
@@ -17,7 +17,7 @@ Tag someone you've been meaning to message 👇
 #relationships #texting #love #communication #friendship #lovequotes #relationshipgoals #stickman #animation #reels #fbreels #viralreels #lifelessons #slowlight
 
 ## YouTube Shorts (sent to Teja 12 Nov)
-Title: After a fight, who texts first? 💛 #shorts
+Title: Who texts first after a fight? 💛 #shorts
 
 Description:
 Silence isn't patience. It's distance.

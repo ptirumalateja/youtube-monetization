@@ -11,7 +11,7 @@ const OUT_DUR = 11.4;
 const SHIFT = 110;
 // v4: tighter crop + a slow push-in from frame 0. Content scales about (360, ZP) in design px.
 const ZP = 180; let ZC = 1.13, T = 0;
-const zoomAt = to => lerp(1.08, 1.16, eout(clamp(to / 2.2)));
+const zoomAt = to => lerp(1.04, 1.15, eout(clamp(to / 2.0))) + 0.05 * clamp((to - 2) / 9.4);
 const contentTf = () => { const k = W / DW, Z = ZC; return [k * Z, 0, 0, k * Z, k * (360 - 360 * Z), k * (ZP + (SHIFT - ZP) * Z)]; };
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
@@ -347,8 +347,8 @@ function frame(g, t) {
   // hook line, on screen from frame 0
   g.save(); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = '800 46px "Inter Display"'; g.letterSpacing = '0.5px';
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 10;
-  g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT,', 360, 104);
-  g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST?', 360, 160); g.restore();
+  g.font = '900 54px "Inter Display"'; g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST', 360, 108);
+  g.font = '800 38px "Inter Display"'; g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT?', 360, 158); g.restore();
   label(g, 'TEXTS FIRST', 80, 237, 25, 0.95, 4, 700);
   label(g, 'WAITS', 80, 663, 25, 0.85, 4, 700);
   const day = Math.round(pw(t, DAYS));
