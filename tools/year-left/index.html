@@ -231,7 +231,8 @@ function hud(g, t, prog, dayNum, a, rewind) {
 // header line with scramble-on-change
 function header(g, t, a) {
   const H1 = [
-    [0, `HOW MUCH OF ${YEAR} IS LEFT?`],
+    [0, `${YEAR} IS ALMOST OVER.`],
+    [1.0, `HOW MUCH OF ${YEAR} IS LEFT?`],
     [2.0, `${YEAR} IS ${PCT}% COMPLETE.`],
     [4.0, 'YOU HAVE'],
     [6.0, `UNDER ${WEEKS} WEEKS.`],
@@ -243,13 +244,13 @@ function header(g, t, a) {
   const k = ts <= 0 ? 1 : clamp((t - ts) / 0.28);
   const s = scramble(cur[1], k, Math.floor(t * 30));
   const fade = t > 9.3 ? 1 - ss(9.3, 9.6, t) : 1;
-  text(g, s, 540, 330, 52, CREAM, a * fade, { w: 700, ls: 6 });
+  const hook = ts <= 0; text(g, s, 540, hook ? 345 : 330, hook ? 76 : 52, CREAM, a * fade, { w: hook ? 800 : 700, ls: hook ? 2 : 6 });
 }
 
 // ---------- timeline helpers ----------
 // day-fill progress 0..2 s (slow start, accelerate, same feel as the ref)
 function filledAt(t) {
-  const k = clamp(t / 1.92);
+  const k = clamp((t - 1.0) / 0.92);
   return Math.min(T0, Math.floor(T0 * (0.04 * k + 0.96 * Math.pow(k, 2.3))));
 }
 
@@ -266,12 +267,13 @@ function scene(t, g) {
     const fly = eio(ss(3.35, 3.98, t));        // remaining dots -> digits
     const camS = 1 + zoom * 0.55, camX = lerp(540, 690, zoom), camY = lerp(900, 1180, zoom);
     const tx = (p) => [540 + (p[0] - camX) * camS, 900 + (p[1] - camY) * camS];
-    const pastA = 1 - ss(3.0, 3.35, t);
+    const calA = ss(0.85, 1.1, t);              // calendar appears after the hook
+    const pastA = (1 - ss(3.0, 3.35, t)) * calA;
     // month labels
     for (let m = 0; m < 12; m++) {
       const p = tx([CAL.x0 + (m % 3) * CAL.dx, CAL.y0 + Math.floor(m / 3) * CAL.dy + 6]);
       const cur = t < 2 ? (days[Math.min(filled, NDAYS - 1)].m === m) : m >= days[T0].m;
-      const la = (m >= days[T0].m && t >= 2 ? 1 - fly : pastA) * (cur ? 0.95 : 0.4);
+      const la = (m >= days[T0].m && t >= 2 ? 1 - fly : pastA) * (cur ? 0.95 : 0.4) * calA;
       text(g, MON[m], p[0] - 4, p[1], 22 * Math.min(camS, 1.3), CREAM, Math.min(1, la * 1.4), { align: 'left', w: 800, ls: 3 });
     }
     if (t >= 2) for (let qn = 0; qn < 4; qn++) { const p = tx([CAL.x0 - 52, CAL.y0 + qn * CAL.dy + 44 + 33]); text(g, 'Q' + (qn + 1), p[0] + 14, p[1], 19, CREAM, 0.6 * after * pastA, { w: 700, ls: 1 }); }
@@ -298,6 +300,14 @@ function scene(t, g) {
           const y = (1 - fk) * (1 - fk) * p[1] + 2 * (1 - fk) * fk * ctrl[1] + fk * fk * q[1];
           const rr = lerp(r, 15, fk);
           dot(g, x, y, rr, isToday && fk < 0.98 ? RED : CREAM, 0.95, false);
+        } else if (t < 1.25) {
+          // HOOK: the remaining days start as a big glowing number, then drop into the calendar
+          const q = digOf[k], d0 = hash(k * 7.7) * 0.25, hk = eio(clamp((t - 0.62 - d0) / 0.45));
+          const ctrl = [lerp(q[0], p[0], 0.5) + (hash(k + 3) - .5) * 220, lerp(q[1], p[1], 0.5) - 140 * hash(k + 5)];
+          const x = (1 - hk) * (1 - hk) * q[0] + 2 * (1 - hk) * hk * ctrl[0] + hk * hk * p[0];
+          const y = (1 - hk) * (1 - hk) * q[1] + 2 * (1 - hk) * hk * ctrl[1] + hk * hk * p[1];
+          const pop = 1 + 0.08 * Math.exp(-((t * 6) ** 2));
+          dot(g, 540 + (x - 540) * (hk < 1 ? pop : 1), 860 + (y - 860) * (hk < 1 ? pop : 1), lerp(16, r, hk), CREAM, lerp(1, 0.3, hk), hk > 0.95);
         } else {
           const hollowCol = isToday && t >= 2 ? RED : CREAM;
           const bright = t >= 2 ? lerp(0.24, 0.95, after) : 0.24;
@@ -307,6 +317,12 @@ function scene(t, g) {
     }
     // footer
     const fa = pastA;
+    if (t < 1.0) {
+      const ha = 1 - ss(0.55, 0.75, t);
+      const hw = text(g, 'DAYS LEFT IN ' + YEAR, 528, 1215, 52, CREAM, ha, { w: 800, ls: 6 });
+      dot(g, 528 + hw / 2 + 6, 1230, 8, RED, ha);
+    }
+    if (t < 0.12) st.flash = 0.12 * (1 - t / 0.12);
     const fDay = t < 2 ? filled : T0;
     text(g, t < 2 ? fmt(Math.max(0, fDay)) : `TODAY · ${fmt(T0)}`, 120, 1520, 27, CREAM, fa, { align: 'left', w: 800, ls: 3 });
     text(g, `DAY ${String((t < 2 ? fDay : T0) + 1).padStart(3, '0')} / ${NDAYS}`, 960, 1520, 27, CREAM, fa, { align: 'right', w: 800, ls: 3 });

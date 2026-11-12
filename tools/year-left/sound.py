@@ -152,15 +152,18 @@ for tt in [0.0, 2.0, 4.0, 6.0, 8.0]:
 # day-fill ticks: one per filled day, thinned (accelerating)
 fill_T0 = 315
 prev = 0
-for i in range(1, 58):
+for i in range(31, 58):
     tt = i / 30.0
-    k = min(1, tt / 1.92)
+    k = min(1, (tt - 1.0) / 0.92)
     n = int(fill_T0 * (0.04 * k + 0.96 * k ** 2.3))
     if n > prev:
         place(sfx, tick(2600 + 1400 * k, 0.22 + 0.15 * k, 0.01), tt)
     prev = n
 
-place(sfx, whoosh(0.75, 300, 5000, 0.35), 3.3)          # dots fly to digits
+place(sfx, whoosh(0.75, 300, 5000, 0.35), 3.3)
+place(sfx, whoosh(0.55, 4000, 400, 0.3), 0.55)          # hook digits drop into the calendar
+for k in range(50):
+    place(sfx, tick(1600 + 2500 * rng.random(), 0.12, 0.008), 0.75 + 0.45 * rng.random())          # dots fly to digits
 for k in range(50):                                     # dots land into digits
     place(sfx, tick(1800 + 2500 * rng.random(), 0.12, 0.008), 3.55 + 0.45 * rng.random())
 for k in range(50):                                     # dots pour into the week grid
