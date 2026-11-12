@@ -37,7 +37,7 @@ mix += loop_bed('rain_umb', curve(N, [(0, 0.28), (2.95, 0.28), (3.6, 0.0), (DUR,
 mix += loop_bed('heat', curve(N, [(0, 0), (3.6, 0), (4.6, 0.32), (11.2, 0.32), (12.0, 0.14), (14.2, 0.14), (14.8, 0)]))
 fol = np.zeros((2, N))
 put(fol, 'steps_wet', 0.0, 0.35, 0.0, dur=3.0)
-put(fol, 'laugh', 0.08, 0.75, 0.3, at='onset')
+put(fol, 'laugh', 0.0, 0.85, 0.3, at='onset')
 put(fol, 'laugh2', 1.18, 0.8, 0.3, at='onset')
 put(fol, 'thunder', 2.98, 1.0, 0.2, at='onset')
 put(fol, 'drip', 3.5, 0.3, -0.3)

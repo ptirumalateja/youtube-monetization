@@ -35,8 +35,28 @@ def title(img, a=1.0):
                             ('OTHERS PLAY CHESS.', 50, 6, 222, GOLD, a, 'Bold')])
 
 
+HOOK_END = 2.6     # v3 hook (12 Nov, retention fix): curiosity question + punch-in on the upside-down umbrella
+
+
+def zoom(img, t):
+    """Digital punch-in at the start: 1.55x on the hero's bowl, easing out to the full frame by HOOK_END."""
+    u = sstep(0.0, HOOK_END, t); z = 1 + 0.55 * (1 - u)
+    if z <= 1.001: return img
+    cx, cy = W * (0.40 + 0.10 * u), H * (0.47 + 0.03 * u)
+    cw, ch = W / z, H / z; x0 = min(max(cx - cw / 2, 0), W - cw); y0 = min(max(cy - ch / 2, 0), H - ch)
+    return img.crop((int(x0), int(y0), int(x0 + cw), int(y0 + ch))).resize((W, H), Image.LANCZOS)
+
+
+def hook(img, t):
+    a = 1 - sstep(HOOK_END - 0.3, HOOK_END, t)
+    if a <= 0: return img
+    pop = 1 + 0.08 * (1 - sstep(0.0, 0.25, t))
+    return text_block(img, [('WHY IS HIS', int(88 * pop), 6, 150, CREAM, a, 'ExtraBold'),
+                            ('UMBRELLA', int(88 * pop), 6, 262, CREAM, a, 'ExtraBold'),
+                            ('UPSIDE DOWN?', int(88 * pop), 6, 374, GOLD, a, 'ExtraBold')])
+
+
 def draw(img, t, m, card=0.0):
-    img = sld_text.draw(img, [])
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(layer)
     hx, hy = m['greyHeadC'][0] * W, m['greyHeadC'][1] * H
     for a, b, dx, dy in HAS:
@@ -44,9 +64,12 @@ def draw(img, t, m, card=0.0):
         if al <= 0: continue
         pop = 1 + 0.25 * (1 - sstep(a, a + 0.12, t))
         d.text((hx + dx, hy + dy - 8 * sstep(a, b, t)), 'HA', font=font(int(38 * pop), 'Bold'), fill=(225, 228, 236, int(240 * al)), anchor='mm')
-    base = img.convert('RGBA'); base.alpha_composite(layer); img = base.convert('RGB')
+    base = img.convert('RGBA'); base.alpha_composite(layer); img = zoom(base.convert('RGB'), t)
+    img = sld_text.draw(img, [])
     if card > 0: img = Image.blend(img, card_bg(img), card)
-    return title(img)
+    img = hook(img, t)
+    ta = sstep(HOOK_END - 0.25, HOOK_END + 0.1, t)
+    return title(img, ta) if ta > 0 else img
 
 
 _bg = {}
