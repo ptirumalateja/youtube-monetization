@@ -38,7 +38,7 @@ def zoom_at(t):
     elif 1.0<=t<1.6: z=1.0+0.12*sm((t-1.0)/0.6)                # push in on the sigh while the clock spins
     elif t<0.8: z=1.12-0.12*sm((t-0.55)/0.25)
     elif 10.68<=t<11.1: u=(t-10.68)*FPS; z=1.0+0.05*(sm(u/3) if u<3 else 1-sm((u-3)/8))   # micro-punch on the piano note + heart burst
-    elif t>=12.4: z=1.0+0.25*sm((t-12.4)/0.6)                  # end on the cold-open crop -> seamless loop               # snap zoom-out on the cut to wide
+    elif t>=12.4: z=1.0+(CZ-1.0)*sm((t-12.4)/0.6)                  # end on the cold-open crop -> seamless loop               # snap zoom-out on the cut to wide
     elif 5.0<=t<5.7: z=1.0+0.06*(t-5.0)/0.7
     elif 5.7<=t<6.4: z=1.0+0.12*sm((t-5.7)/0.7)                  # push toward the door
     elif 6.4<=t<7.4: z=1.0+0.05*max(0,1-abs(t-6.6)/0.35) if t>6.5 else 1.0
@@ -93,20 +93,20 @@ def src(f):
     t=f/FPS
     if t<HUG: return f
     return round(HUG*FPS+HUG_SKIP+(f-HUG*FPS)*(NB-1-HUG*FPS-HUG_SKIP)/(NB-1-HUG*FPS))
-fCold=ImageFont.truetype('fonts/Inter-Black.otf',84); CZ,CX,CY=1.25,0.55,0.43   # cold-open crop on both faces; the loop ends on the same crop
+fCold=ImageFont.truetype('fonts/JetBrainsMono-ExtraBold.ttf',76); CZ,CX,CY=1.0,0.5,0.5   # v4: wide hug, full room; loop ends on the same framing
 def cold(f):
     # 0-0.47 s: the payoff first: the leap into the owner's arms (tight, moving, impact punch); 0.47-0.6 rewind smear into the morning
     t=f/FPS; TR=0.40
     def jump(tt):
         sf=round((10.6+tt)*FPS); room=grade(Image.open(f'output/dog/frames/f{sf:05d}.jpg'),1.6)
         room=Image.fromarray((np.asarray(room,np.float32)*VIG).clip(0,255).astype(np.uint8))
-        z=CZ+0.25*(tt/TR)**0.8; cx,cy=CX*W,CY*H; cw,ch=W/z,H/z; sx=sy=0
+        z=CZ+0.10*(tt/TR)**0.8; cx,cy=CX*W,CY*H; cw,ch=W/z,H/z; sx=sy=0
         return room.transform((W,H),Image.EXTENT,(cx-cw/2+sx,cy-ch/2+sy,cx+cw/2+sx,cy+ch/2+sy),resample=Image.BICUBIC)
     if t<TR: im=jump(t).convert('RGBA')
     else:
         u=(t-TR)/(COLD-TR); k=math.sin(math.pi*min(u,1))
         a=np.asarray(jump(TR-1/FPS),np.float32); b=np.asarray(grade(Image.open('output/dog/frames/f00000.jpg')),np.float32); m=a*(1-sm(u))+b*sm(u)
-        off=int(160*k); m=np.pad(m,((0,0),(200,200),(0,0)),mode='reflect')[:,200-off:200-off+W]
+        pass
         m=m*(1+0.12*k); m=np.where(m>220,220+(m-220)/(1+(m-220)/60),m)            # capped flash with highlight roll-off
         im=Image.fromarray(m.clip(0,255).astype(np.uint8)).filter(ImageFilter.BoxBlur(int(14*k)+1)).convert('RGBA')
     if t<TR+0.04:
@@ -147,19 +147,19 @@ def frame(fo):
             if -4<=u<4:
                 off=int(110*(1-abs(u+0.5)/4.5))*(1 if u<0 else -1); a=np.pad(np.asarray(day.filter(ImageFilter.BoxBlur(10))),((0,0),(120,120),(0,0)),mode='reflect'); day=Image.fromarray(np.ascontiguousarray(a[:,120+off:120+off+W]))
         wipe=sm((t-SPLIT[0])/0.2)
-        zb=1.4; bw,bh=W/zb,960/zb; bx=min(max(918-bw/2,0),W-bw); by=min(max(1300-bh/2,0),H-bh)
+        zb=1.1; bw,bh=W/zb,960/zb; bx=min(max(918-bw/2,0),W-bw); by=min(max(1300-bh/2,0),H-bh)
         im.paste(room.transform((W,960),Image.EXTENT,(bx,by,bx+bw,by+bh),resample=Image.BICUBIC),(0,960))
         top=room.crop((0,0,W,960)); y=int(-960*(1-wipe))
         im.paste(top,(0,0)); im.paste(day,(0,y))
         im=im.convert('RGBA')
     else:
         if lie:
-            z=1.75+0.17*sm((to-1.15)/0.06)*(to>=1.15); cw,ch=W/z,H/z
-            k=sm((t-0.63)/0.5); hx,hy=0.61-0.05*k,0.50+0.12*k     # follow the head down through the sit -> lie
+            z=1.15+0.12*sm((to-1.15)/0.06)*(to>=1.15); cw,ch=W/z,H/z
+            k=sm((t-0.63)/0.5); hx,hy=0.78,0.52+0.1*k     # follow the head down through the sit -> lie
             x0=min(max(hx*W-cw/2,0),W-cw); y0=min(max(hy*H-ch/2,0),H-ch)
             im=room.transform((W,H),Image.EXTENT,(x0,y0,x0+cw,y0+ch),resample=Image.BICUBIC).convert('RGBA')
         elif 5.7<=t<6.4:
-            u=sm((t-5.7)/0.7); z=1.12+0.08*u; w,h=room.size; cw,ch=w/z,h/z; x0=(w-cw)*0.8; y0=(h-ch)*0.75
+            u=sm((t-5.7)/0.7); z=1.0+0.08*u; w,h=room.size; cw,ch=w/z,h/z; x0=(w-cw)*0.8; y0=(h-ch)*0.75
             im=room.transform((w,h),Image.EXTENT,(x0,y0,x0+cw,y0+ch),resample=Image.BICUBIC)
             a=np.asarray(im,np.float32); xx=np.linspace(0,1,W,dtype=np.float32)[None,:,None]; a=a+25*np.clip((xx-0.86)/0.14,0,1); im=Image.fromarray(a.clip(0,255).astype(np.uint8)).convert('RGBA')
         elif t>=12.4 and zoom_at(t)>1.0001:
