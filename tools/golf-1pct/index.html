@@ -1,0 +1,163 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// Golf 93/6/1 reel: one 3D lane, rendered once per panel with its own state.
+import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+const q=new URLSearchParams(location.search); const W=+q.get('w')||1080, H=+q.get('h')||1920;
+const R=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); R.setSize(W,H); R.setPixelRatio(1);
+R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=1.05; R.shadowMap.enabled=true; R.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(R.domElement);
+const scene=new THREE.Scene();
+const pm=new THREE.PMREMGenerator(R); scene.environment=pm.fromScene(new RoomEnvironment(),0.04).texture; scene.environmentIntensity=0.35;
+
+// ---------- layout (stylised scale, metres) ----------
+const CLUB_X=-1.42, HOLE_X=1.42, BALL_R=0.048, CUP_R=0.115;
+
+// ---------- backdrop: sky dome with a distant treeline, horizon haze ----------
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{uSeed:{value:0}},
+ vertexShader:`varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`varying vec3 vD;uniform float uSeed;
+ float h(float x){return fract(sin(x*127.1+uSeed)*43758.5453);}
+ float n(float x){float i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(h(i),h(i+1.),f);}
+ void main(){float el=vD.y; float az=atan(vD.x,-vD.z);
+  vec3 top=vec3(0.010,0.018,0.034), hor=vec3(0.050,0.066,0.074);
+  vec3 c=mix(hor,top,smoothstep(0.0,0.35,el));
+  c+=vec3(0.10,0.065,0.03)*exp(-pow(el*18.,2.)); // warm haze at the horizon
+  float tl=0.012+0.022*n(az*22.)+0.012*n(az*71.)+0.02*pow(n(az*6.),3.);
+  if(el<tl) c=mix(c,vec3(0.018,0.030,0.028),0.92);
+  gl_FragColor=vec4(c,1.);}`});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(90,48,24),skyMat); scene.add(sky);
+// world-space bokeh: far warm and teal lights that defocus (true parallax when the camera moves)
+const bokTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+ const g=x.createRadialGradient(64,64,40,64,64,62);g.addColorStop(0,'rgba(255,255,255,0.55)');g.addColorStop(0.85,'rgba(255,255,255,0.8)');g.addColorStop(1,'rgba(255,255,255,0)');
+ x.fillStyle=g;x.beginPath();x.arc(64,64,62,0,7);x.fill();return new THREE.CanvasTexture(c);})();
+const boks=new THREE.Group(); scene.add(boks);
+{let s=11;const r=()=>{s=(s*16807)%2147483647;return s/2147483647;};
+ for(let i=0;i<22;i++){const warm=r()<0.6; const m=new THREE.SpriteMaterial({map:bokTex,color:warm?0xffb45a:0x5fc8cf,transparent:true,opacity:0.05+0.09*r(),blending:THREE.AdditiveBlending,depthWrite:false});
+  const sp=new THREE.Sprite(m); const z=-14-r()*22; sp.position.set((r()-0.5)*44,0.4+r()*3.2,z); sp.scale.setScalar(0.9+r()*1.6); boks.add(sp);}}
+
+// ---------- turf ----------
+const turfMat=new THREE.ShaderMaterial({uniforms:{uSpot:{value:new THREE.Vector3(0,0,0)},uHole:{value:new THREE.Vector2(HOLE_X,0)}},
+ vertexShader:`varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+ fragmentShader:`varying vec3 vW;uniform vec3 uSpot;uniform vec2 uHole;
+ float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+ float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y);}
+ void main(){vec2 p=vW.xz; float dh=length(p-uHole); if(dh<${CUP_R.toFixed(3)})discard;
+  vec3 g1=vec3(0.040,0.140,0.050), g2=vec3(0.030,0.105,0.040);
+  float stripe=smoothstep(0.45,0.55,fract(p.y*0.55+0.5)); vec3 c=mix(g1,g2,stripe);
+  float fine=n(p*160.)*0.55+n(p*45.)*0.45; c*=0.72+0.5*fine;
+  c*=0.9+0.2*n(p*2.5);
+  float d=length((p-uSpot.xz)*vec2(0.42,0.95)); float spot=exp(-d*d*0.9);
+  vec3 lit=c*(0.25+2.3*spot)*vec3(1.10,1.0,0.80);
+  lit*=1.-0.6*smoothstep(0.035,0.0,dh-${CUP_R.toFixed(3)});
+  float far=smoothstep(-3.,-30.,vW.z); lit=mix(lit,vec3(0.040,0.062,0.050),far);
+  gl_FragColor=vec4(lit,1.);}`});
+const turf=new THREE.Mesh(new THREE.PlaneGeometry(120,80,1,1),turfMat); turf.rotation.x=-Math.PI/2; turf.position.z=-30; scene.add(turf);
+// grass blades near the lane (crisp foreground texture and depth)
+{const N=260000; const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute([-0.0022,0,0, 0.0022,0,0, 0,0.013,0],3)); bg.setAttribute('normal',new THREE.Float32BufferAttribute([0,0.3,1, 0,0.3,1, 0,1,0.3],3));
+ const bm=new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9,side:THREE.DoubleSide});
+ const im=new THREE.InstancedMesh(bg,bm,N); const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),S=new THREE.Vector3(),P=new THREE.Vector3(),C=new THREE.Color();
+ let s=5;const r=()=>{s=(s*16807)%2147483647;return s/2147483647;}; let k=0;
+ while(k<N){const x=(r()-0.5)*7.4, z=-3.5+r()*6.0; if(Math.hypot(x-HOLE_X,z)<CUP_R+0.01) continue;
+  P.set(x,0,z); E.set((r()-0.5)*0.7,r()*6.3,(r()-0.5)*0.7); Q.setFromEuler(E); const hh=0.55+r()*0.9; S.set(1,hh,1);
+  M.compose(P,Q,S); im.setMatrixAt(k,M); C.setRGB(0.045+0.04*r(),0.15+0.08*r(),0.05+0.025*r()); im.setColorAt(k,C); k++;}
+ im.receiveShadow=true; scene.add(im);}
+{const N=220000; const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute([-0.0016,0,0, 0.0016,0,0, 0,0.010,0],3)); bg.setAttribute('normal',new THREE.Float32BufferAttribute([0,0.3,1, 0,0.3,1, 0,1,0.3],3));
+ const im=new THREE.InstancedMesh(bg,new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.9,side:THREE.DoubleSide}),N); const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),S=new THREE.Vector3(),P=new THREE.Vector3(),C=new THREE.Color();
+ let s=9;const r=()=>{s=(s*16807)%2147483647;return s/2147483647;}; let k=0;
+ while(k<N){const a=r()*6.283, rr=Math.sqrt(r())*1.3; const x=HOLE_X+rr*Math.cos(a), z=rr*Math.sin(a); if(Math.hypot(x-HOLE_X,z)<CUP_R+0.004) continue;
+  P.set(x,0,z); E.set((r()-0.5)*0.6,r()*6.3,(r()-0.5)*0.6); Q.setFromEuler(E); S.set(1,0.6+r()*0.9,1);
+  M.compose(P,Q,S); im.setMatrixAt(k,M); C.setRGB(0.05+0.04*r(),0.17+0.08*r(),0.055+0.025*r()); im.setColorAt(k,C); k++;}
+ im.receiveShadow=true; scene.add(im);}
+// shadow catcher on top of the turf
+const sc=new THREE.Mesh(new THREE.PlaneGeometry(14,8),new THREE.ShadowMaterial({opacity:0.5})); sc.rotation.x=-Math.PI/2; sc.position.y=0.001; sc.receiveShadow=true; scene.add(sc);
+
+// ---------- cup ----------
+const cup=new THREE.Group(); cup.position.set(HOLE_X,0,0); scene.add(cup);
+const liner=new THREE.Mesh(new THREE.CylinderGeometry(CUP_R,CUP_R,0.16,48,1,true),new THREE.MeshStandardMaterial({color:0x15130f,roughness:1,side:THREE.BackSide}));
+liner.position.y=-0.08; cup.add(liner);
+const lip=new THREE.Mesh(new THREE.RingGeometry(CUP_R-0.008,CUP_R,64),new THREE.MeshStandardMaterial({color:0xefe8d8,roughness:0.5,side:THREE.DoubleSide})); lip.rotation.x=-Math.PI/2; lip.position.y=-0.018; cup.add(lip);
+const lipWall=new THREE.Mesh(new THREE.CylinderGeometry(CUP_R-0.001,CUP_R-0.001,0.03,64,1,true),new THREE.MeshStandardMaterial({color:0xe9e2d0,roughness:0.6,side:THREE.BackSide})); lipWall.position.y=-0.033; cup.add(lipWall);
+const cupFloor=new THREE.Mesh(new THREE.CircleGeometry(CUP_R,48),new THREE.MeshStandardMaterial({color:0x111111,roughness:1})); cupFloor.rotation.x=-Math.PI/2; cupFloor.position.y=-0.16; cup.add(cupFloor);
+// gold glow from the cup (success)
+const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,230,170,1)');g.addColorStop(0.25,'rgba(255,190,90,0.55)');g.addColorStop(1,'rgba(255,150,40,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);})();
+const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true})); glow.position.set(HOLE_X,0.09,0); glow.material.depthTest=true; glow.scale.set(1.3,1.3,1); scene.add(glow);
+const cupLight=new THREE.PointLight(0xffc070,0,0.6,1.2); cupLight.position.set(HOLE_X,-0.05,0); scene.add(cupLight);
+
+// ---------- flag ----------
+const flagG=new THREE.Group(); flagG.position.set(HOLE_X,0,0); flagG.rotation.y=Math.PI; scene.add(flagG);
+const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.011,0.011,1.4,16),new THREE.MeshStandardMaterial({color:0xf2efe6,roughness:0.35,metalness:0.1}));
+pole.position.y=1.4/2-0.1; pole.castShadow=true; flagG.add(pole);
+const cap=new THREE.Mesh(new THREE.SphereGeometry(0.02,16,12),pole.material); cap.position.y=1.31; flagG.add(cap);
+const clothGeo=new THREE.PlaneGeometry(0.46,0.29,24,10); clothGeo.translate(0.23,0,0);
+const clothBase=clothGeo.attributes.position.array.slice();
+const cloth=new THREE.Mesh(clothGeo,new THREE.MeshStandardMaterial({color:0xf3ead6,roughness:0.85,side:THREE.DoubleSide,emissive:0x2a2014}));
+cloth.position.set(0.012,1.14,0); cloth.castShadow=true; flagG.add(cloth);
+function waveFlag(t,amp){const a=clothGeo.attributes.position.array;for(let i=0;i<a.length;i+=3){const x=clothBase[i],y=clothBase[i+1];const k=x/0.46;
+ a[i+2]=amp*k*(0.07*Math.sin(x*9.-t*6.5)+0.025*Math.sin(x*17.+y*6.-t*9.));a[i+1]=y-amp*k*k*0.035;}clothGeo.attributes.position.needsUpdate=true;clothGeo.computeVertexNormals();}
+
+// ---------- club (iron), pivot at the grip top ----------
+const club=new THREE.Group(); scene.add(club);
+const SH=1.02; // shaft length
+const chrome=new THREE.MeshStandardMaterial({color:0xdadfe6,metalness:1,roughness:0.18});
+const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.0075,0.0105,SH,16),chrome); shaft.position.y=-SH/2; shaft.castShadow=true; club.add(shaft);
+// grip with cream/charcoal wrap stripes
+const gripTex=(()=>{const c=document.createElement('canvas');c.width=16;c.height=256;const x=c.getContext('2d');x.fillStyle='#22252b';x.fillRect(0,0,16,256);x.fillStyle='#ece5d4';for(let i=0;i<9;i++){x.fillRect(0,i*28+6,16,10);}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
+const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.0145,0.012,0.27,20),new THREE.MeshStandardMaterial({map:gripTex,roughness:0.7})); grip.position.y=-0.135; grip.castShadow=true; club.add(grip);
+// clubhead: rounded blade, face toward +x
+const headShape=new THREE.Shape(); headShape.moveTo(-0.035,0); headShape.lineTo(0.035,0); headShape.quadraticCurveTo(0.05,0.0,0.05,0.02);
+headShape.lineTo(0.045,0.075); headShape.quadraticCurveTo(0.04,0.1,0.0,0.1); headShape.lineTo(-0.03,0.03); headShape.quadraticCurveTo(-0.04,0.0,-0.035,0);
+const headGeo=new THREE.ExtrudeGeometry(headShape,{depth:0.11,bevelEnabled:true,bevelThickness:0.006,bevelSize:0.005,bevelSegments:3}); headGeo.translate(0,0,-0.055);
+const head=new THREE.Mesh(headGeo,chrome); head.rotation.y=Math.PI/2; head.position.set(0.0,-SH-0.012,0); head.castShadow=true; club.add(head);
+const groove=new THREE.Mesh(new THREE.BoxGeometry(0.002,0.06,0.09),new THREE.MeshStandardMaterial({color:0x8a9099,metalness:1,roughness:0.4})); groove.position.set(0.052,-SH+0.03,0); club.add(groove);
+const CLUB_TOP=new THREE.Vector3(CLUB_X-0.02,SH+0.015,0);
+function poseClub(angle,lying){ // angle: radians, 0 = shaft vertical, + = back-swing (head toward -x)
+ if(lying){club.position.set(CLUB_X-0.25,0.016,0.55);club.rotation.set(0,0.3,Math.PI/2-0.015);return;}
+ club.position.copy(CLUB_TOP); club.rotation.set(0,0,-angle);}
+
+// ---------- balls ----------
+const dimpleTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#808080';x.fillRect(0,0,256,256);
+ for(let i=0;i<900;i++){const px=Math.random()*256,py=Math.random()*256;const g=x.createRadialGradient(px,py,0,px,py,5);g.addColorStop(0,'#5a5a5a');g.addColorStop(1,'rgba(128,128,128,0)');x.fillStyle=g;x.fillRect(px-5,py-5,10,10);}
+ return new THREE.CanvasTexture(c);})();
+const ballMat=new THREE.MeshPhysicalMaterial({color:0xfbf8f1,roughness:0.32,clearcoat:0.8,clearcoatRoughness:0.2,bumpMap:dimpleTex,bumpScale:1.2});
+const ball=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,40,28),ballMat); ball.castShadow=true; scene.add(ball);
+// miss marks: small red glowing balls where a try stopped
+const missMat=new THREE.MeshStandardMaterial({color:0xc8261e,emissive:0xc8261e,emissiveIntensity:0.12,roughness:0.35});
+const missGeo=new THREE.SphereGeometry(BALL_R*0.82,24,16);
+const misses=[]; for(let i=0;i<80;i++){const m=new THREE.Mesh(missGeo,missMat);m.castShadow=true;m.visible=false;scene.add(m);misses.push(m);}
+
+// ---------- lights ----------
+scene.add(new THREE.HemisphereLight(0x8fb6c4,0x1d2a1c,0.55));
+const spot=new THREE.SpotLight(0xffe2b8,34,0,0.55,0.7,1.2); spot.position.set(-0.6,6.5,2.2); spot.target.position.set(0,0,0); spot.castShadow=true;
+spot.shadow.mapSize.set(2048,2048); spot.shadow.bias=-0.0004; spot.shadow.radius=4; scene.add(spot,spot.target);
+const rim=new THREE.DirectionalLight(0x7fd0d8,1.1); rim.position.set(3,2.5,-6); scene.add(rim);
+
+// ---------- camera + post ----------
+const cam=new THREE.PerspectiveCamera(30,1,0.05,200);
+const target=new THREE.WebGLRenderTarget(W,H,{type:THREE.HalfFloatType,samples:4});
+const comp=new EffectComposer(R,target); comp.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.45,0.55,0.82); comp.addPass(bloom); comp.addPass(new OutputPass());
+
+// ---------- state API ----------
+// lane = {club:{angle,lying}, ball:[x,z,y?], misses:[[x,z],...], gold:0..1, flag:amp, cam:{pos,look,fov}}
+function applyLane(L,t){
+ poseClub(L.club.angle||0,L.club.lying);
+ const b=L.ball||[CLUB_X+0.11,0]; ball.visible=!L.noBall; ball.position.set(b[0],(b[2]??BALL_R),b[1]);
+ misses.forEach((m,i)=>{const p=(L.misses||[])[i]; m.visible=!!p; if(p) m.position.set(p[0],BALL_R*0.82,p[1]);});
+ const g=L.gold||0; glow.material.opacity=g; glow.material.opacity=0.32*g; glow.scale.setScalar(0.25+0.3*g); cupLight.intensity=1.0*g;
+ waveFlag(t,L.flag??1);
+ const C=L.cam; cam.position.set(...C.pos); cam.lookAt(...C.look); cam.fov=C.fov||30;
+ turfMat.uniforms.uSpot.value.set(0,0,0);
+ skyMat.uniforms.uSeed.value=L.seed||0; boks.position.x=((L.seed||0)%3)*5.3-5;
+}
+// simple path used by the shooter: render one lane at the given size and return a data URL
+window.renderLane=(lane,t,w,h)=>{R.setSize(w,h); comp.setSize(w,h); bloom.resolution.set(w,h); applyLane(lane,t); cam.aspect=w/h; cam.updateProjectionMatrix(); comp.render(); return R.domElement.toDataURL('image/png');};
+window.K={CLUB_X,HOLE_X,BALL_R,CUP_R};
+window.ready=true;
+</script></body></html>
