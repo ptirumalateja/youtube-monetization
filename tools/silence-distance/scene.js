@@ -9,6 +9,10 @@ const warp = t => pw(t, WARP), unwarp = s => pw(s, WARP.map(([a, b]) => [b, a]))
 const OUT_DUR = 11.4;
 // v3: everything below the background moves down so the hook clears the Reels account-name bar.
 const SHIFT = 110;
+// v4: tighter crop + a slow push-in from frame 0. Content scales about (360, ZP) in design px.
+const ZP = 180; let ZC = 1.13, T = 0;
+const zoomAt = to => lerp(1.08, 1.16, eout(clamp(to / 2.2)));
+const contentTf = () => { const k = W / DW, Z = ZC; return [k * Z, 0, 0, k * Z, k * (360 - 360 * Z), k * (ZP + (SHIFT - ZP) * Z)]; };
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
 const cv = document.createElement('canvas'); cv.width = W; cv.height = H; document.body.appendChild(cv);
@@ -66,6 +70,10 @@ function walk(ph) { // procedural walk, ph in radians
 function drawFig(g, pose, o) {
   // o: x, y (ground), dir, s (scale), warm(bool), pony(bool), phone (0..1 glow), alpha, reflect(bool)
   const s = o.s, d = o.dir;
+  { const b = Math.sin(T * 2.4 + o.x * 0.05) * 1.3, ty = Math.sin(T * 14 + o.x) * 0.8; pose = Object.assign({}, pose);
+    for (const n of ['head', 'sh']) pose[n] = [pose[n][0], pose[n][1] + b];
+    for (const n of ['el1', 'el2']) pose[n] = [pose[n][0], pose[n][1] + b * 0.6];
+    for (const n of ['hd1', 'hd2']) pose[n] = [pose[n][0], pose[n][1] + b * 0.5 + (o.phone > 0 ? ty : 0)]; }
   const X = p => o.x + p[0] * d * s, Y = p => o.y + p[1] * s * (o.reflect ? -0.55 : 1);
   const near = o.warm ? C.figWarm : C.figCool, far = o.warm ? C.farWarm : C.farCool;
   g.save(); g.globalAlpha = o.alpha ?? 1; g.lineCap = 'round'; g.lineJoin = 'round';
@@ -317,31 +325,32 @@ function drawBot(g, t) {
 
 // ---------- compose one frame (design space) ----------
 function panel(g, t, fn, y0, y1, fade) {
-  L.setTransform(1, 0, 0, 1, 0, 0); L.clearRect(0, 0, W, H); L.setTransform(W / DW, 0, 0, H / DH, 0, SHIFT * H / DH);
+  L.setTransform(1, 0, 0, 1, 0, 0); L.clearRect(0, 0, W, H); L.setTransform(...contentTf());
   fn(L, t);
   // soft mask at the panel edges
   L.globalCompositeOperation = 'destination-in';
   const gr = L.createLinearGradient(0, y0, 0, y1);
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(fade / (y1 - y0), 'rgba(0,0,0,1)'); gr.addColorStop(1 - fade / (y1 - y0), 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   L.fillStyle = gr; L.fillRect(0, 0, DW, DH); L.globalCompositeOperation = 'source-over';
-  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(layer, 0, 0); g.setTransform(W / DW, 0, 0, H / DH, 0, SHIFT * H / DH);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(layer, 0, 0); g.setTransform(...contentTf());
 }
 function frame(g, t) {
+  T = t; ZC = zoomAt(unwarp(t));
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
   background(g, t);
   const endFade = 1 - 0.75 * ss(11.45, 12.05, t);
   g.globalAlpha = endFade;
   panel(g, t, drawTop, 150, 585, 26);
   panel(g, t, drawBot, 625, 1010, 26);
-  g.setTransform(W / DW, 0, 0, H / DH, 0, SHIFT * H / DH);
+  g.setTransform(...contentTf());
   // HUD
   // hook line, on screen from frame 0
-  g.save(); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = '800 40px "Inter Display"'; g.letterSpacing = '0.5px';
+  g.save(); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = '800 46px "Inter Display"'; g.letterSpacing = '0.5px';
   g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 10;
-  g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT,', 360, 112);
-  g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST?', 360, 162); g.restore();
-  label(g, 'TEXTS FIRST', 65, 237, 25, 0.95, 4, 700);
-  label(g, 'WAITS', 65, 663, 25, 0.85, 4, 700);
+  g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT,', 360, 104);
+  g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST?', 360, 160); g.restore();
+  label(g, 'TEXTS FIRST', 80, 237, 25, 0.95, 4, 700);
+  label(g, 'WAITS', 80, 663, 25, 0.85, 4, 700);
   const day = Math.round(pw(t, DAYS));
   g.save(); g.font = '600 15px "JetBrains Mono"'; g.letterSpacing = '3px'; g.textBaseline = 'alphabetic'; const w1 = g.measureText('DAY ').width;
   g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; const w2 = g.measureText(String(day)).width; const x0 = 360 - (w1 + w2) / 2;
@@ -350,7 +359,8 @@ function frame(g, t) {
   g.save(); g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; g.fillStyle = day === 365 ? 'rgba(255,214,150,0.98)' : 'rgba(246,242,234,0.96)'; g.fillText(String(day), x0 + w1, 609); g.restore();
   // thin divider lines around the counter
   g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(0, 574, DW, 1); g.fillRect(0, 627, DW, 1);
-  label(g, 'SLOW LIGHT', 360, 1062, 11, 0.28, 5, 600, 'center');
+  g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
+  label(g, 'SLOW LIGHT', 360, 1248, 11, 0.28, 5, 600, 'center');
   g.globalAlpha = 1;
 }
 
