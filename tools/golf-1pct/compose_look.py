@@ -32,17 +32,23 @@ text(h,(540,660),'34 MISSES LATER',F(MED,40),fill=GOLD,spacing=6,shadow=6)
 h.convert('RGB').save(f'{D}/look_hook_frame0.jpg',quality=93)
 
 # 2) closing three-row frame
-rows=[('row93','93% OF PEOPLE','NEVER SWING.'),('row6','6% OF PEOPLE','MISS ONCE. QUIT.'),('row1','1% OF PEOPLE','MISS 34 TIMES. SINK IT.')]
+rows=[('row93','93% OF PEOPLE','NEVER SWING.'),('row6','6% OF PEOPLE','MISS ONCE. QUIT.'),('row1','1% OF PEOPLE','MISS 34 TIMES. IN.')]
 c=Image.new('RGBA',(1080,1920))
+# safe zone: text only between y 300 and 1440
+TOPS=[0,720,1310]; LABY=[330,752,1342]
 for i,(f,lab,res) in enumerate(rows):
-    im=Image.open(f'{D}/{f}.png').convert('RGBA'); c.paste(im,(0,i*640))
+    im=Image.open(f'{D}/{f}.png').convert('RGBA'); c.paste(im,(0,TOPS[i]))
 d=ImageDraw.Draw(c)
-for y in (640,1280): d.line([(0,y),(1080,y)],fill=(243,234,214,70),width=2)
+for y in TOPS[1:]: d.line([(0,y),(1080,y)],fill=(243,234,214,70),width=2)
 for i,(f,lab,res) in enumerate(rows):
-    y0=i*640
-    if i==2: chip(c,540,y0+92,lab,F(BOLD,40))
-    else: text(c,(540,y0+92),lab,F(MED,38),spacing=5,shadow=6)
-    text(c,(540,y0+158),res,F(BOLD,58 if i<2 else 62),fill=(CREAM if i<2 else GOLD),shadow=8)
+    y=LABY[i]
+    if i==2: chip(c,540,y,lab,F(BOLD,40))
+    else: text(c,(540,y),lab,F(MED,38),spacing=5,shadow=6)
+    text(c,(540,y+64),res,F(BOLD,58 if i<2 else 62),fill=(CREAM if i<2 else GOLD),shadow=8)
+# guides only on the review copy
+g=c.copy(); gd=ImageDraw.Draw(g)
+for y in (300,1440): gd.line([(0,y),(1080,y)],fill=(0,255,255,160),width=3)
+g.convert('RGB').save(f'{D}/look_rows_close_guides.jpg',quality=88)
 c.convert('RGB').save(f'{D}/look_rows_close.jpg',quality=93)
 # side-by-side for chat
 s=Image.new('RGB',(2160+40,1920),(20,24,28)); s.paste(Image.open(f'{D}/look_hook_frame0.jpg'),(0,0)); s.paste(Image.open(f'{D}/look_rows_close.jpg'),(1120,0))

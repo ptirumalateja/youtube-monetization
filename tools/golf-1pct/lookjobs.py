@@ -15,7 +15,11 @@ lanes={
  'row6':{'club':{'lying':True},'noBall':True,'misses':[[0.82,0.2]],'flag':0.6,'cam':CAM,'seed':2},
  'row1':{'club':{'angle':-0.85},'noBall':True,'misses':scatter(34),'gold':1,'flag':1,'cam':CAM,'seed':3},
 }
-jobs=[{'name':k,'lane':v,'t':1.3,'w':1080,'h':640} for k,v in lanes.items()]
+import copy
+# safe zone: all text between y 300 and 1440 (IG/FB account info sits above, caption below)
+PANELS={'row93':(0,720),'row6':(720,1310),'row1':(1310,1920)}
+lanes['row93']=copy.deepcopy(lanes['row93']); lanes['row93']['cam']={'pos':[0,0.6,4.25],'look':[0,0.82,0],'fov':33}
+jobs=[{'name':k,'lane':v,'t':1.3,'w':1080,'h':PANELS[k][1]-PANELS[k][0]} for k,v in lanes.items()]
 hook=dict(lanes['row1']); hook.update({'noBall':False,'ball':[HX+0.035,0,BR*0.15],'gold':0.8,
   'cam':{'pos':[HX-1.45,0.78,1.55],'look':[HX+0.0,0.06,0],'fov':24}})
 jobs.append({'name':'hook','lane':hook,'t':1.3,'w':1080,'h':1920})
