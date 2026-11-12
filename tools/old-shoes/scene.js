@@ -166,4 +166,5 @@ setT(0);
 window.metaAt=t=>{ const d=poseDad(t); return {hx:d.hx}; };
 window.events=events;
 window.renderAt=(t,K)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
+S.renderAt(setT,0.5,1,{t0:0,t1:DUR}); S.renderAt(setT,0,1,{t0:0,t1:DUR});   // warm-up: upload canvas textures before the first real frame
 window.ready=true;
