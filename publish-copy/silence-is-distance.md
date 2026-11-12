@@ -1,7 +1,7 @@
-# Silence Is Distance (v1, 12.1 s, 9:16)
+# Silence Is Distance (v2, 11.4 s, 9:16)
 
 Stickman split-screen remake: TEXTS FIRST builds a bridge of gold messages in 365 days; WAITS drifts apart and sends too late.
-File: project files `final-reels/silence-is-distance/silence-is-distance.mp4`. Renderer: `tools/silence-distance`.
+File: project files `final-reels/silence-is-distance/silence-is-distance-v2.mp4` (v2 hook: "AFTER A FIGHT, WHO TEXTS FIRST?" on frame 0, first text sends at 0.15 s). Renderer: `tools/silence-distance`.
 
 ## Facebook caption (sent to Teja 11 Nov)
 Silence isn't patience. It's distance. 🌉

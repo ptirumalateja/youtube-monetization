@@ -3,6 +3,10 @@
 // window.renderAt(t, sub) -> JPEG data URL. window.events -> sound cue list (used by mix.py).
 'use strict';
 const DW = 720, DH = 1280, DUR = 12.1;
+// v2 hook: output time -> scene time. Starts mid-typing and plays the opening 1.3x, so the first text fires at 0.15 s.
+const WARP = [[0, 0.3], [1.3, 2.0], [11.4, 12.1]];
+const warp = t => pw(t, WARP), unwarp = s => pw(s, WARP.map(([a, b]) => [b, a]));
+const OUT_DUR = 11.4;
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
 const cv = document.createElement('canvas'); cv.width = W; cv.height = H; document.body.appendChild(cv);
@@ -329,8 +333,13 @@ function frame(g, t) {
   panel(g, t, drawBot, 625, 1010, 26);
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
   // HUD
-  label(g, 'TEXTS FIRST', 65, 233, 21, 0.95, 4);
-  label(g, 'WAITS', 65, 659, 21, 0.85, 4);
+  // hook line, on screen from frame 0
+  g.save(); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = '800 40px "Inter Display"'; g.letterSpacing = '0.5px';
+  g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 10;
+  g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT,', 360, 112);
+  g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST?', 360, 162); g.restore();
+  label(g, 'TEXTS FIRST', 65, 237, 25, 0.95, 4, 700);
+  label(g, 'WAITS', 65, 663, 25, 0.85, 4, 700);
   const day = Math.round(pw(t, DAYS));
   g.save(); g.font = '600 15px "JetBrains Mono"'; g.letterSpacing = '3px'; g.textBaseline = 'alphabetic'; const w1 = g.measureText('DAY ').width;
   g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; const w2 = g.measureText(String(day)).width; const x0 = 360 - (w1 + w2) / 2;
@@ -345,6 +354,7 @@ function frame(g, t) {
 
 window.renderAt = (t, sub = 1) => {
   sub = Math.max(1, sub | 0);
+  t = warp(t);
   if (sub === 1) { frame(out, t); }
   else {
     out.setTransform(1, 0, 0, 1, 0, 0); out.fillStyle = '#000'; out.fillRect(0, 0, W, H);
@@ -373,7 +383,8 @@ window.events = (() => {
   e.push({ t: 6.22, s: 'whoosh', g: 0.55, pan: 0.2 }, { t: 6.97, s: 'type', g: 0.35, pan: 0.15 }, { t: 7.56, s: 'erase', g: 0.3, pan: 0.15 });
   e.push({ t: 8.3, s: 'pullback', g: 0.45, pan: 0 });
   e.push({ t: 9.12, s: 'type', g: 0.35, pan: -0.4 }, { t: 9.5, s: 'send', g: 0.5, pan: -0.4 }, { t: 10.35, s: 'ping', g: 0.45, pan: 0.45 }, { t: 10.97, s: 'type', g: 0.3, pan: 0.45 });
+  for (const x of e) x.t = Math.max(0, unwarp(x.t));
   return e.sort((a, b) => a.t - b.t);
 })();
-window.DUR = DUR;
+window.DUR = OUT_DUR;
 document.fonts.load('600 20px "JetBrains Mono"').then(() => document.fonts.load('700 26px "JetBrains Mono"')).then(() => { window.ready = true; });
