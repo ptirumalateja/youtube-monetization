@@ -1,8 +1,9 @@
 import numpy as np
 from PIL import Image, ImageFilter
-A = np.load('alpha.npy')
-X0, Y0, N = 846, 1686, 106
-C = 235.0
+import os
+A = np.load(os.environ.get('ALPHA','alpha.npy'))
+X0, Y0 = int(os.environ.get('AX','846')), int(os.environ.get('AY','1686')); N = A.shape[0]
+C = float(os.environ.get('AC','235'))
 a3 = A[..., None]
 # thin band around the sparkle's outline, where edge residue remains
 mask = Image.fromarray((A > 0.015).astype(np.uint8) * 255)
