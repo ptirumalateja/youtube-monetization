@@ -1,0 +1,73 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anek+Telugu:wght@500;700;800&family=Ramabhadra&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0d1320;--ink2:#18223a;--gold:#f2b544;--gold2:#ffd27a;--cream:#f6ecdc}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#333;font-family:'Anek Telugu',sans-serif}
+  .art{position:relative;overflow:hidden}
+  /* ---------- icon (speech bubble with వి) ---------- */
+  .bubble{position:absolute}
+  .bubble svg{width:100%;height:100%;display:block}
+  .vi{position:absolute;left:0;right:0;text-align:center;font-family:'Ramabhadra',sans-serif;color:var(--ink);line-height:1}
+  /* avatar */
+  #avatar{width:800px;height:800px;background:radial-gradient(circle at 50% 38%,#223055 0%,var(--ink) 70%)}
+  #avatar .bubble{left:110px;top:100px;width:580px;height:580px}
+  #avatar .vi{top:228px;font-size:250px}
+  /* watermark (transparent) */
+  #wm{width:600px;height:600px;background:transparent}
+  #wm .bubble{left:20px;top:20px;width:560px;height:560px}
+  #wm .vi{top:142px;font-size:240px}
+  /* banner */
+  #banner{width:2560px;height:1440px;background:
+     radial-gradient(ellipse 900px 380px at 50% 50%,rgba(242,181,68,.20),rgba(242,181,68,0) 70%),
+     linear-gradient(180deg,#0a0f1a 0%,var(--ink) 40%,var(--ink2) 100%)}
+  #banner .streak{position:absolute;left:0;right:0;top:960px;height:3px;
+     background:linear-gradient(90deg,rgba(242,181,68,0),rgba(242,181,68,.55) 30%,rgba(255,210,122,.9) 50%,rgba(242,181,68,.55) 70%,rgba(242,181,68,0));filter:blur(1px)}
+  #banner .safe{position:absolute;left:507px;top:508px;width:1546px;height:423px;display:flex;align-items:center;justify-content:center;gap:56px}
+  #banner .bubble{position:relative;width:300px;height:300px;flex:none}
+  #banner .vi{top:76px;font-size:132px}
+  #banner .txt{display:flex;flex-direction:column;gap:6px}
+  #banner .te{font-family:'Ramabhadra',sans-serif;font-size:132px;line-height:1.15;color:var(--cream);letter-spacing:1px}
+  #banner .te b{color:var(--gold);font-weight:400}
+  #banner .en{font-weight:700;font-size:40px;letter-spacing:16px;color:var(--gold)}
+  #banner .tag{font-weight:500;font-size:40px;white-space:nowrap;color:#cfd6e6;margin-top:10px}
+  /* show-safe guide (off in export) */
+</style></head>
+<body>
+<template id="bubbleSvg">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffd98a"/><stop offset=".55" stop-color="#f2b544"/><stop offset="1" stop-color="#d9922a"/>
+      </linearGradient>
+    </defs>
+    <path d="M50 6 C76 6 94 22 94 45 C94 68 76 84 50 84 C44 84 38.5 83.2 33.5 81.6 L14 93 L19.5 74.5 C10.5 67 6 57 6 45 C6 22 24 6 50 6 Z" fill="url(#g)"/>
+    <circle cx="72" cy="27" r="3.2" fill="#fff6dd" opacity=".9"/>
+  </svg>
+</template>
+
+<div id="avatar" class="art"><div class="bubble"></div><div class="vi" style="left:110px;width:580px">వి</div></div>
+<br>
+<div id="wm" class="art"><div class="bubble"></div><div class="vi" style="left:20px;width:560px">వి</div></div>
+<br>
+<div id="banner" class="art">
+  <div class="streak"></div>
+  <div class="safe">
+    <div class="bubble"><div class="vi">వి</div></div>
+    <div class="txt">
+      <div class="te">విషయం <b>ఏంటంటే</b></div>
+      <div class="en">VISHAYAM ENTANTE</div>
+      <div class="tag">వార్తలు • చరిత్ర • రహస్యాలు • భక్తి — ఏ విషయమైనా… అర్థమయ్యేలా</div>
+    </div>
+  </div>
+</div>
+<script>
+  const t=document.getElementById('bubbleSvg');
+  document.querySelectorAll('.bubble').forEach(b=>b.prepend(t.content.cloneNode(true)));
+  // vi inside banner bubble is absolutely positioned relative to bubble
+  document.querySelectorAll('#banner .bubble .vi').forEach(v=>{v.style.width='300px'});
+  // avatar/wm vi positioned relative to art; shift to bubble optical center (bubble body centre ~ y 45%)
+</script>
+</body></html>
