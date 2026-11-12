@@ -13,7 +13,7 @@ const OUT_DUR = 9.5;
 const SHIFT = 110;
 // v4: tighter crop + a slow push-in from frame 0. Content scales about (360, ZP) in design px.
 const ZP = 190; let ZC = 1.13, T = 0;
-const zoomAt = to => lerp(1.13, 1.24, eout(clamp(to / 2.0))) + 0.03 * clamp((to - 2) / 7.5);
+const zoomAt = to => lerp(1.17, 1.27, eout(clamp(to / 2.0))) + 0.03 * clamp((to - 2) / 7.5);
 const contentTf = () => { const k = W / DW, Z = ZC; return [k * Z, 0, 0, k * Z, k * (360 - 360 * Z), k * (ZP + (SHIFT - ZP) * Z)]; };
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
@@ -251,8 +251,7 @@ function drawTop(g, t) {
   // typing bubbles
   const hb = ss(0.0, 0.08, t) * (1 - ss(0.4, 0.5, t));
   bubble(g, xm + pm.head[0] + 12, TOP.gy + pm.head[1] - 30, 1, hb, t, true);
-  const fb = ss(1.25, 1.33, t) * (1 - ss(1.52, 1.6, t));
-  bubble(g, xf - pf.head[0] - 12, TOP.gy + pf.head[1] - 30, 1, fb, t, true);
+  chatList(g, t);
   // the meeting: warm light blooms from their hands
   const bloom = ss(5.65, 6.6, t);
   if (bloom > 0) {
@@ -280,12 +279,45 @@ function brick(g, x, y, w, h, flash, t) {
   g.restore();
 }
 
+// v8: real messages stack up between them (scene time, in step with the bricks)
+const CHAT = [[0.5, 0, 'hey… I\'m sorry'], [1.0, 1, 'me too'], [1.9, 0, 'coffee tomorrow?'], [2.12, 1, 'yes 🙂'], [2.34, 0, 'missed you'], [2.56, 1, 'missed you more'], [2.78, 0, 'sunday walk?'], [3.0, 1, 'always 💛']];
+function chatBubble(g, x, y, txt, who, a, k, size = 17) {
+  g.save(); g.globalAlpha *= a; g.font = `600 ${size}px "Inter"`; const w = g.measureText(txt).width + size * 1.4, h = size * 1.85;
+  const lft = who === 0 || who === 2; const x0 = lft ? x : x - w; g.translate(x0 + (lft ? 0 : w), y); g.scale(0.7 + 0.3 * eout(k), 0.7 + 0.3 * eout(k)); g.translate(-(lft ? 0 : w), 0);
+  g.shadowColor = who === 0 ? 'rgba(255,190,92,0.55)' : 'rgba(0,0,0,0.4)'; g.shadowBlur = 8;
+  g.fillStyle = who === 0 ? '#f6b04a' : who === 1 ? 'rgba(236,232,226,0.96)' : 'rgba(92,98,112,0.95)';
+  g.beginPath(); g.roundRect(0, -h / 2, w, h, h / 2); g.fill(); g.shadowBlur = 0;
+  g.fillStyle = who >= 2 ? 'rgba(230,234,242,0.95)' : '#231d15'; g.textBaseline = 'middle'; g.fillText(txt, size * 0.7, 0.5);
+  g.restore(); return w;
+}
+function chatList(g, t) {
+  const fadeAll = 1 - ss(3.3, 3.55, t); if (fadeAll <= 0) return;
+  const shown = CHAT.filter(m => t >= m[0]); const n = shown.length;
+  shown.forEach((m, i) => {
+    const k = clamp((t - m[0]) / 0.16); const above = n - 1 - i; // 0 = newest
+    // rise when newer messages arrive
+    let lift = 0; for (let j = i + 1; j < n; j++) lift += 35 * eout(clamp((t - shown[j][0]) / 0.16));
+    const y = TOP.gy - 74 - lift; const a = fadeAll * k * (1 - ss(TOP.gy - 150, TOP.gy - 182, y));
+    if (a > 0.01) chatBubble(g, m[1] === 0 ? 232 : 488, y, m[2], m[1], a, k);
+  });
+}
+// a draft that is typed and then deleted (output time): [t0 type start, t1 type end, t2 delete start, t3 delete end]
+function draftText(to, txt, t0, t1, t2, t3) {
+  if (to < t0 || to > t3 + 0.12) return null;
+  let n = to < t1 ? Math.round(txt.length * (to - t0) / (t1 - t0)) : to < t2 ? txt.length : Math.round(txt.length * (1 - (to - t2) / (t3 - t2)));
+  return Array.from(txt).slice(0, Math.max(0, n)).join('');
+}
+function draft(g, x, y, z, txt, who, to, alpha = 1) {
+  if (txt === null) return; const cur = Math.floor(to * 3) % 2 ? '|' : ' ';
+  g.save(); g.translate(x, y); g.scale(z, z); chatBubble(g, 0, 0, txt + cur, who, alpha, 1, 16); g.restore();
+}
+
 // ---------- the bottom story: WAITS ----------
-const BOT = { gy: 860 };
+const BOT = { gy: 830 };
 function botCam(t) { // returns {z, cx, sx, sy}
   const wide = (tt) => ({ z: pw(tt, [[0, 1], [6.2, 0.72], [8.3, 0.58], [12.1, 0.5]]), cx: 360, sx: 360, sy: BOT.gy });
   const herX = 360 + halfGap(t) + 42;
-  const close = (tt) => ({ z: lerp(1.9, 2.04, clamp((tt - 6.6) / 1.7)), cx: herX - 8, sx: 380, sy: 940 });
+  const close = (tt) => ({ z: lerp(1.9, 2.04, clamp((tt - 6.6) / 1.7)), cx: herX - 8, sx: 380, sy: 905 });
   if (t < 6.22 || t >= 8.3) return wide(t);
   const a = wide(6.22), b = close(t); const k = eio(clamp((t - 6.22) / 0.4));
   return { z: Math.exp(lerp(Math.log(a.z), Math.log(b.z), k)), cx: lerp(a.cx, b.cx, k), sx: lerp(a.sx, b.sx, k), sy: lerp(a.sy, b.sy, k) };
@@ -319,10 +351,25 @@ function drawBot(g, t) {
   }
   drawFig(g, pf, oF); drawFig(g, pm, oM);
   // bubbles: he types and deletes, she types and deletes, close-up: she almost sends, the end: she starts typing back
-  const bm = ss(0.0, 0.08, t) * (1 - ss(0.5, 0.62, t)) + ss(9.12, 9.2, t) * (1 - ss(9.42, 9.5, t));
-  bubble(g, xm + (pm.head[0] + 12) * z, cam.sy + (pm.head[1] - 30) * z, z, bm, t, false);
-  const bf = ss(2.35, 2.43, t) * (1 - ss(2.68, 2.78, t)) + ss(6.95, 7.03, t) * (1 - ss(7.55, 7.68, t)) + ss(10.95, 11.05, t);
-  bubble(g, xf - (pf.head[0] + 12) * z, cam.sy + (pf.head[1] - 30) * z, z, bf, t, false);
+  const to = unwarp(t), dz = Math.max(z, 0.85);
+  const hmx = xm + (pm.head[0] - 14) * z, hfx = xf - (pf.head[0] - 14) * z, hy = (p) => cam.sy + (p.head[1] - 34) * z;
+  // he types "sorry" and deletes it; she types and deletes; close-up: she almost sends; late "hey"; she starts typing back
+  draft(g, hmx, hy(pm), dz, draftText(to, "hey… I'm sorry", 0.02, 0.7, 1.0, 1.35), 2, to);
+  draft(g, hfx, hy(pf), dz, draftText(to, 'are we okay?', 1.7, 2.25, 2.55, 2.85), 3, to);
+  if (to > 3.9 && to < 5.6) draft(g, hfx, hy(pf), 1, draftText(to, 'I miss you', 4.0, 4.55, 4.9, 5.3), 3, to);
+  const late = draftText(to, 'hey', 6.45, 6.75, 99, 100); if (late !== null && to < 7.2) draft(g, hmx, hy(pm), dz, late, to > 6.9 ? 0 : 2, to, 1 - ss(7.0, 7.2, to));
+  draft(g, hfx, hy(pf), dz, draftText(to, 'sorry, I was', 8.35, 9.4, 99, 100), 3, to);
+  // the silence meter: a dimension line across the gap
+  const mA = (1 - ss(1.25, 1.5, z)) * ss(0.1, 0.4, to);
+  if (mA > 0.01) {
+    const y = cam.sy + 58 * Math.max(z, 0.7), x0 = S(eL) + 8, x1 = S(eR) - 8; const day = Math.round(pw(t, DAYS));
+    g.save(); g.globalAlpha *= mA; g.strokeStyle = 'rgba(150,180,235,0.55)'; g.lineWidth = 1.2; g.setLineDash([4, 5]);
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.moveTo(x0 + 7, y - 5); g.lineTo(x0, y); g.lineTo(x0 + 7, y + 5); g.moveTo(x1 - 7, y - 5); g.lineTo(x1, y); g.lineTo(x1 - 7, y + 5); g.stroke();
+    g.font = '700 17px "JetBrains Mono"'; g.letterSpacing = '1.5px'; g.textAlign = 'center'; g.fillStyle = 'rgba(178,200,240,0.92)';
+    g.fillText(to > 7.75 ? `${day} DAYS. ONE "hey".` : `${day} ${day === 1 ? 'DAY' : 'DAYS'} OF SILENCE`, 360, y + 28);
+    g.restore();
+  }
 }
 
 // ---------- compose one frame (design space) ----------
@@ -342,8 +389,8 @@ function frame(g, t) {
   background(g, t);
   const endFade = 1 - 0.75 * ss(11.45, 12.05, t);
   g.globalAlpha = endFade;
-  panel(g, t, drawTop, 150, 585, 26);
-  panel(g, t, drawBot, 625, 1010, 26);
+  panel(g, t, drawTop, 150, 572, 22);
+  panel(g, t, drawBot, 600, 990, 22);
   g.setTransform(...contentTf());
   // HUD
   // hook line, on screen from frame 0
@@ -352,17 +399,17 @@ function frame(g, t) {
   g.font = '900 54px "Inter Display"'; g.fillStyle = 'rgba(255,200,110,1)'; g.fillText('WHO TEXTS FIRST', 360, 108);
   g.font = '800 38px "Inter Display"'; g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText('AFTER A FIGHT?', 360, 158); g.restore();
   label(g, 'TEXTS FIRST', 100, 237, 25, 0.95, 4, 700);
-  label(g, 'WAITS', 100, 663, 25, 0.85, 4, 700);
+  label(g, 'WAITS', 100, 633, 25, 0.85, 4, 700);
   const day = Math.round(pw(t, DAYS));
   g.save(); g.font = '600 15px "JetBrains Mono"'; g.letterSpacing = '3px'; g.textBaseline = 'alphabetic'; const w1 = g.measureText('DAY ').width;
   g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; const w2 = g.measureText(String(day)).width; const x0 = 360 - (w1 + w2) / 2;
   g.restore();
-  label(g, 'DAY', x0, 607, 15, 0.7, 3);
-  g.save(); g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; g.fillStyle = day === 365 ? 'rgba(255,214,150,0.98)' : 'rgba(246,242,234,0.96)'; g.fillText(String(day), x0 + w1, 609); g.restore();
+  label(g, 'DAY', x0, 590, 15, 0.7, 3);
+  g.save(); g.font = '700 26px "JetBrains Mono"'; g.letterSpacing = '1px'; g.fillStyle = day === 365 ? 'rgba(255,214,150,0.98)' : 'rgba(246,242,234,0.96)'; g.fillText(String(day), x0 + w1, 592); g.restore();
   // thin divider lines around the counter
-  g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(0, 574, DW, 1); g.fillRect(0, 627, DW, 1);
+  g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(0, 566, DW, 1); g.fillRect(0, 606, DW, 1);
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
-  label(g, 'SLOW LIGHT', 360, 1248, 11, 0.28, 5, 600, 'center');
+  label(g, 'SLOW LIGHT', 360, 1270, 11, 0.28, 5, 600, 'center');
   g.globalAlpha = 1;
 }
 
@@ -384,19 +431,20 @@ window.renderAt = (t, sub = 1) => {
 // sound cues for mix.py
 window.events = (() => {
   const e = [];
-  e.push({ t: 0.02, s: 'type', g: 0.5, pan: -0.35, panel: 'top' }, { t: 0.02, s: 'type', g: 0.3, pan: -0.35, panel: 'bot' });
+  e.push({ t: 0.02, s: 'type', g: 0.5, pan: -0.35, panel: 'top' });
   e.push({ t: 0.5, s: 'send', g: 0.8, pan: -0.2 }, { t: 0.95, s: 'ping', g: 0.75, pan: 0.35 });
-  e.push({ t: 0.5, s: 'erase', g: 0.35, pan: -0.35, panel: 'bot' });
-  e.push({ t: 1.27, s: 'type', g: 0.4, pan: 0.35 }, { t: 1.58, s: 'send', g: 0.55, pan: 0.2 }, { t: 1.9, s: 'ping', g: 0.5, pan: -0.35 });
+  for (const [ts, w] of CHAT) if (ts > 1.5) e.push({ t: ts, s: 'ping', g: 0.28, pan: w ? 0.35 : -0.35, rate: w ? 1.12 : 1 });
+  e.push({ t: 1.0, s: 'ping', g: 0.5, pan: 0.35, rate: 1.12 });
   for (let i = 0; i < TOP.nb; i++) { const x = TOP.eL + i * BW; e.push({ t: brickT(i) + 0.12, s: i % 2 ? 'brick1' : 'brick2', g: 0.55, pan: (x - 360) / 300, rate: 1 + 0.03 * brickOrder.indexOf(i) }); }
-  e.push({ t: 2.36, s: 'type', g: 0.22, pan: 0.4, panel: 'bot' }, { t: 2.68, s: 'erase', g: 0.2, pan: 0.4, panel: 'bot' });
+  // bottom drafts (output time -> scene time)
+  for (const [to, s, g, pan] of [[0.02, 'type', 0.32, -0.4], [1.0, 'erase', 0.32, -0.4], [1.7, 'type', 0.26, 0.4], [2.55, 'erase', 0.26, 0.4], [4.0, 'type', 0.4, 0.15], [4.9, 'erase', 0.38, 0.15], [6.45, 'type', 0.32, -0.4], [8.35, 'type', 0.3, 0.45]]) e.push({ t: warp(to), s, g, pan, panel: 'bot' });
   e.push({ t: 3.55, s: 'rise', g: 0.5, pan: -0.3 }, { t: 3.6, s: 'rise', g: 0.45, pan: 0.3 });
   // footsteps: lowest-foot changes during the walk
   for (let i = 0; i < 9; i++) { const ts = WALK0 + 0.1 + i * (Math.PI / 11.5); if (ts < WALK1 - 0.05) { e.push({ t: ts, s: 'step', g: 0.4, pan: -0.25 }); e.push({ t: ts + 0.05, s: 'step', g: 0.35, pan: 0.25 }); } }
   e.push({ t: 5.7, s: 'swell', g: 0.8, pan: 0 });
-  e.push({ t: 6.22, s: 'whoosh', g: 0.55, pan: 0.2 }, { t: 6.97, s: 'type', g: 0.35, pan: 0.15 }, { t: 7.56, s: 'erase', g: 0.3, pan: 0.15 });
+  e.push({ t: 6.22, s: 'whoosh', g: 0.55, pan: 0.2 });
   e.push({ t: 8.3, s: 'pullback', g: 0.45, pan: 0 });
-  e.push({ t: 9.12, s: 'type', g: 0.35, pan: -0.4 }, { t: 9.5, s: 'send', g: 0.5, pan: -0.4 }, { t: 10.35, s: 'ping', g: 0.45, pan: 0.45 }, { t: 10.97, s: 'type', g: 0.3, pan: 0.45 });
+  e.push({ t: 9.5, s: 'send', g: 0.5, pan: -0.4 }, { t: 10.35, s: 'ping', g: 0.45, pan: 0.45 });
   for (const x of e) x.t = Math.max(0, unwarp(x.t));
   return e.sort((a, b) => a.t - b.t);
 })();

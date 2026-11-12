@@ -1,7 +1,7 @@
-# Silence Is Distance (v7, 9.5 s, 9:16)
+# Silence Is Distance (v8, 9.5 s, 9:16)
 
 Stickman split-screen remake: TEXTS FIRST builds a bridge of gold messages in 365 days; WAITS drifts apart and sends too late.
-File: project files `final-reels/silence-is-distance/silence-is-distance-v7.mp4` (v7 = DAY 365 by 3.6 s, crop 1.13->1.27; v6 = gold text flies at 0.0-0.3 s, bridge builds 0.5-1.6 s, they stand at ~1.7 s; v5 = hook "WHO TEXTS FIRST / AFTER A FIGHT?", stronger push-in 1.04->1.15 then slow creep to 1.20; v4 = tighter crop 1.08->1.16 push-in from frame 0, breathing figures, bigger hook; v3 = v2 moved 110 design px down to clear the Reels account bar; v2 hook: "AFTER A FIGHT, WHO TEXTS FIRST?" on frame 0, first text sends at 0.15 s). Renderer: `tools/silence-distance`.
+File: project files `final-reels/silence-is-distance/silence-is-distance-v8.mp4` (v8 = real chat bubbles stack up on top, bottom drafts typed and deleted, "N DAYS OF SILENCE" meter across the gap, tighter centre; v7 = DAY 365 by 3.6 s, crop 1.13->1.27; v6 = gold text flies at 0.0-0.3 s, bridge builds 0.5-1.6 s, they stand at ~1.7 s; v5 = hook "WHO TEXTS FIRST / AFTER A FIGHT?", stronger push-in 1.04->1.15 then slow creep to 1.20; v4 = tighter crop 1.08->1.16 push-in from frame 0, breathing figures, bigger hook; v3 = v2 moved 110 design px down to clear the Reels account bar; v2 hook: "AFTER A FIGHT, WHO TEXTS FIRST?" on frame 0, first text sends at 0.15 s). Renderer: `tools/silence-distance`.
 
 ## Facebook caption (sent to Teja 11 Nov)
 Silence isn't patience. It's distance. 🌉
