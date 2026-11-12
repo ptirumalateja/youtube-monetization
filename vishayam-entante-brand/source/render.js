@@ -7,7 +7,7 @@ const path = require('path');
   const page = await browser.newPage({ viewport: { width: 2700, height: 3200 }, deviceScaleFactor: 1 });
   await page.goto('file://' + path.join(__dirname, 'brand.html'));
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(800);
+  await page.evaluate(() => window.ready); await page.waitForTimeout(300);
   await (await page.$('#avatar')).screenshot({ path: path.join(out, 'profile_picture_800x800.png') });
   await (await page.$('#banner')).screenshot({ path: path.join(out, 'banner_2560x1440.png') });
   await page.evaluate(() => { document.body.style.background = 'transparent'; });

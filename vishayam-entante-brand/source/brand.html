@@ -36,26 +36,16 @@
   /* show-safe guide (off in export) */
 </style></head>
 <body>
-<template id="bubbleSvg">
-  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#ffd98a"/><stop offset=".55" stop-color="#f2b544"/><stop offset="1" stop-color="#d9922a"/>
-      </linearGradient>
-    </defs>
-    <path d="M50 6 C76 6 94 22 94 45 C94 68 76 84 50 84 C44 84 38.5 83.2 33.5 81.6 L14 93 L19.5 74.5 C10.5 67 6 57 6 45 C6 22 24 6 50 6 Z" fill="url(#g)"/>
-    <circle cx="72" cy="27" r="3.2" fill="#fff6dd" opacity=".9"/>
-  </svg>
-</template>
 
-<div id="avatar" class="art"><div class="bubble"></div><div class="vi" style="left:110px;width:580px">వి</div></div>
+
+<div id="avatar" class="art"><canvas id="avatarCv" width="800" height="800"></canvas></div>
 <br>
-<div id="wm" class="art"><div class="bubble"></div><div class="vi" style="left:20px;width:560px">వి</div></div>
+<div id="wm" class="art"><canvas id="wmCv" width="600" height="600"></canvas></div>
 <br>
 <div id="banner" class="art">
   <div class="streak"></div>
   <div class="safe">
-    <div class="bubble"><div class="vi">వి</div></div>
+    <canvas id="bannerCv" width="300" height="300" style="flex:none"></canvas>
     <div class="txt">
       <div class="te">విషయం <b>ఏంటంటే</b></div>
       <div class="en">VISHAYAM ENTANTE</div>
@@ -64,10 +54,32 @@
   </div>
 </div>
 <script>
-  const t=document.getElementById('bubbleSvg');
-  document.querySelectorAll('.bubble').forEach(b=>b.prepend(t.content.cloneNode(true)));
-  // vi inside banner bubble is absolutely positioned relative to bubble
-  document.querySelectorAll('#banner .bubble .vi').forEach(v=>{v.style.width='300px'});
-  // avatar/wm vi positioned relative to art; shift to bubble optical center (bubble body centre ~ y 45%)
+// Speech bubble: body centred at (50,44), smooth curved tail at lower-left. No decorative dot.
+const BUBBLE = "M50 6 C76.5 6 94 22.5 94 44 C94 65.5 76.5 82 50 82 C44.6 82 39.5 81.2 34.8 79.8 C29.2 85.2 21.4 89.4 12.5 91 C16.8 86 19.6 80.6 20.5 74.8 C11.5 67.6 6 56.8 6 44 C6 22.5 23.5 6 50 6 Z";
+const BODY = {cx:50, cy:44, h:76};
+async function drawIcon(cv, {pad=0.1, bg=null, inkRatio=0.46, yNudge=0}={}) {
+  const S = cv.width, ctx = cv.getContext('2d');
+  if (bg) { const g=ctx.createRadialGradient(S/2,S*0.38,0,S/2,S/2,S*0.72); g.addColorStop(0,'#223055'); g.addColorStop(1,'#0d1320'); ctx.fillStyle=g; ctx.fillRect(0,0,S,S); }
+  const k = S*(1-2*pad)/100, ox = S*pad, oy = S*pad + yNudge*S;
+  ctx.save(); ctx.translate(ox,oy); ctx.scale(k,k);
+  const gr = ctx.createLinearGradient(6,6,94,91); gr.addColorStop(0,'#ffd98a'); gr.addColorStop(.55,'#f2b544'); gr.addColorStop(1,'#d9922a');
+  ctx.fillStyle = gr; ctx.fill(new Path2D(BUBBLE)); ctx.restore();
+  // monogram: size so ink height = inkRatio * body height, ink centred on body centre
+  await document.fonts.load('400 100px Ramabhadra', 'వి');
+  const probe = 100; ctx.font = `400 ${probe}px Ramabhadra`;
+  let m = ctx.measureText('వి'); const inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  const size = probe * (inkRatio*BODY.h*k) / inkH; ctx.font = `400 ${size}px Ramabhadra`;
+  m = ctx.measureText('వి');
+  const cx = ox + BODY.cx*k, cy = oy + BODY.cy*k;
+  const x = cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft)/2;
+  const y = cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent)/2;
+  ctx.fillStyle = '#0d1320'; ctx.textBaseline = 'alphabetic'; ctx.fillText('వి', x, y);
+}
+window.ready = (async () => {
+  await document.fonts.ready;
+  await drawIcon(document.getElementById('avatarCv'), {pad:0.12, bg:true, yNudge:0.012});
+  await drawIcon(document.getElementById('wmCv'), {pad:0.02});
+  await drawIcon(document.getElementById('bannerCv'), {pad:0.02});
+})();
 </script>
 </body></html>
