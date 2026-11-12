@@ -5,6 +5,11 @@ S={
  'slap':('A loose rubber shoe sole slapping flat on a hard stone floor, one single sharp flap slap, close up, dry',0.6),
  'step':('One soft leather shoe footstep on a stone floor, close up, single step',0.5),
  'room':('Quiet small Indian home in the early morning, faint birds and a distant street vendor far outside, no music',6),
+ 'coin':('A single small metal coin dropping into an open palm, a light clink, close up',0.5),
+ 'card':('A piece of thin cardboard sliding into a leather shoe, papery scrape, close up',0.9),
+ 'paper':('Gift wrapping paper rustling as a wrapped box is handed over, soft',1.2),
+ 'kidstep':('One light child footstep in brand new rubber sneakers on stone, a tiny soft squeak',0.5),
+ 'market':('Busy Indian street market ambience in the morning, distant vendors calling, scooters far away, chatter, no music',6),
  'rewind':('Fast tape rewind whoosh, reversing, short',0.8),
 }
 for k,(txt,d) in S.items():

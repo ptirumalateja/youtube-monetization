@@ -22,8 +22,8 @@ const server = http.createServer((req, res) => {
     const page = await browser.newPage({ viewport: { width: 400, height: 400 } });
     page.on('pageerror', e => { console.error('[pageerror]', e.message); process.exitCode = 1; });
     page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text()); });
-    await page.goto(`http://127.0.0.1:${server.address().port}/?w=${W}&h=${H}&shot=${process.env.SHOT||"hook"}`);
-    await page.waitForFunction(() => window.ready === true, null, { timeout: 180000 });
+    await page.goto(`http://127.0.0.1:${server.address().port}/?w=${W}&h=${H}&shot=${process.env.SHOT||"hook"}`,{timeout:300000,waitUntil:"commit"});
+    await page.waitForFunction(() => window.ready === true, null, { timeout: 600000 });
     const shot = async (t, file) => { const b64 = await page.evaluate(([t, k]) => window.renderAt(t, k), [t, SUB]); fs.writeFileSync(file, Buffer.from(b64.split(',')[1], 'base64')); };
     if (mode === 'stills') {
       const times = process.env.TIMES ? process.env.TIMES.split(',').map(Number) : spec.reviewTimes;

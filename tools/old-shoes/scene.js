@@ -6,10 +6,11 @@ import * as SLD from './sld.js';
 const {V,clamp,sstep,lerp,keys,rng,noiseTex,rimify,dustify,dustU,PAL}=SLD;
 const Q=new URLSearchParams(location.search);
 const W=+Q.get('w')||1080, H=+Q.get('h')||1920, SHOT=Q.get('shot')||'hook';
-const DUR=4.0;
+const DUR=28.0;
 const LAMP=V(-0.1,3.4,1.0);
 const S=SLD.createStage({W,H,lamp:LAMP,lampTarget:V(-0.05,0,0.75),cone:0.34,spot:40,beam:0,fov:44,bg:0x15110f,fog:0.05,vig:0.28,hemi:0.6,hemiSky:0x4a4a5a,motes:1500,floorCol:0x6a4a34});
 const {scene,cam}=S;
+const STAGE_KIDS=new Set(scene.children);
 S.renderer.toneMappingExposure=0.95; S.bloom.strength=0.28; S.bloom.threshold=0.9;
 const canvasTex=(w,h,draw,srgb=true)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb) t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; };
 const std=(color,o={})=>new THREE.MeshStandardMaterial({color,roughness:o.r??0.8,metalness:o.m??0,...o.x});
@@ -68,105 +69,227 @@ const gift=new THREE.Group(); gift.position.set(BOX.x,BOX.y,BOX.z); gift.rotatio
 dustU.uDust.value=0.42;
 const ribGlow=SLD.glowSprite(scene,PAL.RED,0.16); ribGlow.position.set(BOX.x+0.04,BOX.y+BOX.h+0.03,BOX.z+0.05); ribGlow.scale.setScalar(0.35);
 
-// ------------------------------------------------------------------ dad
-const R=SLD.createRig(scene);
-const dad=R.makeFig(0xd8d0c0,'dad',{rim:0.1,lift:0.02});
-// hide the foot balls: the shoes carry the ankle
-dad.joints[4].visible=false; dad.joints[5].visible=false;
+const cardTex=canvasTex(256,64,(g,w,h)=>{ g.fillStyle='#c99a5e'; g.fillRect(0,0,w,h); for(let x=0;x<w;x+=7){ g.fillStyle='rgba(90,60,30,0.45)'; g.fillRect(x,0,2,h);} g.fillStyle='rgba(255,230,190,0.25)'; g.fillRect(0,0,w,4); });
+cardTex.wrapS=cardTex.wrapT=THREE.RepeatWrapping;
+// everything built so far (minus the SLD stage and the lights) is the home set
+const HOME=scene.children.filter(o=>!STAGE_KIDS.has(o)&&!o.isLight&&o!==ribGlow&&o!==gift&&!(o.type==='Object3D'));
 
-// ------------------------------------------------------------------ the shoes: worn leather upper, split sole flap, cardboard insole, silver tape across the toe
+// ================================================================== the market set (shot B): ochre street wall, shutters, a shoe stall
+const MARKET=new THREE.Group(); scene.add(MARKET);
+{ const mw=new THREE.MeshStandardMaterial({color:0x9a6a38,roughness:0.95,map:wallTex}); boxE(-4,4.5,0,3.4,-0.16,0,mw,MARKET);
+  const shT=canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#5f7a8c'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=10){ g.fillStyle='rgba(20,30,40,0.35)'; g.fillRect(0,y,w,3); g.fillStyle='rgba(255,255,255,0.08)'; g.fillRect(0,y+4,w,2);} const R=rng(5); for(let i=0;i<40;i++){ g.fillStyle=`rgba(120,60,30,${R()*0.25})`; g.beginPath(); g.ellipse(R()*w,R()*h,4+R()*20,3+R()*10,0,0,7); g.fill(); } });
+  for(const [x0,x1] of [[-1.9,-0.7],[1.5,2.7]]) boxE(x0,x1,0,2.25,0,0.03,new THREE.MeshStandardMaterial({map:shT,roughness:0.6,metalness:0.2}),MARKET);
+  const wt=noiseTex(256,14,128,50,20,0.12); wt.repeat.set(2,1); const wood=new THREE.MeshStandardMaterial({color:0x8a5a34,roughness:0.6,map:wt});
+  boxE(0.25,1.05,0,0.74,0.3,0.75,wood,MARKET); boxE(0.2,1.1,0.74,0.78,0.27,0.78,std(0x6a4026,{r:0.5}),MARKET);
+  // wall shelves of shoe boxes behind the seller
+  const R=rng(9); const cols=[0xd8452e,0x2f6db0,0xe8b85a,0xefe6d6,0x3a8a5a,0xb04a7a];
+  boxE(0.2,1.4,0.86,0.89,0.02,0.34,wood,MARKET); boxE(0.2,1.4,1.3,1.33,0.02,0.34,wood,MARKET); boxE(0.2,1.4,1.74,1.77,0.02,0.34,wood,MARKET);
+  for(const y of [0.89,1.33,1.77]) for(let x=0.24;x<1.32;x+=0.2) box(0.18,0.11,0.28,std(cols[Math.floor(R()*cols.length)],{r:0.6}),x+0.08,y+0.055,0.18,MARKET);
+  for(const y of [0.89,1.33]) for(let x=0.24;x<1.32;x+=0.2) box(0.18,0.11,0.28,std(cols[Math.floor(R()*cols.length)],{r:0.6}),x+0.08,y+0.165,0.18,MARKET);
+  // striped awning
+  const awT=canvasTex(512,64,(g,w,h)=>{ for(let x=0;x<w;x+=64){ g.fillStyle=(x/64)%2?'#efe6d6':'#c8382e'; g.fillRect(x,0,64,h);} });
+  const aw=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.9),new THREE.MeshStandardMaterial({map:awT,side:THREE.DoubleSide,roughness:0.9})); aw.position.set(0.65,2.25,0.45); aw.rotation.x=-1.15; aw.castShadow=true; MARKET.add(aw);
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.035,12,8),new THREE.MeshBasicMaterial({color:0xffe0a0})); bulb.position.set(0.65,1.95,0.55); MARKET.add(bulb);
+  const bg=SLD.glowSprite(MARKET,0xffc070,0.5); bg.position.copy(bulb.position); bg.scale.setScalar(0.5); MARKET.add(bg); }
+const bulbL=new THREE.PointLight(0xffc27a,0,4,1.4); bulbL.position.set(0.65,1.9,0.6); scene.add(bulbL);
+
+// ------------------------------------------------------------------ props for the years shot (stool, height marks) and the coins
+const stool=new THREE.Group(); scene.add(stool);
+{ const wm=std(0x5a3a24,{r:0.6}); box(0.34,0.04,0.3,wm,0,0.43,0,stool); for(const [x,z] of [[-0.14,-0.11],[0.14,-0.11],[-0.14,0.11],[0.14,0.11]]) box(0.035,0.42,0.035,wm,x,0.21,z,stool); }
+const MARKS=[1.12,1.43,1.69].map((y,i)=>{ const m=box(0.07,0.014,0.006,std(0x1e1712,{r:0.8}),DOOR.x0-0.035,y,0.044,scene,false); return m; });
+const coinM=new THREE.MeshStandardMaterial({color:0xe8b85a,roughness:0.25,metalness:0.85,emissive:0x5a3c10,emissiveIntensity:0.6});
+const coins=[0,1,2].map(()=>{ const c=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.004,20),coinM); c.castShadow=true; scene.add(c); return c; });
+const cardPiece=box(0.34,0.005,0.13,new THREE.MeshStandardMaterial({map:cardTex,roughness:0.9,emissive:0x6a4420,emissiveIntensity:0.5}),0,0,0,scene);
+
+// ================================================================== figures
+const R=SLD.createRig(scene);
+const RK=[0.6,0.78,0.92].map(sc=>SLD.createRig(scene,sc));     // the boy at 7, 11, 15
+const DAD_C=0xd8d0c0, DAD_OLD=0xb4b0aa, SON_C=0xe2b672, SELL_C=0x7f8a98;
+const dad=R.makeFig(DAD_C,'dad',{rim:0.1,lift:0.02});
+const son=R.makeFig(SON_C,'son',{rim:0.12,lift:0.03});
+const seller=R.makeFig(SELL_C,'seller',{rim:0.1,lift:0.02});
+const kids=RK.map((r,i)=>r.makeFig(SON_C,'kid'+i,{rim:0.12,lift:0.03}));
+
+// ------------------------------------------------------------------ the shoes
 const SH={L:0.2,Wd:0.085,Ht:0.1,Sole:0.034,ank:-0.08};   // half-length, half-width, upper height, sole thickness, ankle x in shoe
 const leatherTex=canvasTex(512,256,(g,w,h)=>{ const R=rng(31); g.fillStyle='#4a2e1e'; g.fillRect(0,0,w,h);
   for(let i=0;i<500;i++){ g.fillStyle=`rgba(${R()<0.6?20:150},${R()<0.6?10:110},${R()<0.6?6:80},${0.05+R()*0.12})`; g.beginPath(); g.ellipse(R()*w,R()*h,3+R()*26,2+R()*8,R()*3,0,7); g.fill(); }
-  g.strokeStyle='rgba(205,170,130,0.16)'; g.lineWidth=2; for(let i=0;i<22;i++){ g.beginPath(); const x=R()*w, y=h*0.3+R()*h*0.6; g.moveTo(x,y); g.quadraticCurveTo(x+10,y-6+R()*12,x+16+R()*30,y+(R()-0.5)*10); g.stroke(); }   // scuffs, creases
-  g.strokeStyle='rgba(20,12,8,0.8)'; g.setLineDash([6,5]); g.lineWidth=2; g.beginPath(); g.moveTo(0,h*0.92); g.lineTo(w,h*0.92); g.stroke(); });       // welt stitches
-const cardTex=canvasTex(256,64,(g,w,h)=>{ g.fillStyle='#c99a5e'; g.fillRect(0,0,w,h); for(let x=0;x<w;x+=7){ g.fillStyle='rgba(90,60,30,0.45)'; g.fillRect(x,0,2,h);} g.fillStyle='rgba(255,230,190,0.25)'; g.fillRect(0,0,w,4); });
-cardTex.wrapS=cardTex.wrapT=THREE.RepeatWrapping;
+  g.strokeStyle='rgba(205,170,130,0.16)'; g.lineWidth=2; for(let i=0;i<22;i++){ g.beginPath(); const x=R()*w, y=h*0.3+R()*h*0.6; g.moveTo(x,y); g.quadraticCurveTo(x+10,y-6+R()*12,x+16+R()*30,y+(R()-0.5)*10); g.stroke(); }
+  g.strokeStyle='rgba(20,12,8,0.8)'; g.setLineDash([6,5]); g.lineWidth=2; g.beginPath(); g.moveTo(0,h*0.92); g.lineTo(w,h*0.92); g.stroke(); });
+const cardTex2=cardTex;
 const tapeTex=canvasTex(128,64,(g,w,h)=>{ const R=rng(77); g.fillStyle='#b9bcbf'; g.fillRect(0,0,w,h); for(let i=0;i<300;i++){ g.fillStyle=`rgba(${R()<0.5?60:255},${R()<0.5?60:255},${R()<0.5?60:255},0.12)`; g.fillRect(R()*w,R()*h,1+R()*5,1); } g.fillStyle='rgba(40,40,40,0.25)'; for(let x=0;x<w;x+=4) g.fillRect(x,0,1,h); });
 function footprint(x0,x1,n=24){ const pts=[]; const wAt=x=>{ const u=x/SH.L; return SH.Wd*1.04*Math.sqrt(Math.max(0,1-Math.pow(Math.abs(u),2.4)))*(x<0?0.92:1); };
   for(let i=0;i<=n;i++){ const x=lerp(x0,x1,i/n); pts.push(new THREE.Vector2(x,wAt(x))); } for(let i=n;i>=0;i--){ const x=lerp(x0,x1,i/n); pts.push(new THREE.Vector2(x,-wAt(x))); } return new THREE.Shape(pts); }
 function shoeGeo(geo,k=1){ geo.scale(SH.Ht*k,SH.L*(k>1?1.012:1),SH.Wd*k); geo.rotateZ(-Math.PI/2); const p=geo.attributes.position;
   for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); const u=x/SH.L; const prof=lerp(1.0,0.42,sstep(-0.25,0.95,u)); p.setY(i,y*prof*(1+0.12*sstep(-1,-0.6,u))); }
   geo.computeVertexNormals(); return geo; }
-function makeShoe(key,patched){
-  const g=new THREE.Group(); const piv=new THREE.Group(); g.add(piv);   // g at the ankle, piv offsets so the ankle sits over the heel
-  piv.position.set(-SH.ank,-0.005,0);
-  const lm=rimify(new THREE.MeshStandardMaterial({map:leatherTex,roughness:0.68,color:0xffffff,side:THREE.DoubleSide,emissive:0x1a0e08,emissiveIntensity:0.5}),0xffd9a8,0.22,'leather'+key);
-  const up=new THREE.Mesh(shoeGeo(new THREE.SphereGeometry(1,48,28,-Math.PI/2,Math.PI,0,Math.PI)),lm); up.castShadow=true; up.receiveShadow=true; piv.add(up);
+// style: patched (dad), torn (the boy's old pair: toe through a hole), fresh (the boy's new white pair), smart (grown son)
+function makeShoe(key,style,toeCol){
+  const g=new THREE.Group(); const piv=new THREE.Group(); g.add(piv); piv.position.set(-SH.ank,-0.001,0);
+  let upM;
+  if(style==='fresh') upM=rimify(new THREE.MeshStandardMaterial({color:0xf3efe6,roughness:0.5,emissive:0x302c26,emissiveIntensity:0.4,side:THREE.DoubleSide}),0xffffff,0.25,'up'+key);
+  else if(style==='smart') upM=rimify(new THREE.MeshStandardMaterial({color:0x2a1a12,roughness:0.3,side:THREE.DoubleSide}),0xffd9a8,0.3,'up'+key);
+  else upM=rimify(new THREE.MeshStandardMaterial({map:leatherTex,roughness:0.68,color:style==='torn'?0xb89a80:0xffffff,side:THREE.DoubleSide,emissive:0x1a0e08,emissiveIntensity:0.5}),0xffd9a8,0.22,'up'+key);
+  const up=new THREE.Mesh(shoeGeo(new THREE.SphereGeometry(1,48,28,-Math.PI/2,Math.PI,0,Math.PI)),upM); up.castShadow=true; up.receiveShadow=true; piv.add(up);
   const hole=new THREE.Mesh(new THREE.CircleGeometry(1,28),std(0x120a06,{r:1})); hole.rotation.x=-Math.PI/2; hole.scale.set(0.072,0.06,1); hole.position.set(SH.ank+0.005,SH.Ht*0.97,0); piv.add(hole);
-  const collar=new THREE.Mesh(new THREE.TorusGeometry(1,0.12,8,32),std(0x3a2416,{r:0.5})); collar.rotation.x=-Math.PI/2; collar.scale.set(0.072,0.06,0.06); collar.position.copy(hole.position); collar.visible=false; piv.add(collar);
-  // laces: three cream crossings over the instep
-  const laceM=std(0xd8ccb0,{r:0.7}); for(let k=0;k<3;k++){ const l=box(0.012,0.008,SH.Wd*1.0,laceM,0.0+k*0.03,SH.Ht*(0.86-k*0.1),0,piv,false); l.rotation.z=-0.45-k*0.05; }
-  const soleM=std(0x1b1410,{r:0.85}); const ext=(x0,x1)=>{ const geo=new THREE.ExtrudeGeometry(footprint(x0,x1),{depth:SH.Sole,bevelEnabled:true,bevelThickness:0.004,bevelSize:0.004,bevelSegments:2}); geo.rotateX(-Math.PI/2); return geo; };
-  const cardM=new THREE.MeshStandardMaterial({map:cardTex,roughness:0.9,emissive:0x6a4420,emissiveIntensity:0.6});
-  const HINGE=0.0;
-  const heel=new THREE.Mesh(ext(-SH.L,HINGE),soleM); heel.position.y=-SH.Sole; heel.castShadow=true; heel.receiveShadow=true; piv.add(heel);
-  const flapP=new THREE.Group(); flapP.position.set(HINGE,0,0); piv.add(flapP);   // the loose front half of the sole, hinged at the ball of the foot (top edge)
-  const flap=new THREE.Mesh(ext(-0.0005,SH.L),[cardM,soleM]); flap.position.set(-HINGE,-SH.Sole,0); flap.castShadow=true; flap.receiveShadow=true; flapP.add(flap);
-  // cardboard insole: the front piece rides with the upper, its ragged edge sticks out past the leather
-  if(patched){ const cg=new THREE.ExtrudeGeometry(footprint(HINGE-0.01,SH.L*0.99),{depth:0.012,bevelEnabled:false}); cg.rotateX(-Math.PI/2);
-    const cm=new THREE.MeshStandardMaterial({map:cardTex,roughness:0.9,emissive:0x3a2410,emissiveIntensity:0.5}); const cb=new THREE.Mesh(cg,cm); cb.scale.set(1.03,1,1.1); cb.position.y=-0.012; cb.castShadow=true; piv.add(cb);
-    const tm=new THREE.MeshStandardMaterial({map:tapeTex,roughness:0.35,metalness:0.35,color:0xffffff,emissive:0x202020});
-    const tape=new THREE.Mesh(shoeGeo(new THREE.SphereGeometry(1,48,6,-Math.PI/2,Math.PI,0.42,0.3),1.04),tm); tape.castShadow=true; piv.add(tape); }
-  scene.add(g); return {g,flapP};
+  const laceM=std(style==='fresh'?0xd23a2e:0xd8ccb0,{r:0.7}); for(let k=0;k<3;k++){ const l=box(0.012,0.008,SH.Wd,laceM,k*0.03,SH.Ht*(0.86-k*0.1),0,piv,false); l.rotation.z=-0.45-k*0.05; }
+  const soleM=std(style==='fresh'?0xe8e2d4:0x1b1410,{r:0.85});
+  const ext=(x0,x1)=>{ const geo=new THREE.ExtrudeGeometry(footprint(x0,x1),{depth:SH.Sole,bevelEnabled:true,bevelThickness:0.004,bevelSize:0.004,bevelSegments:2}); geo.rotateX(-Math.PI/2); return geo; };
+  const cardM=new THREE.MeshStandardMaterial({map:cardTex2,roughness:0.9,emissive:0x6a4420,emissiveIntensity:0.6});
+  const heel=new THREE.Mesh(ext(-SH.L,0),soleM); heel.position.y=-SH.Sole; heel.castShadow=true; heel.receiveShadow=true; piv.add(heel);
+  const flapP=new THREE.Group(); piv.add(flapP);
+  const flap=new THREE.Mesh(ext(-0.0005,SH.L),style==='patched'?[cardM,soleM]:soleM); flap.position.set(0,-SH.Sole,0); flap.castShadow=true; flap.receiveShadow=true; flapP.add(flap);
+  if(style==='patched'){ const cg=new THREE.ExtrudeGeometry(footprint(-0.01,SH.L*0.99),{depth:0.012,bevelEnabled:false}); cg.rotateX(-Math.PI/2);
+    const cb=new THREE.Mesh(cg,new THREE.MeshStandardMaterial({map:cardTex2,roughness:0.9,emissive:0x3a2410,emissiveIntensity:0.5})); cb.scale.set(1.03,1,1.1); cb.position.y=-0.012; cb.castShadow=true; piv.add(cb);
+    const tape=new THREE.Mesh(shoeGeo(new THREE.SphereGeometry(1,48,6,-Math.PI/2,Math.PI,0.42,0.3),1.04),new THREE.MeshStandardMaterial({map:tapeTex,roughness:0.35,metalness:0.35,color:0xffffff,emissive:0x202020})); tape.castShadow=true; piv.add(tape); }
+  if(style==='fresh'){ const st=new THREE.Mesh(shoeGeo(new THREE.SphereGeometry(1,48,4,-Math.PI/2,Math.PI,1.2,0.22),1.02),std(0xd23a2e,{r:0.5})); piv.add(st); }
+  let toe=null;
+  if(style==='torn'){ const rim_=new THREE.Mesh(new THREE.CircleGeometry(0.04,20),std(0x120a06,{r:1})); rim_.rotation.y=Math.PI/2; rim_.position.set(SH.L*0.9,SH.Ht*0.2,0.0); rim_.rotation.z=0.3; piv.add(rim_);
+    toe=new THREE.Mesh(new THREE.SphereGeometry(0.05,16,12),new THREE.MeshStandardMaterial({color:toeCol,roughness:0.62,emissive:toeCol,emissiveIntensity:0.05})); toe.position.set(SH.L*0.9,SH.Ht*0.2,0); toe.castShadow=true; piv.add(toe); }
+  scene.add(g); return {g,flapP,toe,sc:1,style};
 }
-const shoeL=makeShoe('L',true), shoeR=makeShoe('R',true);
+const dadSh=[makeShoe('dL','patched'),makeShoe('dR','patched')];
+const kidTorn=[makeShoe('tL','torn',SON_C),makeShoe('tR','torn',SON_C)];
+const kidNew=[makeShoe('nL','fresh'),makeShoe('nR','fresh')];
+const sonSh=[makeShoe('sL','smart'),makeShoe('sR','smart')];
+const ALLSHOES=[...dadSh,...kidTorn,...kidNew,...sonSh];
+function placeShoe(sh,ank,yaw=0,pitch=0,flap=0,sc=1){ sh.g.visible=true; sh.g.scale.setScalar(sc); sh.g.position.copy(ank); sh.g.position.y-=0.035*(1-sc)*0.9;
+  sh.g.rotation.set(0,yaw,-pitch); const hb=Math.max(0,ank.y-0.04); sh.flapP.rotation.z=-Math.min(flap,Math.atan2(hb,SH.L*sc)); }
 
-// ------------------------------------------------------------------ the walk: planted feet (no sliding in a close-up), 2-bone leg IK
-const STEP=0.3, TS=0.85, X0=-0.4, HIPY=0.86, ZW=0.66;
-// step k (k>=0) runs over [k*TS, (k+1)*TS); odd steps move the right foot, even the left. Feet start mid-stride so frame 0 already has a foot in the air.
-const T0=-0.41;   // time offset: frame 0 sits late in the left foot's swing, sole hanging open; it slaps down at ~0.19 s
-function footAt(side,t){   // returns {x,lift,u(swing 0..1 or -1),pitch}
-  const tt=t-T0; const k=Math.floor(tt/TS); const ph=tt/TS-k; const mine=(k%2===0)===(side==='L');
-  const land=j=>X0+(side==='L'?0:STEP)+j*2*STEP;   // landing x of this foot's j-th placement
-  const s=side==='L'?0:1, SW=0.82;   // SW: swing fraction of the step (rest is double support)
-  const jPrev=mine?(k-s)/2:Math.floor((k-s-1)/2)+1;   // mine: swinging from placement jPrev; not mine: standing on placement jPrev
-  if(!mine) return {x:land(jPrev),lift:0,u:-1,pitch:0};
-  if(ph>SW) return {x:land(jPrev+1),lift:0,u:-1,pitch:0};
-  const u=ph/SW; const x0=land(jPrev), x1=land(jPrev+1); const ue=SLD.ease(u);
-  return {x:lerp(x0,x1,ue),lift:0.12*Math.sin(Math.PI*u)+0.02*Math.sin(Math.PI*Math.min(1,u*2)),u,pitch:0.38*Math.sin(Math.PI*Math.min(1,u*1.6))*(1-sstep(0.55,0.75,u))-0.16*sstep(0.6,0.85,u)*(1-sstep(0.9,1,u))};
-}
-function flapAt(f,t){   // sole flap angle (rad): hangs open while the foot is up, slaps shut on landing, small after-wobble
-  if(f.u<0){ return 0; }
-  const u=f.u; let a=0.8*sstep(0.04,0.3,u)*(1-sstep(0.84,0.97,u)); a+=0.07*Math.sin(u*22)*sstep(0.1,0.3,u)*(1-sstep(0.7,0.9,u)); return Math.max(0,a);
-}
-function hipX(t){ return X0+STEP*0.5+(t-T0)*STEP/TS - STEP*0.5; }
-function legIK(dx,dy){ const T=R.L.thigh, Sh=R.L.shin; const d=Math.min(Math.hypot(dx,dy),T+Sh-0.002);
+// ================================================================== the walk: planted feet, 2-bone leg IK (fixed: the standing foot keeps its placement)
+function legIK(Rg,dx,dy){ const T=Rg.L.thigh, Sh=Rg.L.shin; const d=Math.min(Math.hypot(dx,dy),T+Sh-0.002);
   const k=Math.PI-Math.acos(clamp((T*T+Sh*Sh-d*d)/(2*T*Sh),-1,1)); const al=Math.acos(clamp((T*T+d*d-Sh*Sh)/(2*T*d),-1,1)); return {a:Math.atan2(dx,-dy)+al,k}; }
-function placeShoe(sh,f,ank,t){ sh.g.position.copy(ank); sh.g.rotation.set(0,0,-f.pitch); const hb=Math.max(0,ank.y-0.04); sh.flapP.rotation.z=-Math.min(flapAt(f,t),Math.atan2(hb,SH.L)+f.pitch*0.0); }
-const events=[];   // sole slaps (for the sound mix)
-for(let k=0;k<12;k++){ const tl=T0+k*TS+0.82*TS*0.97; if(tl>0&&tl<DUR) events.push({t:+tl.toFixed(3),type:'slap',side:k%2===0?'L':'R'}); }
-
-function poseDad(t){
-  const hx=hipX(t)+0.03*Math.sin((t-T0)/TS*Math.PI*2), hy=HIPY-0.018*Math.cos((t-T0)/TS*Math.PI*2);
-  const fL=footAt('L',t), fR=footAt('R',t);
-  const aL=V(fL.x,0.035+fL.lift,ZW+0.08), aR=V(fR.x,0.035+fR.lift,ZW-0.08);
-  const iL=legIK(aL.x-hx,aL.y-hy), iR=legIK(aR.x-hx,aR.y-hy);
-  const sw=Math.sin((t-T0)/TS*Math.PI);
-  const P={...R.P0,p:0.16,tilt:0.12,aL:iL.a,kL:iL.k,aR:iR.a,kR:iR.k,sL:0.08-0.22*sw,sR:-0.04+0.22*sw,eL:0.3,eR:0.3};
-  // cancel skel()'s automatic hip placement so the IK targets land exactly
-  const fl=[Math.sin(P.aL)*R.L.thigh+Math.sin(P.aL-P.kL)*R.L.shin,-Math.cos(P.aL)*R.L.thigh-Math.cos(P.aL-P.kL)*R.L.shin];
-  const fr=[Math.sin(P.aR)*R.L.thigh+Math.sin(P.aR-P.kR)*R.L.shin,-Math.cos(P.aR)*R.L.thigh-Math.cos(P.aR-P.kR)*R.L.shin];
-  P.fx=(fl[0]+fr[0])*0.5*0.6; P.dy=hy+Math.min(fl[1],fr[1])-0.035;
-  const J=R.skel(P,V(hx,0,ZW),0); R.poseFig(dad,J);
-  placeShoe(shoeL,fL,J.fL,t); placeShoe(shoeR,fR,J.fR,t);
-  return {hx,fL,fR,J};
+function flapAt(f){ if(f.u<0) return 0; const u=f.u; let a=0.8*sstep(0.04,0.3,u)*(1-sstep(0.84,0.97,u)); a+=0.07*Math.sin(u*22)*sstep(0.1,0.3,u)*(1-sstep(0.7,0.9,u)); return Math.max(0,a); }
+function makeWalk(o){   // o: Rg, sc, X0, STEP, TS, T0, ZW, HIPY, p, tilt
+  const SW=0.82, sc=o.sc||1;
+  function foot(side,t){ const tt=t-o.T0; const k=Math.floor(tt/o.TS); const ph=tt/o.TS-k; const mine=(k%2===0)===(side==='L'); const s=side==='L'?0:1;
+    const land=j=>o.X0+s*o.STEP+j*2*o.STEP; const jP=mine?(k-s)/2:Math.floor((k-s-1)/2)+1;
+    if(!mine) return {x:land(jP),lift:0,u:-1,pitch:0}; if(ph>SW) return {x:land(jP+1),lift:0,u:-1,pitch:0};
+    const u=ph/SW; return {x:lerp(land(jP),land(jP+1),SLD.ease(u)),lift:(0.12*Math.sin(Math.PI*u)+0.02*Math.sin(Math.PI*Math.min(1,u*2)))*sc,u,
+      pitch:0.38*Math.sin(Math.PI*Math.min(1,u*1.6))*(1-sstep(0.55,0.75,u))-0.16*sstep(0.6,0.85,u)*(1-sstep(0.9,1,u))}; }
+  const hipX=t=>o.X0+(t-o.T0)*o.STEP/o.TS;
+  function pose(F,shoes,t,flapOn=true,arms=null){
+    const c=(t-o.T0)/o.TS*Math.PI; const hx=hipX(t)+0.03*sc*Math.sin(2*c), hy=o.HIPY-0.018*sc*Math.cos(2*c);
+    const fL=foot('L',t), fR=foot('R',t);
+    const aL=V(fL.x,0.035+fL.lift,o.ZW+0.08), aR=V(fR.x,0.035+fR.lift,o.ZW-0.08);
+    const iL=legIK(o.Rg,aL.x-hx,aL.y-hy), iR=legIK(o.Rg,aR.x-hx,aR.y-hy); const sw=Math.sin(c);
+    const P={...o.Rg.P0,p:o.p??0.16,tilt:o.tilt??0.12,aL:iL.a,kL:iL.k,aR:iR.a,kR:iR.k,sL:0.08-0.22*sw,sR:-0.04+0.22*sw,eL:0.3,eR:0.3,...(arms||{})};
+    const T_=o.Rg.L.thigh, S_=o.Rg.L.shin;
+    const fl=[Math.sin(P.aL)*T_+Math.sin(P.aL-P.kL)*S_,-Math.cos(P.aL)*T_-Math.cos(P.aL-P.kL)*S_], fr=[Math.sin(P.aR)*T_+Math.sin(P.aR-P.kR)*S_,-Math.cos(P.aR)*T_-Math.cos(P.aR-P.kR)*S_];
+    P.fx=(fl[0]+fr[0])*0.3; P.dy=hy+Math.min(fl[1],fr[1])-0.035;
+    const J=o.Rg.skel(P,V(hx,0,o.ZW),0); o.Rg.poseFig(F,J);
+    if(shoes){ placeShoe(shoes[0],J.fL,0,fL.pitch,flapOn?flapAt(fL):0,sc); placeShoe(shoes[1],J.fR,0,fR.pitch,flapOn?flapAt(fR):0,sc); }
+    return {hx,J,fL,fR}; }
+  function slaps(t0,t1,off){ const ev=[]; for(let k=0;k<60;k++){ const tl=o.T0+k*o.TS+SW*o.TS*0.97; if(tl>=t0&&tl<t1) ev.push(+(tl+off).toFixed(3)); } return ev; }
+  return {foot,hipX,pose,slaps};
 }
+const P0=R.P0;
+function standFig(Rg,F,shoes,root,yaw,P,sc=1){ const J=Rg.skel({...Rg.P0,...P},root,yaw); Rg.poseFig(F,J); if(shoes){ placeShoe(shoes[0],J.fL,yaw,0,0,sc); placeShoe(shoes[1],J.fR,yaw,0,0,sc); } return J; }
 
-// ------------------------------------------------------------------ camera: low, tight on the feet, tracking with a slight lag; slow push
-const CXO=+(Q.get('cxo')??0.03);
-function setT(t){
-  const d=poseDad(t);
-  // locked-off camera (a tracking camera made the walk read as a treadmill): he walks through the frame, past the box, toward the door
-  const cx=CXO+0.03*t;
-  const z=keys([[0,2.05],[3.0,1.9]],t);
-  cam.position.set(cx,0.42,ZW+z); cam.lookAt(cx,0.5,ZW-0.25);
-  cam.fov=50; cam.updateProjectionMatrix();
-  S.tick(t);
+// ================================================================== shot list (output seconds)
+// A 0-2.55 hook: old dad walks past the closed box (2.55-3.0 is the rewind smear, done in compose)
+// B1 3.0-4.2 the boy's toe through his torn shoe | B2 4.2-6.2 dad pays his coins | B3 6.2-9.0 walking home, new shoes vs flapping sole
+// C 9.0-14.0 three years, three hard cuts: dad slides new cardboard in, the boy grows against the door frame
+// D 14.0-19.0 the grown son gives the first-salary gift; dad hugs it
+// E 19.0-28.0 years later: the box still closed under dust; dad walks in on the same patched shoes; hold for the ending lines
+const SHOTS=[['A',0,3.0],['B1',3.0,4.2],['B2',4.2,6.2],['B3',6.2,9.0],['C',9.0,14.0],['D',14.0,19.0],['E',19.0,28.0]];
+const shotAt=T=>{ for(const s of SHOTS) if(T>=s[1]&&T<s[2]) return s; return SHOTS[SHOTS.length-1]; };
+const wA=makeWalk({Rg:R,X0:-0.4,STEP:0.3,TS:0.85,T0:-0.41,ZW:0.66,HIPY:0.86,p:0.24,tilt:0.18});
+const wBd=makeWalk({Rg:R,X0:-0.95,STEP:0.3,TS:0.85,T0:-0.3,ZW:0.55,HIPY:0.875,p:0.12,tilt:0.08});
+const wBk=makeWalk({Rg:RK[0],sc:0.6,X0:-0.62,STEP:0.17,TS:0.48,T0:-0.1,ZW:1.0,HIPY:0.535,p:0.05,tilt:-0.05});
+const E_STOP=(5+0.9)*0.85;   // E walk freezes in double support
+const wE=makeWalk({Rg:R,X0:-1.85,STEP:0.3,TS:0.85,T0:0,ZW:0.66,HIPY:0.86,p:0.26,tilt:0.2});
+const CXO=0.03;
+function hookCam(t){ const cx=CXO+0.03*t, z=keys([[0,2.05],[3.0,1.9]],t); cam.position.set(cx,0.42,0.66+z); cam.lookAt(cx,0.5,0.66-0.25); cam.fov=50; }
+function setSets(home){ HOME.forEach(o=>o.visible=home); MARKET.visible=!home; bulbL.intensity=home?0:1.2; S.renderer.toneMappingExposure=home?0.95:0.72;
+  S.floor.material.color.set(home?0xd8b0a0:0xa49488); }
+function setSun(mode){ if(mode==='home'){ sun.color.set(0xffe6c0); sun.intensity=30; sun.position.set(2.9,1.9,-1.6); sun.target.position.set(-0.4,0,1.2); fill.intensity=0.45; wallWash.intensity=2.2; }
+  if(mode==='late'){ sun.color.set(0xffa860); sun.intensity=22; sun.position.set(2.9,1.3,-1.6); sun.target.position.set(-0.4,0,1.2); fill.color.set(0xa8b4d8); fill.intensity=0.5; wallWash.intensity=1.5; }
+  if(mode==='market'){ sun.color.set(0xfff0d0); sun.intensity=16; sun.position.set(3.2,4.2,3.4); sun.target.position.set(0.2,0.4,0.6); fill.intensity=0.3; wallWash.intensity=0.6; } }
+const META={};
+function hideAll(){ for(const F of [dad,son,seller,...kids]) F.all.forEach(m=>m.visible=false); ALLSHOES.forEach(s=>s.g.visible=false); coins.forEach(c=>c.visible=false); cardPiece.visible=false; stool.visible=false; MARKS.forEach(m=>m.visible=false); gift.visible=false; ribGlow.visible=false; }
+function showFig(F,bareFeet=false){ F.all.forEach(m=>m.visible=true); F.joints[4].visible=bareFeet; F.joints[5].visible=bareFeet; }
+function giftAt(p,ry=-0.1){ gift.visible=true; gift.position.copy(p); gift.rotation.set(0,ry,0); ribGlow.visible=true; ribGlow.position.set(p.x,p.y+BOX.h+0.03,p.z+0.05); }
+
+function setT(T){
+  hideAll(); const [id,t0]=shotAt(T); const t=T-t0; META.shot=id;
+  dad.mat.color.set(DAD_C); dad.mat.emissive.set(DAD_C);
+  if(id==='A'){ setSets(true); setSun('home'); dustU.uDust.value=0.5; dad.mat.color.set(DAD_OLD); dad.mat.emissive.set(DAD_OLD);
+    showFig(dad); wA.pose(dad,dadSh,Math.min(T,2.95)); giftAt(V(BOX.x,BOX.y,BOX.z)); hookCam(Math.min(T,2.95)); }
+  else if(id==='B1'){ setSets(false); setSun('market');
+    showFig(dad); standFig(R,dad,dadSh,V(-0.32,0,0.95),-0.25,{p:0.12,tilt:0.1});
+    showFig(kids[0]); const w=Math.sin(t*9)*0.5+0.5; standFig(RK[0],kids[0],kidTorn,V(0.15,0,0.98),-0.1,{p:0.06,tilt:0.25,aL:0.02,aR:-0.08},0.6);
+    kidTorn.forEach((s,i)=>{ s.toe.position.x=SH.L*(0.9+0.12*(i===1?w:w*0.5)); });
+    showFig(seller,true); standFig(R,seller,null,V(0.7,0,0.15),-Math.PI/2,{p:0.1});
+    const cx=0.22+0.02*t; cam.position.set(cx,0.22,0.98+0.95-0.06*t); cam.lookAt(cx,0.2,0.98); cam.fov=45; }
+  else if(id==='B2'){ setSets(false); setSun('market');
+    // dad pays: hand over the counter 0.2-0.7, three coins fall 0.7-1.1 into the seller's palm; the boy lifts the new pair to his chest 1.1-1.7
+    const reach=sstep(0.15,0.65,t)*(1-sstep(1.3,1.8,t)), give=sstep(1.1,1.6,t);
+    showFig(dad); const dHand=V(0.33,1.0,0.78);
+    standFig(R,dad,dadSh,V(-0.32,0,0.95),-0.25,{p:0.14,tilt:0.08,tR:dHand,wR:reach,pR:V(0.3,-0.5,-0.6)});
+    showFig(seller,true); const sHand=V(0.36,0.86,0.76);
+    standFig(R,seller,null,V(0.72,0,0.15),-Math.PI/2,{p:0.16,tilt:0.1,tR:sHand,wR:sstep(0.3,0.7,t)*(1-sstep(1.5,1.9,t)),pR:V(-0.3,-0.6,0.4),tL:V(0.9,0.8,0.55),wL:0.8});
+    coins.forEach((c,i)=>{ const tc=0.7+i*0.12; c.visible=t>0.55; const u=clamp((t-tc)/0.22); const y=t<tc?dHand.y-0.03:lerp(dHand.y-0.03,sHand.y+0.01+i*0.005,u*u);
+      c.position.set(dHand.x+0.02*i-0.02,y,dHand.z-0.01); c.rotation.set(0.3+(1-u)*t*7,0,0.2*i); });
+    const kHome=V(0.35,0.82,0.7), kChest=V(0.32,0.72,1.0); const kp=kHome.clone().lerp(kChest,sstep(1.15,1.65,t));
+    showFig(kids[0]); standFig(RK[0],kids[0],kidTorn,V(0.15,0,0.98),-0.1,{p:0.08+0.1*sstep(0.9,1.2,t)*(1-give),tilt:0.15,tL:kp.clone().add(V(0,0,0.07)),tR:kp.clone().add(V(0,0,-0.07)),wL:sstep(0.95,1.15,t),wR:sstep(0.95,1.15,t)},0.6);
+    kidTorn.forEach(s=>{ s.toe.position.x=SH.L*0.95; });
+    placeShoe(kidNew[0],kp.clone().add(V(0.0,-0.03,0.06)),0,give*0.5,0,0.6); placeShoe(kidNew[1],kp.clone().add(V(0.02,-0.03,-0.06)),0,give*0.5,0,0.6);
+    const z=keys([[0,2.7],[2,2.5]],t); cam.position.set(0.25,1.05,0.75+z); cam.lookAt(0.25,0.88,0.6); cam.fov=50; META.coinT=[0.7,0.82,0.94].map(x=>+(x+t0).toFixed(3)); }
+  else if(id==='B3'){ setSets(false); setSun('market');
+    showFig(dad); showFig(kids[0]);
+    wBk.pose(kids[0],kidNew,t,false,null); wBd.pose(dad,dadSh,t,true,null);
+    const cx=-0.4+0.2*t; cam.position.set(cx,0.42,0.66+2.1); cam.lookAt(cx,0.48,0.66-0.25); cam.fov=50; }
+  else if(id==='C'){ setSets(true); setSun('home'); dustU.uDust.value=0;
+    const beat=Math.min(2,Math.floor(t/(5/3))), bt=t-beat*(5/3);
+    stool.visible=true; stool.position.set(0.12,0,0.8);
+    // dad on the stool, right foot bare, left foot in its patched shoe; the right shoe in his hand, new cardboard sliding in
+    showFig(dad); dad.joints[5].visible=true;
+    const shoePos=V(0.52,0.6,0.86), push=sstep(0.25,1.15,bt);
+    const cbStart=shoePos.clone().add(V(-0.3,0.13,0)), cbEnd=shoePos.clone().add(V(-0.04,0.03,0)); const cb=cbStart.clone().lerp(cbEnd,push);
+    cardPiece.visible=true; cardPiece.position.copy(cb).add(V(0.1,0,0)); cardPiece.rotation.set(0,0,lerp(-0.42,-0.12,push));
+    const Pd={p:0.42,tilt:0.25,aL:1.52,aR:1.46,kL:1.5,kR:1.42,dy:0,fx:0.283,sL:0.6,sR:0.6,eL:0.9,eR:0.9,
+      tL:shoePos.clone().add(V(-0.02,-0.01,0.08)),wL:1,pL:V(0,-0.6,0.8),tR:cb.clone().add(V(-0.08,0.02,-0.06)),wR:1,pR:V(-0.2,-0.6,-0.8)};
+    const J=standFig(R,dad,null,V(0.12,0,0.8),0,Pd);
+    placeShoe(dadSh[0],J.fL,0,0,0,1);
+    placeShoe(dadSh[1],shoePos.clone().add(V(0.09,-0.035,0)),0,-0.12,0,1); dadSh[1].g.position.copy(shoePos); dadSh[1].g.rotation.set(0,0,0.12);
+    // the boy against the door frame, a new pencil mark each year
+    const ki=beat; const Rg=RK[ki]; showFig(kids[ki]); standFig(Rg,kids[ki],kidNew,V(0.88,0,0.22),Math.PI,{p:0.02,tilt:-0.06,sL:0.05,sR:-0.05},[0.6,0.78,0.92][ki]);
+    MARKS.forEach((m,i)=>m.visible=i<ki||(i===ki&&bt>0.3));
+    const z=keys([[0,2.95],[5/3,2.85]],bt); cam.position.set(0.55,0.95,0.6+z); cam.lookAt(0.55,0.85,0.5); cam.fov=50; META.beat=beat; META.cardT=[0,1,2].map(b=>+(t0+b*5/3+0.3).toFixed(3)); }
+  else if(id==='D'){ setSets(true); setSun('home'); dustU.uDust.value=0;
+    // son offers the box (0-1.2), dad takes it (1.2-2.2) and hugs it to his chest (2.2-3.0), holds it
+    const ext=sstep(0.1,1.1,t), take=sstep(1.3,2.3,t), hug=sstep(2.3,3.0,t);
+    const bSon=V(0.72,1.0,0.6), bMid=V(0.55,1.04,0.6), bDad=V(0.36,1.12,0.62);
+    const bp=t<1.3?bSon.clone().lerp(bMid,ext):bMid.clone().lerp(bDad,take);
+    const sway=0.01*Math.sin(t*2.2)*hug; bp.y+=sway;
+    giftAt(V(bp.x,bp.y-BOX.h/2,bp.z),Math.PI/2); dustU.uDust.value=0;
+    const ends=[bp.clone().add(V(0,0,BOX.w/2+0.015)),bp.clone().add(V(0,0,-BOX.w/2-0.015))];
+    showFig(son); standFig(R,son,sonSh,V(0.98,0,0.6),Math.PI,{p:0.1+0.06*ext,tilt:-0.05+0.2*ext,tL:ends[1],tR:ends[0],wL:1-take*0.9,wR:1-take*0.9,pL:V(-0.2,-0.6,0.8),pR:V(-0.2,-0.6,-0.8)});
+    showFig(dad); standFig(R,dad,dadSh,V(0.08,0,0.6),0,{p:0.1+0.18*hug,tilt:-0.15+0.2*sstep(0.8,1.3,t)+0.45*hug,tL:ends[0],tR:ends[1],wL:sstep(1.0,1.5,t),wR:sstep(1.0,1.5,t),pL:V(-0.2,-0.6,0.8),pR:V(-0.2,-0.6,-0.8)});
+    const z=keys([[0,3.1],[5,2.7]],t); cam.position.set(0.53,1.05,0.6+z); cam.lookAt(0.53,0.98,0.5); cam.fov=50; }
+  else if(id==='E'){ setSets(true); setSun('late'); dustU.uDust.value=0.85; dad.mat.color.set(DAD_OLD); dad.mat.emissive.set(DAD_OLD);
+    giftAt(V(BOX.x,BOX.y,BOX.z));
+    showFig(dad); wE.pose(dad,dadSh,Math.min(t,E_STOP),t<E_STOP);
+    // push in on the box (0-2.2), crane down and back to the hook framing as his feet walk in (2.2-3.6), hold
+    const u=sstep(2.2,3.6,t); const hc={p:V(CXO+0.03*0,0.42,0.66+2.05),l:V(CXO,0.5,0.41)};
+    const bc={p:V(BOX.x-0.05,0.66,BOX.z+1.05-0.25*sstep(0,2.2,t)),l:V(BOX.x,0.55,BOX.z)};
+    const hold=keys([[3.6,0],[9,0.12]],t);
+    cam.position.copy(bc.p.clone().lerp(hc.p,u)).add(V(0,0,-hold)); cam.lookAt(bc.l.clone().lerp(hc.l,u)); cam.fov=lerp(42,50,u); }
+  cam.updateProjectionMatrix(); S.tick(T);
 }
+// sound events in output seconds
+const events=[];
+wA.slaps(0,2.55,0).forEach(x=>events.push({t:x,type:'slap'}));
+wBd.slaps(0,2.8,6.2).forEach(x=>events.push({t:x,type:'slap'}));
+wBk.slaps(0,2.8,6.2).forEach(x=>events.push({t:x,type:'kidstep'}));
+wE.slaps(2.0,E_STOP+0.01,19).forEach(x=>events.push({t:x,type:'slap'}));
+[4.9,5.02,5.14].forEach(x=>events.push({t:x,type:'coin'}));
+[0,1,2].forEach(b=>events.push({t:+(9+b*5/3+0.3).toFixed(3),type:'card'}));
+events.push({t:14.2,type:'paper'},{t:16.5,type:'paper'});
 setT(0);
-window.metaAt=t=>{ const d=poseDad(t); return {hx:d.hx}; };
+window.metaAt=t=>{ setT(t); return {shot:META.shot,beat:META.beat??0}; };
 window.events=events;
-window.renderAt=(t,K)=>S.renderAt(setT,t,K,{t0:0,t1:DUR});
-S.renderAt(setT,0.5,1,{t0:0,t1:DUR}); S.renderAt(setT,0,1,{t0:0,t1:DUR});   // warm-up: upload canvas textures before the first real frame
+window.renderAt=(t,K)=>{ const [,a,b]=shotAt(t); return S.renderAt(setT,t,K,{t0:a,t1:b}); };
+S.renderAt(setT,0.5,1,{t0:0,t1:3}); for(const T of [3.5,5,7,10,15,22]) S.renderAt(setT,T,1,{t0:0,t1:DUR}); S.renderAt(setT,0,1,{t0:0,t1:3});   // warm-up: upload every set's textures before the first real frame
 window.ready=true;
