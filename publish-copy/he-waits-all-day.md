@@ -1,12 +1,13 @@
 # He Waits All Day (dog waits by the door)
 
-- Status: v1 delivered 11 Nov 2026, awaiting Teja's review.
+- Status: v2 (panel-reviewed final) delivered 12 Nov 2026, awaiting Teja's review. Panel scores: hook 9.5, visuals and grade 9.0, edit 9.2, sound 9.0.
 - Upload file: `final-reels/he-waits-all-day/he-waits-all-day.mp4` (foley + piano), `he-waits-all-day_music-ready.mp4` (silent, add platform music).
-- Format: 13 s, 1080x1920, Slow Light remake of the papercut "dog waits" reference reel: same beats, captions, clock and CTA, rebuilt as a lit 3D room (gold dog, cream owner, warm overhead lamp, glossy floor, gold hearts). Source: `tools/dog-waits` on branch `claude/project-thread-3vhloc`.
-- Sound: foley and a short solo piano cue made with the ElevenLabs API (door, sigh, clock, keys, barks, laugh, panting). No third-party audio.
+- Format: 13.6 s, 1080x1920. Opens payoff-first: 0.6 s cold open on the reunion ("10 HOURS FOR THIS?"), then a rewind to the morning door slam; the end pushes back to the same crop, so it loops. Slow Light remake of the papercut "dog waits" reference reel: same beats, captions, clock and CTA, the story rebuilt as a lit 3D room (gold dog, cream owner, warm overhead lamp, glossy floor, gold hearts). Source: `tools/dog-waits` on branch `claude/project-thread-3vhloc`.
+- Sound: foley and solo piano cues made with the ElevenLabs API (door, sigh, clock, keys, barks, laugh, panting, office/cafe/bike life layers), plus two whooshes from tools/sfxlib.
+- Credit needed: "5 everyday whooshes" by Tomlija (freesound.org/s/175183), CC BY 3.0. Put it in the YouTube description (already included below). "Cinematic Woosh SFX-015" by AudioPapkin (649445) is CC0, no credit needed.
 
 ## YouTube Shorts
-**Title:** He Waits All Day For You 🐶🚪 #shorts
+**Title:** 10 Hours… For This? 🐶🚪 #shorts
 
 **Description:**
 You have a job. Friends. A life.
@@ -18,6 +19,8 @@ To you it's just another evening. To him, you're his entire world.
 Tag the person your dog waits for. 🐾
 
 Slow Light: stories worth slowing down for.
+
+Sound: "5 everyday whooshes" by Tomlija (freesound.org/s/175183), CC BY 3.0.
 
 #shorts #dog #doglover #dogsofyoutube #wholesome #relatable
 
@@ -36,6 +39,8 @@ To him, you're his entire world. ❤️
 
 Tag the person your dog waits for. 🐾
 
+Whoosh sound: Tomlija, freesound.org (CC BY 3.0)
+
 #dog #doglover #dogsoffacebook #dogmom #dogdad #loyaldog #wholesome #relatable #animation #slowlight
 
 ## Instagram caption
@@ -45,5 +50,7 @@ You have a job, friends, a life. He has the door.
 You're not just his owner. You're his entire world. ❤️
 
 Tag the person your dog waits for 🐾👇
+
+Whoosh sound: Tomlija, freesound.org (CC BY 3.0)
 
 #dog #doglover #dogsofinstagram #dogmom #dogdad #loyaldog #doglife #wholesome #relatable #emotional #animation #3danimation #reels #slowlight

@@ -11,7 +11,9 @@ const DUR=13.0;
 const LAMP=V(-0.32,3.7,0.95);
 const S=SLD.createStage({W,H,lamp:LAMP,lampTarget:V(-0.28,0,0.95),cone:0.3,spot:SHOT==='dog'?42:0,beam:SHOT==='dog'?0.12:0,fov:44,bg:0x0a0e1a,fog:0.045,vig:0.32,hemi:0.55,hemiSky:0x34406a,motes:1400,floorCol:0x6a4a34});
 const {scene,cam}=S;
-S.renderer.toneMappingExposure=1.18;
+S.renderer.toneMappingExposure=1.18; S.bloom.strength=0.3; S.bloom.threshold=0.9;
+const upWash=new THREE.SpotLight(0xffe0b8,SHOT==='dog'?4.5:0,0,0.7,0.9,0); upWash.position.set(0.1,1.0,3.6); upWash.target.position.set(-0.1,2.7,0); scene.add(upWash,upWash.target);
+const rim=new THREE.SpotLight(0xffd9a0,0,0,0.5,0.6,0); rim.position.set(-0.7,1.9,0.1); rim.target.position.set(0.4,1.0,0.9); scene.add(rim,rim.target);
 const fill=new THREE.DirectionalLight(0x9fb0d8,SHOT==='dog'?0.55:0.25); fill.position.set(0.8,2.2,6); fill.target.position.set(0,0.8,0); scene.add(fill,fill.target);
 const wash=new THREE.SpotLight(0xffc890,SHOT==="dog"?3.5:0,0,0.9,0.9,0); wash.position.set(-0.3,2.6,3.2); wash.target.position.set(0.0,1.3,0); scene.add(wash,wash.target);
 const canvasTex=(w,h,draw,srgb=true)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb) t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; };
@@ -30,7 +32,7 @@ S.floor.material.map=floorTex; S.floor.material.color.set(0xb89a80); S.floor.mat
 // ------------------------------------------------------------------ the room (back wall with window + front door)
 const WIN={x0:-1.2,x1:-0.42,y0:0.95,y1:1.85}, DOOR={x0:0.12,x1:1.0,y1:2.08};
 const wallTex=noiseTex(256,3,128,26,60,0.05); wallTex.repeat.set(6,4);
-const wallMat=new THREE.MeshStandardMaterial({color:0x3a4466,roughness:0.92,map:wallTex});
+const wallMat=new THREE.MeshStandardMaterial({color:0x35507e,roughness:0.92,map:wallTex});
 const trimMat=std(0x9a9fb0,{r:0.55});
 [[-3.5,WIN.x0,0,3.6],[WIN.x1,DOOR.x0,0,3.6],[DOOR.x1,3.5,0,3.6],[WIN.x0,WIN.x1,0,WIN.y0],[WIN.x0,WIN.x1,WIN.y1,3.6],[DOOR.x0,DOOR.x1,DOOR.y1,3.6]]
   .forEach(([a,b,c,d])=>boxE(a,b,c,d,-0.16,0,wallMat));
@@ -56,13 +58,14 @@ const skyU={uDay:{value:0}};
       void main(){ vec3 c=sky(uDay,vU.y); float hills=0.33+0.04*sin(vU.x*9.0)+0.03*sin(vU.x*23.0+1.0);
         if(vU.y<hills) c=mix(vec3(0.16,0.28,0.2),vec3(0.05,0.08,0.09),smoothstep(0.75,1.0,uDay))*(0.7+0.3*vU.y/hills);
         gl_FragColor=vec4(c*0.9,1.0);} `}));
-  m.position.set(-0.8,1.3,-2.5); scene.add(m); }
+  m.position.set(-0.8,1.3,-2.75); scene.add(m); }
 // door casing, hallway, door on a hinge at the right edge (swings into the hall)
 { const t=0.08; boxE(DOOR.x0-t,DOOR.x0,0,DOOR.y1+t,0,0.04,trimMat); boxE(DOOR.x1,DOOR.x1+t,0,DOOR.y1+t,0,0.04,trimMat); boxE(DOOR.x0-t,DOOR.x1+t,DOOR.y1,DOOR.y1+t,0,0.04,trimMat); }
 const hallMat=new THREE.MeshStandardMaterial({color:0xd9c09a,roughness:0.9});
-boxE(-0.6,1.8,0,2.8,-2.6,-2.5,hallMat); boxE(-0.6,-0.5,0,2.8,-2.5,-0.16,hallMat); boxE(1.7,1.8,0,2.8,-2.5,-0.16,hallMat); boxE(-0.6,1.8,2.7,2.8,-2.5,-0.16,hallMat);
+boxE(-0.35,1.8,0,2.8,-2.6,-2.5,hallMat); boxE(-0.35,-0.25,0,2.8,-2.5,-0.16,hallMat); boxE(1.7,1.8,0,2.8,-2.5,-0.16,hallMat); boxE(-0.35,1.8,2.7,2.8,-2.5,-0.16,hallMat);
+scene.children.forEach(m=>{ if(m.material===hallMat) m.receiveShadow=false; });
 const hallLight=new THREE.PointLight(0xffc27a,0,6,1.2); hallLight.position.set(0.55,2.2,-1.4); scene.add(hallLight);
-const doorSpot=new THREE.SpotLight(0xffbf78,0,0,0.75,0.6,0.6); doorSpot.position.set(0.56,1.9,-1.6); doorSpot.target.position.set(0.3,0,1.6); doorSpot.castShadow=true; doorSpot.shadow.mapSize.set(1024,1024); doorSpot.shadow.bias=-0.0006; doorSpot.shadow.normalBias=0.02; scene.add(doorSpot,doorSpot.target);
+const doorSpot=new THREE.SpotLight(0xffbf78,0,0,0.75,0.6,0.6); doorSpot.position.set(0.56,1.9,-1.6); doorSpot.target.position.set(0.3,0,1.6); doorSpot.castShadow=false; doorSpot.shadow.mapSize.set(1024,1024); doorSpot.shadow.bias=-0.0006; doorSpot.shadow.normalBias=0.02; scene.add(doorSpot,doorSpot.target);
 const doorPivot=new THREE.Group(); doorPivot.position.set(DOOR.x1-0.005,0,-0.06); scene.add(doorPivot);
 const woodTex=noiseTex(256,9,128,60,30,0.1); woodTex.repeat.set(2,2);
 const doorMat=new THREE.MeshStandardMaterial({color:0x6a4632,roughness:0.55,map:woodTex});
@@ -108,8 +111,8 @@ function makeDog(){
   const mk=(g,m)=>{ const x=new THREE.Mesh(g,m); x.castShadow=true; x.receiveShadow=true; x.frustumCulled=false; G.add(x); return x; };
   const seg=(m)=>({c:mk(cyl,m),e:mk(sph,m)});
   const D={G,torso:mk(cyl,fur),chest:mk(sph,fur),haunch:mk(sph,fur),neck:mk(cyl,fur),head:mk(sph,fur),snout:mk(cyl,cream),snT:mk(sph,cream),nose:mk(sph,black),
-    eyeN:mk(sph,black),eyeF:mk(sph,black),brow:mk(sph,fur),earN:mk(sph,furD),earF:mk(sph,furD),collar:mk(new THREE.TorusGeometry(1,0.18,10,28),collar),tag:mk(sph,new THREE.MeshStandardMaterial({color:0xe8b85a,metalness:0.8,roughness:0.25,emissive:0x5a3c10})),
-    legs:[...Array(4)].map(()=>[seg(fur),seg(fur),seg(fur)]), paws:[...Array(4)].map(()=>mk(sph,cream)), tail:[...Array(6)].map(()=>seg(fur)), belly:mk(sph,cream)};
+    eyeN:mk(sph,black),glint:mk(sph,new THREE.MeshBasicMaterial({color:0xffffff})),eyeF:mk(sph,black),brow:mk(sph,fur),earN:mk(sph,furD),earF:mk(sph,furD),collar:mk(new THREE.TorusGeometry(1,0.18,10,28),collar),tag:mk(sph,new THREE.MeshStandardMaterial({color:0xe8b85a,metalness:0.8,roughness:0.25,emissive:0x5a3c10})),
+    legs:[...Array(4)].map(()=>[seg(fur),seg(fur),seg(fur)]), paws:[...Array(4)].map(()=>mk(sph,cream)), tail:[...Array(6)].map(()=>seg(fur)), belly:mk(sph,cream), creamMat:cream};
   return D; }
 const DOG=makeDog();
 const POSE={
@@ -118,6 +121,7 @@ const POSE={
   lie:{ha:[-0.29,0.165],ch:[0.12,0.175],hd:[0.33,0.41],sn:-0.12,fs:[0.14,0.13],fe:[0.2,0.06],fp:[0.44,0.035],rh:[-0.29,0.13],rk:[-0.06,0.1],rhk:[-0.2,0.05],rp:[-0.05,0.035],tb:[-0.4,0.13],ta:-0.1,ear:0.0},
   chin:{ha:[-0.29,0.16],ch:[0.12,0.165],hd:[0.4,0.185],sn:-0.02,fs:[0.14,0.12],fe:[0.2,0.06],fp:[0.44,0.035],rh:[-0.29,0.13],rk:[-0.06,0.1],rhk:[-0.2,0.05],rp:[-0.05,0.035],tb:[-0.4,0.12],ta:-0.12,ear:-0.15},
   up:{ha:[-0.2,0.36],ch:[0.1,0.8],hd:[0.25,1.08],sn:0.08,fs:[0.13,0.75],fe:[0.27,0.84],fp:[0.37,0.95],rh:[-0.2,0.32],rk:[-0.1,0.19],rhk:[-0.28,0.09],rp:[-0.19,0.035],tb:[-0.3,0.33],ta:0.5,ear:0.7},
+  hug2:{ha:[-0.17,0.38],ch:[0.08,0.86],hd:[0.27,1.13],sn:-0.12,fs:[0.1,0.82],fe:[0.24,0.93],fp:[0.35,1.0],rh:[-0.17,0.34],rk:[-0.07,0.2],rhk:[-0.25,0.09],rp:[-0.16,0.035],tb:[-0.27,0.36],ta:0.5,ear:0.3},
   hug:{ha:[-0.17,0.32],ch:[0.1,0.76],hd:[0.27,1.0],sn:-0.05,fs:[0.12,0.7],fe:[0.26,0.82],fp:[0.36,0.94],rh:[-0.18,0.27],rk:[-0.08,0.17],rhk:[-0.26,0.08],rp:[-0.17,0.035],tb:[-0.28,0.28],ta:0.45,ear:0.15},
 };
 const mixP=(A,B,u)=>{ const o={}; for(const k in A) o[k]=Array.isArray(A[k])?[lerp(A[k][0],B[k][0],u),lerp(A[k][1],B[k][1],u)]:lerp(A[k],B[k],u); return o; };
@@ -149,9 +153,9 @@ function poseDog(st,t){
   segP({c:D.snout,e:D.snT},sb,stp,0.052); D.snout.scale.x=0.055;
   D.nose.position.copy(stp.clone().addScaledVector(f,0.035).addScaledVector(u,0.012)); D.nose.scale.set(0.026,0.022,0.028);
   const bl=1-(st.blink||0)*0.85;
-  D.eyeN.position.copy(hd.clone().addScaledVector(f,0.07).addScaledVector(u,0.035).addScaledVector(s,0.06)); D.eyeN.scale.set(0.017,0.019*bl,0.017);
+  D.eyeN.position.copy(hd.clone().addScaledVector(f,0.07).addScaledVector(u,0.035).addScaledVector(s,0.06)); D.eyeN.scale.set(0.02,0.022*bl,0.02); D.glint.position.copy(D.eyeN.position.clone().addScaledVector(f,0.006).addScaledVector(u,0.008).addScaledVector(s,0.016)); D.glint.scale.setScalar(0.0055*(bl>0.5?1:0));
   D.eyeF.position.copy(hd.clone().addScaledVector(f,0.07).addScaledVector(u,0.035).addScaledVector(s,-0.06)); D.eyeF.scale.set(0.017,0.019*bl,0.017);
-  D.brow.position.copy(hd.clone().addScaledVector(f,0.055).addScaledVector(u,0.065).addScaledVector(s,0.045)); D.brow.scale.set(0.03,0.01,0.022); D.brow.quaternion.copy(hq).multiply(new THREE.Quaternion().setFromAxisAngle(V(0,0,1),(st.sad??0.5)*0.55));
+  D.brow.position.copy(hd.clone().addScaledVector(f,0.055).addScaledVector(u,0.065).addScaledVector(s,0.045)); D.brow.scale.set(0.03,0.01,0.022); D.brow.quaternion.copy(hq).multiply(new THREE.Quaternion().setFromAxisAngle(V(0,0,1),-(st.sad??0.5)*0.55));
   // ears hang from the top-sides of the head; ear>0 perks them up/forward
   const ear=clamp(P.ear+(st.earAdd||0),-0.3,1);
   for(const [m,sd] of [[D.earN,1],[D.earF,-1]]){ const base=hd.clone().addScaledVector(u,0.06).addScaledVector(s,sd*0.075).addScaledVector(f,-0.02);
@@ -177,14 +181,14 @@ function poseDog(st,t){
 
 // ------------------------------------------------------------------ the owner (cream stickman) + day sets
 const R=SLD.createRig(scene);
-const man=R.makeFig(PAL.CREAM,'man',{rim:0.18,lift:0.05});
+const man=R.makeFig(PAL.CREAM,'man',{rim:0.18,lift:0.015});
 const extras=[R.makeFig(0xc8b8a0,'f1',{rim:0.14,lift:0.03}),R.makeFig(0xb7c0cc,'f2',{rim:0.14,lift:0.03})];
 const DAYZ=14;   // day sets live behind the room camera (camera looks +z there)
 const SETX={job:-9,fr:0,life:9};
 const daySpots=[];
 function setSpot(x,col,I){ const s=new THREE.SpotLight(col,I,9,0.5,0.7,0.6); s.position.set(x,4.2,DAYZ-0.6); s.target.position.set(x,0,DAYZ); s.castShadow=SHOT==='day'; s.shadow.mapSize.set(1024,1024); scene.add(s,s.target); daySpots.push(s); return s; }
 // JOB: desk, glowing monitor with a chart, paper stack
-{ const x=SETX.job; setSpot(x,0xffe2b0,SHOT==='day'?30:0);
+{ const x=SETX.job; setSpot(x,0xffe2b0,SHOT==='day'?20:0);
   const desk=std(0x5a4636,{r:0.55}); boxE(x-0.75,x+0.75,0.72,0.77,DAYZ-0.1,DAYZ+0.6,desk); for(const dx of [-0.7,0.7]) boxE(x+dx-0.03,x+dx+0.03,0,0.72,DAYZ,DAYZ+0.5,desk);
   const scr=canvasTex(512,320,(g,w,h)=>{ g.fillStyle='#0f2a3a'; g.fillRect(0,0,w,h); g.strokeStyle='#7fe0c0'; g.lineWidth=10; g.beginPath(); [[30,250],[120,170],[190,220],[270,110],[350,160],[470,50]].forEach(([a,b],i)=>i?g.lineTo(a,b):g.moveTo(a,b)); g.stroke();
     g.fillStyle='rgba(127,224,192,0.18)'; for(let i=0;i<6;i++) g.fillRect(30+i*80,280,50,10); });
@@ -196,7 +200,7 @@ function setSpot(x,col,I){ const s=new THREE.SpotLight(col,I,9,0.5,0.7,0.6); s.p
 }
 // FRIENDS: round table, string lights (cream glowing dots)
 const bulbs=[];
-{ const x=SETX.fr; setSpot(x,0xffc98a,SHOT==='day'?34:0);
+{ const x=SETX.fr; setSpot(x,0xffc98a,SHOT==='day'?20:0);
   const tb=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.04,40),std(0x6a4a34,{r:0.5})); tb.position.set(x,0.74,DAYZ+0.15); tb.castShadow=tb.receiveShadow=true; scene.add(tb);
   boxE(x-0.04,x+0.04,0,0.74,DAYZ+0.11,DAYZ+0.19,std(0x3a2a20));
   for(const [mx,mz] of [[-0.2,0.05],[0.25,0.2]]){ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.035,0.11,14),std(0xe8b85a,{r:0.3,x:{emissive:0x5a3810}})); m.position.set(x+mx,0.815,DAYZ+mz); scene.add(m); }
@@ -213,6 +217,11 @@ const wheels=[];
   const BB=V(0,0.36,0), SEAT=V(-0.12,0.86,0), HEAD=V(0.4,0.86,0);
   tube(V(-0.5,0.34,0),BB); tube(BB,SEAT); tube(V(-0.5,0.34,0),SEAT); tube(SEAT,HEAD); tube(BB,HEAD); tube(V(0.5,0.34,0),HEAD); tube(HEAD,V(0.37,1.0,0)); tube(V(0.37,1.0,-0.2),V(0.37,1.0,0.2));
   const seat=box(0.2,0.04,0.1,std(0x1a1a1e),-0.14,0.89,0,bike); }
+for(const [x,c0,c1,dots] of [[SETX.job,'#1c2c4a','#33507a',1],[SETX.fr,'#3a2430','#7a4a3a',2]]){
+  const tex=canvasTex(256,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,c0); gr.addColorStop(1,c1); g.fillStyle=gr; g.fillRect(0,0,w,h); const R=rng(5+dots);
+    if(dots===1){ for(let bx=0;bx<w;bx+=26){ const bh=80+R()*120; g.fillStyle='rgba(10,16,30,0.55)'; g.fillRect(bx,h-bh,22,bh); for(let wy=h-bh+6;wy<h;wy+=10) for(let wx=bx+3;wx<bx+19;wx+=6) if(R()<0.35){ g.fillStyle='rgba(255,214,140,0.8)'; g.fillRect(wx,wy,3,4);} } }
+    else { for(let i=0;i<40;i++){ const r=4+R()*12; const gg=g.createRadialGradient(0,0,0,0,0,r); g.save(); g.translate(R()*w,R()*h*0.7); gg.addColorStop(0,'rgba(255,200,120,0.55)'); gg.addColorStop(1,'rgba(255,200,120,0)'); g.fillStyle=gg; g.fillRect(-r,-r,2*r,2*r); g.restore(); } } });
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(9,5),new THREE.MeshBasicMaterial({map:tex,fog:false})); m.position.set(x,2.2,DAYZ+3.2); m.rotation.y=Math.PI; scene.add(m); }
 const sunsetBg=new THREE.Mesh(new THREE.PlaneGeometry(16,7),new THREE.MeshBasicMaterial({fog:false,map:canvasTex(64,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#1a1f3c'); gr.addColorStop(0.45,'#6a3a5a'); gr.addColorStop(0.75,'#e0784a'); gr.addColorStop(1,'#ffb070'); g.fillStyle=gr; g.fillRect(0,0,w,h); })}));
 sunsetBg.position.set(SETX.life,2.6,DAYZ+7); sunsetBg.rotation.y=Math.PI; scene.add(sunsetBg);
 const sunDisc=glowSprite(scene,0xff9a50,1.0); sunDisc.position.set(SETX.life-1.0,1.25,DAYZ+6); sunDisc.scale.setScalar(3.2);
@@ -224,41 +233,41 @@ const dashes=[]; for(let i=0;i<10;i++){ const d=box(0.35,0.005,0.05,new THREE.Me
 
 // hearts (gold glow) for the reunion
 const heartTex=canvasTex(128,128,(g)=>{ g.fillStyle='#fff'; g.beginPath(); g.moveTo(64,112); g.bezierCurveTo(10,72,6,30,36,22); g.bezierCurveTo(52,18,62,30,64,40); g.bezierCurveTo(66,30,76,18,92,22); g.bezierCurveTo(122,30,118,72,64,112); g.fill(); });
-const hearts=[]; { const Rh=rng(33); for(let i=0;i<9;i++){ const m=new THREE.Sprite(new THREE.SpriteMaterial({map:heartTex,color:i%3?0xff8a6a:0xffc46a,transparent:true,opacity:0,depthWrite:false,fog:false})); scene.add(m); hearts.push({m,t0:9.0+i*0.42+Rh()*0.2,x:0.42+(Rh()-0.5)*0.45,z:1.2+(Rh()-0.5)*0.15,sz:0.07+Rh()*0.05,sw:Rh()*6}); } }
+const hearts=[]; { const Rh=rng(33); for(let i=0;i<16;i++){ const m=new THREE.Sprite(new THREE.SpriteMaterial({map:heartTex,color:i%3?0xff8a6a:0xffc46a,transparent:true,opacity:0,depthWrite:false,fog:false})); scene.add(m); hearts.push({m,c:i%4===2,t0:[8.7,9.4,10.75,12.2][i%4]+(i%4===2?Rh()*0.12:Rh()*0.4),x:0.36+(Rh()-0.5)*0.3,z:1.12+(Rh()-0.5)*0.15,sz:0.07+Rh()*0.05,sw:Rh()*6}); } }
 const heartGlow=glowSprite(scene,0xffb46a,0);
 
 // ------------------------------------------------------------------ story clock (minutes since midnight)
-const CK=[[0,487],[1.6,507],[1.6001,543],[2.2,560],[2.2001,570],[5.0,707],[5.0001,763],[6.4,928],[6.4001,1007],[7.4,1064],[7.4001,1080],[13,1090]];
+const CK=[[0,487],[0.6,494],[1.5,565],[1.6,567],[1.6001,570],[5.0,707],[5.0001,763],[6.4,928],[6.4001,1007],[7.4,1064],[7.4001,1080],[13,1090]];
 const clockMin=t=>{ for(let i=1;i<CK.length;i++) if(t<=CK[i][0]) return lerp(CK[i-1][1],CK[i][1],(t-CK[i-1][0])/(CK[i][0]-CK[i-1][0])); return CK[CK.length-1][1]; };
 // shots (cuts): [t0,t1,camFrom,camTo] {p:pos,l:look,f:fov}
 const SHOTS=[
-  [0.0,1.6,{p:[0.05,1.0,4.35],l:[-0.05,0.86,0],f:44},{p:[0.02,0.95,4.05],l:[-0.05,0.84,0],f:44}],
-  [1.6,2.2,{p:[-1.05,0.45,3.1],l:[0.25,0.55,0.2],f:46},{p:[-1.0,0.45,2.95],l:[0.25,0.55,0.2],f:46}],
-  [2.2,5.0,{p:[0.05,0.95,4.1],l:[-0.05,0.62,0],f:44},{p:[0.02,0.9,3.9],l:[-0.05,0.6,0],f:44}],
+  [0.0,0.55,{p:[0.0,0.82,2.05],l:[0.0,0.8,0],f:40},{p:[0.0,0.81,1.9],l:[0.0,0.79,0],f:40}],
+  [0.55,1.6,{p:[0.05,1.0,4.25],l:[-0.05,0.86,0],f:44},{p:[0.02,0.95,4.0],l:[-0.05,0.84,0],f:44}],
+  [1.6,5.0,{p:[0.05,0.95,4.1],l:[-0.05,0.62,0],f:44},{p:[0.02,0.9,3.9],l:[-0.05,0.6,0],f:44}],
   [5.0,5.7,{p:[0.95,0.28,1.75],l:[-0.05,0.22,0.92],f:36},{p:[0.9,0.27,1.62],l:[-0.05,0.22,0.92],f:36}],
-  [5.7,6.4,{p:[-1.25,0.32,2.25],l:[0.45,0.55,0.0],f:44},{p:[-1.2,0.32,2.1],l:[0.45,0.55,0.0],f:44}],
+  [5.7,6.4,{p:[-0.94,0.52,2.17],l:[0.45,0.45,0.35],f:44},{p:[-0.84,0.5,2.04],l:[0.45,0.45,0.35],f:44}],
   [6.4,7.4,{p:[0.15,0.8,3.2],l:[0.0,0.6,0.4],f:44},{p:[0.12,0.78,3.0],l:[0.0,0.6,0.4],f:44}],
   [7.4,8.6,{p:[0.2,1.15,5.0],l:[0.25,1.08,0],f:44},{p:[0.2,1.15,4.8],l:[0.25,1.08,0],f:44}],
-  [8.6,13.0,{p:[0.45,1.0,3.85],l:[0.38,0.8,0.8],f:42},{p:[0.42,0.97,3.35],l:[0.38,0.8,0.8],f:42}],
+  [8.6,13.0,{p:[1.0,1.2,2.7],l:[0.36,1.1,0.9],f:34},{p:[0.88,1.2,2.3],l:[0.36,1.12,0.9],f:34}],
 ];
 const shotOf=t=>SHOTS.find(s=>t>=s[0]&&t<s[1])||SHOTS[SHOTS.length-1];
 // dog pose keys
-const DK=[[0,'sit'],[0.95,'sit'],[1.45,'lie'],[1.6,'lie'],[3.6,'lie'],[4.2,'chin'],[6.45,'chin'],[6.62,'lie'],[6.9,'lie'],[7.15,'sit'],[7.55,'sit'],[7.72,'stand'],[8.0,'stand'],[8.18,'up'],[8.75,'up'],[9.25,'hug']];
+const DK=[[0,'sit'],[0.58,'sit'],[1.12,'lie'],[1.6,'lie'],[3.6,'lie'],[4.2,'chin'],[6.45,'chin'],[6.62,'lie'],[6.9,'lie'],[7.12,'sit'],[7.38,'sit'],[7.52,'stand'],[7.9,'stand'],[8.06,'up'],[8.55,'up'],[9.05,'hug2']];
 // man keys: position + pose
 function manState(t){
   const P=R.POSES;
-  if(t<7.45) return null;
-  const walk=sstep(7.5,8.1,t); const x=lerp(0.62,0.66,walk), z=lerp(-1.25,0.62,walk);
-  let p={...P.stand}, yaw=-Math.PI/2+lerp(0,-0.9,sstep(7.9,8.25,t)); // walks toward camera, then turns to the dog (faces -x)
-  if(t<8.15) p=R.gait(p,(t-7.5)*9,1-sstep(7.95,8.15,t));
+  if(t<7.38) return null;
+  const walk=sstep(7.38,7.95,t); const x=lerp(0.6,0.66,walk), z=lerp(-0.75,0.6,walk);
+  let p={...P.stand}, yaw=-Math.PI/2+lerp(0,-0.9,sstep(7.8,8.1,t)); // walks toward camera, then turns to the dog (faces -x)
+  if(t<8.05) p=R.gait(p,(t-7.38)*10,1-sstep(7.85,8.05,t));
   // arms up, laughing, as he gets jumped
-  const joy=sstep(8.05,8.25,t)*(1-sstep(8.65,8.95,t));
+  const joy=sstep(7.95,8.12,t)*(1-sstep(8.5,8.8,t));
   p=R.blend(p,{...P.stand,p:-0.08,tilt:-0.25,sL:2.5,sR:2.7,eL:0.35,eR:0.25,aL:0.12,aR:-0.25,kL:0.1,kR:0.2},joy);
   // kneel and hug
-  const kn=sstep(8.7,9.3,t);
-  const kneel={...R.P0,p:0.32,tilt:0.22,hy:0.05,aL:1.5,kL:1.5,aR:0.05,kR:1.55,sL:0.6,sR:0.6,eL:1.0,eR:1.0,dy:0,fx:0};
+  const kn=sstep(8.5,9.05,t); const rock=sstep(8.9,9.3,t)*Math.sin((t-8.9)*3.4)*1.6;
+  const kneel={...R.P0,p:0.3+0.05*rock,tilt:-0.12,hy:0.05,aL:1.5,kL:1.5,aR:0.05,kR:1.55,sL:0.6,sR:0.6,eL:1.0,eR:1.0,dy:0,fx:0};
   p=R.blend(p,kneel,kn);
-  return {p,x,z:lerp(z,0.93,sstep(8.2,9.3,t)),yaw:lerp(yaw,-Math.PI*0.94,sstep(8.2,8.6,t)),kn};
+  return {p,x:x+0.015*rock,z:lerp(z,0.82,sstep(8.1,9.0,t)),yaw:lerp(yaw,-Math.PI*0.96,sstep(8.1,8.5,t)),kn};
 }
 let LAST={};
 function setState(t){
@@ -271,20 +280,22 @@ function setState(t){
   const sc=day<0.6?new THREE.Color(1.0,0.95,0.86):new THREE.Color().setRGB(1.0,lerp(0.95,0.55,sstep(0.6,0.95,day)),lerp(0.86,0.3,sstep(0.6,0.95,day)));
   sun.color.copy(sc); sun.intensity=SHOT==='dog'?7.5*(1-sstep(0.9,1.0,day)):0;
   // door + hall
-  const dOpen=sstep(7.42,7.85,t)*(1-0.25*sstep(9.5,11,t)); doorPivot.rotation.y=-dOpen*1.45;
-  const hallI=SHOT==='dog'?Math.max(sstep(6.3,7.0,t)*0.4,dOpen):0;
-  hallLight.intensity=hallI*9; doorSpot.intensity=dOpen*(SHOT==='dog'?22:0); leakMat.opacity=sstep(6.35,6.8,t)*(1-dOpen)*0.9;
+  const dOpen=sstep(7.4,7.66,t)*(1-0.62*sstep(8.7,9.6,t)); const dShut=0.95*(1-sstep(0.0,0.3,t)); doorPivot.rotation.y=-(dOpen*1.45+dShut);
+  const hallI=SHOT==='dog'?Math.max(sstep(6.3,7.0,t)*0.4,dOpen*0.8,dShut*1.2):0;
+  DOG.creamMat.color.setHex(SHOT==='dog'&&t>=8.6?0xe2c08c:0xf0e2c4);            // muzzle/paws separate from the owner's cream hands in the hug
+  S.bloom.strength=(SHOT==='dog'&&((t>=1.6&&t<6.4)||t>=8.6))?0.18:0.3;           // less glow on dog close-ups
+  hallLight.intensity=hallI*(t>7?2.4:9); doorSpot.intensity=(dOpen*0.35+dShut*0.9)*(SHOT==='dog'?14:0)*(1-0.6*sstep(8.6,9.4,t)); rim.intensity=SHOT==='dog'?9*sstep(8.5,8.9,t):0; leakMat.opacity=sstep(6.35,6.8,t)*(1-dOpen)*0.9;
   // dog
   const P=poseAt(DK,t);
   let x=-0.35, run=0, ph=0;
-  x=lerp(-0.35,0.06,sstep(7.6,8.05,t)); run=sstep(7.55,7.7,t)*(1-sstep(7.98,8.12,t)); ph=(t-7.55)*20;
-  x=lerp(x,0.1,sstep(8.7,9.3,t));
-  const wag=Math.max(sstep(6.95,7.1,t)*0.8,sstep(8.0,8.2,t)*1.0)*(t<13?1:0)+ (t<0.9?0.25:0);
-  const tilt=0.32*sstep(0.45,0.7,t)*(1-sstep(0.95,1.2,t)) + 0.18*sstep(6.6,6.75,t)*(1-sstep(6.9,7.1,t));
-  const blinks=[1.25,2.9,4.6,5.35,6.05,10.4,12.1]; let blink=0; for(const b of blinks) blink=Math.max(blink,1-Math.abs(t-b)/0.07);
-  const nuzz=sstep(9.3,9.6,t);
-  const st={P,x,z:0.95,yaw:0,wag,wagF:t>8?6:4.5,headTilt:tilt+nuzz*0.18*Math.sin((t-9.3)*2.4),headDX:nuzz*0.02*Math.sin((t-9.3)*4.8),headDY:0,blink:clamp(blink),
-    breath:t<6.4?1.4:0.6,breathF:t<6.4?0.38:1.6,run,ph,earAdd:0.6*sstep(6.47,6.6,t)*(1-sstep(7.6,8.0,t)),snAdd:(t<0.9?0.18:0)+(t>5&&t<6.4?0.05:0)};
+  x=lerp(-0.35,0.06,sstep(7.5,7.95,t)); run=sstep(7.45,7.58,t)*(1-sstep(7.88,8.02,t)); ph=(t-7.45)*20;
+  x=lerp(x,0.08,sstep(8.5,9.05,t));
+  const wag=Math.max(sstep(6.95,7.1,t)*0.8,sstep(7.9,8.1,t)*1.1)+(t<0.3?0.3:0);
+  const tilt=0.3*sstep(0.6,0.8,t)*(1-sstep(0.95,1.15,t)) + 0.18*sstep(6.6,6.75,t)*(1-sstep(6.9,7.1,t));
+  const blinks=[0.44,1.25,2.9,4.6,5.35,6.05,10.4,12.1]; let blink=0; for(const b of blinks) blink=Math.max(blink,1-Math.abs(t-b)/(b<0.5?0.1:0.07));
+  const nuzz=sstep(9.05,9.3,t);
+  const st={P,x,z:0.95,yaw:0,wag,wagF:t>8?6:4.5,headTilt:tilt+nuzz*0.25*Math.sin((t-9.05)*4.6),headDX:nuzz*0.035*Math.max(0,Math.sin((t-9.05)*9.0)),headDY:t<0.55?-0.03*sstep(0.3,0.5,t):0,blink:t>9.1?Math.max(clamp(blink),0.45+0.15*Math.sin(t*2.1)):clamp(blink),
+    breath:t<6.4?1.4:0.6,breathF:t<6.4?0.38:1.6,run,ph,earAdd:0.6*sstep(6.47,6.6,t)*(1-sstep(7.6,8.0,t))+0.6*(1-sstep(0.3,0.5,t))-0.3*sstep(0.3,0.5,t)*(1-sstep(0.55,0.7,t)),snAdd:(t<0.3?0.15:t<0.55?0.15-0.5*sstep(0.3,0.5,t):t<0.9?0.18:0)+(t>5&&t<6.4?0.05:0),sad:t<0.3?0.0:1.0};
   // eyes look up at the door from the chin pose: slight head lift
   if(t>=5.0&&t<6.45) st.headDY=0.012*Math.sin(t*1.3);
   poseDog(st,t);
@@ -294,15 +305,15 @@ function setState(t){
     man.setAlpha(ms?1:0); extras.forEach(e=>e.setAlpha(0)); bike.visible=false;
     if(ms){ let p=ms.p; const root=V(ms.x,0,ms.z);
       if(ms.kn>0.01){ // hug: hands wrap the dog's back
-        const J0=R.skel(p,root,ms.yaw); const back=V(x+0.0,0.72,0.95);
-        p={...p,tL:back.clone().add(V(-0.04,0.06,0.17)),tR:back.clone().add(V(0.02,0.0,-0.17)),wL:ms.kn,wR:ms.kn,pL:V(0,-0.4,0.8),pR:V(0,-0.4,-0.8)}; }
+        const back=V(x-0.12,0.52,0.95);
+        p={...p,tL:back.clone().add(V(-0.02,0.0,0.17)),tR:back.clone().add(V(0.02,0.0,-0.16)),wL:ms.kn,wR:ms.kn,pL:V(0,-0.4,0.8),pR:V(0,-0.4,-0.8)}; }
       R.poseFig(man,R.skel(p,root,ms.yaw)); }
   } else daySet(t);
   // hearts
-  for(const h of hearts){ const u=(t-h.t0)/2.6; if(u<0||u>1||SHOT!=='dog'){ h.m.material.opacity=0; continue; }
-    h.m.position.set(h.x+0.05*Math.sin(u*6+h.sw),1.08+u*0.55,h.z); h.m.scale.setScalar(h.sz*(0.4+0.6*sstep(0,0.15,u)));
+  for(const h of hearts){ const u=(t-h.t0)/2.2; if(u<0||u>1||SHOT!=='dog'){ h.m.material.opacity=0; continue; }
+    h.m.position.set(h.c?0.24+(h.x-0.36)*0.5+0.05*Math.sin(u*6+h.sw):h.x-0.16+0.05*Math.sin(u*6+h.sw),(h.c?1.3:1.2)+u*(h.c?0.25:0.22),h.z); h.m.scale.setScalar(h.sz*(0.4+0.6*sstep(0,0.15,u)));
     h.m.material.opacity=sstep(0,0.1,u)*(1-sstep(0.65,1,u))*0.95; }
-  heartGlow.position.set(0.42,1.0,1.1); heartGlow.scale.setScalar(1.6); heartGlow.material.opacity=SHOT==='dog'?sstep(9.0,10.0,t)*0.28:0;
+  heartGlow.position.set(0.36,1.05,1.1); heartGlow.scale.setScalar(1.6); heartGlow.material.opacity=SHOT==='dog'?sstep(9.0,10.0,t)*0.28:0;
   // overhead lamp: warmer payoff at the reunion
   S.tick(t,SHOT==='dog'?0.25*sstep(8.5,10,t):0);
   // camera
@@ -314,7 +325,7 @@ function setState(t){
 }
 function daySet(t){
   const P=R.POSES; bike.visible=true;
-  const set=t<3.0?'job':t<3.9?'fr':'life';
+  const set=t<2.7?'job':t<3.8?'fr':'life';
   const seatPose=(lean)=>({...R.P0,p:lean,tilt:0.1,aL:1.55,aR:1.5,kL:1.5,kR:1.45,sL:0.7,sR:0.7,eL:0.9,eR:0.9,dy:0,fx:0});
   const face=-Math.PI/2*-1; // facing +z (toward the far side): yaw that turns +x onto +z
   extras.forEach(e=>e.setAlpha(set==='fr'?1:0));
@@ -322,8 +333,8 @@ function daySet(t){
     const ty=(k)=>Math.sin(t*28+k)*0.02;
     p={...p,dy:0.06,tL:V(x-0.12,0.8+ty(0),DAYZ+0.18),tR:V(x+0.2,0.8+ty(2),DAYZ+0.16),wL:1,wR:1,pL:V(-0.3,-0.5,0.8),pR:V(-0.3,-0.5,-0.8),hy:0.12*Math.sin(t*3)};
     man.setAlpha(1); R.poseFig(man,R.skel(p,root,yaw));
-    cam.position.set(x-1.4,1.55,DAYZ-2.4); cam.fov=40; cam.updateProjectionMatrix(); cam.lookAt(x+0.05,0.95,DAYZ+0.15); }
-  if(set==='fr'){ const x=SETX.fr; const laugh=Math.max(0,Math.sin((t-3.0)*9)); const hi=sstep(3.05,3.25,t)*(1-sstep(3.45,3.6,t));
+    cam.position.set(x-1.4+0.25*(t-1.6),1.55,DAYZ-2.4+0.2*(t-1.6)); cam.fov=40; cam.updateProjectionMatrix(); cam.lookAt(x+0.05,0.95,DAYZ+0.15); }
+  if(set==='fr'){ const x=SETX.fr; const laugh=Math.max(0,Math.sin((t-2.7)*9)); const hi=sstep(2.75,2.95,t)*(1-sstep(3.3,3.5,t));
     const seats=[[man,V(x,0,DAYZ-0.55),V(0,0,1)],[extras[0],V(x-0.62,0,DAYZ+0.45),V(1,0,-0.6)],[extras[1],V(x+0.62,0,DAYZ+0.45),V(-1,0,-0.6)]];
     seats.forEach(([F,root,dir],i)=>{ let p=seatPose(0.05-laugh*0.12*(i?0.6:1)); p.dy=0.03+laugh*0.03; p.tilt=-0.35*laugh; const yaw=SLD.yawOf(dir);
       if(i<2){ p={...p,sR:2.6*hi+0.7*(1-hi),eR:0.2,sL:0.7,eL:1.2}; } else { p={...p,sL:1.2+0.6*laugh,eL:1.6}; }
@@ -331,21 +342,23 @@ function daySet(t){
     man.setAlpha(1);
     bulbs.forEach((b,i)=>b.material.opacity=0.7+0.3*Math.sin(t*5+i*1.7));
     cam.position.set(x+0.0,1.35,DAYZ-2.75); cam.fov=40; cam.updateProjectionMatrix(); cam.lookAt(x,0.95,DAYZ+0.15); }
-  if(set==='life'){ const x=SETX.life; const ph=(t-3.9)*9; const yaw=0;
+  if(set==='life'){ const x=SETX.life; const ph=(t-3.8)*9; const yaw=0;
     wheels.forEach(w=>w.rotation.z=-ph*1.3);
     const root=V(x-0.22,0.1,DAYZ+0.2); let p={...R.P0,p:0.5,tilt:-0.2,aL:1.3+0.35*Math.sin(ph),aR:1.3-0.35*Math.sin(ph),kL:1.45+0.5*Math.max(0,Math.cos(ph)),kR:1.45+0.5*Math.max(0,-Math.cos(ph)),dy:0.42,fx:0};
     p={...p,tL:V(x+0.37,1.0,DAYZ+0.38),tR:V(x+0.37,1.0,DAYZ+0.02),wL:1,wR:1,pL:V(0,-0.5,0.5),pR:V(0,-0.5,-0.5)};
     { const J=R.skel(p,root,yaw); const seat=V(x-0.16,0.93,DAYZ+0.2); root.add(seat.sub(J.hip)); }
     man.setAlpha(1); R.poseFig(man,R.skel(p,root,yaw));
-    posts.forEach((g,i)=>{ const px=((i*1.4-(t-3.9)*3.2)%8.4+8.4)%8.4-4.2; g.position.set(x+px,0,DAYZ+1.1); });
-    dashes.forEach((d,i)=>{ const px=((i*0.85-(t-3.9)*3.2)%8.5+8.5)%8.5-4.25; d.position.x=x+px; });
-    cam.position.set(x+0.05,1.05,DAYZ-2.35); cam.fov=40; cam.updateProjectionMatrix(); cam.lookAt(x+0.0,0.95,DAYZ+0.2); }
+    posts.forEach((g,i)=>{ const px=((i*1.4-(t-3.8)*3.2)%8.4+8.4)%8.4-4.2; g.position.set(x+px,0,DAYZ+1.1); });
+    dashes.forEach((d,i)=>{ const px=((i*0.85-(t-3.8)*3.2)%8.5+8.5)%8.5-4.25; d.position.x=x+px; });
+    cam.position.set(x+0.05,1.05,DAYZ-2.35+0.3*(t-3.8)); cam.fov=40; cam.updateProjectionMatrix(); cam.lookAt(x+0.0,0.95,DAYZ+0.2); }
   // only this set's light on
-  daySpots.forEach((s,i)=>s.intensity=([ 'job','fr','life'][i]===set)?(SHOT==='day'?32:0):0);
+  dayFill.intensity=(SHOT==='day'&&set==='fr')?3.5:0; dayFill.position.set(SETX.fr+0.3,1.5,DAYZ-2.2);
+  daySpots.forEach((s,i)=>s.intensity=([ 'job','fr','life'][i]===set)?(SHOT==='day'?20:0):0);
   sunDisc.visible=sunCore.visible=sunsetBg.visible=set==='life'; posts.forEach(g=>g.visible=set==='life'); dashes.forEach(d=>d.visible=set==='life');
 }
+const dayFill=new THREE.PointLight(0xffd8b0,0,6,1.5); scene.add(dayFill);
 const setT=t=>setState(t);
-window.renderAt=(t,K=3)=>{ const s=SHOT==='dog'?shotOf(t):(t<3.0?[2.2,3.0]:t<3.9?[3.0,3.9]:[3.9,5.0]); return S.renderAt(setT,t,K,{t0:s[0],t1:s[1]}); };
+window.renderAt=(t,K=3)=>{ const s=SHOT==='dog'?shotOf(t):(t<2.7?[1.6,2.7]:t<3.8?[2.7,3.8]:[3.8,5.0]); return S.renderAt(setT,t,K,{t0:s[0],t1:s[1]}); };
 const proj=v=>{ const p=v.clone().project(cam); return [Math.round((p.x*0.5+0.5)*W),Math.round((0.5-p.y*0.5)*H)]; };
 window.metaAt=t=>{ setState(t); return {t,clock:proj(V(-0.78,2.18,0.05)),door:proj(V(DOOR.x0+0.1,1.0,0.05)),knob:proj(V(DOOR.x0+0.08,0.98,0.05)),min:Math.round(clockMin(t))}; };
 window.events=[];
