@@ -115,15 +115,16 @@ const shoeL=makeShoe('L',true), shoeR=makeShoe('R',true);
 // ------------------------------------------------------------------ the walk: planted feet (no sliding in a close-up), 2-bone leg IK
 const STEP=0.3, TS=0.85, X0=-0.4, HIPY=0.86, ZW=0.66;
 // step k (k>=0) runs over [k*TS, (k+1)*TS); odd steps move the right foot, even the left. Feet start mid-stride so frame 0 already has a foot in the air.
-const T0=-0.35;   // time offset: frame 0 sits mid-swing of the right foot
+const T0=-0.41;   // time offset: frame 0 sits late in the left foot's swing, sole hanging open; it slaps down at ~0.19 s
 function footAt(side,t){   // returns {x,lift,u(swing 0..1 or -1),pitch}
   const tt=t-T0; const k=Math.floor(tt/TS); const ph=tt/TS-k; const mine=(k%2===0)===(side==='L');
   const land=j=>X0+(side==='L'?0:STEP)+j*2*STEP;   // landing x of this foot's j-th placement
-  const jPrev=side==='L'?Math.floor(k/2):Math.floor((k-1)/2);
-  const SW=0.82;   // swing fraction of the step (rest is double support)
-  if(!mine||ph>SW){ const j=mine?jPrev+1:jPrev; return {x:land(j),lift:0,u:-1,pitch:0}; }
+  const s=side==='L'?0:1, SW=0.82;   // SW: swing fraction of the step (rest is double support)
+  const jPrev=mine?(k-s)/2:Math.floor((k-s-1)/2)+1;   // mine: swinging from placement jPrev; not mine: standing on placement jPrev
+  if(!mine) return {x:land(jPrev),lift:0,u:-1,pitch:0};
+  if(ph>SW) return {x:land(jPrev+1),lift:0,u:-1,pitch:0};
   const u=ph/SW; const x0=land(jPrev), x1=land(jPrev+1); const ue=SLD.ease(u);
-  return {x:lerp(x0,x1,ue),lift:0.085*Math.sin(Math.PI*u)+0.02*Math.sin(Math.PI*Math.min(1,u*2)),u,pitch:0.38*Math.sin(Math.PI*Math.min(1,u*1.6))*(1-sstep(0.55,0.75,u))-0.16*sstep(0.6,0.85,u)*(1-sstep(0.9,1,u))};
+  return {x:lerp(x0,x1,ue),lift:0.12*Math.sin(Math.PI*u)+0.02*Math.sin(Math.PI*Math.min(1,u*2)),u,pitch:0.38*Math.sin(Math.PI*Math.min(1,u*1.6))*(1-sstep(0.55,0.75,u))-0.16*sstep(0.6,0.85,u)*(1-sstep(0.9,1,u))};
 }
 function flapAt(f,t){   // sole flap angle (rad): hangs open while the foot is up, slaps shut on landing, small after-wobble
   if(f.u<0){ return 0; }
@@ -132,7 +133,7 @@ function flapAt(f,t){   // sole flap angle (rad): hangs open while the foot is u
 function hipX(t){ return X0+STEP*0.5+(t-T0)*STEP/TS - STEP*0.5; }
 function legIK(dx,dy){ const T=R.L.thigh, Sh=R.L.shin; const d=Math.min(Math.hypot(dx,dy),T+Sh-0.002);
   const k=Math.PI-Math.acos(clamp((T*T+Sh*Sh-d*d)/(2*T*Sh),-1,1)); const al=Math.acos(clamp((T*T+d*d-Sh*Sh)/(2*T*d),-1,1)); return {a:Math.atan2(dx,-dy)+al,k}; }
-function placeShoe(sh,f,ank,t){ sh.g.position.copy(ank); sh.g.rotation.set(0,0,-f.pitch); sh.flapP.rotation.z=-flapAt(f,t); }
+function placeShoe(sh,f,ank,t){ sh.g.position.copy(ank); sh.g.rotation.set(0,0,-f.pitch); const hb=Math.max(0,ank.y-0.04); sh.flapP.rotation.z=-Math.min(flapAt(f,t),Math.atan2(hb,SH.L)+f.pitch*0.0); }
 const events=[];   // sole slaps (for the sound mix)
 for(let k=0;k<12;k++){ const tl=T0+k*TS+0.82*TS*0.97; if(tl>0&&tl<DUR) events.push({t:+tl.toFixed(3),type:'slap',side:k%2===0?'L':'R'}); }
 
@@ -153,12 +154,13 @@ function poseDad(t){
 }
 
 // ------------------------------------------------------------------ camera: low, tight on the feet, tracking with a slight lag; slow push
-const CXO=+(Q.get('cxo')??0.33);
+const CXO=+(Q.get('cxo')??0.03);
 function setT(t){
   const d=poseDad(t);
-  const cx=hipX(0)+CXO+0.7*(hipX(t)-hipX(0));
-  const z=keys([[0,1.4],[3.5,1.25]],t);
-  cam.position.set(cx+0.05,0.42,ZW+z); cam.lookAt(cx,0.3,ZW-0.25);
+  // locked-off camera (a tracking camera made the walk read as a treadmill): he walks through the frame, past the box, toward the door
+  const cx=CXO+0.03*t;
+  const z=keys([[0,2.05],[3.0,1.9]],t);
+  cam.position.set(cx,0.42,ZW+z); cam.lookAt(cx,0.5,ZW-0.25);
   cam.fov=50; cam.updateProjectionMatrix();
   S.tick(t);
 }
