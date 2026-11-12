@@ -1,0 +1,10 @@
+const {chromium}=require('playwright'); const fs=require('fs');
+(async()=>{const jobs=JSON.parse(fs.readFileSync(process.argv[2])); const j=jobs.find(x=>x.name==='f0360_full');
+const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+const p=await b.newPage({viewport:{width:1080,height:1920}}); await p.goto('http://localhost:8790/index.html'); await p.waitForFunction('window.ready===true');
+const T=async(lbl)=>{await p.evaluate(j=>window.renderLane(j.lane,j.t,j.w,j.h),j); const t0=Date.now(); await p.evaluate(j=>window.renderLane(j.lane,j.t,j.w,j.h),j); console.log(lbl,(Date.now()-t0)/1000);};
+await T('base');
+await p.evaluate(()=>{dbg.R.shadowMap.enabled=false; dbg.scene.traverse(o=>{if(o.material)o.material.needsUpdate=true});}); await T('noshadow');
+await p.evaluate(()=>{dbg.scene.traverse(o=>{if(o.isInstancedMesh)o.visible=false});}); await T('nograss');
+await p.evaluate(()=>{dbg.bloom.enabled=false;}); await T('nobloom');
+await b.close();})();
