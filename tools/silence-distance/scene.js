@@ -7,6 +7,8 @@ const DW = 720, DH = 1280, DUR = 12.1;
 const WARP = [[0, 0.3], [1.3, 2.0], [11.4, 12.1]];
 const warp = t => pw(t, WARP), unwarp = s => pw(s, WARP.map(([a, b]) => [b, a]));
 const OUT_DUR = 11.4;
+// v3: everything below the background moves down so the hook clears the Reels account-name bar.
+const SHIFT = 110;
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920);
 const cv = document.createElement('canvas'); cv.width = W; cv.height = H; document.body.appendChild(cv);
@@ -315,14 +317,14 @@ function drawBot(g, t) {
 
 // ---------- compose one frame (design space) ----------
 function panel(g, t, fn, y0, y1, fade) {
-  L.setTransform(1, 0, 0, 1, 0, 0); L.clearRect(0, 0, W, H); L.setTransform(W / DW, 0, 0, H / DH, 0, 0);
+  L.setTransform(1, 0, 0, 1, 0, 0); L.clearRect(0, 0, W, H); L.setTransform(W / DW, 0, 0, H / DH, 0, SHIFT * H / DH);
   fn(L, t);
   // soft mask at the panel edges
   L.globalCompositeOperation = 'destination-in';
   const gr = L.createLinearGradient(0, y0, 0, y1);
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(fade / (y1 - y0), 'rgba(0,0,0,1)'); gr.addColorStop(1 - fade / (y1 - y0), 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   L.fillStyle = gr; L.fillRect(0, 0, DW, DH); L.globalCompositeOperation = 'source-over';
-  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(layer, 0, 0); g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(layer, 0, 0); g.setTransform(W / DW, 0, 0, H / DH, 0, SHIFT * H / DH);
 }
 function frame(g, t) {
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
@@ -331,7 +333,7 @@ function frame(g, t) {
   g.globalAlpha = endFade;
   panel(g, t, drawTop, 150, 585, 26);
   panel(g, t, drawBot, 625, 1010, 26);
-  g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
+  g.setTransform(W / DW, 0, 0, H / DH, 0, SHIFT * H / DH);
   // HUD
   // hook line, on screen from frame 0
   g.save(); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = '800 40px "Inter Display"'; g.letterSpacing = '0.5px';
