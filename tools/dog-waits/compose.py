@@ -3,7 +3,8 @@
 import json, sys, subprocess, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-FPS=30; DUR=13.0; COLD=0.5; OUTDUR=11.65; N=round(OUTDUR*FPS); NB=round(DUR*FPS); W,H=1080,1920   # COLD: payoff-first cold open before the story
+import timeline as TL
+FPS=30; DUR=13.0; COLD=TL.COLD; OUTDUR=TL.OUTDUR; N=round(OUTDUR*FPS); NB=round(DUR*FPS); W,H=1080,1920   # COLD: payoff-first cold open before the story
 FB='fonts/JetBrainsMono-Bold.ttf'
 F=lambda s: ImageFont.truetype(FB,s)
 fT=F(84); fTH=F(100); fCap=F(54); fLab=F(30); fClk=F(46); fJ=F(46); fJ2=F(78); fCTA=F(38); fWm=F(22)
@@ -116,18 +117,17 @@ def cold(f):
         with_shadow(im,lay)
     lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay); wm='SLOW LIGHT'; ww=sw(g,wm,fWm,10); spaced(g,540-ww/2,1852,wm,fWm,(230,220,200,150),10); im.alpha_composite(lay)
     return im.convert('RGB')
-LIE=(0.95,1.40)
-def body_t(to):
-    if to<0.62: return to-0.32                   # door slam enters mid-swing; latch (body 0.30) lands at 0.62
-    if to<LIE[0]: return 0.30+(to-0.62)*0.72     # ears drop, stays on the close-up until the lie-down
-    if to<LIE[1]: return 0.63+(to-LIE[0])*2.0    # lie-down + sigh at 2x
-    for o0,b0 in PANELS:                         # split panels trimmed to 0.75 s each (bike keeps its silence tail)
-        if o0<=to<o0+0.75: return b0+(to-o0)
-    return to+1.35                               # story after the split
-PANELS=((1.40,1.6),(2.15,2.7),(2.90,4.25)); WHIPS=(2.15,2.90)
+LIE=(TL.OUT[2],TL.OUT[3])
+PL=0.9; PANELS=tuple((TL.OUT[i],TL.SEGS[i][0]) for i in (3,4,5)); WHIPS=(TL.OUT[4],TL.OUT[5])
 def frame(fo):
     if fo<round(COLD*FPS): return cold(fo)
-    to=fo/FPS; f=min(NB-1,max(0,round(body_t(to)*FPS))); lie=LIE[0]<=to<LIE[1]
+    to=fo/FPS; bt,spd=TL.body_t(to); x=bt*FPS
+    if spd>=0.999 or abs(x-round(x))<0.08: return frame_at(to,min(NB-1,max(0,round(x))))
+    f0=int(x); w=x-f0                                      # slow motion: blend the two neighbouring renders
+    a=np.asarray(frame_at(to,min(NB-1,f0)),np.float32); b=np.asarray(frame_at(to,min(NB-1,f0+1)),np.float32)
+    return Image.fromarray((a*(1-w)+b*w+0.5).astype(np.uint8))
+def frame_at(to,f):
+    lie=LIE[0]<=to<LIE[1]
     t=f/FPS; sf=src(f); m=meta[min(sf,len(meta)-1)]
     hl=1.6*sm((t-8.45)/0.3) + (0.9 if 5.7<=t<6.4 else 0.0)
     pop=0.32*math.exp(-max(t-8.08,0)/0.1) if 8.06<=t<8.4 else 0.0
@@ -138,9 +138,9 @@ def frame(fo):
         im=Image.new('RGB',(W,H),INK)
         day=grade(Image.open(f'output/day/frames/f{f:05d}.jpg'))
         day=day.point(lambda v:int(30+v*0.88))                    # lift the crushed shadows in the owner's-day sets
-        ps=max(o for o,_ in PANELS if o<=to+1e-6); u=(to-ps)/0.75
+        ps=max(o for o,_ in PANELS if o<=to+1e-6); u=(to-ps)/PL
         if True:
-            z=1.0+0.12*u; ox=(u-0.5)*W*(1-1/z)*0.9 if ps==2.90 else 0; day=day.transform((W,960),Image.EXTENT,(W*(1-1/z)/2+ox,960*(1-1/z)/2,W*(1+1/z)/2+ox,960*(1+1/z)/2),resample=Image.BICUBIC)
+            z=1.0+0.12*u; ox=(u-0.5)*W*(1-1/z)*0.9 if ps==PANELS[2][0] else 0; day=day.transform((W,960),Image.EXTENT,(W*(1-1/z)/2+ox,960*(1-1/z)/2,W*(1+1/z)/2+ox,960*(1+1/z)/2),resample=Image.BICUBIC)
         # whip between the owner's-day sets (4 frames each side of 2.7 / 3.8)
         for c in WHIPS:
             u=(to-c)*FPS
@@ -154,7 +154,7 @@ def frame(fo):
         im=im.convert('RGBA')
     else:
         if lie:
-            z=1.15+0.12*sm((to-1.15)/0.06)*(to>=1.15); cw,ch=W/z,H/z
+            z=1.15+0.12*sm((t-1.03)/0.06)*(t>=1.03); cw,ch=W/z,H/z
             k=sm((t-0.63)/0.5); hx,hy=0.78,0.52+0.1*k     # follow the head down through the sit -> lie
             x0=min(max(hx*W-cw/2,0),W-cw); y0=min(max(hy*H-ch/2,0),H-ch)
             im=room.transform((W,H),Image.EXTENT,(x0,y0,x0+cw,y0+ch),resample=Image.BICUBIC).convert('RGBA')
