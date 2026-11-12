@@ -70,12 +70,12 @@ put(load('sfx/whine.mp3'),10.6,-14)
 put(load('sfx/nuzzle.mp3',0.2,1.6),11.6,-16,fade_in=0.1,fade_out=0.3)
 r0,r1=int(8.6*SR),int(9.8*SR); rf=int(0.3*SR); env=np.full(r1-r0,db(6.0)); env[-rf:]=np.linspace(db(6.0),1,rf); out[r0:r1]*=env[:,None]   # reunion bus lift
 g0,g1=int(4.62*SR),int(4.98*SR); nf=int(0.02*SR)
-out[g0:g0+nf]*=np.linspace(1,db(-26),nf)[:,None]; out[g0+nf:g1]*=db(-26)       # the silence beat before the door close-up
+out[g0:g0+nf]*=np.linspace(1,db(-26),nf)[:,None]; out[g0+nf:g1-nf]*=db(-26); out[g1-nf:g1]*=np.linspace(db(-26),1,nf)[:,None]       # the silence beat before the door close-up
 mix=out[:int(SR*DUR)]
 j0,j1=int(6.1*SR),int(6.5*SR); jf=int(0.05*SR); e=np.full(j1-j0,db(-3)); e[:jf]=np.linspace(1,db(-3),jf); e[-jf:]=np.linspace(db(-3),1,jf); mix[j0:j1]*=e[:,None]   # jingle beat under the reunion
 k=int(0.4*SR); mix[-k:]*=np.linspace(1,0.75,k)[:,None]
 # payoff-first cold open (0.6 s): the leap itself (bark, impact) lifted from the story mix, piano downbeat, rewind whoosh
-COLD=0.6; nc=int(COLD*SR); pre=np.zeros((nc,2),np.float32)
+COLD=0.5; nc=int(COLD*SR); pre=np.zeros((nc,2),np.float32)
 def pput(x,t,g,fo=0.0,norm=True):
     x=(x/(np.abs(x).max()+1e-9) if norm else x)*db(g); i=int(t*SR); x=x[:nc-i].copy()
     if fo: k=min(len(x),int(fo*SR)); x[-k:]*=np.linspace(1,0,k)[:,None]
@@ -83,8 +83,16 @@ def pput(x,t,g,fo=0.0,norm=True):
 pput(load('sfx/barks.mp3',0,0.35),0.0,-9,0.1)
 pput(load('sfx/reunion_piano.mp3',0.0,0.6),0.0,-4,0.15)
 pput(load('sfx/laugh.mp3',0,0.5),0.05,-11,0.12)
-rw=load(WC,2.3,3.0)[::-1]; pput(rw[-int(0.3*SR):],0.3,-9)
-mix=np.concatenate([pre,mix]); DUR=DUR+COLD
+rw=load(WC,2.3,3.0)[::-1]; pput(rw[-int(0.3*SR):],0.22,-9)
+# v3 hook edit: slam from mid-swing (body 0.18-0.62 then slowed tail), lie-down 2x (sigh kept at speed), story from body 1.6 at out 1.40
+def seg(a,b): return mix[int(a*SR):int(b*SR)].copy()
+def xf(parts,n=int(0.012*SR)):
+    o=parts[0]
+    for p in parts[1:]:
+        r_=np.linspace(0,1,n)[:,None]; o=np.concatenate([o[:-n],o[-n:]*(1-r_)+p[:n]*r_,p[n:]])
+    return o
+mix=xf([pre,seg(0.168,0.63),seg(0.618,1.08),seg(1.588,2.35),seg(2.688,3.45),seg(4.238,DUR)]); DUR=len(mix)/SR
+j=load('sfx/jingle.mp3',0.0,0.3); j=j/(np.abs(j).max()+1e-9)*db(-8); i=int(1.06*SR); mix[i:i+len(j)]+=j[:len(mix)-i]   # tag jingle on the 1.15 punch-in
 mix.astype(np.float32).tofile('output/mix.f32')
 # two-pass linear loudnorm
 m=subprocess.run(['ffmpeg','-hide_banner','-f','f32le','-ar',str(SR),'-ac','2','-i','output/mix.f32','-af','acompressor=threshold=-18dB:ratio=2:attack=10:release=150,loudnorm=I=-14:TP=-2.5:LRA=20:print_format=json','-f','null','-'],capture_output=True,text=True).stderr
@@ -94,6 +102,6 @@ subprocess.run(['ffmpeg','-v','error','-y','-f','f32le','-ar',str(SR),'-ac','2',
 print('mix ok', j['input_i'], j['normalization_type'] if 'normalization_type' in j else '')
 # post-normalisation emphasis (after the bus compressor): reunion is the loudest beat, the head-lift sits under it
 subprocess.run(['ffmpeg','-v','error','-y','-i','output/mix.wav','-af',
-  "volume='if(between(t,9.15,10.5),1.4,if(between(t,6.6,7.0),0.79,1))':eval=frame,alimiter=limit=0.8:attack=2:release=60:level=false",
+  "volume='if(between(t,7.2,8.55),1.4,if(between(t,4.65,5.05),0.79,1))':eval=frame,alimiter=limit=0.8:attack=2:release=60:level=false",
   '-ar',str(SR),'output/mix_post.wav'],check=True)
 import os; os.replace('output/mix_post.wav','output/mix.wav')

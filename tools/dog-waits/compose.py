@@ -3,7 +3,7 @@
 import json, sys, subprocess, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-FPS=30; DUR=13.0; COLD=0.6; N=round((DUR+COLD)*FPS); NB=round(DUR*FPS); W,H=1080,1920   # COLD: payoff-first cold open before the story
+FPS=30; DUR=13.0; COLD=0.5; OUTDUR=11.65; N=round(OUTDUR*FPS); NB=round(DUR*FPS); W,H=1080,1920   # COLD: payoff-first cold open before the story
 FB='fonts/JetBrainsMono-Bold.ttf'
 F=lambda s: ImageFont.truetype(FB,s)
 fT=F(84); fTH=F(100); fCap=F(54); fLab=F(30); fClk=F(46); fJ=F(46); fJ2=F(78); fCTA=F(38); fWm=F(22)
@@ -96,11 +96,11 @@ def src(f):
 fCold=ImageFont.truetype('fonts/Inter-Black.otf',84); CZ,CX,CY=1.25,0.55,0.43   # cold-open crop on both faces; the loop ends on the same crop
 def cold(f):
     # 0-0.47 s: the payoff first: the leap into the owner's arms (tight, moving, impact punch); 0.47-0.6 rewind smear into the morning
-    t=f/FPS; TR=0.47
+    t=f/FPS; TR=0.40
     def jump(tt):
         sf=round((10.6+tt)*FPS); room=grade(Image.open(f'output/dog/frames/f{sf:05d}.jpg'),1.6)
         room=Image.fromarray((np.asarray(room,np.float32)*VIG).clip(0,255).astype(np.uint8))
-        z=CZ+0.14*sm(tt/TR); cx,cy=CX*W,CY*H; cw,ch=W/z,H/z; sx=sy=0
+        z=CZ+0.25*(tt/TR)**0.8; cx,cy=CX*W,CY*H; cw,ch=W/z,H/z; sx=sy=0
         return room.transform((W,H),Image.EXTENT,(cx-cw/2+sx,cy-ch/2+sy,cx+cw/2+sx,cy+ch/2+sy),resample=Image.BICUBIC)
     if t<TR: im=jump(t).convert('RGBA')
     else:
@@ -116,9 +116,18 @@ def cold(f):
         with_shadow(im,lay)
     lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay); wm='SLOW LIGHT'; ww=sw(g,wm,fWm,10); spaced(g,540-ww/2,1852,wm,fWm,(230,220,200,150),10); im.alpha_composite(lay)
     return im.convert('RGB')
+LIE=(0.95,1.40)
+def body_t(to):
+    if to<0.62: return to-0.32                   # door slam enters mid-swing; latch (body 0.30) lands at 0.62
+    if to<LIE[0]: return 0.30+(to-0.62)*0.72     # ears drop, stays on the close-up until the lie-down
+    if to<LIE[1]: return 0.63+(to-LIE[0])*2.0    # lie-down + sigh at 2x
+    for o0,b0 in PANELS:                         # split panels trimmed to 0.75 s each (bike keeps its silence tail)
+        if o0<=to<o0+0.75: return b0+(to-o0)
+    return to+1.35                               # story after the split
+PANELS=((1.40,1.6),(2.15,2.7),(2.90,4.25)); WHIPS=(2.15,2.90)
 def frame(fo):
     if fo<round(COLD*FPS): return cold(fo)
-    f=fo-round(COLD*FPS)
+    to=fo/FPS; f=min(NB-1,max(0,round(body_t(to)*FPS))); lie=LIE[0]<=to<LIE[1]
     t=f/FPS; sf=src(f); m=meta[min(sf,len(meta)-1)]
     hl=1.6*sm((t-8.45)/0.3) + (0.9 if 5.7<=t<6.4 else 0.0)
     pop=0.32*math.exp(-max(t-8.08,0)/0.1) if 8.06<=t<8.4 else 0.0
@@ -129,20 +138,27 @@ def frame(fo):
         im=Image.new('RGB',(W,H),INK)
         day=grade(Image.open(f'output/day/frames/f{f:05d}.jpg'))
         day=day.point(lambda v:int(30+v*0.88))                    # lift the crushed shadows in the owner's-day sets
-        if t>=3.8:
-            u=(t-3.8)/1.2; z=1.0+0.10*u; ox=(u-0.5)*W*(1-1/z)*0.9; day=day.transform((W,960),Image.EXTENT,(W*(1-1/z)/2+ox,960*(1-1/z)/2,W*(1+1/z)/2+ox,960*(1+1/z)/2),resample=Image.BICUBIC)
+        ps=max(o for o,_ in PANELS if o<=to+1e-6); u=(to-ps)/0.75
+        if True:
+            z=1.0+0.12*u; ox=(u-0.5)*W*(1-1/z)*0.9 if ps==2.90 else 0; day=day.transform((W,960),Image.EXTENT,(W*(1-1/z)/2+ox,960*(1-1/z)/2,W*(1+1/z)/2+ox,960*(1+1/z)/2),resample=Image.BICUBIC)
         # whip between the owner's-day sets (4 frames each side of 2.7 / 3.8)
-        for c in (2.7,3.8):
-            u=(t-c)*FPS
+        for c in WHIPS:
+            u=(to-c)*FPS
             if -4<=u<4:
                 off=int(110*(1-abs(u+0.5)/4.5))*(1 if u<0 else -1); a=np.pad(np.asarray(day.filter(ImageFilter.BoxBlur(10))),((0,0),(120,120),(0,0)),mode='reflect'); day=Image.fromarray(np.ascontiguousarray(a[:,120+off:120+off+W]))
         wipe=sm((t-SPLIT[0])/0.2)
-        im.paste(room.crop((0,CROP,W,CROP+960)),(0,960))
+        zb=1.4; bw,bh=W/zb,960/zb; bx=min(max(918-bw/2,0),W-bw); by=min(max(1300-bh/2,0),H-bh)
+        im.paste(room.transform((W,960),Image.EXTENT,(bx,by,bx+bw,by+bh),resample=Image.BICUBIC),(0,960))
         top=room.crop((0,0,W,960)); y=int(-960*(1-wipe))
         im.paste(top,(0,0)); im.paste(day,(0,y))
         im=im.convert('RGBA')
     else:
-        if 5.7<=t<6.4:
+        if lie:
+            z=1.75+0.17*sm((to-1.15)/0.06)*(to>=1.15); cw,ch=W/z,H/z
+            k=sm((t-0.63)/0.5); hx,hy=0.61-0.05*k,0.50+0.12*k     # follow the head down through the sit -> lie
+            x0=min(max(hx*W-cw/2,0),W-cw); y0=min(max(hy*H-ch/2,0),H-ch)
+            im=room.transform((W,H),Image.EXTENT,(x0,y0,x0+cw,y0+ch),resample=Image.BICUBIC).convert('RGBA')
+        elif 5.7<=t<6.4:
             u=sm((t-5.7)/0.7); z=1.12+0.08*u; w,h=room.size; cw,ch=w/z,h/z; x0=(w-cw)*0.8; y0=(h-ch)*0.75
             im=room.transform((w,h),Image.EXTENT,(x0,y0,x0+cw,y0+ch),resample=Image.BICUBIC)
             a=np.asarray(im,np.float32); xx=np.linspace(0,1,W,dtype=np.float32)[None,:,None]; a=a+25*np.clip((xx-0.86)/0.14,0,1); im=Image.fromarray(a.clip(0,255).astype(np.uint8)).convert('RGBA')
@@ -168,7 +184,7 @@ def frame(fo):
     pill(g,cx,cy,clock_txt(m['min']),fClk,3,GOLD+(255,),bg=INK+(205,),padx=22,h=74); im.alpha_composite(lay)
     # CLICK as the door latches, JINGLE at the handle
     for t0,t1,txt,dx,dy,rot,fnt in ((0.28,0.75,'CLICK',40,-150,7,fJ2),(6.38,7.35,'JINGLE',40,-100,-6,fJ)):
-        if t0<=t<t1:
+        if t0<=t<t1 and not lie:
             kx,ky=m['knob']; jx=min(max(kx+dx,150),900); jy=min(max(ky+dy,520),1500)
             lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay); pill(g,jx,jy,txt,fnt,6,INK+(255,),bg=GOLD+(250,),h=fnt.size+30)
             lay=lay.rotate(rot,center=(jx,jy),resample=Image.BICUBIC); with_shadow(im,pop_layer(lay,t,t0,jx,jy,0.12),10,0.5)

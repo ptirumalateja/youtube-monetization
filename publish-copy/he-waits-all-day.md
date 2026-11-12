@@ -1,8 +1,8 @@
 # He Waits All Day (dog waits by the door)
 
-- Status: v2 (panel-reviewed final) delivered 12 Nov 2026, awaiting Teja's review. Panel scores: hook 9.5, visuals and grade 9.0, edit 9.2, sound 9.0.
+- Status: v3 (tighter hook after vidIQ's note) delivered 12 Nov 2026, awaiting Teja's review. Panel: hook 9.6, edit 9.1, sound 9.0, visuals 9.0 (unchanged from v2).
 - Upload file: `final-reels/he-waits-all-day/he-waits-all-day.mp4` (foley + piano), `he-waits-all-day_music-ready.mp4` (silent, add platform music).
-- Format: 13.6 s, 1080x1920. Opens payoff-first: 0.6 s cold open on the reunion ("10 HOURS FOR THIS?"), then a rewind to the morning door slam; the end pushes back to the same crop, so it loops. Slow Light remake of the papercut "dog waits" reference reel: same beats, captions, clock and CTA, the story rebuilt as a lit 3D room (gold dog, cream owner, warm overhead lamp, glossy floor, gold hearts). Source: `tools/dog-waits` on branch `claude/project-thread-3vhloc`.
+- Format: 11.65 s, 1080x1920. Opens payoff-first: 0.5 s cold open on the reunion ("10 HOURS FOR THIS?"), then a rewind to the morning door slam, a tight lie-down, and 0.75 s split panels (no wide shot in the first 3 s); the end pushes back to the same crop, so it loops. Slow Light remake of the papercut "dog waits" reference reel: same beats, captions, clock and CTA, the story rebuilt as a lit 3D room (gold dog, cream owner, warm overhead lamp, glossy floor, gold hearts). Source: `tools/dog-waits` on branch `claude/project-thread-3vhloc`.
 - Sound: foley and solo piano cues made with the ElevenLabs API (door, sigh, clock, keys, barks, laugh, panting, office/cafe/bike life layers), plus two whooshes from tools/sfxlib.
 - Credit needed: "5 everyday whooshes" by Tomlija (freesound.org/s/175183), CC BY 3.0. Put it in the YouTube description (already included below). "Cinematic Woosh SFX-015" by AudioPapkin (649445) is CC0, no credit needed.
 
