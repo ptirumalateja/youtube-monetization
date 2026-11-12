@@ -1,3 +1,4 @@
+# Text kept inside the IG/FB Reels safe zone (y ~300-1450, clear of the account row and caption).
 # v3 compositor: grade, post camera (punch-ins, impact shake/flash), split-screen wipe + whips, captions, clock, CLICK/JINGLE tags, CTA, watermark.
 # python3 compose.py [out.mp4] [audio.wav|none]     stills: python3 compose.py out.jpg none 0.5,3.2
 import json, sys, subprocess, math
@@ -73,7 +74,7 @@ def pill(d,cx,cy,txt,font,sp,fg,bg=INK+(225,),padx=30,h=None,outline=None):
 def title(base,t):
     for t0,t1,a,b in TITLES:
         if not (t0<=t<t1): continue
-        hook=t1<=1.6; fnt=fTH if hook else fT; lh=fnt.size+28; y=215 if hook else 175
+        hook=t1<=1.6; fnt=fTH if hook else fT; lh=fnt.size+28; y=330 if hook else 320
         lays=[Image.new('RGBA',(W,H),(0,0,0,0)) for _ in range(2)]
         for i,(txt,col) in enumerate([(a,CREAM),(b,GOLD)]):
             if not txt: continue
@@ -86,7 +87,7 @@ def title(base,t):
             with_shadow(base,lays[0])
             if b: with_shadow(base,pop_layer(lays[1],t,t0,540,y+lh*1.5,0.12) if t0>0 else lays[1])
         else:
-            lays[0].alpha_composite(lays[1]); with_shadow(base,pop_layer(lays[0],t,t0,540,250))
+            lays[0].alpha_composite(lays[1]); with_shadow(base,pop_layer(lays[0],t,t0,540,395))
 def clock_txt(m): return f'{m//60:02d}:{m%60:02d}'
 HUG=8.6; HUG_SKIP=4
 _yy,_xx=np.mgrid[0:H,0:W].astype(np.float32); VIG=(1-0.17*np.clip(1-np.hypot(_xx/W,(H-_yy)/H)/0.75,0,1)**1.6)[...,None]*np.array([1.0,0.97,0.94],np.float32)**0
@@ -111,7 +112,7 @@ def cold(f):
         m=m*(1+0.12*k); m=np.where(m>220,220+(m-220)/(1+(m-220)/60),m)            # capped flash with highlight roll-off
         im=Image.fromarray(m.clip(0,255).astype(np.uint8)).filter(ImageFilter.BoxBlur(int(14*k)+1)).convert('RGBA')
     if t<TR+0.04:
-        lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); txt="10 HOURS FOR THIS?"; w=d.textlength(txt,font=fCold); y=150
+        lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); txt="10 HOURS FOR THIS?"; w=d.textlength(txt,font=fCold); y=320
         d.rounded_rectangle([540-w/2-24,y-14,540+w/2+24,y+fCold.size+18],radius=20,fill=RUST+(245,),outline=CREAM+(255,),width=4)
         d.text((540-w/2,y-4),txt,font=fCold,fill=CREAM+(255,))
         with_shadow(im,lay)
@@ -171,7 +172,7 @@ def frame_at(to,f):
     if split:
         d.rectangle([0,955,W,965],fill=GOLD+(255,))
         lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay)
-        pill(g,158,72,'YOUR DAY',fLab,5,CREAM+(255,)); pill(g,146,1036,'HIS DAY',fLab,5,GOLD+(255,))
+        pill(g,158,880,'YOUR DAY',fLab,5,CREAM+(255,)); pill(g,146,1036,'HIS DAY',fLab,5,GOLD+(255,))
         im.alpha_composite(lay)
         for t0,t1,txt in SPLITCAP:
             if t0<=t<t1:
@@ -180,7 +181,7 @@ def frame_at(to,f):
     else: title(im,t)
     # story clock
     lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay)
-    cx,cy=(928,1036) if split else (928,1760)
+    cx,cy=(928,1036) if split else (160,1300)
     pill(g,cx,cy,clock_txt(m['min']),fClk,3,GOLD+(255,),bg=INK+(205,),padx=22,h=74); im.alpha_composite(lay)
     # CLICK as the door latches, JINGLE at the handle
     for t0,t1,txt,dx,dy,rot,fnt in ((0.28,0.75,'CLICK',40,-150,7,fJ2),(6.38,7.35,'JINGLE',40,-100,-6,fJ)):
@@ -190,8 +191,8 @@ def frame_at(to,f):
             lay=lay.rotate(rot,center=(jx,jy),resample=Image.BICUBIC); with_shadow(im,pop_layer(lay,t,t0,jx,jy,0.12),10,0.5)
     # CTA
     if t>=9.8:
-        lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay); pill(g,540,1630,'TAG THE PERSON YOUR DOG WAITS FOR',fCTA,1,CREAM+(255,),bg=INK+(235,),outline=GOLD+(255,),h=92,padx=26)
-        with_shadow(im,pop_layer(lay,t,9.8,540,1630),12,0.5)
+        lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay); pill(g,540,1420,'TAG THE PERSON YOUR DOG WAITS FOR',fCTA,1,CREAM+(255,),bg=INK+(235,),outline=GOLD+(255,),h=92,padx=26)
+        with_shadow(im,pop_layer(lay,t,9.8,540,1420),12,0.5)
     # impact = contrast punch in grade() + zoom/shake
     lay=Image.new('RGBA',(W,H),(0,0,0,0)); g=ImageDraw.Draw(lay); wm='SLOW LIGHT'; ww=sw(g,wm,fWm,10); spaced(g,540-ww/2,1852,wm,fWm,(230,220,200,150),10); im.alpha_composite(lay)
     return im.convert('RGB')
