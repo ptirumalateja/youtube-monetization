@@ -51,9 +51,8 @@ def hook(img, t):
     a = 1 - sstep(HOOK_END - 0.3, HOOK_END, t)
     if a <= 0: return img
     pop = 1 + 0.08 * (1 - sstep(0.0, 0.25, t))
-    return text_block(img, [('WHY IS HIS', int(88 * pop), 6, 150, CREAM, a, 'ExtraBold'),
-                            ('UMBRELLA', int(88 * pop), 6, 262, CREAM, a, 'ExtraBold'),
-                            ('UPSIDE DOWN?', int(88 * pop), 6, 374, GOLD, a, 'ExtraBold')])
+    return text_block(img, [('WHY IS IT', int(100 * pop), 6, 160, CREAM, a, 'ExtraBold'),
+                            ('UPSIDE DOWN?', int(100 * pop), 6, 285, GOLD, a, 'ExtraBold')])
 
 
 def draw(img, t, m, card=0.0):
