@@ -13,6 +13,7 @@ SLAPS=[e['t'] for e in EVS if e['type']=='slap']
 CAPS=[(0.0,2.75,'HE NEVER','WORE THEM.','hook'),(3.0,4.2,'MY SHOES TORE.',None,'cap'),(4.35,9.0,'HE BOUGHT','MINE INSTEAD.','cap'),
       (9.0,14.0,'NEW CARDBOARD.','EVERY YEAR.','cap'),(14.0,15.6,'MY FIRST SALARY.',None,'cap'),(15.6,19.0,'"I\'LL SAVE THEM','FOR A SPECIAL DAY."','cap'),
       (19.4,24.0,'THE BOX WAS','STILL CLOSED.','cap'),(24.0,25.9,'SOME PARENTS SAVE','THE BEST FOR YOU.','cap'),(25.9,28.01,'EVEN FROM','THEMSELVES.','cap')]
+CAPY={0.0:440,9.0:1230,14.0:1180,15.6:1180}   # hook sits between the gift box and the shoes; the years caption goes below dad's head
 AGES=[(9.0,'AGE 7'),(9+5/3,'AGE 11'),(9+10/3,'AGE 15')]
 sm=lambda u:(lambda v:v*v*(3-2*v))(min(max(u,0.0),1.0))
 def ease_back(u): u=min(max(u,0),1); c=1.7; return 1+(c+1)*(u-1)**3+c*(u-1)**2
@@ -45,7 +46,7 @@ def pop(lay,t,t0,cy,dur=0.14):
 def caption(im,t):
     for t0,t1,a,b,st in CAPS:
         if not (t0<=t<t1): continue
-        lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); y=300
+        lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); y=CAPY.get(t0,440)
         fnt=fH if st=='hook' else fC
         for i,txt in enumerate([a,b]):
             if not txt: continue
@@ -58,11 +59,11 @@ def caption(im,t):
     for i,(ta,txt) in enumerate(AGES):
         tb=AGES[i+1][0] if i+1<len(AGES) else 14.0
         if ta<=t<tb:
-            lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); w=d.textlength(txt,font=fP); cy=610
+            lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); w=d.textlength(txt,font=fP); cy=480
             d.rounded_rectangle([540-w/2-26,cy-38,540+w/2+26,cy+40],radius=38,fill=GOLD+(245,)); d.text((540-w/2,cy-28),txt,font=fP,fill=INK+(255,))
             with_shadow(im,pop(lay,t,ta,cy),10,0.5)
     if t>=26.3:  # CTA
-        lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); txt='SEND THIS TO YOUR DAD.'; w=d.textlength(txt,font=fP); cy=640
+        lay=Image.new('RGBA',(W,H),(0,0,0,0)); d=ImageDraw.Draw(lay); txt='SEND THIS TO YOUR DAD.'; w=d.textlength(txt,font=fP); cy=760
         d.rounded_rectangle([540-w/2-30,cy-42,540+w/2+30,cy+44],radius=42,fill=CREAM+(245,),outline=GOLD+(255,),width=4); d.text((540-w/2,cy-29),txt,font=fP,fill=INK+(255,))
         with_shadow(im,pop(lay,t,26.3,cy),10,0.5)
 def frame(f):
