@@ -10,6 +10,8 @@ S={
  'climb':('Person climbing through a window, fabric rustle and soft thump on a mattress',1.4),
  'lamp':('Bedside lamp switch click',0.5),
  'tick':('Single soft digital alarm clock beep, short',0.5),
+ 'rewind':('VHS tape rewinding fast, mechanical whirr and warble, short',0.7),
+ 'hit':('Single deep cinematic low boom hit with short tail, dramatic reveal, no music',1.5),
  'bed':('Two people sitting down on a bed, mattress creak',1.0),
 }
 for k,(txt,d) in S.items():

@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
     const page = await browser.newPage({ viewport: { width: 400, height: 400 } });
     page.on('pageerror', e => { console.error('[pageerror]', e.message); process.exitCode = 1; });
     page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text()); });
-    await page.goto(`http://127.0.0.1:${server.address().port}/?w=${W}&h=${H}&panel=${process.env.PANEL||0}`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/?w=${W}&h=${H}&panel=${process.env.PANEL||0}${process.env.CAM?'&cam='+process.env.CAM:''}`);
     await page.waitForFunction(() => window.ready === true, null, { timeout: 180000 });
     const shot = async (t, file) => { const b64 = await page.evaluate(([t, k]) => window.renderAt(t, k), [t, SUB]); fs.writeFileSync(file, Buffer.from(b64.split(',')[1], 'base64')); };
     if (mode === 'stills') {
@@ -33,10 +33,11 @@ const server = http.createServer((req, res) => {
       fs.writeFileSync(path.join(out, 'meta.json'), JSON.stringify(meta));
     } else if (mode === 'frames') {
       const wk = Number(a1 || 0), n = Number(a2 || 1); const t0 = Date.now();
-      for (let f = wk; f < total; f += n) {
+      const f0 = Math.round(Number(process.env.T0 || 0) * spec.fps), f1 = process.env.T1 ? Math.round(Number(process.env.T1) * spec.fps) : total;
+      for (let f = f0 + wk; f < f1; f += n) {
         const file = path.join(out, 'frames', `f${String(f).padStart(5, '0')}.jpg`); if (fs.existsSync(file) && !process.env.FORCE) continue;
         await shot(f / spec.fps, file + '.tmp'); fs.renameSync(file + '.tmp', file);
-        if ((f - wk) % (n * 10) === 0) console.log(`w${wk} frame ${f}/${total} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
+        if ((f - f0 - wk) % (n * 10) === 0) console.log(`w${wk} frame ${f}/${total} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
       }
     }
   } finally { await browser.close(); server.close(); }

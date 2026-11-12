@@ -5,7 +5,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 FPS=30; DUR=11.2; N=round(DUR*FPS); W,H=1080,1920
 PT,PB,PH=300,940,558            # panel tops, panel height (ref 200/627, 372 px at 720 wide)
 FB='fonts/JetBrainsMono-Bold.ttf'
-fLab=ImageFont.truetype(FB,34); fBub=ImageFont.truetype(FB,27); fClk=ImageFont.truetype(FB,52); fPM=ImageFont.truetype(FB,20); fWm=ImageFont.truetype(FB,19); fBig=ImageFont.truetype(FB,58)
+fLab=ImageFont.truetype(FB,40); fBub=ImageFont.truetype(FB,36); fClk=ImageFont.truetype(FB,52); fPM=ImageFont.truetype(FB,20); fWm=ImageFont.truetype(FB,19); fBig=ImageFont.truetype(FB,58)
+BUB_LIFT=58
 CREAM=(237,230,214); RED=(232,58,44); BUBBG=(14,18,30)
 meta={k:json.load(open(f'output/{k}/meta.json'))['frames'] for k in ('top','bot')}
 # clock (shared)
@@ -32,16 +33,16 @@ def bubble(base,t,top,line):
         tw=d.textlength(txt,font=fBig); x=hx+(26 if side=='R' else -tw/2); y=hy-92
         d.text((x,y),txt,font=fBig,fill=CREAM+(255,),stroke_width=3,stroke_fill=(10,12,20,255))
     else:
-        tw=spaced_w(d,txt,fBub,2); pw,ph=tw+40,50
+        tw=spaced_w(d,txt,fBub,2); ph=int(fBub.size*1.8); pw=tw+44
         if side=='L': bx=hx-pw+40
         elif side=='R': bx=hx-40
         else: bx=hx-pw/2
-        bx=max(24,min(W-24-pw,bx)); by=hy-ph-58
+        bx=max(24,min(W-24-pw,bx)); by=hy-ph-BUB_LIFT
         tail=[(hx-12 if side!='L' else hx-22, by+ph-2),(hx+ (12 if side!='L' else 2), by+ph-2),(hx-4 if side!='L' else hx-14, by+ph+18)]
         d.rounded_rectangle([bx,by,bx+pw,by+ph],radius=ph/2,fill=BUBBG+(235,),outline=CREAM+(255,),width=3)
         d.polygon(tail,fill=BUBBG+(235,)); d.line([tail[0],tail[2],tail[1]],fill=CREAM+(255,),width=3)
         d.rectangle([tail[0][0]+3,by+ph-4,tail[1][0]-3,by+ph-1],fill=BUBBG+(235,))
-        spaced(d,(bx+20,by+10),txt,fBub,CREAM+(255,),2)
+        spaced(d,(bx+22,by+(ph-fBub.size)/2-3),txt,fBub,CREAM+(255,),2)
     if s!=1 or a<1:
         cx,cy=hx,hy-60
         lay=lay.resize((W,H)) if s==1 else lay.transform((W,H),Image.AFFINE,(1/s,0,cx-cx/s,0,1/s,cy-cy/s),resample=Image.BICUBIC)

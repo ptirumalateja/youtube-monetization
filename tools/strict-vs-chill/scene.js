@@ -20,6 +20,8 @@ renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0; document.body.appendChild(renderer.domElement);
 const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0b1020);
 const cam=new THREE.PerspectiveCamera(16.6,W/H,0.5,60); cam.position.set(0,1.75,14); cam.lookAt(0,1.6,0);
+// ?cam=x,y,z,lx,ly,lz,fov  tight cold-open camera for the hook
+if(Q.get('cam')){ const c=Q.get('cam').split(',').map(Number); cam.position.set(c[0],c[1],c[2]); cam.fov=c[6]; cam.updateProjectionMatrix(); cam.lookAt(c[3],c[4],c[5]); }
 
 // ------------------------------------------------------------------ materials / textures
 const canvasTex=(w,h,draw,srgb=true)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); if(srgb) t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; };
