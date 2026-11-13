@@ -2,12 +2,14 @@
 
 | | |
 |---|---|
-| Status | v1.1 delivered 27 Oct 2026 (narration gap at 3:53–4:09 filled), ready to upload |
+| Status | **Superseded** by the 8-min v3 (`ufo-nimitz/v3/pentagon-ufo-files-2026-tic-tac_1080p.mp4`, copy in `ufo-nimitz/v3/publish-copy.md`). Do not post v1. |
 | Upload file | `ufo-nimitz/the-tic-tac-is-still-unidentified_master.mp4` (project files, 1 GB, upload this to YouTube; `the-tic-tac-is-still-unidentified.mp4` is a lighter share copy) |
 | Format | YouTube long-form, 16:9 1080p, 5:36 |
 | Voice | ElevenLabs "BlackvieW - Documentary Narator" |
 | Languages | `ufo-nimitz/youtube-languages/`: EN/HI/TE `.srt` subtitles and Hindi + Telugu dubbed audio tracks (`.wav`, full 5:36, same voice) |
 | Source | `tools/ufo-nimitz/`, script and fact table in project files `ufo-nimitz/script.md` |
+
+> **13 Nov 2026 storage cleanup:** the v1 film, its master and the v1 Hindi/Telugu dub tracks were deleted from project files. The dubs don't fit v3 and would need redoing.
 
 ## Publish copy
 

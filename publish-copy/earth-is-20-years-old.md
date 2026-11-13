@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| Status | Final (v2) |
-| Upload file | `final-reels/earth-is-20-years-old_v2_master.mp4` (share: `_v2.mp4`) |
+| Status | Final (v4, one continuous shot with V2's story and ending) |
+| Upload file | `final-reels/earth-is-20-years-old_v4_master.mp4` (share: `_v4.mp4`, small: `_v4_mobile.mp4`) |
 | Length | 24.0 s |
 | Voice | None (wordless) |
 | Copy taken from | `final-reels/earth-is-20-years-old.md` section 7 |
+
+> **13 Nov 2026 storage cleanup:** the v1-v3 files were deleted from project files. v4 is the only version left; check on-screen timings below against v4 before posting.
 
 ## Version notes
 

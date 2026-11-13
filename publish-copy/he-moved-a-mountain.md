@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| Status | v3 delivered; v4 in progress |
-| Upload file | `final-reels/he-moved-a-mountain_v3_master.mp4` (share: `_v3.mp4`) |
+| Status | v4 (latest version) |
+| Upload file | `final-reels/he-moved-a-mountain_v4_master.mp4` (share: `_v4.mp4`) |
 | Length | 17.0 s |
 | Voice | None (wordless, no music in the file) |
 | Copy taken from | `final-reels/he-moved-a-mountain.md` section 7 |
+
+> **13 Nov 2026 storage cleanup:** the v1-v3 files were deleted from project files. The copy below was written for v3; check the hook and beat timings against v4 before posting.
 
 ## Version notes
 

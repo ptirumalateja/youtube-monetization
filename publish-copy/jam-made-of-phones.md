@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| Status | Final (voiced v2) |
-| Upload file | `final-reels/jam-made-of-phones-vo.mp4` |
+| Status | v3 ("The road was empty", wordless) is the only version left |
+| Upload file | `final-reels/jam-made-of-phones-v3.mp4` |
 | Length | 22 s |
-| Voice | Teja's ElevenLabs take (Max), AI voice |
+| Voice | None (v3 is wordless) |
 | Copy taken from | `final-reels/jam-made-of-phones.md` section 5 |
+
+> **13 Nov 2026 storage cleanup:** the voiced v2 (`jam-made-of-phones-vo.mp4`) and v1 were deleted. v3 has no voiceover, so drop the AI-voice disclosure line and keep only the AI-visuals label.
 
 ## Publish copy
 
@@ -31,7 +33,7 @@
 
 **Pinned comment:** Would you have taken the detour? 🚗↪️
 
-**Upload checklist:** use `jam-made-of-phones-vo.mp4`. Turn the AI or synthetic label on (the visuals are computer-generated and the voice is AI). Cover frame: the red block with the "TRAFFIC JAM" chip (about 10.3 s).
+**Upload checklist:** use `jam-made-of-phones-v3.mp4`. Turn the AI or synthetic label on (the visuals are computer-generated and the voice is AI). Cover frame: the red block with the "TRAFFIC JAM" chip (about 10.3 s).
 
 ## Facts and sources
 

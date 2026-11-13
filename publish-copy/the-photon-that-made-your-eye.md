@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 23 Oct 2026, awaiting Teja's review. Concept by Teja (refined with Meta AI), storyboard v2 approved. |
+| Status | v3 (23 s formula cut, 24 Oct 2026) is the file in `final-reels/`; v1 and v2 were deleted 13 Nov 2026. Concept by Teja (refined with Meta AI), storyboard v2 approved. |
 | Upload file | `final-reels/the-photon-that-made-your-eye.mp4` (with sound design), or `final-reels/the-photon-that-made-your-eye_music-ready.mp4` (silent: add platform music and put the drop on 10.0 s) |
 | Length | 12 s, loops |
 | Voice | None (wordless, on-screen text only) |
 | Copy taken from | Teja's brief in the project thread; source in `tools/photon-eye/` |
+
+> **13 Nov 2026 storage cleanup:** the upload paths below now hold v3. Its music drop is at 19.5 s, not 10.0 s.
 
 ## Publish copy
 
