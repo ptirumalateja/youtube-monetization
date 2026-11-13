@@ -10,7 +10,7 @@ for x in w:
 assert len(lines)==14,len(lines)
 src=f'/home/user/nm/vo/{V}11_tight.wav'
 SFX='/home/user/nm/sfx'
-CUES=[('rush_in',0.0,-3),('freeze_hit',0.58,-3),('whip',0.73,-9),('whip',1.23,-10),('whip',1.78,-10),('brain_zap',3.0,-7),('whip',4.88,-10),('foot_scrape',5.0,-6),
+CUES=[('rush_in',0.0,-3),('whip',0.33,-10),('freeze_hit',0.58,-3),('whip',0.73,-9),('whip',1.23,-10),('whip',1.78,-10),('brain_zap',3.0,-7),('whip',4.88,-10),('foot_scrape',5.0,-6),
 ('heart_slam',7.4,-3),('whip',8.98,-8),('iris_open',9.45,-6),('sugar_rush',10.8,-7),('whip',12.58,-8),('tunnel',12.85,-6),('bullet_time',13.95,-5),('glitch_snap',15.58,-7),
 ('memory_frames',16.6,-9),('screech_stop',19.05,-3),('rain_start',19.08,-6)]
 ins=[];fil=[];lab=[]
