@@ -38,11 +38,11 @@ Audio: Telugu film dialogue (Vishwak Sen scene), used for a fan stickman recreat
 #shorts #nagulapanchami #telugucomedy
 
 **Tags (YouTube tags field, comma separated)**
-nagula panchami, nagula panchami comedy, my office gives, maa office lo istaru, telugu comedy, telugu comedy shorts, vishwak sen, vishwak sen comedy, telugu dialogue, telugu memes, office leave comedy, festival holiday, stickman animation, stickman comedy, 3d animation shorts, telugu reels, uncle comedy, funny shorts, indian festival comedy, slow light
+nagula panchami, nagula chavithi, nagula panchami comedy, my office gives, maa office lo istaru, telugu comedy, telugu comedy shorts, vishwak sen, vishwak sen comedy, telugu dialogue, telugu memes, office leave comedy, festival holiday, karthika masam, stickman animation, stickman comedy, 3d animation shorts, telugu reels, uncle comedy, funny shorts
 
 **Hashtags (YouTube shows the first 3 above the title)**
 #shorts #nagulapanchami #telugucomedy
-Also fine lower in the description: #vishwaksen #telugumemes #stickman #officelife
+Also fine lower in the description: #nagulachavithi #vishwaksen #telugumemes #stickman #officelife
 
 **Pinned comment**
 Does your office give leave for Nagula Panchami? YES or NO 😂👇
