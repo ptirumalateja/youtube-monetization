@@ -41,9 +41,7 @@ def _render(lines,size,y,name,emoji_after=None):
 CY=1170  # caption band
 caps=[
  (0.00,1.36,[("తేలే ఇటుకల",Wh),("గుడి!",Y)],"hook"),
- (1.36,2.22,[("తేలే ఇటుకల",Wh),("గుడి!",Y)],"hook"),
- (2.22,3.20,[("మన తెలంగాణలోనే",Y)],"big"),
- (3.20,4.36,[("ఉందని మీకు తెలుసా?",Wh)],"big"),
+ (1.36,2.22,[("మన తెలంగాణలోనే!",Y)],"big"),
  (4.36,5.76,[("ఇది రామప్ప దేవాలయం",Wh)],"c"),
  (5.76,6.80,[("కాకతీయుల కాలంలో",Y)],"c"),
  (6.80,7.92,[("కట్టిన శివాలయం",Wh)],"c"),
@@ -72,14 +70,15 @@ for i,(a,b,lines,kind) in enumerate(caps):
 # end card (text only), upper-middle band
 render([("మీరు రామప్ప గుడి",Wh),("చూశారా?",Y),("కామెంట్ చేయండి!",Wh)],92,430,"endcard",emoji_after=2)
 # hook pop-in synced to the splash: scaled copies for the first frames
+PD=float(os.environ.get('POPDELAY','0.1'))
 POP=[1.2,1.13,1.07,1.03,1.0]
 base=Image.open(meta[0][2]); bb=base.getbbox(); cx=(bb[0]+bb[2])/2; cy=(bb[1]+bb[3])/2
 pops=[]
 for j,sc in enumerate(POP):
     c=base.crop(bb); c=c.resize((int(c.width*sc),int(c.height*sc)),Image.LANCZOS)
     im=Image.new("RGBA",(W,H),(0,0,0,0)); im.alpha_composite(c,(int(cx-c.width/2),int(cy-c.height/2)))
-    p=f"{OUT}/hookpop{j}.png"; im.save(p); pops.append((round(j/30,4),round((j+1)/30,4),p))
-meta[0]=(len(POP)/30,meta[0][1],meta[0][2])
+    p=f"{OUT}/hookpop{j}.png"; im.save(p); pops.append((round(PD+j/30,4),round(PD+(j+1)/30,4),p))
+meta[0]=(PD+len(POP)/30,meta[0][1],meta[0][2])
 meta=pops+meta
 json.dump(meta,open(f"{OUT}/caps.json","w"))
 print("ok",len(meta))

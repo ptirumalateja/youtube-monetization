@@ -5,7 +5,7 @@ src=os.environ.get("VOSRC","/tmp/claude-0/ram/vo/b_creative.mp3")
 d=json.load(open(src+".stt.json"))
 ws=[w for w in d["words"] if w["type"]=="word"]
 # pause cap after the word ending a phrase (index-based on word text match)
-CAP={"గుడి":0.22,"తెలుసా?":0.40,"దేవాలయం.":0.28,"శివాలయం.":0.34,"తగ్గించడానికి":0.22,"వాడారు.":0.34,"కాదు":0.16,"తో":0.18,"కట్టారు.":0.34,"అందుకే":0.14,"ఉంది.":0.45,"కోసం":0.16}
+CAP={"గుడి":0.22,"తెలంగాణలోనే":0.38,"తెలుసా?":0.40,"దేవాలయం.":0.28,"శివాలయం.":0.34,"తగ్గించడానికి":0.22,"వాడారు.":0.34,"కాదు":0.16,"తో":0.18,"కట్టారు.":0.34,"అందుకే":0.14,"ఉంది.":0.45,"కోసం":0.16}
 segs=[];start=max(0,ws[0]["start"]-0.06)
 for i,w in enumerate(ws):
     last=i==len(ws)-1
