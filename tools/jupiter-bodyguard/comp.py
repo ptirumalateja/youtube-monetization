@@ -19,7 +19,7 @@ F_MED = "/usr/share/fonts/opentype/inter/Inter-Medium.otf"
 # ------------------------------------------------------------------ chat script
 # (time, who, text). S = Saturn, E = Earth, E! = Earth big, T = Earth typing, X = system line.
 CHAT = [
-    (1.50, "S", "Earth, you're so tiny {1f602}"),
+    (1.36, "S", "Earth, you're so tiny {1f602}"),
     (2.33, "E", "I have life {1f331}"),
     (3.45, "S", "I have rings {1f48d}\nand REAL gravity {1f4aa}"),
     (4.50, "S", "who protects YOU? {1f60f}"),
@@ -192,7 +192,7 @@ def chat_layer(t):
         if a <= t < b:
             return ov
     last_clear = max([c[1] for c in CHAT_CLEAR if c[1] <= t] + [0.0])
-    msgs = [m for m in CHAT if last_clear - 1e-6 <= m[0] <= t]
+    msgs = [m for m in CHAT if last_clear - 0.15 <= m[0] <= t]
     if any(m[1] == "E!" for m in msgs):
         msgs = [m for m in msgs if m[1] != "T"]
     if not msgs:
@@ -313,7 +313,7 @@ def fireballs(t, cam, objs):
             for j in range(7):
                 ox, oy = rng.normal(0, r * 0.45, 2)
                 rr = r * rng.uniform(0.6, 1.2)
-                cv2.circle(lay, (int(hd[0] + ox), int(hd[1] + oy)), max(2, int(rr * 1.8)), tuple(float(v) for v in FIRE_OUT * 0.55), -1, cv2.LINE_AA)
+                cv2.circle(lay, (int(hd[0] + ox), int(hd[1] + oy)), max(2, int(rr * 1.25)), tuple(float(v) for v in FIRE_OUT * 0.5), -1, cv2.LINE_AA)
             cv2.circle(lay, (int(hd[0]), int(hd[1])), max(2, int(r)), tuple(float(v) for v in FIRE_IN * 1.4), -1, cv2.LINE_AA)
             # embers shed behind
             if len(run) > 6:
@@ -353,9 +353,9 @@ def fireballs(t, cam, objs):
             ra = sc * (0.10 + 0.14 * grow) * srng.uniform(0.6, 1.2)
             cv2.ellipse(scar, (int(cx_), int(cy_)), (max(int(ra * 1.9 * bl), 1), max(int(ra * 0.65 * fs), 1)), bang, 0, 360,
                         float(0.8 * fade * srng.uniform(0.6, 1.0)), -1, cv2.LINE_AA)
-        if dt > 0.9:
+        if dt > 0.5:
             continue
-        k = math.exp(-dt * 5.0)
+        k = max(0.0, 1 - dt / 0.27) ** 1.5      # soft bloom gone within 8 frames
         # hot fireball bloom, no outline (soft via the glow pass)
         rb = sc * 0.16 * (0.6 + 1.4 * (1 - math.exp(-dt * 6)))
         cv2.ellipse(ilay, (int(x), int(y)), (max(int(rb * fs * 1.2), 2), max(int(rb), 2)), ang, 0, 360,
@@ -369,8 +369,8 @@ def fireballs(t, cam, objs):
                         (0.35 * kk + 0.1, 1.3 * kk + 0.3, 2.6 * kk + 0.6), -1, cv2.LINE_AA)
             cv2.circle(hlay, (int(x), int(y)), max(int(sc * 0.14), 3), (1.6 * kk, 2.2 * kk, 2.8 * kk), -1, cv2.LINE_AA)
         # one thick soft shock ring lying on the sphere, gone within 0.4 s
-        if dt < 0.4:
-            kr = (1 - dt / 0.4) ** 1.5
+        if dt < 0.3:
+            kr = (1 - dt / 0.3) ** 1.5
             rr = sc * (0.12 + 0.55 * (1 - math.exp(-dt * 6)))
             cv2.ellipse(rlay, (int(x), int(y)), (max(int(rr * fs), 1), max(int(rr), 2)), ang, 0, 360,
                         (0.15 * kr, 0.4 * kr, 0.8 * kr), max(3, int(sc * 0.09)), cv2.LINE_AA)
@@ -491,7 +491,7 @@ def overlay(frame, t):
         frame.alpha_composite(ti, ((W - ti.size[0]) // 2, 1380 - ti.size[1] + 20))
     if 1.5 <= t < 2.3:
         pl = _title_pill("earlier...")
-        a = min(1.0, (t - 1.5) / 0.06) * min(1.0, (2.3 - t) / 0.12)
+        a = min(1.0, (2.3 - t) / 0.12)
         frame.alpha_composite(_fade(pl, a), ((W - pl.size[0]) // 2, 1090))
     if t >= END_T:
         a, sc = pop(t, END_T + 0.05, 0.3)

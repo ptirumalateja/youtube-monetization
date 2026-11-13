@@ -112,6 +112,15 @@ def curve_path(t0, P0, v, tb, T, db, J=None, accel=0.6, dt=1 / 240, lmin=0.0, h2
     return dict(ts=ts, ps=ps, hit=(ts[-1], T.copy(), (ps[-1] - ps[-2]) / dt), t0=t0, grab=tb)
 
 
+def screen_to_plane(cam, sx, sy, z):
+    th = cam[12]
+    px = (sx / 1080 * 2 - 1) * th * 1080 / 1920
+    py = (1 - sy / 1920 * 2) * th
+    d = cam[9:12] + cam[3:6] * px + cam[6:9] * py
+    s_ = (z - cam[2]) / d[2]
+    return cam[0:3] + d * s_
+
+
 def screen_to_jupiter(cam, sx, sy, J=None):
     """Point on Jupiter's visible face under screen pixel (sx, sy)."""
     J = J_FINAL if J is None else J
@@ -166,20 +175,21 @@ def _hook_swarm(seed=5):
     rng = np.random.default_rng(seed)
     cam = setup(0.6)[0]
     out = []
-    # (clock angle rad, distance from Earth centre, depth z, speed, target px)
-    specs = [(0.68, 1.85, 0.4, 4.2, (230, 470)), (0.48, 1.70, -0.8, 3.6, (400, 330)),
-             (0.30, 1.85, 0.0, 4.6, (110, 380)), (0.10, 1.60, 0.6, 4.0, (520, 430)),
-             (0.42, 1.45, 2.6, 5.0, (300, 580)),      # big foreground rock, nearest the camera
-             (-0.08, 1.85, -0.6, 4.4, (660, 330))]
-    for k, (ang, r, z, spd, tp) in enumerate(specs):
-        X0 = np.array([math.cos(ang) * r, math.sin(ang) * r, z])
-        aim = np.array([-0.2, 1.2, 0.0])     # grazing Earth's top: "was about to hit"
-        v = norm(aim - X0) * spd
-        tb = [0.03, 0.08, 0.0, 0.11, 0.05, 0.14][k]
+    cam0 = setup(0.0)[0]
+    # frame-0 heads placed in screen space (x, y, depth z, speed, impact target px); all well clear of Earth
+    specs = [(640, 520, 0.0, 4.2, (230, 470)), (790, 650, -0.6, 3.8, (400, 330)),
+             (900, 560, 0.3, 4.6, (120, 380)), (930, 790, -0.3, 4.0, (520, 430)),
+             (760, 400, 2.4, 5.2, (150, 600)),      # big foreground rock, nearest the camera
+             (990, 990, 0.0, 4.4, (660, 330))]
+    for k, (sx, sy, z, spd, tp) in enumerate(specs):
+        X0 = screen_to_plane(cam0, sx, sy, z)
+        vang = [-0.35, -0.05, -0.25, 0.30, -0.15, 0.45][k]       # entry directions fanned over ~45 deg
+        v = norm(np.array([-math.cos(vang), math.sin(vang), 0.0])) * spd
+        tb = [0.04, 0.02, 0.06, 0.0, 0.0, 0.03][k]
         out.append(curve_path(-0.9, X0 - v * 0.9, v, tb, screen_to_jupiter(cam, *tp, J_A),
-                              rng.uniform(0.5, 0.62), J=J_A, accel=1.0, h2=rng.uniform(0.2, 0.45)))
+                              rng.uniform(0.5, 0.62), J=J_A, accel=1.0, h2=rng.uniform(0.2, 0.4)))
     for k, (ang, r, z, tz, tp) in enumerate([(0.55, 2.1, 0.4, 0.66, (200, 330)), (0.2, 2.2, -0.4, 0.80, (470, 400)),
-                                             (0.4, 2.2, 1.0, 0.90, (90, 480))]):
+                                             (0.45, 2.6, 1.0, 0.90, (90, 480))]):
         X0 = np.array([math.cos(ang) * r, math.sin(ang) * r, z])
         v = norm(np.array([-0.2, 1.25, 0.0]) - X0) * rng.uniform(4.4, 4.8)
         out.append(curve_path(tz - 0.9, X0 - v * 0.9, v, tz, screen_to_jupiter(cam, *tp, J_A), 0.48, J=J_A, accel=1.0, h2=0.3))
@@ -206,7 +216,7 @@ def impact_shake(t):
 
 # --------------------------------------------------------------- frame setup
 def _ej_prm(t, fov, lens=0.0, J=J_FINAL):
-    return prm(earth_rot=0.10 + t * 0.002, cloud_rot=t * 0.0012, jup_rot=GRS_ROT + t * 0.004,
+    return prm(t=t, earth_rot=0.10 + t * 0.002, cloud_rot=t * 0.0012, jup_rot=GRS_ROT + t * 0.004,
                shear=0.002, lens=lens, sky=0.40, pix=fov_pix(fov), sky_roll=0.8, sky_yaw=2.2,
                jpos=tuple(J), jfill=0.15)
 
@@ -264,8 +274,8 @@ def setup(t):
         return cam, objs, p, L_EJ, name
     RS = 9.4
     if name == "B1":
-        ang = -0.38 + 0.26 * u
-        r = 64 - 15 * ease_io(u, 1.2)
+        ang = -0.38 + 0.34 * u
+        r = 64 - 16 * ease_io(u, 1.2)
         pos = np.array([math.sin(ang) * r, 6.0 - 2.0 * u, math.cos(ang) * r])
         tgt = np.array([0.0, -9.0, 0.0])
         cam = camera(pos, tgt, 42, roll=0.10)
@@ -273,7 +283,7 @@ def setup(t):
         ang = 0.55 + 0.16 * u
         r = 44 - 7 * ease_io(u, 2)
         pos = np.array([math.sin(ang) * r, 4.5 - 0.8 * u, math.cos(ang) * r])
-        tgt = np.array([0.0, 2.5, 0.0])
+        tgt = np.array([0.0, -3.0, 0.0])
         cam = camera(pos, tgt, 50, roll=-0.06)
     objs = [obj(SATURN, [0, 0, 0], RS, 0.90, 0.40, 0.28)]
     Ls = L_S if name == "B1" else norm([-0.45, 0.45, 0.77])

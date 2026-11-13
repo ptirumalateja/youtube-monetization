@@ -70,11 +70,11 @@ def vnoise(x, y):
 @njit(fastmath=True, inline="always")
 def jdetail(u, v, edge):
     """Fine zonal turbulence: domain-warped value noise stretched along the bands, +-1."""
-    x = u * 900.0; y = v * 1400.0
-    wx = vnoise(x * 0.35 + 17.0, y * 0.35) - 0.5
-    wy = vnoise(x * 0.35, y * 0.35 + 31.0) - 0.5
-    ws = 1.5 + 4.0 * edge
-    x += wx * ws; y += wy * ws * 0.6
+    x = u * 330.0; y = v * 330.0
+    wx = vnoise(x * 0.3 + 17.0, y * 0.3) - 0.5
+    wy = vnoise(x * 0.3, y * 0.3 + 31.0) - 0.5
+    ws = 3.0 + 5.0 * edge
+    x += wx * ws; y += wy * ws * 0.9
     n = vnoise(x, y) * 0.55 + vnoise(x * 2.1 + 5.0, y * 2.1) * 0.3 + vnoise(x * 4.3, y * 4.3 + 9.0) * 0.15
     return (n - 0.5) * 2.0
 
@@ -103,8 +103,8 @@ def stars(dx, dy, dz, pix):
                 dlat = lat - slat
                 dlon = (lon - slon + math.pi) % (2 * math.pi) - math.pi
                 d2 = dlat * dlat + (dlon * cl) ** 2
-                s = max(pix * 1.0, 1e-5)
                 m = hash2(ii + 5, jj + 17)
+                s = max(pix * (0.9 + 1.6 * m ** 6), 1e-5)    # bright stars get a wider soft PSF
                 mag = (m ** 9.0) * (4.0 if layer == 1 else 1.2) + 0.015
                 w = math.exp(-d2 / (s * s)) * mag
                 tcol = hash2(ii + 77, jj + 3)
@@ -257,7 +257,7 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             # city lights on the night side
             nl = (1 - lit) * (1 - clc * 0.8)
             ln = srgb2lin(night[0]) * 0.5 + srgb2lin(night[1]) * 0.5
-            lnb = ln ** 0.8
+            lnb = max(ln - 0.015, 0.0) ** 0.8   # lights only, no brown land base
             cr += lnb * nl * 44.0; cg += lnb * nl * 24.0; cb += lnb * nl * 7.0
             # warm Jupiter-shine fill on the side facing Jupiter
             if prm[19] > 0:
@@ -274,11 +274,11 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             cr += term * 0.06; cg += term * 0.025
         elif kind == JUPITER:
             shear = prm[9] * math.sin(lat * 6.0) + prm[9] * 0.4 * math.sin(lat * 13.0 + 1.0)
-            u = 0.5 + lon / (2 * math.pi) + prm[2] + shear
+            u = 0.5 + lon / (2 * math.pi) + prm[2] + shear + prm[10] * 0.0016 * math.sin(lat * 14.0)   # counter-flowing jets
             c = samp(jup, u, v)
             ca = samp(jup, u, v - 0.0015); cb_ = samp(jup, u, v + 0.0015)
             edge = min(abs((ca[0] + ca[1]) - (cb_[0] + cb_[1])) * 6.0, 1.0)
-            dn = 1.0 + jdetail(u, v, edge) * (0.10 + 0.08 * edge)
+            dn = 1.0 + jdetail(u, v, edge) * (0.16 + 0.22 * edge)
             # extra contrast for the bands
             cr = srgb2lin(c[0]) ** 1.3 * 1.18 * dn
             cg = srgb2lin(c[1]) ** 1.3 * 1.06 * dn
