@@ -31,9 +31,9 @@ def _render(lines,size,y,name,emoji_after=None):
     a=im.getbbox()
     if os.environ.get("BOX","1")=="1":
         bg=Image.new("RGBA",(W,H),(0,0,0,0)); bd=ImageDraw.Draw(bg)
-        bd.rounded_rectangle((a[0]-34,a[1]-22,a[2]+34,a[3]+22),radius=34,fill=(0,0,0,120))
-        sh=Image.new("RGBA",(W,H),(0,0,0,0)); sh.putalpha(im.getchannel("A").point(lambda v:min(255,int(v*0.9))))
-        sh=sh.filter(ImageFilter.GaussianBlur(14))
+        bd.rounded_rectangle((a[0]-34,a[1]-22,a[2]+34,a[3]+22),radius=34,fill=(0,0,0,int(os.environ.get("BOXA","170"))))
+        sh=Image.new("RGBA",(W,H),(0,0,0,0)); sh.putalpha(im.getchannel("A").point(lambda v:min(255,int(v*1.0))))
+        sh=sh.filter(ImageFilter.GaussianBlur(16))
         bg=Image.alpha_composite(bg,sh); bg.alpha_composite(im); im=bg
         a=im.getbbox()
     assert a[1]>=300 and a[3]<=1440 and a[0]>=60 and a[2]<=1020,(name,a)
