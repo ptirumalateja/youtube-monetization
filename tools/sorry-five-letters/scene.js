@@ -190,7 +190,7 @@ function ledge(g, crack) {
 
 // ---------- the word ----------
 const WORD = 'SORRY';
-const blockSize = h => lerp(50, 122, h);
+const blockSize = h => lerp(48, 100, h);
 function wordLayout(t, h, restY) { // returns 5 slots {x, y (top), b}
   const b = blockSize(h), gap = 0.1 * b, total = 5 * b + 4 * gap;
   const sT = GY - 176 * FS, floatBottom = pw(h, [[0, sT - 30], [0.45, sT + 8], [1, sT + 260]]);
@@ -363,8 +363,8 @@ function label(g, txt, x, y, size, alpha, spacing, weight = 600, align = 'left',
 function headline(g, l1, l2, a) {
   if (a <= 0.01) return;
   g.save(); g.globalAlpha *= a; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 10;
-  g.font = '900 62px "Inter Display"'; g.letterSpacing = '0.5px'; g.fillStyle = 'rgba(255,200,110,1)'; g.fillText(l1, 360, 262);
-  g.font = '800 38px "Inter Display"'; g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText(l2, 360, 312); g.restore();
+  g.font = '900 50px "Inter Display"'; g.letterSpacing = '0.5px'; g.fillStyle = 'rgba(255,200,110,1)'; g.fillText(l1, 360, 262);
+  g.font = '800 32px "Inter Display"'; g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText(l2, 360, 306); g.restore();
 }
 
 // ---------- compose ----------
