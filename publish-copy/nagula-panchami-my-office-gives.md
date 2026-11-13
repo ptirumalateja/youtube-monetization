@@ -31,7 +31,7 @@
 
 Every Telugu house has this uncle. Tag the friend whose office gives leave for every festival 👇
 
-Happy Nagula Panchami 🐍🙏
+Happy Nagula Chavithi & Nagula Panchami 🐍🙏
 
 Audio: Telugu film dialogue (Vishwak Sen scene), used for a fan stickman recreation. All rights to the original audio belong to its owners.
 
@@ -54,6 +54,7 @@ Does your office give leave for Nagula Panchami? YES or NO 😂👇
 "My office gives." 😎🐍
 
 Tag the friend whose office gives leave for every festival 👇
+Happy Nagula Panchami 🐍🙏
 
 🎬 Audio: Telugu film dialogue (Vishwak Sen scene). Stickman fan recreation.
 
@@ -74,6 +75,7 @@ Maa office lo istaru 😂 Does yours? YES or NO 👇
 "MY OFFICE GIVES." 😎😂
 
 Every house has this uncle. Share this with the friend who takes leave for every festival 👇
+Happy Nagula Panchami 🐍🙏
 
 Audio: Telugu film dialogue (Vishwak Sen scene). Stickman fan recreation.
 
@@ -84,5 +86,5 @@ Does your office give leave for Nagula Panchami? YES or NO 😂
 
 ## Posting notes
 - Film audio can be claimed or muted. If YouTube blocks it in some countries, keep it up for Indian viewers. If Instagram mutes it, reupload with "Use original audio" off and try once more. Don't fight the claim.
-- Nagula Panchami was in August. Off season, the "my office gives" leave joke still works. Repost on the festival day next year for a second spike.
+- Timely: in AP/Telangana, Nagula Chavithi is today (Fri 13 Nov 2026) and Nagula Panchami is tomorrow (Sat 14 Nov), both in Karthika Masam. Post today evening or by Saturday morning IST to ride the festival searches. The August date is the North Indian Shravan one.
 - Text sits inside y 300-1440, so the IG/FB overlays won't cover the hook or subtitles.
