@@ -1,7 +1,7 @@
 import json,subprocess,sys
 V=sys.argv[1]  # mark|jessica
-DUR=23.4
-SLOTS=[0.15,1.0,3.0,4.95,6.05,7.4,9.3,10.85,13.15,14.1,15.65,16.7,19.0,21.25]
+DUR=22.9
+SLOTS=[0.1, 0.85, 2.5, 4.45, 5.55, 6.9, 8.8, 10.35, 12.65, 13.6, 15.15, 16.2, 18.5, 20.75]
 w=json.load(open(f'/home/user/nm/vo/{V}11_words.json'))
 lines=[];cur=[]
 for x in w:
@@ -10,9 +10,9 @@ for x in w:
 assert len(lines)==14,len(lines)
 src=f'/home/user/nm/vo/{V}11_tight.wav'
 SFX='/home/user/nm/sfx'
-CUES=[('brain_zap',3.0,-7),('whip',4.88,-10),('foot_scrape',5.0,-6),
-('heart_slam',7.4,-3),('whip',8.98,-8),('iris_open',9.45,-6),('sugar_rush',10.8,-7),('whip',12.58,-8),('tunnel',12.85,-6),('bullet_time',13.95,-5),('glitch_snap',15.58,-7),
-('memory_frames',16.6,-9),('screech_stop',19.05,-3),('rain_start',19.08,-6)]
+CUES=[('brain_zap',2.50,-7),('whip',4.38,-10),('foot_scrape',4.50,-6),
+('heart_slam',6.90,-3),('whip',8.48,-8),('iris_open',8.95,-6),('sugar_rush',10.30,-7),('whip',12.08,-8),('tunnel',12.35,-6),('bullet_time',13.45,-5),('glitch_snap',15.08,-7),
+('memory_frames',16.10,-9),('screech_stop',18.55,-3),('rain_start',18.58,-6)]
 ins=[];fil=[];lab=[]
 for i,((a,b),st) in enumerate(zip(lines,SLOTS)):
     ins+=['-i',src];ms=int(st*1000)
@@ -21,7 +21,7 @@ n=len(lines)
 fil.append(''.join(lab)+f'amix=inputs={n}:normalize=0,apad=whole_dur={DUR}[vo]')
 ins+=['-i',f'{SFX}/rain_amb.mp3','-i',f'{SFX}/rain_amb.mp3']
 fil.append(f'[{n}:a]aresample=48000,aloop=loop=2:size=480000,atrim=0:{DUR},volume=-60dB,afade=t=in:d=0.2,afade=t=out:st={DUR-1.2}:d=1.2[dr]')
-fil.append(f'[{n+1}:a]aresample=48000,atrim=0:4.3,volume=-22dB,afade=t=in:d=0.2,afade=t=out:st=3.3:d=1,adelay=19100|19100[rn]')
+fil.append(f'[{n+1}:a]aresample=48000,atrim=0:4.3,volume=-22dB,afade=t=in:d=0.2,afade=t=out:st=3.3:d=1,adelay=18600|18600[rn]')
 fl=['[dr]','[rn]']
 for k,(f,st,g) in enumerate(CUES):
     ins+=['-i',f'{SFX}/{f}.mp3'];ms=int(st*1000);j=n+2+k
