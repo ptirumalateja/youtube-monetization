@@ -2,7 +2,7 @@
 <canvas id="c" width="1080" height="1920"></canvas>
 <script id="fs" type="x-shader/x-fragment">
 precision highp float;
-uniform vec2 R; uniform float NAIL; uniform float DBG; uniform float T; uniform float WR; // wrinkle amount 0..1
+uniform vec2 R; uniform float CLAY; uniform float NAIL; uniform float DBG; uniform float T; uniform float WR; // wrinkle amount 0..1
 float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
  return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
@@ -38,7 +38,10 @@ float sdFinger(vec3 p, out float wv){
   float r=0.62+0.03*sin(q.y*2.0) - 0.05*smoothstep(-0.9,-1.25,q.y)*smoothstep(-1.6,-1.25,q.y); // joint crease
   float d=length(pa-ba*h)-r;
   wv=wr(q);
-  return d+0.014*WR*wv;
+  float tp=0.;
+  if(CLAY>0.5){vec2 cc=q.xy*2.6; vec2 id=floor(cc); vec2 f=fract(cc)-0.5+ (vec2(h2(id),h2(id+7.))-.5)*0.4;
+    tp=0.5*sin(length(f)*70.0)*smoothstep(0.45,0.15,length(f))*step(0.45,h2(id+3.)) + 0.6*(fbm(q.xy*14.0)-.5);}
+  return d+(CLAY>0.5?0.020:0.014)*WR*wv + 0.0035*tp;
 }
 float map(vec3 p, out float m, out float wv){
   float d=sdFinger(p,wv); m=0.;
@@ -87,7 +90,7 @@ void main(){
     vec3 L=normalize(vec3(-0.5,0.7,0.6)), V=-rd;
     vec3 rim=normalize(vec3(0.6,0.8,-0.5));
     if(DBG>0.5){c=vec3(ww);} else if(mm<0.5){
-      vec3 skin=vec3(0.93,0.64,0.52);
+      vec3 skin=CLAY>0.5?vec3(1.0,0.62,0.45):vec3(0.93,0.64,0.52);
       float wrap=clamp((dot(n,L)+0.45)/1.45,0.,1.);
       float valley=max(ww,0.)*WR;
       vec3 sss=vec3(1.0,0.35,0.22)*pow(clamp(1.0-dot(n,V),0.,1.),2.0)*0.55;
@@ -98,7 +101,8 @@ void main(){
       c+=vec3(1.0,0.78,0.5)*pow(clamp(dot(n,rim),0.,1.),3.)*0.6;
       vec3 H=normalize(L+V); float spec=pow(clamp(dot(n,H),0.,1.),90.);
       float fres=0.04+0.96*pow(1.-clamp(dot(n,V),0.,1.),5.);
-      c+=vec3(1.0,0.96,0.9)*(spec*0.9+fres*0.25)*(0.6+0.4*(1.0-valley));
+      if(CLAY>0.5){float sp2=pow(clamp(dot(n,H),0.,1.),14.); c+=vec3(1.0,0.9,0.8)*sp2*0.18; c+=vec3(1.0,0.8,0.6)*fres*0.10;}
+      else c+=vec3(1.0,0.96,0.9)*(spec*0.9+fres*0.25)*(0.6+0.4*(1.0-valley));
     } else if(mm<1.5){
       vec3 refl=bg(reflect(rd,n).xy*1.2);
       vec3 refr=vec3(1.0,0.80,0.70)*(0.95+0.25*dot(n,-L)) + vec3(1.0,0.9,0.7)*0.5*smoothstep(0.3,0.9,dot(n,normalize(vec3(0.4,-0.7,0.6))));
@@ -131,6 +135,7 @@ const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRA
 gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
 gl.uniform2f(gl.getUniformLocation(pr,'R'),1080,1920);gl.uniform1f(gl.getUniformLocation(pr,'T'),+(P.get('t')||0));
 gl.uniform1f(gl.getUniformLocation(pr,'NAIL'),+(P.get('nail')||0));gl.uniform1f(gl.getUniformLocation(pr,'DBG'),+(P.get('dbg')||0));
+gl.uniform1f(gl.getUniformLocation(pr,'CLAY'),+(P.get('clay')||0));
 gl.uniform1f(gl.getUniformLocation(pr,'WR'),+(P.get('wr')||1));
 gl.drawArrays(gl.TRIANGLES,0,3);gl.finish();window.DONE=1;
 </script></body></html>
