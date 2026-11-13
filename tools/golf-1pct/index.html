@@ -17,7 +17,7 @@ const scene=new THREE.Scene();
 const pm=new THREE.PMREMGenerator(R); scene.environment=pm.fromScene(new RoomEnvironment(),0.04).texture; scene.environmentIntensity=0.35;
 
 // ---------- layout (stylised scale, metres) ----------
-const CLUB_X=-1.42, HOLE_X=1.42, BALL_R=0.048, CUP_R=0.115;
+const CLUB_X=-1.22, HOLE_X=1.22, BALL_R=0.072, CUP_R=0.15;
 
 // ---------- backdrop: sky dome with a distant treeline, horizon haze ----------
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{uSeed:{value:0}},
@@ -102,7 +102,7 @@ function waveFlag(t,amp){const a=clothGeo.attributes.position.array;for(let i=0;
 
 // ---------- club (iron), pivot at the grip top ----------
 const club=new THREE.Group(); scene.add(club);
-const SH=1.02; // shaft length
+const SH=1.02; const CLUB_TOP_DX=0; // shaft length
 const chrome=new THREE.MeshStandardMaterial({color:0xc9ced6,metalness:1,roughness:0.42});
 const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.0075,0.0105,SH,16),chrome); shaft.position.y=-SH/2; shaft.castShadow=true; club.add(shaft);
 // grip with cream/charcoal wrap stripes
@@ -112,8 +112,8 @@ const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.0145,0.012,0.27,20),new T
 const headShape=new THREE.Shape(); headShape.moveTo(-0.035,0); headShape.lineTo(0.035,0); headShape.quadraticCurveTo(0.05,0.0,0.05,0.02);
 headShape.lineTo(0.045,0.075); headShape.quadraticCurveTo(0.04,0.1,0.0,0.1); headShape.lineTo(-0.03,0.03); headShape.quadraticCurveTo(-0.04,0.0,-0.035,0);
 const headGeo=new THREE.ExtrudeGeometry(headShape,{depth:0.11,bevelEnabled:true,bevelThickness:0.006,bevelSize:0.005,bevelSegments:3}); headGeo.translate(0,0,-0.055);
-const headMat=new THREE.MeshStandardMaterial({color:0xaeb4bc,metalness:0.7,roughness:0.6}); const head=new THREE.Mesh(headGeo,headMat); head.rotation.y=Math.PI/2; head.position.set(0.0,-SH-0.012,0); head.castShadow=true; club.add(head);
-const groove=new THREE.Mesh(new THREE.BoxGeometry(0.002,0.06,0.09),new THREE.MeshStandardMaterial({color:0x8a9099,metalness:1,roughness:0.4})); groove.position.set(0.052,-SH+0.03,0); club.add(groove);
+const headMat=new THREE.MeshStandardMaterial({color:0xaeb4bc,metalness:0.7,roughness:0.6}); const head=new THREE.Mesh(headGeo,headMat); head.rotation.y=Math.PI/2; head.position.set(0.0,-SH-0.012,0); head.scale.setScalar(1.5); head.castShadow=true; club.add(head);
+const groove=new THREE.Mesh(new THREE.BoxGeometry(0.002,0.06,0.09),new THREE.MeshStandardMaterial({color:0x8a9099,metalness:1,roughness:0.4})); groove.position.set(0.078,-SH+0.045,0); groove.scale.setScalar(1.5); club.add(groove);
 const CLUB_TOP=new THREE.Vector3(CLUB_X-0.02,SH+0.015,0);
 function poseClub(angle,lying,fall){
  if(fall>0){const th=fall*(Math.PI/2-0.015); const hx=CLUB_X-0.02, hy=0.012;
@@ -130,7 +130,7 @@ const ball=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,40,28),ballMat); ball.
 const extra=[]; for(let i=0;i<8;i++){const m=new THREE.Mesh(ball.geometry,ballMat); m.castShadow=true; m.visible=false; scene.add(m); extra.push(m);}
 // miss marks: small red glowing balls where a try stopped
 const missMat=new THREE.MeshStandardMaterial({color:0xc8261e,emissive:0xc8261e,emissiveIntensity:0.12,roughness:0.35});
-const missGeo=new THREE.SphereGeometry(BALL_R*0.82,24,16);
+const missGeo=new THREE.SphereGeometry(BALL_R*0.92,24,16);
 const misses=[]; for(let i=0;i<80;i++){const m=new THREE.Mesh(missGeo,missMat);m.castShadow=true;m.visible=false;scene.add(m);misses.push(m);}
 
 // ---------- lights ----------
@@ -150,7 +150,7 @@ const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.45,0.55,0.82); comp.add
 function applyLane(L,t){
  poseClub(L.club.angle||0,L.club.lying,L.club.fall||0);
  const b=L.ball||[CLUB_X+0.11,0]; ball.visible=!L.noBall; ball.position.set(b[0],(b[2]??BALL_R),b[1]);
- misses.forEach((m,i)=>{const p=(L.misses||[])[i]; m.visible=!!p&&(p[2]??1)>0.01; if(p){const k=p[2]??1; m.scale.setScalar(k); m.position.set(p[0],BALL_R*0.82*k+(p[3]||0),p[1]);}});
+ misses.forEach((m,i)=>{const p=(L.misses||[])[i]; m.visible=!!p&&(p[2]??1)>0.01; if(p){const k=p[2]??1; m.scale.setScalar(k); m.position.set(p[0],BALL_R*0.92*k+(p[3]||0),p[1]);}});
  extra.forEach((m,i)=>{const p=(L.whites||[])[i]; m.visible=!!p; if(p) m.position.set(p[0],p[2]??BALL_R,p[1]);});
  const g=L.gold||0; glow.material.opacity=g; glow.material.opacity=0.32*g; glow.scale.setScalar(0.25+0.3*g); cupLight.intensity=1.0*g;
  waveFlag(t,L.flag??1);
