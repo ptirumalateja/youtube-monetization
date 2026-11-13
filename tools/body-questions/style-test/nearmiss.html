@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#000}</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+const W=1080,H=1920;const rand=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const gl=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});gl.setSize(W,H);
+gl.shadowMap.enabled=true;gl.shadowMap.type=THREE.PCFSoftShadowMap;gl.toneMapping=THREE.ACESFilmicToneMapping;gl.toneMappingExposure=0.95;gl.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();
+// sky / env
+const skyC=document.createElement('canvas');skyC.width=16;skyC.height=256;{const g=skyC.getContext('2d');const gr=g.createLinearGradient(0,0,0,256);gr.addColorStop(0,'#8ec5ff');gr.addColorStop(.55,'#ffd9a8');gr.addColorStop(1,'#ffb27a');g.fillStyle=gr;g.fillRect(0,0,16,256)}
+const skyT=new THREE.CanvasTexture(skyC);skyT.colorSpace=THREE.SRGBColorSpace;scene.background=skyT;
+scene.fog=new THREE.Fog('#ffd2a6',18,70);
+const envScene=new THREE.Scene();envScene.background=new THREE.Color('#ffe0c0');const pm=new THREE.PMREMGenerator(gl);scene.environment=pm.fromScene(envScene,0.04).texture;
+const P=(c,o={})=>new THREE.MeshPhysicalMaterial({color:c,roughness:.45,clearcoat:.6,clearcoatRoughness:.3,...o});
+const add=(geo,mat,x,y,z,sx=1,sy=1,sz=1,par=scene)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=m.receiveShadow=true;par.add(m);return m};
+const box=new THREE.BoxGeometry(1,1,1),sph=new THREE.SphereGeometry(1,48,32),cap=new THREE.CapsuleGeometry(1,1,16,32),cyl=new THREE.CylinderGeometry(1,1,1,40);
+// road + crossing
+add(box,P('#5b5f6b',{clearcoat:0,roughness:.9}),0,-0.05,-10,60,0.1,60);
+for(let i=-6;i<=6;i++)add(box,P('#f4f1ea',{clearcoat:0,roughness:.8}),i*1.1,0.01,0.5,0.6,0.02,4.2);
+add(box,P('#c9c2b6',{clearcoat:0,roughness:.85}),0,0.1,-6.2,60,0.2,3);// far sidewalk
+// buildings
+for(let i=0;i<14;i++){const x=-26+i*4.1,h=8+rand(i)*14,w=3.6;const col=['#e7b38f','#d9a27f','#f0c8a2','#c99b86'][i%4];add(box,P(col,{clearcoat:0,roughness:.8}),x,h/2,-12-rand(i+3)*4,w,h,4);
+ for(let k=0;k<Math.floor(h/1.6);k++)for(let j=0;j<2;j++)add(box,new THREE.MeshStandardMaterial({color:'#fff1cf',emissive:'#ffcf7a',emissiveIntensity:rand(i*9+k*3+j)>.5?.6:.05}),x-0.8+j*1.6,1.2+k*1.6,-9.9-rand(i+3)*4,.8,.9,.1)}
+// trees / poles
+for(let i=0;i<5;i++){const x=-14+i*7;add(cyl,P('#6b4a33'),x,1.5,-7,.15,3,.15);add(sph,P('#6fae5c',{clearcoat:.2}),x,3.6,-7,1.4,1.3,1.4)}
+// ---- CAR (from the left, very close)
+const car=new THREE.Group();scene.add(car);
+const red=P('#e2463b',{clearcoat:1,roughness:.25,metalness:.1});
+add(new THREE.CapsuleGeometry(0.8,3.2,16,32),red,0,0.95,0,1,1,1.25,car).rotation.z=Math.PI/2;
+add(box,red,0,0.75,0,4.6,0.8,2.0,car);
+const glass=P('#25364d',{roughness:.05,clearcoat:1,metalness:.2});
+add(new THREE.CapsuleGeometry(0.62,1.3,12,24),glass,-0.2,1.55,0,1,1,1.32,car).rotation.z=Math.PI/2;
+for(const [x,z] of [[-1.5,1],[1.5,1],[-1.5,-1],[1.5,-1]]){const w=add(cyl,P('#222',{clearcoat:.3}),x,0.42,z,.42,.3,.42,car);w.rotation.x=Math.PI/2}
+const hl=new THREE.MeshStandardMaterial({color:'#fffbe8',emissive:'#fff2c0',emissiveIntensity:3});
+add(sph,hl,2.3,0.9,0.62,.08,.2,.26,car);add(sph,hl,2.3,0.9,-0.62,.08,.2,.26,car);
+add(box,P('#d8d8d8',{metalness:.8,roughness:.2}),2.38,0.55,0,0.12,0.18,1.8,car);
+car.position.set(-1.9,0,1.4);car.rotation.y=-0.45;
+const spot=new THREE.SpotLight('#fff3d0',60,14,0.5,0.6);spot.position.set(-0.4,0.95,1.3);spot.target.position.set(2.5,1,0);scene.add(spot,spot.target);
+// ---- PERSON mid-step on the crossing, turning to the car
+const man=new THREE.Group();scene.add(man);
+const skin=P('#f0b48a',{clearcoat:.3,roughness:.5}),hood=P('#2bb3a8',{clearcoat:.4}),jean=P('#2f4f8f',{clearcoat:.2}),shoe=P('#ffffff',{clearcoat:.5});
+const leg=(x,rx,z)=>{const g=new THREE.Group();g.position.set(x,1.05,0);g.rotation.x=rx;man.add(g);add(cap,jean,0,-0.45,0,.17,.42,.17,g);add(sph,shoe,0,-1.0,0.1,.2,.13,.3,g);return g};
+leg(-0.2,0.45,0);leg(0.2,-0.35,0);
+add(cap,hood,0,1.65,0,.45,.42,.34,man);
+add(sph,hood,0,2.18,-0.25,.42,.32,.3,man);// hood back
+const armL=new THREE.Group();armL.position.set(-0.52,1.95,0);armL.rotation.set(-0.9,0,0.25);man.add(armL);add(cap,hood,0,-0.35,0,.13,.33,.13,armL);
+const armR=new THREE.Group();armR.position.set(0.52,1.95,0);armR.rotation.set(-1.1,0,-0.2);man.add(armR);add(cap,hood,0,-0.35,0,.13,.33,.13,armR);
+const phone=add(box,P('#111',{clearcoat:1,roughness:.1}),0.12,1.55,0.62,.22,.36,.03,man);phone.rotation.x=-0.6;
+add(box,new THREE.MeshStandardMaterial({color:'#bfe3ff',emissive:'#9fd4ff',emissiveIntensity:1.2}),0.12,1.55,0.637,.19,.32,.005,man).rotation.x=-0.6;
+const head=new THREE.Group();head.position.set(0,2.55,0.05);head.rotation.y=-0.85;man.add(head);
+add(sph,skin,0,0,0,.42,.46,.42,head);add(sph,P('#2a1d16',{clearcoat:.2}),0,0.18,-0.06,.44,.32,.42,head);
+const eyeW=P('#ffffff',{clearcoat:1,roughness:.1}),eyeP=P('#141414',{clearcoat:1});
+for(const s of [-1,1]){add(sph,eyeW,s*0.15,0.03,0.36,.11,.13,.07,head);add(sph,eyeP,s*0.15,0.03,0.42,.05,.06,.03,head)}
+add(sph,P('#7a2e25'),0,-0.2,0.38,.06,.08,.03,head);// O mouth
+add(sph,skin,0,-0.05,0.42,.06,.06,.05,head);
+man.position.set(1.3,0,0.4);man.rotation.y=0.35;
+// glowing heart (seen through the chest)
+const heart=new THREE.Group();heart.position.set(1.18,1.82,0.85);scene.add(heart);
+const hm=new THREE.MeshStandardMaterial({color:'#ff4a3d',emissive:'#ff2a1a',emissiveIntensity:2.2});
+add(sph,hm,-0.06,0.03,0,.1,.1,.1,heart);add(sph,hm,0.06,0.03,0,.1,.1,.1,heart);const tip=add(new THREE.ConeGeometry(0.135,0.2,32),hm,0,-0.08,0,1,1,1,heart);tip.rotation.z=Math.PI;
+// light
+scene.add(new THREE.HemisphereLight('#fff1dc','#b98c6a',1.0));
+const sun=new THREE.DirectionalLight('#ffd2a0',2.2);sun.position.set(8,10,-6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12});scene.add(sun);
+const fill=new THREE.DirectionalLight('#cfe6ff',0.9);fill.position.set(-4,4,8);scene.add(fill);
+// frozen dust
+for(let i=0;i<60;i++)add(sph,new THREE.MeshBasicMaterial({color:'#fff3d8',transparent:true,opacity:.7}),-2+rand(i)*6,0.2+rand(i+1)*3,-1+rand(i+2)*3,.02,.02,.02);
+const cam=new THREE.PerspectiveCamera(40,W/H,.1,200);cam.position.set(1.2,1.1,10.5);cam.lookAt(0.2,2.3,0);
+gl.render(scene,cam);
+document.getElementById('c').getContext('2d').drawImage(gl.domElement,0,0);
+// project heart & headlights to screen for post glow
+const pr=v=>{const p=v.clone().project(cam);return[(p.x+1)/2*W,(1-p.y)/2*H]};
+window.PTS={heart:pr(heart.getWorldPosition(new THREE.Vector3())),hl1:pr(new THREE.Vector3(2.3,0.9,0.62).applyMatrix4(car.matrixWorld)),hl2:pr(new THREE.Vector3(2.3,0.9,-0.62).applyMatrix4(car.matrixWorld))};
+window.DONE=1;
+</script></body></html>

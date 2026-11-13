@@ -1,0 +1,92 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#000}</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c=document.getElementById('c'),g=c.getContext('2d');const W=1080,H=1920;
+const rand=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+function lg(x0,y0,x1,y1,stops){const gr=g.createLinearGradient(x0,y0,x1,y1);stops.forEach(([o,col])=>gr.addColorStop(o,col));return gr}
+function rg(x,y,r0,r1,stops){const gr=g.createRadialGradient(x,y,r0,x,y,r1);stops.forEach(([o,col])=>gr.addColorStop(o,col));return gr}
+function glow(x,y,r,col,a=.6){g.save();g.globalCompositeOperation='screen';g.fillStyle=rg(x,y,0,r,[[0,col.replace('A',a)],[1,col.replace('A',0)]]);g.fillRect(x-r,y-r,2*r,2*r);g.restore()}
+function shape(pts,fill){g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fillStyle=fill;g.fill()}
+function rr(x,y,w,h,r,fill){g.beginPath();g.roundRect(x,y,w,h,r);g.fillStyle=fill;g.fill()}
+function ell(x,y,rx,ry,fill,rot=0){g.beginPath();g.ellipse(x,y,rx,ry,rot,0,7);g.fillStyle=fill;g.fill()}
+function limb(x0,y0,x1,y1,w,fill){g.save();g.lineCap='round';g.strokeStyle=fill;g.lineWidth=w;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();g.restore()}
+
+// ---- sky (golden hour)
+g.fillStyle=lg(0,0,0,1250,[[0,'#ffcf9a'],[.55,'#ffab7e'],[1,'#ff8a6e']]);g.fillRect(0,0,W,H);
+glow(830,880,700,'rgba(255,240,200,A)',.9);
+// far buildings
+for(let i=0;i<10;i++){const x=i*120-40,w=110+rand(i)*40,h=260+rand(i+5)*320;rr(x,1180-h,w,h+40,8,'rgba(232,150,128,.75)')}
+// mid buildings with windows
+for(let i=0;i<7;i++){const x=i*170-60,w=150,h=420+rand(i+20)*360;const top=1200-h;
+ rr(x,top,w,h+40,10,lg(x,top,x+w,top,[[0,'#c66f6c'],[1,'#a95a63']]));
+ for(let r=0;r<Math.floor(h/70)-1;r++)for(let k=0;k<3;k++){const lit=rand(i*31+r*7+k)>.45;rr(x+18+k*44,top+30+r*70,28,40,5,lit?'#ffd99a':'rgba(120,60,80,.35)')}}
+glow(830,980,520,'rgba(255,220,170,A)',.5);
+// street
+shape([[0,1180],[W,1180],[W,H],[0,H]],lg(0,1180,0,H,[[0,'#6b5a6e'],[1,'#3a3346']]));
+rr(0,1150,W,40,0,'#c79a8c');// far kerb
+// zebra stripes in perspective (vanishing to the right horizon)
+for(let i=0;i<7;i++){const y0=1215+i*0,x=180+i*130;shape([[x,1205],[x+70,1205],[x+210+i*40,H],[x-30+i*40,H]].map(([a,b])=>[a,b]),'rgba(245,235,225,.85)')}
+// headlight beam on the road
+g.save();g.globalCompositeOperation='screen';shape([[420,1420],[1080,1250],[1080,1900],[420,1500]],lg(420,0,1080,0,[[0,'rgba(255,245,200,.55)'],[1,'rgba(255,245,200,0)']]));g.restore();
+
+// ---- speed lines from the car
+g.save();g.globalCompositeOperation='screen';
+for(let i=0;i<46;i++){const a=-0.6+rand(i)*1.1,r0=380+rand(i+1)*200,r1=r0+300+rand(i+2)*500;const cx=200,cy=1380;
+ g.strokeStyle=`rgba(255,250,235,${.15+rand(i+3)*.3})`;g.lineWidth=2+rand(i+4)*4;g.beginPath();g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);g.lineTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);g.stroke()}
+g.restore();
+
+// ---- CAR (3/4 front, close, left)
+ell(330,1600,330,40,'rgba(30,20,30,.45)');
+shape([[-40,1180],[300,1150],[470,1250],[560,1360],[570,1520],[540,1590],[-40,1600]],lg(0,1150,560,1590,[[0,'#ff6a55'],[.6,'#d93a3f'],[1,'#9e2533']]));
+shape([[-40,1180],[260,1155],[400,1250],[-40,1270]],lg(0,1150,400,1260,[[0,'#3c4f74'],[1,'#22304a']]));// windshield
+shape([[60,1175],[200,1163],[120,1250],[20,1255]],'rgba(255,255,255,.18)');// reflection
+shape([[300,1150],[470,1250],[560,1360],[548,1372],[455,1262],[290,1162]],'rgba(255,220,190,.55)');// rim
+rr(330,1470,250,52,22,'#3a2a33');// grille
+rr(20,1555,520,40,18,'#c9c3c8');// bumper
+ell(80,1590,95,100,'#1f1a22');ell(80,1590,48,52,'#5d5560');// wheel
+// headlights
+for(const [x,y] of [[470,1420],[150,1440]]){ell(x,y,70,42,'#fffbe6',-.2);glow(x,y,330,'rgba(255,248,215,A)',.95);glow(x,y,140,'rgba(255,255,255,A)',1)}
+// horizontal lens flare
+g.save();g.globalCompositeOperation='screen';g.fillStyle=lg(0,0,W,0,[[0,'rgba(255,240,200,0)'],[.4,'rgba(255,245,215,.55)'],[1,'rgba(255,240,200,0)']]);g.fillRect(0,1412,W,14);g.restore();
+
+// ---- MAN (mid-step, snapped toward the car)
+const sk='#f2b48f',skD='#d98f6f',hd='#1fb5a8',hdD='#13857f',jn='#2c4a86',jnD='#1d335f';
+ell(760,1655,170,26,'rgba(30,20,30,.4)');
+limb(740,1250,640,1620,62,jn);limb(745,1250,690,1420,62,jnD);// back leg
+limb(800,1250,850,1440,64,jn);limb(850,1440,900,1625,60,jn);// front leg
+rr(590,1600,110,44,22,'#ffffff');rr(860,1605,120,44,22,'#f4f4f4');
+// torso (hoodie)
+shape([[660,980],[880,975],[915,1270],[640,1275]],lg(640,0,915,0,[[0,hd],[1,hdD]]));
+shape([[660,980],[700,978],[668,1270],[640,1275]],'rgba(255,240,190,.65)');// headlight rim on the car side
+// x-ray window on chest
+g.save();g.beginPath();g.ellipse(770,1095,92,92,0,0,7);g.clip();
+g.fillStyle='rgba(60,20,40,.75)';g.fillRect(670,995,200,200);
+for(let k=0;k<6;k++){g.strokeStyle='rgba(255,210,200,.35)';g.lineWidth=6;g.beginPath();g.ellipse(770,1095+k*26-60,90,30,0,0.2,Math.PI-0.2);g.stroke()}// ribs
+glow(770,1100,120,'rgba(255,60,40,A)',.95);
+// heart
+g.fillStyle=lg(740,1060,800,1140,[[0,'#ff7a63'],[1,'#d81f2a']]);g.beginPath();g.moveTo(770,1140);g.bezierCurveTo(700,1095,725,1040,770,1070);g.bezierCurveTo(815,1040,840,1095,770,1140);g.fill();
+g.restore();
+g.strokeStyle='rgba(255,240,220,.9)';g.lineWidth=5;g.beginPath();g.ellipse(770,1095,92,92,0,0,7);g.stroke();
+for(let k=1;k<=2;k++){g.strokeStyle=`rgba(255,90,70,${.5/k})`;g.lineWidth=6;g.beginPath();g.ellipse(770,1095,92+k*26,92+k*26,0,0,7);g.stroke()}
+// arms: near arm raised defensively toward car, far arm with phone
+limb(670,1010,580,1130,54,hd);limb(580,1130,530,1010,50,hd);ell(525,990,40,46,sk);// raised hand
+limb(880,1010,930,1160,54,hdD);limb(930,1160,900,1250,50,hdD);
+rr(865,1210,62,104,12,'#151520');rr(871,1218,50,88,8,'#9fd8ff');glow(896,1262,120,'rgba(150,215,255,A)',.5);
+// head (turned toward car)
+rr(745,930,56,60,20,skD);
+ell(770,830,135,145,lg(640,700,900,960,[[0,'#ffd0ae'],[1,sk]]));
+shape([[640,800],[660,700],[740,660],[850,670],[905,740],[905,800],[850,760],[760,750],[690,780]],'#2a1d18');
+ell(720,850,60,62,'#fff');ell(845,850,58,60,'#fff');ell(700,852,14,16,'#1a1414');ell(824,852,14,16,'#1a1414');
+limb(670,775,750,790,12,'#2a1d18');limb(800,790,880,770,12,'#2a1d18');// raised brows
+ell(770,935,24,30,'#8d2f2b');// O mouth
+shape([[905,770],[925,800],[912,820],[898,800]],'#bfe8ff');// sweat drop
+g.fillStyle='rgba(255,240,200,.55)';g.beginPath();g.ellipse(650,830,22,120,0,Math.PI/2,Math.PI*1.5);g.fill();// rim light on face
+// frozen dust
+for(let i=0;i<90;i++){const x=rand(i+40)*W,y=700+rand(i+41)*1000,r=1.5+rand(i+42)*4;ell(x,y,r,r,`rgba(255,248,230,${.4+rand(i)*.5})`)}
+// grain
+const id=g.getImageData(0,0,W,H),d=id.data;for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*14;d[i]+=n;d[i+1]+=n;d[i+2]+=n}g.putImageData(id,0,0);
+// text
+g.font='bold 116px "Inter Display", Inter, sans-serif';g.textAlign='center';
+[['THE NEXT 2 SECONDS','#ffffff',380],['YOUR BODY GOES INSANE','#ffe27a',500]].forEach(([t,col,y],i)=>{g.font=`bold ${i?66:86}px "Inter Display", Inter, sans-serif`;g.fillStyle='rgba(90,30,30,.55)';g.fillText(t,W/2+5,y+6);g.fillStyle=col;g.fillText(t,W/2,y)});
+window.DONE=1;
+</script></body></html>
