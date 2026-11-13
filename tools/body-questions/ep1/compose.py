@@ -2,14 +2,14 @@
 """Compose Body Questions ep1 ("It's Not the Water") from rendered plates/sequences.
 usage: compose.py FRAMES_DIR OUT_DIR [--only t0 t1] [--guides]"""
 import sys, os, math
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops, ImageEnhance
 
 FR = sys.argv[1]; OUT = sys.argv[2]; os.makedirs(OUT, exist_ok=True)
 GUIDES = '--guides' in sys.argv
 W, H, FPS, DUR = 1080, 1920, 30, 23.0
 B = '/usr/share/fonts/opentype/inter/InterDisplay-Bold.otf'
 SB = '/usr/share/fonts/opentype/inter/Inter-SemiBold.otf'
-INK = (28, 34, 52); ORANGE = (214, 104, 40); GOLD = (222, 150, 30); RED = (210, 60, 50)
+INK = (28, 34, 52); ORANGE = (214, 104, 40); GOLD = (186, 112, 8); RED = (210, 60, 50)
 
 def ease(x): x = max(0., min(1., x)); return x * x * (3 - 2 * x)
 def eout(x): x = max(0., min(1., x)); return 1 - (1 - x) ** 3
@@ -40,6 +40,15 @@ def bloom(im, thr=225, gain=0.35, rad=26):
     hi = im.point(lambda v: max(0, v - thr) * 4)
     return ImageChops.add(im, hi.filter(ImageFilter.GaussianBlur(rad)).point(lambda v: int(v * gain)))
 
+def redvessels(im, k=1.0):
+    L = im.convert('L')
+    hp = ImageChops.subtract(L, L.filter(ImageFilter.GaussianBlur(10))).point(lambda v: min(255, int(max(0, v - 4) * 9)))
+    m = hp.filter(ImageFilter.GaussianBlur(1.5)).point(lambda v: int(v * k))
+    red = Image.new('RGB', im.size, (205, 28, 30))
+    im = Image.composite(red, im, m.point(lambda v: int(v * 0.85)))
+    gl = m.filter(ImageFilter.GaussianBlur(14))
+    return ImageChops.add(im, Image.merge('RGB', (gl, gl.point(lambda v: v // 6), gl.point(lambda v: v // 6))).point(lambda v: int(v * 0.6)))
+
 def glowred(im, gain=0.5):
     r, g, b = im.split()
     m = ImageChops.subtract(r, g).point(lambda v: max(0, v - 30) * 3)
@@ -58,7 +67,9 @@ def shot(t):
     if t < 7.36:
         im = seq('X', t, 2.92, 15, 67)
         z = 1.0 + 0.07 * (1 - eout((t - 2.92) / 0.25)) + 0.06 * (1 - eout((t - 3.78) / 0.25)) * (t > 3.78)
-        return glowred(bloom(kb(im, z, 0.5, 0.55), 242, 0.25, 20), 0.9)
+        im = kb(im, z, 0.5, 0.55); im = ImageEnhance.Contrast(im).enhance(1.3); im = ImageEnhance.Color(im).enhance(1.25)
+        if t >= 3.78: im = redvessels(im, min(1, (t - 3.78) / 0.3))
+        return im
     if t < 11.02:
         im = seq('G', t, 7.36, 15, 56)
         return kb(im, 1.0 + 0.06 * ease((t - 7.36) / 3.66), 0.5, 0.55)
@@ -139,7 +150,7 @@ def overlay(im, t):
     elif t < 11.02:
         text(im, [("THE TIP SHRINKS", INK)], 340, 7.55, t, 96)
         if t >= 9.9:
-            text(im, [("SKIN BUCKLES.", ORANGE)], 450, 9.9, t, 112)
+            text(im, [("SKIN BUCKLES.", INK)], 450, 9.9, t, 112)
     elif t < 13.88:
         text(im, [("PROOF:", INK)], 330, 11.06, t, 80)
         if t >= 12.35:
@@ -149,7 +160,7 @@ def overlay(im, t):
     elif t < 15.65:
         text(im, [("SO WHY", INK), ("DO IT?", INK)], 360, 13.91, t, 140)
     elif t < 19.05:
-        text(im, [("GRIP.", ORANGE)], 360, 15.69, t, 170)
+        text(im, [("GRIP.", INK)], 360, 15.69, t, 170)
         if t >= 17.58:
             text(im, [("LIKE TYRE TREADS", INK), ("IN THE RAIN", INK)], 560, 17.58, t, 84)
     else:
@@ -187,5 +198,6 @@ if __name__ == '__main__':
     else:
         n = int(DUR * FPS)
         for k in range(n):
+            if os.path.exists(f'{OUT}/{k:04d}.jpg') and k < n - 1 and os.path.exists(f'{OUT}/{k+1:04d}.jpg'): continue
             frame(k / FPS).save(f'{OUT}/{k:04d}.jpg', quality=93)
             if k % 60 == 0: print(k, flush=True)
