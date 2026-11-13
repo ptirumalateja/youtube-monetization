@@ -18,7 +18,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [Born From Static (how AI art is made)](born-from-static.md) | Final (v1), awaiting Teja's review | `final-reels/born-from-static_master.mp4` (share: `born-from-static.mp4`; silent: `_music-ready.mp4`) |
 | [Earth Is 20 Years Old (in galactic years)](earth-is-20-years-old.md) | Final (v4); v1-v3 deleted 13 Nov 2026 | `final-reels/earth-is-20-years-old_v4_master.mp4` (share: `_v4.mp4`) |
 | [Frozen Lightning (fulgurites)](frozen-lightning.md) | Final | `final-reels/frozen-lightning.mp4` |
-| [He Moved a Mountain (Dashrath Manjhi)](he-moved-a-mountain.md) | v4 (latest); v1-v3 deleted 13 Nov 2026, check timings in the copy | `final-reels/he-moved-a-mountain_v4_master.mp4` (share: `_v4.mp4`) |
+| [He Moved a Mountain (Dashrath Manjhi)](he-moved-a-mountain.md) | Final (v4, drop 0:09.6); v1-v3 deleted 13 Nov 2026 | `final-reels/he-moved-a-mountain_v4_master.mp4` (share: `_v4.mp4`) |
 | [Inside the Clot (heart attack)](inside-the-clot.md) | v3 in final-reels; v4 encoded but not published (paused) | `final-reels/inside-the-clot.mp4` (v3) |
 | [Last 1% (wireman)](last-one-percent.md) | Final (v3 captions) | `final-reels/last-one-percent_v3_music-ready.mp4` (silent, add platform music) or `last-one-percent_v3.mp4` (with sound) |
 | [Nine Minutes (CAR-T vs cancer)](nine-minutes.md) | v1 final (with the "cancer cell" hook); v2 paused as untested WIP | `final-reels/nine-minutes.mp4` |
@@ -34,7 +34,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [The Dipper Is Melting](the-dipper-is-melting.md) | Final | `final-reels/the-dipper-is-melting.mp4` |
 | [The Edge of the Wind (Voyager 1)](edge-of-the-wind.md) | Final (v1) | `final-reels/edge-of-the-wind-hq.mp4` for YouTube (share: `edge-of-the-wind.mp4`) |
 | [The Higher He Got (stickman)](the-higher-he-got.md) | Final (v1) | `final-reels/the-higher-he-got.mp4` (share: `the-higher-he-got-share.mp4`) |
-| [The Jam Is Made of Phones (Google Maps)](jam-made-of-phones.md) | v3 (wordless) is the only version left; voiced v2 deleted 13 Nov 2026 | `final-reels/jam-made-of-phones-v3.mp4` |
+| [The Jam Is Made of Phones (Google Maps)](jam-made-of-phones.md) | Final (v3, wordless); v1 and voiced v2 deleted 13 Nov 2026 | `final-reels/jam-made-of-phones-v3.mp4` |
 | [The Photon That Made Your Eye](the-photon-that-made-your-eye.md) | v3 (23 s), awaiting Teja's review; drop on 19.5 s | `final-reels/the-photon-that-made-your-eye.mp4` (master: `_master.mp4`; silent: `_music-ready.mp4`) |
 | [The Moon Never Loops](moon-never-loops.md) | Final (v2, cinematic) | `final-reels/moon-never-loops-v2.mp4` |
 | [The Shape of Flow (torus)](shape-of-flow.md) | Final (v2, kept by Teja) | `final-reels/shape-of-flow_v2.mp4` |
