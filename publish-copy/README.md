@@ -8,6 +8,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 
 | Reel | Status | Upload file |
 |---|---|---|
+| [What If Time Froze? (near-miss body reel)](what-if-time-froze.md) | v3 delivered 13 Nov 2026, Mark vs Jessica pick pending; 23.4 s | `final-reels/body-questions/what-if-time-froze_mark.mp4` (alt: `_jessica.mp4`) |
 | [Sorry Is 5 Letters (stickman)](sorry-is-5-letters.md) | Final (v3, smaller title for edge margins), Teja: "solid" 13 Nov 2026; wordless 13.6 s | `final-reels/sorry-is-5-letters/sorry-is-5-letters-v3.mp4` |
 | [My Office Gives (Nagula Panchami stickman dub)](nagula-panchami-my-office-gives.md) | v1 delivered 13 Nov 2026 (film audio, claim risk) | `final-reels/nagula-panchami/nagula-panchami-v1.mp4` |
 | [The Lake Gives Back Its Dead (Roopkund Skeleton Lake)](skeleton-lake-roopkund.md) | Final (v5, Viraj VO), Teja: ready to post 6 Nov 2026; 32 s A/B cut in progress | `final-reels/skeleton-lake/skeleton-lake-v5.mp4` |
