@@ -46,11 +46,14 @@ def build(cfg_path):
         if speed < sc.get("min_speed", 0.9):            # not enough footage: play at min speed, then hold last frame
             speed = sc.get("min_speed", 0.9); hold = L - (s1 - s0) / speed
         zin, zout = sc.get("zoom", [1.0, 1.08])
-        z = f"({zin}+({zout}-{zin})*t/{L:.3f})"
+        ease = f"(1-pow(1-t/{L:.3f},2))"   # ease-out: fast start, gentle settle
+        z = f"({zin}+({zout}-{zin})*{ease})"
+        zx0, zx1 = sc.get("pan_x", [sc.get("zx", 0.5)] * 2)
+        zy0, zy1 = sc.get("pan_y", [sc.get("zy", 0.5)] * 2)
         vf = (f"[0:v]trim={s0}:{s1},setpts=(PTS-STARTPTS)/{speed:.4f},fps={FPS},"
               f"tpad=stop_mode=clone:stop_duration={hold+0.2:.3f},"
               f"scale=w='trunc(1080*{z}/2)*2':h='trunc(1920*{z}/2)*2':eval=frame:flags=lanczos,"
-              f"crop=1080:1920:x='(in_w-1080)*{sc.get('zx',0.5)}':y='(in_h-1920)*{sc.get('zy',0.5)}',"
+              f"crop=1080:1920:x='(in_w-1080)*({zx0}+({zx1}-{zx0})*{ease})':y='(in_h-1920)*({zy0}+({zy1}-{zy0})*{ease})',"
               f"setsar=1,{GRADE},trim=0:{L:.3f},setpts=PTS-STARTPTS,format=yuv420p[v]")
         if sc.get("sfx"):
             af = (f"[1:a]atrim={s0}:{s1},asetpts=PTS-STARTPTS,atempo={max(min(speed,2),0.5):.4f},aresample=48000,"
