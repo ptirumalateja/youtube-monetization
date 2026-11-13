@@ -54,7 +54,7 @@ for(const [x,z] of [[-1.45,0.86],[1.45,0.86],[-1.45,-0.86],[1.45,-0.86]]){add(cy
 const hlM=E('#fff','#fff6e0',6);for(const z of [0.62,-0.62])add(box,hlM,2.33,0.78,z,.06,.1,.42,car);
 add(box,M('#1a1f28'),2.36,0.5,0,.05,.16,1.1,car);
 add(box,E('#ff3b30','#ff2a1a',2),-2.36,0.85,0,.04,.07,1.5,car);
-const CAR0=V(-3.3,0,-2.0),CARR=-0.55,CARDIR=V(Math.cos(-CARR),0,Math.sin(-CARR));// local +x in world
+const CARR=-0.55,CARDIR=V(Math.cos(-CARR),0,Math.sin(-CARR)),CAR0=V(-0.05,0,1.5).addScaledVector(V(Math.cos(-CARR),0,Math.sin(-CARR)),-3.55);// local +x in world
 car.position.copy(CAR0);car.rotation.y=CARR;car.updateMatrixWorld();
 const spots=[];for(const z of [0.62,-0.62]){const s=new THREE.SpotLight('#fff1d6',140,30,0.42,0.55,1.2);s.castShadow=true;s.shadow.mapSize.set(1024,1024);car.add(s);s.position.set(2.45,0.8,z);const tg=new THREE.Object3D();car.add(tg);tg.position.set(10,0.6,z+0.4);s.target=tg;spots.push(s)}
 const carW=p=>p.clone().applyMatrix4(car.matrixWorld);
@@ -169,7 +169,7 @@ const NC=140;const cells=new THREE.InstancedMesh(new THREE.CylinderGeometry(1,1,
 const NG=160;const glu=new THREE.InstancedMesh(new THREE.OctahedronGeometry(1,0),E('#ffe7a0','#ffc23a',5),NG);tun.add(glu);
 const tL1=new THREE.PointLight('#ffd08a',14,10,1.4);tun.add(tL1);const tL2=new THREE.PointLight('#ff6060',10,14,1.4);tun.add(tL2);
 function setTunnel(p){const frames=[];for(let i=0;i<NC;i++){const q=(rand(i+500)*0.9+0.05);const c=tc.getPointAt(q),n=V(rand(i+1)-.5,rand(i+2)-.5,rand(i+3)-.5).normalize();c.addScaledVector(n,.3+rand(i+4)*.75);dq.setFromEuler(new THREE.Euler(rand(i)*6,rand(i+9)*6,0));dm.compose(c,dq,V(.12,.12,.12));cells.setMatrixAt(i,dm)}cells.instanceMatrix.needsUpdate=true;
- for(let i=0;i<NG;i++){let q=((rand(i+700)-p*1.4)%1+1)%1;const c=tc.getPointAt(q),n=V(rand(i+11)-.5,rand(i+12)-.5,rand(i+13)-.5).normalize();c.addScaledVector(n,rand(i+14)*.8);dq.setFromEuler(new THREE.Euler(p*20+i,p*13+i,0));const s=.05+rand(i+15)*.07;dm.compose(c,dq,V(s,s,s));glu.setMatrixAt(i,dm)}glu.instanceMatrix.needsUpdate=true}
+ for(let i=0;i<NG;i++){let q=((rand(i+700)-p*1.4)%1+1)%1;const c=tc.getPointAt(q),n=V(rand(i+11)-.5,rand(i+12)-.5,rand(i+13)-.5).normalize();c.addScaledVector(n,.35+rand(i+14)*.6);dq.setFromEuler(new THREE.Euler(p*20+i,p*13+i,0));const s=.05+rand(i+15)*.07;dm.compose(c,dq,V(s,s,s));glu.setMatrixAt(i,dm)}glu.instanceMatrix.needsUpdate=true}
 tun.visible=false;
 
 // ================= CAMERA + SHOTS =================
@@ -178,9 +178,9 @@ function look(p,t,fov=36,roll=0){cam.position.copy(p);cam.up.set(0,1,0);cam.fov=
 const HL=()=>[carW(V(2.36,0.78,0.62)),carW(V(2.36,0.78,-0.62))];
 const carFront=carW(V(2.7,0.6,0));
 const SHOTS=[
- ['A',0.00,0.45],['B',0.45,1.20],['C',1.20,2.30],['D',2.30,3.00],['E',3.00,4.50],['F',4.50,6.10],['G',6.10,8.00],['H',8.00,9.50],
- ['I',9.50,11.20],['J',11.20,12.00],['K',12.00,14.10],['L',14.10,16.00],['MM',16.00,19.00],['N',19.00,21.00],['O',21.00,23.00]];
-const FLASH=[0.45,12.0,19.0];
+ ['A',0.00,0.50],['B',0.50,1.10],['C',1.10,1.70],['D',1.70,3.00],['E',3.00,4.90],['F',4.90,7.30],['G',7.30,9.00],['X',9.00,9.25],['H',9.25,10.80],
+ ['I',10.80,12.60],['X',12.60,12.85],['J',12.85,14.00],['K',14.00,15.60],['L',15.60,16.60],['MM',16.60,18.90],['N',18.90,21.10],['O',21.10,23.40]];
+const FLASH=[0.30,9.0,12.6,14.0,19.12];
 let state={};
 function setShot(t){
  const s=SHOTS.find(s=>t>=s[1]&&t<s[2])||SHOTS[SHOTS.length-1];const u=(t-s[1])/(s[2]-s[1]);const id=s[0];
@@ -190,37 +190,39 @@ function setShot(t){
  car.position.copy(CAR0);car.updateMatrixWorld();setRain(0,1);pose(0);
  state={id,u,glowHL:true,organGlow:null,blur:0};
  const hd=HEAD;
- if(id=='A'){look(V(lerp(0.75,0.68,u),1.5,lerp(6.3,5.95,u)),V(-1.1,1.95,-2),36)}
- else if(id=='B'){const p=carFront.clone().addScaledVector(CARDIR,0.25+u*0.5).add(V(0.0,0.05,0)).addScaledVector(V(-CARDIR.z,0,CARDIR.x),-0.35);look(p,V(MAN0.x,1.25,MAN0.z),32,0.03)}
+ if(id=='X'){const p=carW(V(lerp(3.3,3.0,u),0.85,lerp(1.1,0.9,u)));look(p,carW(V(2.33,0.78,0.5)),34,0.08)}
+ else if(id=='A'){state.carFn=tt=>-1.4*Math.pow(1-clamp(tt/0.28),2);state.carT=t;state.blur=t<0.28?4:0;state.shake=t>=0.28&&t<0.45?14*(1-(t-0.28)/0.17):0;look(V(lerp(0.75,0.68,u),1.2,lerp(5.6,5.3,u)),V(-1.35,1.45,-0.5),44)}
+ else if(id=='B'){const pp=V(-CARDIR.z,0,CARDIR.x);const p=carFront.clone().addScaledVector(pp,-0.75).addScaledVector(CARDIR,-0.2+0.25*u).add(V(0,-0.25,0));look(p,V(MAN0.x,lerp(1.3,1.45,u),MAN0.z),36,0.05)}
  else if(id=='C'){const a=lerp(-0.25,0.12,u);const d=faceDir.clone().applyAxisAngle(V(0,1,0),a);look(hd.clone().addScaledVector(d,lerp(0.95,0.8,u)).add(V(0,-0.04,0)),hd.clone().add(V(0,-0.03,0)),30)}
- else if(id=='D'){const c=MAN0.clone().lerp(CAR0,0.5);const dv=CAR0.clone().sub(MAN0).normalize().applyAxisAngle(V(0,1,0),-0.25+u*0.2);cam.position.set(c.x,lerp(10.5,9.0,eo(u)),c.z);cam.fov=40;cam.updateProjectionMatrix();cam.up.copy(dv.clone().negate());cam.lookAt(c);state.glowHL=true}
+ else if(id=='D'){const c=MAN0.clone().lerp(CAR0,0.38);const dv=MAN0.clone().sub(CAR0).normalize().applyAxisAngle(V(0,1,0),-0.25+u*0.2);cam.position.set(c.x,lerp(10.5,9.0,eo(u)),c.z);cam.fov=40;cam.updateProjectionMatrix();cam.up.copy(dv.clone().negate());cam.lookAt(c);state.glowHL=true}
  else if(id=='E'){xray(true);dimX();liver.visible=false;for(const v of veinMs)v.visible=false;heart.visible=false;const side=faceDir.clone().applyAxisAngle(V(0,1,0),-Math.PI/2);look(hd.clone().addScaledVector(side,lerp(0.95,0.7,eo(u))).addScaledVector(faceDir,0.3).add(V(0,0.06,0)),hd.clone().add(V(0,0.0,0)),30);
   const k=clamp((u-0.15)/0.45);for(let i=0;i<pulse.length;i++){const q=clamp(k-i*0.03);pulse[i].position.copy(EYEP).lerp(amyg.position,eo(q));pulse[i].visible=k>0&&k<1.05}
   amyg.scale.setScalar(.012*(1+0.8*clamp((u-0.55)/0.1)*Math.exp(-Math.max(0,u-0.65)*6)));state.organGlow=[[brain.position,170,'255,120,170',.5],[amyg.position,120*(k>=1?1.6:1),'255,230,140',k>=1?.9:.4]];state.glowHL=false}
- else if(id=='F'){const r=eo((u-0.12)/0.28);pose(r,r);const m=MAN0.clone().add(V(0,0,0.32*r));look(V(m.x+lerp(1.5,1.25,u),0.22,m.z-0.35),V(m.x,0.3,m.z+0.05),34)}
+ else if(id=='F'){const r=eo((u-0.08)/0.2);pose(r,r);const m=MAN0.clone().add(V(0,0,0.32*r));look(V(m.x+lerp(1.5,1.25,u),0.22,m.z-0.35),V(m.x,0.3,m.z+0.05),34)}
  else if(id=='G'){xray(true);dimX();liver.visible=false;const a=lerp(-0.45,0.35,u);const d=faceDir.clone().applyAxisAngle(V(0,1,0),a);look(CHEST.clone().addScaledVector(d,lerp(1.05,0.8,u)).add(V(0,0.05,0)),heart.position,30);
-  const bt=t-6.1;let k=0;for(const b of [0.35,0.7,1.0,1.3,1.6])if(bt>b)k=Math.max(k,Math.exp(-(bt-b)*9));heart.scale.setScalar(1+0.35*k);state.organGlow=[[heart.position,260+140*k,'255,60,60',.55+.4*k]];state.glowHL=false;state.shake=k*6}
+  const bt=t-7.3;let k=0;for(const b of [0.35,0.7,1.0,1.3,1.6])if(bt>b)k=Math.max(k,Math.exp(-(bt-b)*9));heart.scale.setScalar(1+0.35*k);state.organGlow=[[heart.position,260+140*k,'255,60,60',.55+.4*k]];state.glowHL=false;state.shake=k*6}
  else if(id=='H'){eyeG.visible=true;street.visible=false;car.visible=false;root.visible=false;hair.visible=false;rain.visible=false;scene.background.set('#1e2633');scene.fog.near=50;scene.fog.far=100;
   const k=eo((u-0.22)/0.3);pupil.scale.set(lerp(.14,.34,k),lerp(.14,.34,k),1);look(EYE.clone().add(V(lerp(0.35,0.1,u),lerp(0.12,0.04,u),lerp(4.6,3.3,ss(u)))),EYE.clone().add(V(0,0,1)),30);state.glowHL=false}
  else if(id=='I'){xray(true);dimX();sugar.visible=true;setSugar(u*1.7,clamp(u*5));const d=faceDir.clone().applyAxisAngle(V(0,1,0),lerp(0.9,0.6,u));look(BELLY.clone().addScaledVector(d,lerp(1.5,1.15,u)).add(V(0,0.12,0)),BELLY.clone().add(V(0,0.08,0)),34);state.organGlow=[[liver.position,220,'255,170,60',.6],[heart.position,140,'255,60,60',.4]];state.glowHL=false}
  else if(id=='J'){tun.visible=true;street.visible=false;car.visible=false;root.visible=false;hair.visible=false;rain.visible=false;scene.background.set('#2a0408');scene.fog.color.set('#3a060c');scene.fog.near=1;scene.fog.far=11;
   const p=0.05+u*0.22;setTunnel(u);const cp=tc.getPointAt(p).add(TUN),ct=tc.getPointAt(p+0.03).add(TUN);look(cp,ct,52,u*0.6);tL1.position.copy(tc.getPointAt(p+0.02));tL2.position.copy(tc.getPointAt(p+0.08));state.glowHL=false;state.speed=1}
- else if(id=='K'){const c=MAN0.clone().lerp(CAR0,0.18).add(V(0,1.0,0));const a=lerp(0.55,1.7,ss(u));look(c.clone().add(V(Math.cos(a)*5.0,lerp(0.3,1.3,u),Math.sin(a)*5.0)),c,44)}
- else if(id=='L'){const p=carW(V(lerp(1.05,1.35,u),1.12,0.32));look(p,V(MAN0.x,1.45,MAN0.z),34)}
+ else if(id=='K'){const c=MAN0.clone().lerp(CAR0,0.18).add(V(0,1.0,0));const e=0.55*u+0.45*ss(u);const a=lerp(0.45,1.75,e);look(c.clone().add(V(Math.cos(a)*5.0,lerp(0.3,1.3,e),Math.sin(a)*5.0)),c,44)}
+ else if(id=='L'){const e=0.6*u+0.4*eo(u);const p=carW(V(lerp(0.7,2.4,e),lerp(1.2,1.05,e),0.32));look(p,V(MAN0.x,lerp(1.35,1.5,e),MAN0.z),lerp(40,30,e),lerp(-0.06,0.03,e))}
  else if(id=='MM'){xray(true);dimX(0.5);frames.visible=true;
-  const k=u;for(let i=0;i<fr.length;i++){const a=clamp((k-0.06-i*0.075)/0.06);fr[i].scale.setScalar(eo(a)*1);fr[i].visible=a>0}
-  const start=hd.clone().addScaledVector(manLeft,0.7).add(V(0,0.05,0.35)),end=fr[fr.length-1].position.clone().add(V(-1.6,0.2,1.2));
-  look(start.clone().lerp(end,ss(u*0.95)),hd.clone().lerp(fr[Math.min(fr.length-1,Math.floor(u*fr.length))].position,ss(u)*0.9),40);
+  const k=u;for(let i=0;i<fr.length;i++){const a=clamp((k-0.02-i*0.06)/0.08);fr[i].scale.setScalar(eo(a)*1);fr[i].visible=a>0}
+  const e=0.7*u+0.3*ss(u);const fi=e*(fr.length-1);const i0=Math.floor(fi),i1=Math.min(fr.length-1,i0+1);const tp=fr[i0].position.clone().lerp(fr[i1].position,fi-i0);
+  const start=hd.clone().addScaledVector(manLeft,0.75).add(V(0,0.05,0.3)),end=fr[fr.length-1].position.clone().add(V(-1.4,0.1,1.4));
+  look(start.clone().lerp(end,e),hd.clone().lerp(tp,clamp(e*1.6)),40);
   const pk=(k*12)%1;state.organGlow=[[brain.position,160+80*(1-pk),'255,140,190',.5+.3*(1-pk)]]}
- else if(id=='N'){pose(1,1);const tt=t-19.12;state.carT=tt;setRain(Math.max(0,t-19.05)*9,Math.max(1,Math.min(6,(t-19.05)*30)));
-  const m=MAN0.clone().add(V(0,0,0.32));look(V(m.x+1.1,0.5,m.z+2.4),V(m.x-1.3,0.95,m.z-1.8),40);state.blur=4}
- else if(id=='O'){pose(1,0.25);car.position.copy(CAR0).addScaledVector(CARDIR,60);car.updateMatrixWorld();setRain((t-19.05)*9,6);look(V(lerp(3.4,3.1,u),1.7,lerp(7.6,7.0,u)),V(-0.6,1.15,0.3),36);state.glowHL=false}
+ else if(id=='N'){pose(1,1);const tt=t-19.12;state.carT=tt;state.carFn=x=>x<0?0:0.6*eo(x/0.4);setRain(Math.max(0,t-19.05)*9,Math.max(1,Math.min(6,(t-19.05)*30)));state.shake=tt>0.35&&tt<0.55?12*(1-(tt-0.35)/0.2):0;
+  const mid=V(-0.38,0,1.5),perp=V(-0.69,0,0.73);look(mid.clone().addScaledVector(perp,lerp(4.4,4.0,u)).add(V(0,0.6,0)),mid.clone().add(V(0,0.9,0)),42);state.blur=tt>-0.05&&tt<0.5?4:0}
+ else if(id=='O'){pose(1,0.25);car.position.copy(CAR0).addScaledVector(CARDIR,0.6);car.updateMatrixWorld();setRain((t-19.05)*9,6);look(V(lerp(3.4,3.1,u),1.7,lerp(7.6,7.0,u)),V(-0.8,1.15,0.3),36)}
  return state}
 function dimX(k=1){scene.background.set('#1b2433');scene.fog.color.set('#1b2433');scene.fog.near=3;scene.fog.far=22;hemi.intensity=0.9;moon.intensity=0.6}
 
 // ================= MEMORY FRAMES (render targets) =================
 const frames=new THREE.Group();scene.add(frames);const fr=[];
-{const views=[0.2,0.8,1.6,2.6,12.6,15.0];const rts=[];
+{const views=[0.45,0.8,1.4,2.3,14.8,16.1];const rts=[];
  for(const tv of views){const rt=new THREE.WebGLRenderTarget(360,640,{samples:4});rt.texture.colorSpace=THREE.SRGBColorSpace;setShot(tv);cam.aspect=360/640;gl.setRenderTarget(rt);gl.render(scene,cam);gl.setRenderTarget(null);cam.aspect=W/H;rts.push(rt)}
  const back=HEAD.clone().add(V(0,0,0.05));
  rts.forEach((rt,i)=>{const gq=new THREE.Group();const p=back.clone().add(V(-0.15-i*0.25,0.2+i*0.22,0.55+i*0.75));gq.position.copy(p);
@@ -238,22 +240,22 @@ function glowAt(ctx,x,y,r,rgb,a){const gr=ctx.createRadialGradient(x,y,0,x,y,r);
 await document.fonts.load('italic 600 100px CormI');await document.fonts.load('500 60px Corm');
 // captions: [start,end,lines] ; line = [[text,style],...] style w=white roman, g=gold italic
 const CAP=[
- [3.0,4.55,[[['Your brain saw the car','w']],[['before ','w'],['you','g'],[' did.','w']]]],
- [4.55,5.4,[[['Your legs ','w'],['move.','g']]]],
- [5.4,6.4,[[['You never ','w'],['decided','g'],[' that.','w']]]],
- [6.45,7.9,[[['Your heart slams','w']],[['into ','w'],['high gear.','g']]]],
- [8.05,9.45,[[['Pupils ','w'],['blow wide open.','g']]]],
- [9.6,11.2,[[['Your liver dumps sugar','w']],[['into your ','w'],['blood.','g']]]],
- [11.25,12.0,[[['Fuel.','g']]]],
- [12.2,14.1,[[['And this ','w'],['slow motion?','g']]]],
- [14.2,16.0,[[['Not ','w'],['real.','g']]]],
- [16.1,19.0,[[['Your brain just recorded','w']],[['every ','w'],['frame.','g']]]],
- [19.2,21.0,[[["That's why it felt like",'w']],[['forever.','g']]]]];
+ [3.0,4.9,[[['Your brain saw the car','w']],[['before ','w'],['you','g'],[' did.','w']]]],
+ [4.95,6.05,[[['Your legs ','w'],['move.','g']]]],
+ [6.05,7.3,[[['You never ','w'],['decided','g'],[' that.','w']]]],
+ [7.4,9.25,[[['Your heart slams','w']],[['into ','w'],['high gear.','g']]]],
+ [9.3,10.8,[[['Pupils ','w'],['blow wide open.','g']]]],
+ [10.85,12.85,[[['Your liver dumps sugar','w']],[['into your ','w'],['blood.','g']]]],
+ [13.15,14.0,[[['Fuel.','g']]]],
+ [14.1,15.6,[[['And this ','w'],['slow motion?','g']]]],
+ [15.65,16.6,[[['Not ','w'],['real.','g']]]],
+ [16.7,18.9,[[['Your brain just recorded','w']],[['every ','w'],['frame.','g']]]],
+ [19.0,21.1,[[["That's why it felt like",'w']],[['forever.','g']]]]];
 function segFont(st,sz){return st=='g'?`italic 600 ${sz*1.12}px CormI`:`500 ${sz}px Corm`}
 function drawLines(lines,cy,sz,pop){c2.save();c2.textBaseline='alphabetic';c2.shadowColor='rgba(8,12,20,.6)';c2.shadowBlur=20;c2.shadowOffsetY=3;
- const s=1+0.12*Math.pow(1-clamp(pop),3);c2.translate(W/2,cy);c2.scale(s,s);c2.globalAlpha=clamp(pop*4);
+ const s=1+0.12*Math.pow(1-clamp(pop),3);c2.translate(W/2,cy);c2.scale(s,s);c2.globalAlpha=clamp(pop*4);c2.lineJoin='round';c2.lineWidth=8;c2.strokeStyle='rgba(8,12,20,.6)';
  lines.forEach((ln,li)=>{let fs=sz;let w;do{w=0;for(const [t,st] of ln){c2.font=segFont(st,fs);w+=c2.measureText(t).width}if(w>860)fs-=2}while(w>860);
-  let x=-w/2;const y=(li-(lines.length-1)/2)*fs*1.18;for(const [t,st] of ln){c2.font=segFont(st,fs);c2.fillStyle=st=='g'?'#ecc979':'#f6f2ea';c2.textAlign='left';c2.fillText(t,x,y);x+=c2.measureText(t).width}});
+  let x=-w/2;const y=(li-(lines.length-1)/2)*fs*1.18;for(const [t,st] of ln){c2.font=segFont(st,fs);c2.fillStyle=st=='g'?'#ecc979':'#f6f2ea';c2.textAlign='left';c2.strokeText(t,x,y);c2.fillText(t,x,y);x+=c2.measureText(t).width}});
  c2.restore()}
 function compose(t,st){
  // punch-in on each cut
@@ -268,14 +270,15 @@ function compose(t,st){
  c2.globalCompositeOperation='source-over';
  for(const f of FLASH){const d=t-f;if(d>=0&&d<0.12){c2.fillStyle=`rgba(255,250,240,${.55*(1-d/0.12)})`;c2.fillRect(0,0,W,H)}}
  // title (hook)
- if(t<3.0){c2.save();c2.textAlign='center';c2.shadowColor='rgba(0,0,0,.45)';c2.shadowBlur=18;c2.shadowOffsetY=3;
-  c2.font='italic 600 124px CormI';c2.fillStyle='#e8c879';c2.fillText('What if',W/2,470);
-  c2.font='500 70px Corm';c2.fillStyle='#f4f1ea';c2.fillText('time froze one second',W/2,568);c2.fillText('before a car hit you?',W/2,650);c2.restore()}
- for(const [a,b,lines] of CAP)if(t>=a&&t<b)drawLines(lines,1300,66,(t-a)/0.25);
- if(t>=21.1){const p=(t-21.1)/0.3;drawLines([[['Ever had one?','g']]],760,110,p);if(t>=21.6)drawLines([[['Tell me in the comments','w']]],880,58,(t-21.6)/0.3)}
+ if(t<3.0){const pl=c2.createLinearGradient(0,330,0,760);pl.addColorStop(0,'rgba(10,14,24,0)');pl.addColorStop(.3,'rgba(10,14,24,.42)');pl.addColorStop(.75,'rgba(10,14,24,.42)');pl.addColorStop(1,'rgba(10,14,24,0)');c2.fillStyle=pl;c2.fillRect(0,330,W,430);
+  c2.save();c2.textAlign='center';c2.lineJoin='round';c2.shadowColor='rgba(0,0,0,.6)';c2.shadowBlur=22;c2.shadowOffsetY=4;
+  for(const [txt,f,col,y] of [['What if','italic 600 136px CormI','#f0cf7e',480],['time froze one second','500 84px Corm','#ffffff',590],['before a car hit you?','500 84px Corm','#ffffff',688]]){c2.font=f;c2.lineWidth=8;c2.strokeStyle='rgba(8,12,20,.55)';c2.strokeText(txt,W/2,y);c2.fillStyle=col;c2.fillText(txt,W/2,y)}c2.restore()}
+ for(const [a,b,lines] of CAP)if(t>=a&&t<b)drawLines(lines,1300,78,(t-a)/0.25);
+ if(t>=21.25){const p=(t-21.25)/0.3;drawLines([[['Ever had one?','g']]],720,118,p);if(t>=21.8)drawLines([[['Finish this in the comments:','w']],[['“Time slowed for me when…”','g']]],900,64,(t-21.8)/0.3)}
 }
 window.renderFrame=(t)=>{const st=setShot(t);
- if(st.blur){const n=st.blur;a2.clearRect(0,0,W,H);for(let i=0;i<n;i++){const tt=st.carT+ i/(n*30);const d=tt>0?(14*tt+6*tt*tt):0;car.position.copy(CAR0).addScaledVector(CARDIR,d);car.updateMatrixWorld();gl.render(scene,cam);a2.globalAlpha=1/(i+1);a2.drawImage(gl.domElement,0,0)}a2.globalAlpha=1}
+ if(st.carFn&&!st.blur){car.position.copy(CAR0).addScaledVector(CARDIR,st.carFn(st.carT));car.updateMatrixWorld()}
+ if(st.blur){const n=st.blur;a2.clearRect(0,0,W,H);for(let i=0;i<n;i++){const tt=st.carT+ i/(n*30);car.position.copy(CAR0).addScaledVector(CARDIR,st.carFn(tt));car.updateMatrixWorld();gl.render(scene,cam);a2.globalAlpha=1/(i+1);a2.drawImage(gl.domElement,0,0)}a2.globalAlpha=1}
  else{gl.render(scene,cam);a2.clearRect(0,0,W,H);a2.drawImage(gl.domElement,0,0)}
  compose(t,st);return out.toDataURL('image/jpeg',0.9)};
 window.DONE=1;
