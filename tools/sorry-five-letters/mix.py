@@ -23,11 +23,13 @@ def place(s, t, g, pan):
 onset = lambda s: int(np.argmax(np.abs(s) > 0.2))
 for e in ev['events']:
     s = load(e['s'], e.get('rate', 1.0))
-    t = e['t'] - (onset(s) / SR if e['s'] in ('slam', 'thud', 'crack', 'brick1', 'ping') else 0)
+    t = e['t'] - (onset(s) / SR if e['s'] in ('slam', 'thud', 'crack', 'brick1', 'ping', 'sub') else 0)
     place(s, t, e['g'], e['pan'])
 w = load('wind'); tt = np.arange(N) / SR
 bed = np.resize(w, N + SR)[:N]
 gain = np.interp(tt, [0, 1.3, 1.8, 7.6, 8.7, 9.6, DUR], [0.16, 0.16, 0.08, 0.22, 0.22, 0.0, 0.0])
+for e in ev['events']:  # a breath of silence right before every hit, then the boom
+    if e['s'] == 'sub': gain = gain * (1 - 0.9 * np.interp(tt, [e['t'] - 0.28, e['t'] - 0.18, e['t'] + 0.02, e['t'] + 0.3], [0, 1, 1, 0], left=0, right=0))
 mixb[:, 0] += bed * gain; mixb[:, 1] += np.roll(bed, 2400) * gain
 fade = np.interp(tt, [0, 0.01, DUR - 0.6, DUR], [0, 1, 1, 0]); mixb *= fade[:, None]
 mixb *= 0.89 / (np.abs(mixb).max() + 1e-9)

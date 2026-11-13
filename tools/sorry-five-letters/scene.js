@@ -44,10 +44,10 @@ const C = {
 const THUDS = [[0.25, 1.0, 30], [3.35, 0.2, 2], [4.95, 0.42, 5], [5.85, 0.6, 9], [6.7, 0.8, 16], [7.55, 1.0, 30]];
 const REW0 = 1.35, REW1 = 1.75, FLY0 = 8.75, FLY_ST = 0.14, FLY_D = 0.42, SEND = 9.55;
 function heavy(t) { // letter weight 0..1
-  if (t < REW0) return lerp(0.9, 1.0, eout(clamp((t - 0.25) / 0.16)));
+  if (t < REW0) return lerp(0.9, 1.0, clamp((t - 0.15) / 0.1) ** 2);
   if (t < REW1) return 1 - eio((t - REW0) / (REW1 - REW0));
   let h = 0;
-  for (const [tt, v] of THUDS.slice(1)) if (t >= tt) h = lerp(h, v, eout(clamp((t - tt) / 0.16)));
+  for (const [tt, v] of THUDS.slice(1)) if (t >= tt - 0.1) h = lerp(h, v, clamp((t - tt + 0.1) / 0.1) ** 2); // accelerating fall, impact at tt
   return h;
 }
 function dayAt(t) {
@@ -56,9 +56,23 @@ function dayAt(t) {
   let d = 1; for (const [tt, , dd] of THUDS.slice(1)) if (t >= tt) d = dd; return d;
 }
 // how bowed the bodies are (follows the letters, then lifts as the letters leave)
-const bodyHeavy = t => t < FLY0 ? heavy(t) : 1 - ss(FLY0 + 0.3, SEND + 0.45, t);
+// impact impulse: knees buckle past the pose, then settle
+const impK = (t, tt) => { const k = t - tt; return k > 0 ? Math.exp(-k * 9) * (1 - Math.exp(-k * 60)) : 0; };
+const impulse = t => t < REW0 ? impK(t, 0.25) : t < REW1 ? 0 : THUDS.slice(1).reduce((m, [tt, v]) => m + v * impK(t, tt), 0);
+const bodyHeavy = t => t < FLY0 ? heavy(t) + 0.16 * impulse(t) : 1 - ss(FLY0 + 0.3, SEND + 0.45, t);
+// letters: lift before the slam (anticipation), then a small bounce after it
+function dropY(t) {
+  if (t < REW0) { const up = ss(0.03, 0.15, t) * (1 - clamp((t - 0.15) / 0.1) ** 2); return -38 * up + bounce(t, 0.25, 1); }
+  if (t < REW1) return 0;
+  let y = 0; for (const [tt, v] of THUDS.slice(1)) { y += -26 * v * ss(tt - 0.3, tt - 0.12, t) * (1 - clamp((t - tt + 0.1) / 0.1) ** 2) * (t < tt + 0.05 ? 1 : 0); y += bounce(t, tt, v); }
+  return y;
+}
+function bounce(t, tt, v) { const k = t - tt; return k > 0 && k < 0.6 ? -9 * v * Math.exp(-k * 10) * Math.abs(Math.sin(k * 22)) : 0; }
+// squash on impact
+function squash(t) { if (t < REW0) { const k = t - 0.25; return k > 0 ? 0.14 * Math.exp(-k * 14) : 0; } if (t < REW1) return 0; return THUDS.slice(1).reduce((m, [tt, v]) => { const k = t - tt; return m + (k > 0 ? 0.13 * v * Math.exp(-k * 14) : 0); }, 0); }
+const hitList = t => t < REW0 ? [[0.25, 1.25]] : t < REW1 ? [] : THUDS.slice(1);
 function shakeAt(t) {
-  let s = 0; for (const [tt, v] of THUDS) { const k = t - tt; if (k > 0 && k < 0.5) s += (tt < 1 ? 9 : 3 + 5 * v) * Math.exp(-k * 9) * Math.sin(k * 70); }
+  let s = 0; for (const [tt, v] of THUDS) { const k = t - tt; if (k > 0 && k < 0.6) s += (tt < 1 ? 17 : 3 + 13 * v) * Math.exp(-k * 8) * Math.sin(k * 75); }
   return s;
 }
 
@@ -181,7 +195,7 @@ function wordLayout(t, h, restY) { // returns 5 slots {x, y (top), b}
   const b = blockSize(h), gap = 0.1 * b, total = 5 * b + 4 * gap;
   const sT = GY - 176 * FS, floatBottom = pw(h, [[0, sT - 30], [0.45, sT + 8], [1, sT + 260]]);
   const bob = (1 - ss(0.2, 0.45, h)) * Math.sin(t * 2.2) * 4;
-  const bottom = Math.min(floatBottom + bob, restY);
+  const bottom = Math.min(floatBottom + bob, restY) + dropY(t);
   return [...WORD].map((ch, i) => ({ ch, x: 360 - total / 2 + i * (b + gap), y: bottom - b, b, i }));
 }
 function letterBlock(g, x, y, b, ch, h, flash, alpha = 1, glyphOnly = 0) {
@@ -269,6 +283,22 @@ function scene(g, t) {
   }
   // figures
   drawFig(g, pF, oF); drawFig(g, pM, oM);
+  // impact: shockwave along the floor, flying chips off the ledge, a dark flash in the cracks
+  for (const [tt, v] of hitList(t)) {
+    const k = (t - tt) / 0.55; if (k <= 0 || k >= 1) continue; const e = eout(k);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (const [r0, a0] of [[1, 1], [0.6, 0.6]]) {
+      g.strokeStyle = rgba(C.goldHot, 0.55 * a0 * (1 - k) * Math.min(1, v)); g.lineWidth = 4 * (1 - k) + 1;
+      g.beginPath(); g.ellipse(360, GY - LTOP / 2, 30 + 420 * e * r0 * Math.min(1, v + 0.2), (6 + 40 * e * r0) * Math.min(1, v + 0.2), 0, 0, 7); g.stroke();
+    }
+    g.restore();
+    if (v >= 0.55) for (let i = 0; i < 16; i++) { // chips knocked off the ledge front
+      const sx = lerp(200, 520, hash(i * 2.9 + tt)), vx = (hash(i * 5.1) - 0.5) * 220 * v, vy = -(80 + 160 * hash(i * 3.7)) * v, kt = t - tt;
+      const x = sx + vx * kt, y = GY - LTOP + vy * kt + 0.5 * 1400 * kt * kt; if (y > GY + 300) continue;
+      g.save(); g.translate(x, y); g.rotate(kt * 12 * (hash(i) - 0.5)); g.fillStyle = `rgba(${70 + 40 * hash(i)},${66 + 36 * hash(i)},${66 + 30 * hash(i)},${1 - k})`;
+      const r = 2 + 4 * hash(i * 6.3); g.fillRect(-r, -r * 0.7, r * 2, r * 1.4); g.restore();
+    }
+  }
   // dust on each thud
   for (const [tt, v] of THUDS) {
     const k = (t - tt) / 0.7; if (k <= 0 || k >= 1) continue;
@@ -306,8 +336,8 @@ function scene(g, t) {
   const fullBub = (() => { g.save(); g.font = `600 ${BUB_SIZE + 3}px "Inter"`; const w = g.measureText('sorry').width + (BUB_SIZE + 3) * 1.4; const cw = [...'sorry'].map((c, i) => g.measureText('sorry'.slice(0, i)).width); const cwi = [...'sorry'].map(c => g.measureText(c).width); g.restore(); return { w, cw, cwi }; })();
   for (const sl of slots) {
     const k = t < FLY0 ? 0 : flyK(sl.i); if (k >= 1) continue;
-    const thudFlash = THUDS.reduce((m, [tt]) => Math.max(m, t > tt ? Math.exp(-(t - tt) * 7) : 0), 0) * 0.6;
-    if (k <= 0) { letterBlock(g, sl.x, sl.y, sl.b, sl.ch, h, thudFlash); continue; }
+    const thudFlash = THUDS.reduce((m, [tt]) => Math.max(m, t > tt ? Math.exp(-(t - tt) * 7) : 0), 0) * 0.22;
+    if (k <= 0) { const sq = squash(t), cx = sl.x + sl.b / 2, by0 = sl.y + sl.b; g.save(); g.translate(cx, by0); g.scale(1 + sq * 0.7, 1 - sq); g.translate(-cx, -by0); letterBlock(g, sl.x, sl.y, sl.b, sl.ch, h, thudFlash); g.restore(); continue; }
     // target: the glyph slot in his bubble (bubble right edge at bx)
     const s = BUB_SIZE + 3, tx = bx - fullBub.w + s * 0.7 + fullBub.cw[sl.i] + fullBub.cwi[sl.i] / 2, ty = by;
     const e = eio(k), b = lerp(sl.b, s * 1.05, e);
@@ -343,9 +373,13 @@ function frame(g, t) {
   T = t;
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
   background(g, t);
-  const Z = zoomAt(t), sh = shakeAt(t), k = W / DW, ZY = 700;
+  const punch = hitList(t).reduce((m, [tt, v]) => { const kk = t - tt; return m + (kk > 0 ? 0.045 * Math.min(1.2, v) * Math.exp(-kk * 9) : 0); }, 0);
+  const Z = zoomAt(t) + punch, sh = shakeAt(t), k = W / DW, ZY = 700;
   g.setTransform(k * Z, 0, 0, k * Z, k * (360 - 360 * Z) + k * sh * 0.4, k * (ZY - ZY * Z) + k * sh);
   scene(g, t);
+  // impact flash
+  { const f = hitList(t).reduce((m, [tt, v]) => { const kk = t - tt; return m + (kk > 0 ? 0.09 * Math.min(1, v) * Math.exp(-kk * 18) : 0); }, 0);
+    if (f > 0.005) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,220,170,${f})`; g.fillRect(0, 0, W, H); g.restore(); } }
   // rewind flicker (1.35-1.75)
   if (t > REW0 - 0.02 && t < REW1 + 0.05) {
     const a = Math.sin(clamp((t - REW0) / (REW1 - REW0 + 0.05)) * Math.PI);
@@ -362,7 +396,8 @@ function frame(g, t) {
   const day = dayAt(t), cA = 1 - ss(9.6, 9.9, t);
   if (cA > 0.01) {
     const txt = day >= 5 ? `DAY ${day}  ·  STILL 5 LETTERS` : `DAY ${day}`;
-    g.save(); g.globalAlpha = cA; g.font = '700 22px "JetBrains Mono"'; g.letterSpacing = '3px'; g.textAlign = 'center';
+    const lastHit = hitList(t).filter(([tt]) => t >= tt).pop(); const pop = lastHit ? 1 + 0.35 * Math.exp(-(t - lastHit[0]) * 10) : 1;
+    g.save(); g.globalAlpha = cA; g.translate(360, 955); g.scale(pop, pop); g.translate(-360, -955); g.font = '700 22px "JetBrains Mono"'; g.letterSpacing = '3px'; g.textAlign = 'center';
     g.fillStyle = day >= 30 ? 'rgba(255,214,150,0.98)' : 'rgba(246,242,234,0.92)'; g.fillText(txt, 360, 962); g.restore();
   }
   // CTA
@@ -393,7 +428,8 @@ window.events = (() => {
   e.push({ t: 0.0, s: 'creak', g: 0.5, pan: 0 });
   e.push({ t: 0.25, s: 'slam', g: 1.0, pan: 0 }, { t: 0.27, s: 'crack', g: 0.8, pan: 0 });
   e.push({ t: REW0 - 0.05, s: 'rewind', g: 0.7, pan: 0 });
-  for (const [tt, v] of THUDS.slice(1)) { e.push({ t: tt, s: 'thud', g: 0.35 + 0.6 * v, pan: 0, rate: 1.15 - 0.25 * v }); if (v >= 0.8) e.push({ t: tt + 0.02, s: 'crack', g: 0.4 + 0.4 * v, pan: 0 }); }
+  e.push({ t: 0.25, s: 'sub', g: 1.0, pan: 0 });
+  for (const [tt, v] of THUDS.slice(1)) { e.push({ t: tt, s: 'thud', g: 0.45 + 0.55 * v, pan: 0, rate: 1.1 - 0.3 * v }, { t: tt, s: 'sub', g: 0.3 + 0.7 * v, pan: 0 }); if (v >= 0.4) e.push({ t: tt, s: 'slam', g: 0.35 + 0.6 * v, pan: 0, rate: 1.1 - 0.15 * v }); if (v >= 0.8) e.push({ t: tt + 0.02, s: 'crack', g: 0.4 + 0.4 * v, pan: 0 }); }
   e.push({ t: 2.0, s: 'type', g: 0.45, pan: -0.35 }, { t: 2.85, s: 'erase', g: 0.45, pan: -0.35 });
   e.push({ t: 3.65, s: 'type', g: 0.42, pan: 0.35 }, { t: 4.4, s: 'erase', g: 0.42, pan: 0.35 });
   for (let i = 0; i < 5; i++) e.push({ t: FLY0 + i * FLY_ST + FLY_D - 0.02, s: 'brick1', g: 0.5, pan: -0.3, rate: 1 + 0.05 * i });

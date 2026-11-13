@@ -8,3 +8,4 @@ gen crack 1.0 "Stone floor cracking under heavy weight, sharp brittle crack with
 gen creak 1.0 "Low strained creak of a heavy stone weight pressing down, tense groan, very short, no music"
 gen rewind 0.6 "Fast tape rewind zip, short reverse whoosh, no music"
 gen release 1.5 "Heavy weight lifting away, a soft airy release whoosh rising upward with a light shimmer, no music"
+gen sub 1.5 "A massive deep sub bass impact boom, cinematic trailer hit, very low and heavy, short tail, no music"
