@@ -8,6 +8,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 
 | Reel | Status | Upload file |
 |---|---|---|
+| [My Office Gives (Nagula Panchami stickman dub)](nagula-panchami-my-office-gives.md) | v1 delivered 13 Nov 2026 (film audio, claim risk) | `final-reels/nagula-panchami/nagula-panchami-v1.mp4` |
 | [The Lake Gives Back Its Dead (Roopkund Skeleton Lake)](skeleton-lake-roopkund.md) | Final (v5, Viraj VO), Teja: ready to post 6 Nov 2026; 32 s A/B cut in progress | `final-reels/skeleton-lake/skeleton-lake-v5.mp4` |
 | [Roopkund Telugu + Hindi 45 s](skeleton-lake-roopkund-te-hi.md) | Final (V5 picture + natural spoken VO, 44–45 s), delivered 6 Nov 2026 | `final-reels/skeleton-lake/skeleton-lake-v5-te-45s.mp4`, `-hi-45s.mp4` |
 | [The Door They Never Opened (Padmanabhaswamy Vault B)](vault-b-the-door.md) + [Telugu/Hindi](vault-b-the-door_telugu-hindi.md) | Final (v4, Viraj VO) 44 s + 33 s backup + Telugu 55 s + Hindi 48 s, approved 6 Nov 2026 | `final-reels/vault-b-v4/vault-b-v4.mp4` |
