@@ -1,0 +1,270 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:CormI;src:url(corm_it.woff2);font-style:italic;font-weight:600}
+@font-face{font-family:Corm;src:url(corm.woff2);font-weight:500}
+body{margin:0;background:#000}</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from './jsm/loaders/GLTFLoader.js';
+import {SimplifyModifier} from './jsm/modifiers/SimplifyModifier.js';
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const W=1080,H=1920;const rand=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),lerp=(a,b,t)=>a+(b-a)*t,ss=t=>{t=clamp(t);return t*t*(3-2*t)},eo=t=>1-Math.pow(1-clamp(t),3);
+const gl=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});gl.setSize(W,H);
+gl.shadowMap.enabled=true;gl.shadowMap.type=THREE.PCFSoftShadowMap;gl.toneMapping=THREE.ACESFilmicToneMapping;gl.toneMappingExposure=1.05;gl.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();const BG=new THREE.Color('#3c4a60');scene.background=BG.clone();scene.fog=new THREE.Fog('#3c4a60',12,40);
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.85,metalness:0,flatShading:true,...o});
+const E=(c,e,i,o={})=>new THREE.MeshStandardMaterial({color:c,emissive:e,emissiveIntensity:i,flatShading:true,roughness:.6,...o});
+const add=(geo,mat,x,y,z,sx=1,sy=1,sz=1,par=scene,r=[0,0,0])=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.set(...r);m.castShadow=m.receiveShadow=true;par.add(m);return m};
+const box=new THREE.BoxGeometry(1,1,1),cyl=new THREE.CylinderGeometry(1,1,1,10),ico1=new THREE.IcosahedronGeometry(1,1);
+
+// ================= STREET SET =================
+const street=new THREE.Group();scene.add(street);
+const S=(geo,mat,x,y,z,sx,sy,sz,r)=>add(geo,mat,x,y,z,sx,sy,sz,street,r);
+S(box,M('#2b313c',{roughness:.6}),0,-0.05,-10,90,0.1,90);
+for(let i=-4;i<=4;i++)S(box,M('#b9c2cf',{roughness:.7}),i*1.0+0.2,0.006,-0.6,0.5,0.012,3.4);
+S(box,M('#4f5a6c'),0,0.09,-8.6,90,0.18,7.2);S(box,M('#8a95a6'),0,0.1,-5.0,90,0.2,0.12);
+S(box,M('#4f5a6c'),0,0.09,4.8,90,0.18,3.2);S(box,M('#8a95a6'),0,0.1,3.2,90,0.2,0.12);
+for(const z of [-2.3,1.1])for(let i=-12;i<=12;i++)if(Math.abs(i)>1)S(box,M('#c9d0da'),i*2.2,0.006,z,1.1,0.012,0.08);
+const facade=['#55657d','#61718a','#4b5a71','#6a7a93'];
+const litM=E('#3a2c1c','#ffbf75',.55),darkWin=M('#1d2633',{roughness:.25,metalness:.3}),trim=M('#5d6a80');
+for(let i=0;i<9;i++){const x=-22+i*5.6,h=10+rand(i+7)*14,d=-15-rand(i)*2;S(box,M(facade[i%4]),x,h/2,d,5.4,h,6);
+ S(box,trim,x,h+0.15,d,5.6,0.3,6.2);const rows=Math.floor((h-1.5)/2.1);
+ for(let r=0;r<rows;r++)for(let k=0;k<3;k++){const lit=rand(i*17+r*5+k)>.8;const wx=x-1.7+k*1.7,wy=1.9+r*2.1;S(box,lit?litM:darkWin,wx,wy,d+3.02,1.2,1.4,0.05);S(box,trim,wx,wy-0.78,d+3.06,1.35,0.08,0.12)}
+ S(box,M('#222b38',{roughness:.3,metalness:.3}),x,1.3,d+3.02,2.6,2.4,0.05);
+ if(rand(i+40)>.45)S(box,E('#fff','#ffd7a0',2),x,2.65,d+3.05,2.8,0.06,0.06)}
+// near-side buildings (seen in reverse shots)
+for(let i=0;i<9;i++){const x=-22+i*5.6,h=9+rand(i+70)*12,d=10+rand(i+3)*2;S(box,M(facade[(i+2)%4]),x,h/2,d,5.4,h,6);
+ const rows=Math.floor((h-1.5)/2.1);for(let r=0;r<rows;r++)for(let k=0;k<3;k++){const lit=rand(i*13+r*7+k+5)>.8;S(box,lit?litM:darkWin,x-1.7+k*1.7,1.9+r*2.1,d-3.02,1.2,1.4,0.05)}}
+const lampM=E('#fff','#ffe1b5',3);
+for(const [x,z] of [[-13,-5.6],[-4,-5.6],[5,-5.6],[14,-5.6],[-9,3.9],[9,3.9]]){S(cyl,M('#2c3340'),x,2.6,z,.07,5.2,.07);S(box,M('#2c3340'),x+0.45,5.2,z,1.0,.08,.12);S(box,lampM,x+0.8,5.12,z,.4,.06,.2);
+ const pl=new THREE.PointLight('#ffd9a8',14,14,1.6);pl.position.set(x+0.8,4.9,z+0.2);street.add(pl)}
+S(cyl,M('#2c3340'),2.6,1.3,3.6,.05,2.6,.05);S(box,M('#e9edf2'),2.6,2.55,3.62,.55,.55,.04,[0,0,Math.PI/4]);S(box,M('#2f5fb0'),2.6,2.55,3.6,.5,.5,.04,[0,0,Math.PI/4]);
+
+// car
+const prof=new THREE.Shape([[-2.25,0.32],[2.25,0.32],[2.32,0.55],[2.28,0.82],[1.95,0.95],[0.75,1.02],[0.2,1.45],[-1.05,1.47],[-1.75,1.12],[-2.25,1.02],[-2.33,0.7]].map(p=>new THREE.Vector2(...p)));
+const carG=new THREE.ExtrudeGeometry(prof,{depth:1.8,bevelEnabled:true,bevelThickness:.08,bevelSize:.06,bevelSegments:1});carG.translate(0,0,-0.9);
+const car=new THREE.Group();scene.add(car);
+add(carG,M('#2f6c79',{roughness:.3,metalness:.25}),0,0,0,1,1,1,car);
+const glass=M('#151c27',{roughness:.15,metalness:.4});
+const winG=new THREE.ExtrudeGeometry(new THREE.Shape([[0.68,1.03],[0.17,1.42],[-1.02,1.44],[-1.62,1.11],[-1.6,1.04]].map(p=>new THREE.Vector2(...p))),{depth:1.92,bevelEnabled:false});winG.translate(0,0,-0.96);add(winG,glass,0,0.005,0,1,1,1,car);
+const wsG=new THREE.ExtrudeGeometry(new THREE.Shape([[0.76,1.02],[0.86,1.0],[0.24,1.44],[0.19,1.45]].map(p=>new THREE.Vector2(...p))),{depth:1.7,bevelEnabled:false});wsG.translate(0,0,-0.85);add(wsG,glass,0,0.01,0,1,1,1,car);
+for(const [x,z] of [[-1.45,0.86],[1.45,0.86],[-1.45,-0.86],[1.45,-0.86]]){add(cyl,M('#16181d'),x,0.36,z,.36,.26,.36,car,[Math.PI/2,0,0]);add(cyl,M('#8a919c',{metalness:.6,roughness:.3}),x,0.36,z*1.08,.2,.04,.2,car,[Math.PI/2,0,0])}
+const hlM=E('#fff','#fff6e0',6);for(const z of [0.62,-0.62])add(box,hlM,2.33,0.78,z,.06,.1,.42,car);
+add(box,M('#1a1f28'),2.36,0.5,0,.05,.16,1.1,car);
+add(box,E('#ff3b30','#ff2a1a',2),-2.36,0.85,0,.04,.07,1.5,car);
+const CAR0=V(-3.3,0,-2.0),CARR=-0.55,CARDIR=V(Math.cos(-CARR),0,Math.sin(-CARR));// local +x in world
+car.position.copy(CAR0);car.rotation.y=CARR;car.updateMatrixWorld();
+const spots=[];for(const z of [0.62,-0.62]){const s=new THREE.SpotLight('#fff1d6',140,30,0.42,0.55,1.2);s.castShadow=true;s.shadow.mapSize.set(1024,1024);car.add(s);s.position.set(2.45,0.8,z);const tg=new THREE.Object3D();car.add(tg);tg.position.set(10,0.6,z+0.4);s.target=tg;spots.push(s)}
+const carW=p=>p.clone().applyMatrix4(car.matrixWorld);
+
+// lights
+const hemi=new THREE.HemisphereLight('#a9bddb','#26303f',1.6);scene.add(hemi);
+const moon=new THREE.DirectionalLight('#a9c1e6',1.4);moon.position.set(6,14,-10);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-10,right:10,top:10,bottom:-10});moon.shadow.bias=-0.0005;scene.add(moon);
+const rim=new THREE.DirectionalLight('#ffd6a0',0.6);rim.position.set(-8,3,-2);scene.add(rim);
+
+// rain (instanced)
+const NR=700;const rain=new THREE.InstancedMesh(new THREE.OctahedronGeometry(1,0),E('#cfe3ff','#9fc4ff',.9,{transparent:true,opacity:.75}),NR);scene.add(rain);
+const R0=[];for(let i=0;i<NR;i++)R0.push([-8+rand(i)*14,0.1+rand(i+1)*5.5,-7+rand(i+2)*14]);
+const dm=new THREE.Matrix4(),dq=new THREE.Quaternion();
+function setRain(fall,str){for(let i=0;i<NR;i++){const [x,y0,z]=R0[i];let y=y0-fall;y=((y%5.6)+5.6)%5.6+0.05;dm.compose(V(x,y,z),dq,V(.012,.05*str,.012));rain.setMatrixAt(i,dm)}rain.instanceMatrix.needsUpdate=true}
+setRain(0,1);
+
+// ================= MAN =================
+const COL={Wolf3D_Head:'#c08a6a',Wolf3D_Body:'#c08a6a',Wolf3D_Beard:'#2e221c',Wolf3D_Outfit_Top:'#5a6d86',Wolf3D_Outfit_Bottom:'#252b37',Wolf3D_Outfit_Footwear:'#e4e7ec'};
+const g=await new GLTFLoader().loadAsync('models/rpm.glb');const root=g.scene;scene.add(root);
+const B={};root.traverse(o=>{if(o.isBone)B[o.name]=o});
+const REST={};for(const k in B)REST[k]=B[k].quaternion.clone();
+const sms=[];root.traverse(o=>{if(o.isSkinnedMesh)sms.push(o)});
+const eyesM=[];const mod=new SimplifyModifier();const manMeshes=[];
+for(const sm of sms){if(sm.name.match(/Teeth|Headwear/)){sm.visible=false;continue}
+ if(sm.name.match(/Eye/)){eyesM.push(sm);continue}
+ const src=sm.geometry,n=src.attributes.position.count,P=src.attributes.position;
+ let geo=new THREE.BufferGeometry();geo.setAttribute('position',P.clone());geo.setIndex(src.index.clone());
+ geo=mod.modify(geo,Math.floor(n*0.45));
+ const key=(x,y,z)=>`${Math.round(x*1e5)},${Math.round(y*1e5)},${Math.round(z*1e5)}`;const map=new Map();for(let i=0;i<n;i++)map.set(key(P.getX(i),P.getY(i),P.getZ(i)),i);
+ const np=geo.attributes.position,m2=np.count,si=new Uint16Array(m2*4),sw=new Float32Array(m2*4);const SI=src.attributes.skinIndex,SW=src.attributes.skinWeight;
+ for(let i=0;i<m2;i++){const j=map.get(key(np.getX(i),np.getY(i),np.getZ(i)))??0;si[i*4]=SI.getX(j);si[i*4+1]=SI.getY(j);si[i*4+2]=SI.getZ(j);si[i*4+3]=SI.getW(j);sw[i*4]=SW.getX(j);sw[i*4+1]=SW.getY(j);sw[i*4+2]=SW.getZ(j);sw[i*4+3]=SW.getW(j);}
+ geo.setAttribute('skinIndex',new THREE.BufferAttribute(si,4));geo.setAttribute('skinWeight',new THREE.BufferAttribute(sw,4));geo.computeVertexNormals();
+ const base=M(COL[sm.name]||'#888',{roughness:.8,side:THREE.DoubleSide});
+ const xr=new THREE.MeshStandardMaterial({color:'#a9c8ff',emissive:'#2c4c7a',emissiveIntensity:.5,transparent:true,opacity:.13,depthWrite:false,flatShading:true,side:THREE.DoubleSide,roughness:.3});
+ const nm=new THREE.SkinnedMesh(geo,base);nm.castShadow=nm.receiveShadow=true;nm.frustumCulled=false;nm.userData={base,xr};
+ sm.parent.add(nm);nm.bind(sm.skeleton,sm.bindMatrix);sm.visible=false;manMeshes.push(nm)}
+const hair=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),M('#2a1f19',{roughness:.9}));hair.castShadow=true;
+const X=[1,0,0],Y=[0,1,0],Z=[0,0,1];const qa=new THREE.Quaternion(),qp=new THREE.Quaternion(),qb=new THREE.Quaternion();
+function rotW(name,ax,deg){const b=B[name];b.parent.updateMatrixWorld(true);b.parent.getWorldQuaternion(qp);b.getWorldQuaternion(qb);qa.setFromAxisAngle(V(...ax).normalize(),deg*Math.PI/180);b.quaternion.copy(qp.invert().multiply(qa.multiply(qb)));b.updateMatrixWorld(true)}
+const MAN0=V(-0.05,0,1.5);
+function pose(r,arm=r){// r: 0 frozen mid-step, 1 recoiled back
+ root.position.set(0,0,0);root.rotation.set(0,0,0);for(const k in B)B[k].quaternion.copy(REST[k]);root.updateMatrixWorld(true);
+ rotW('LeftUpLeg',X,lerp(-24,10,r));rotW('LeftLeg',X,lerp(14,26,r));rotW('LeftFoot',X,6);
+ rotW('RightUpLeg',X,lerp(16,24,r));rotW('RightLeg',X,lerp(30,16,r));rotW('RightFoot',X,-8);
+ rotW('Spine',Y,10);rotW('Spine1',Y,10);rotW('Spine2',Y,8);rotW('Spine1',X,lerp(-6,-16,r));
+ rotW('Neck',Y,22);rotW('Head',Y,30);rotW('Head',X,lerp(-4,-10,r));
+ rotW('RightArm',Z,lerp(74,50,arm));rotW('RightForeArm',Z,6);rotW('RightForeArm',Y,lerp(0,-60,arm));
+ rotW('LeftArm',Z,lerp(-66,-20,arm));rotW('LeftArm',Y,lerp(-12,-40,arm));rotW('LeftForeArm',Y,lerp(-30,-80,arm));
+ for(const sd of ['Left','Right'])rotW(sd+'Hand',Y,70);
+ root.rotation.y=Math.PI;root.position.copy(MAN0).add(V(0,0,0.32*r));root.updateMatrixWorld(true)}
+pose(0);
+{const hp=B.Head.getWorldPosition(V());hair.position.set(hp.x,hp.y+0.115,hp.z+0.03);hair.scale.set(.102,.085,.118);scene.add(hair);B.Head.attach(hair)}
+const bw=n=>B[n].getWorldPosition(V());
+// reference points at hero pose
+const HEAD=bw('Head').add(V(0,0.1,0)),CHEST=bw('Spine2'),BELLY=bw('Spine1');
+const faceDir=V(0,0,1).applyQuaternion(B.Head.getWorldQuaternion(new THREE.Quaternion())).setY(0).normalize();
+const manLeft=V(-1,0,0);// world -x (toward car)
+// ================= ORGANS (x-ray) =================
+const organs=new THREE.Group();scene.add(organs);organs.visible=false;
+const brainM=E('#ffc1d2','#ff6f9a',1.1),brain=new THREE.Group();organs.add(brain);
+const bg=new THREE.IcosahedronGeometry(1,3);{const p=bg.attributes.position;for(let i=0;i<p.count;i++){const v=V(p.getX(i),p.getY(i),p.getZ(i));const n=Math.sin(v.x*9+v.y*13)*Math.sin(v.y*11-v.z*14)*Math.sin(v.z*10+v.x*7);v.multiplyScalar(1+0.09*n);p.setXYZ(i,v.x,v.y,v.z)}bg.computeVertexNormals()}
+for(const s of [-1,1])add(bg,brainM,s*0.027,0,0,.036,.042,.066,brain);add(new THREE.IcosahedronGeometry(1,2),brainM,0,-0.035,-0.05,.032,.02,.024,brain);add(cyl,brainM,0,-0.06,-0.025,.009,.05,.009,brain);
+brain.position.copy(HEAD).add(V(0,0.04,0)).addScaledVector(faceDir,-0.01);brain.lookAt(brain.position.clone().add(faceDir));
+const amyg=add(new THREE.IcosahedronGeometry(1,0),E('#fff','#ffe08a',4),0,0,0,.012,.012,.012,organs);amyg.position.copy(HEAD).add(V(0,-0.035,0)).addScaledVector(faceDir,0.02);
+const EYEP=HEAD.clone().add(V(0,0.005,0)).addScaledVector(faceDir,0.1);
+const pulse=[];for(let i=0;i<7;i++)pulse.push(add(new THREE.IcosahedronGeometry(1,0),E('#fff','#bfe3ff',5,{transparent:true,opacity:1-i*.13}),0,0,0,.011-i*.0012,.011-i*.0012,.011-i*.0012,organs));
+const heartM=E('#ff4a4a','#ff2020',2.2),heart=new THREE.Group();organs.add(heart);
+add(ico1,heartM,-0.024,0.018,0,.032,.032,.032,heart);add(ico1,heartM,0.024,0.018,0,.032,.032,.032,heart);add(new THREE.ConeGeometry(.052,.075,8),heartM,0,-0.03,0,1,1,1,heart,[Math.PI,0,0]);
+heart.position.copy(CHEST).add(V(0,-0.02,0)).addScaledVector(faceDir,0.05).addScaledVector(manLeft,0.025);heart.lookAt(heart.position.clone().add(faceDir));heart.rotateZ(0.35);
+const liver=add(ico1,E('#b5552a','#e2702c',1.2),0,0,0,.1,.05,.065,organs,[0,0,0.3]);liver.position.copy(BELLY).add(V(0,0.0,0)).addScaledVector(faceDir,0.04).addScaledVector(manLeft,-0.055);
+// veins + sugar particles
+const vein=[];const endPts=['LeftHand','RightHand','LeftFoot','RightFoot','Head'].map(bw);
+const veinM=E('#ff5a5a','#ff2a2a',1.0);const veinMs=[];
+for(const e of [heart.position,...endPts]){const a=liver.position.clone(),mid=a.clone().lerp(e,.5).addScaledVector(faceDir,0.04);const c=new THREE.CatmullRomCurve3([a,mid,e]);vein.push(c);veinMs.push(add(new THREE.TubeGeometry(c,24,0.006,5),veinM,0,0,0,1,1,1,organs))}
+const NS=180;const sugar=new THREE.InstancedMesh(new THREE.OctahedronGeometry(1,0),E('#ffe7a0','#ffc23a',4),NS);organs.add(sugar);sugar.visible=false;
+function setSugar(t,amt){for(let i=0;i<NS;i++){const c=vein[i%vein.length];const p=((rand(i+300)+t*0.55)%1);const s=amt*(.006+rand(i)*.006);dm.compose(c.getPointAt(p),dq,V(s,s,s));sugar.setMatrixAt(i,dm)}sugar.instanceMatrix.needsUpdate=true}
+function xray(on){for(const m of manMeshes)m.material=on?m.userData.xr:m.userData.base;hair.visible=!on;for(const e of eyesM)e.visible=!on;organs.visible=on;liver.visible=true;for(const v of veinMs)v.visible=true}
+
+// ================= MACRO EYE SET =================
+const EYE=V(200,0,0);const eyeG=new THREE.Group();eyeG.position.copy(EYE);scene.add(eyeG);
+add(new THREE.IcosahedronGeometry(1,3),M('#efe9e2',{roughness:.35}),0,0,0,1,1,1,eyeG);
+const iris=add(new THREE.RingGeometry(0.25,0.44,28,3),new THREE.MeshStandardMaterial({color:'#3f8a90',flatShading:true,roughness:.5,emissive:'#123a3f',emissiveIntensity:.6}),0,0,1.004,1,1,1,eyeG);
+const irisIn=add(new THREE.RingGeometry(0.1,0.27,28,2),new THREE.MeshStandardMaterial({color:'#8a6a2e',flatShading:true,roughness:.5}),0,0,1.006,1,1,1,eyeG);
+const pupil=add(new THREE.CircleGeometry(1,28),new THREE.MeshBasicMaterial({color:'#05070a'}),0,0,1.008,.15,.15,1,eyeG);
+for(const [x,y,s] of [[-0.17,0.2,1],[0.06,0.26,.7]])add(new THREE.CircleGeometry(1,6),new THREE.MeshBasicMaterial({color:'#fffaf0'}),x,y,1.012,.05*s,.035*s,1,eyeG);
+const skin=M('#b98063',{roughness:.7});
+const face=new THREE.PlaneGeometry(14,14,14,14);{const p=face.attributes.position;for(let i=0;i<p.count;i++)p.setZ(i,(rand(i*3.1)-.5)*.35-0.0)}face.computeVertexNormals();
+add(face,skin,0,0,0.42,1,1,1,eyeG);
+add(new THREE.TorusGeometry(0.92,0.16,6,26),skin,0,0,0.44,1,1,1,eyeG);
+add(new THREE.TorusGeometry(0.92,0.035,4,26,Math.PI*0.8),M('#1c1410'),0,0.02,0.6,1.02,1.02,1,eyeG,[0,0,Math.PI*0.1]);
+const eyeLight=new THREE.PointLight('#fff0d8',9,12,1.5);eyeLight.position.set(-1.6,1.2,4);eyeG.add(eyeLight);
+const eyeLight2=new THREE.PointLight('#8fb0ff',4,12,1.5);eyeLight2.position.set(2.5,-1,3);eyeG.add(eyeLight2);
+eyeG.visible=false;
+
+// ================= VESSEL TUNNEL =================
+const TUN=V(-200,0,0);const tun=new THREE.Group();tun.position.copy(TUN);scene.add(tun);
+const tpts=[];for(let i=0;i<14;i++)tpts.push(V(Math.sin(i*0.9)*2.2,Math.cos(i*0.7)*1.4,-i*6));const tc=new THREE.CatmullRomCurve3(tpts);
+add(new THREE.TubeGeometry(tc,160,1.3,8,false),E('#6a1020','#2a0408',.6,{side:THREE.BackSide,roughness:.5}),0,0,0,1,1,1,tun);
+const NC=140;const cells=new THREE.InstancedMesh(new THREE.CylinderGeometry(1,1,.35,9),E('#d0283a','#6a0a14',.8),NC);tun.add(cells);
+const NG=160;const glu=new THREE.InstancedMesh(new THREE.OctahedronGeometry(1,0),E('#ffe7a0','#ffc23a',5),NG);tun.add(glu);
+const tL1=new THREE.PointLight('#ffd08a',14,10,1.4);tun.add(tL1);const tL2=new THREE.PointLight('#ff6060',10,14,1.4);tun.add(tL2);
+function setTunnel(p){const frames=[];for(let i=0;i<NC;i++){const q=(rand(i+500)*0.9+0.05);const c=tc.getPointAt(q),n=V(rand(i+1)-.5,rand(i+2)-.5,rand(i+3)-.5).normalize();c.addScaledVector(n,.3+rand(i+4)*.75);dq.setFromEuler(new THREE.Euler(rand(i)*6,rand(i+9)*6,0));dm.compose(c,dq,V(.12,.12,.12));cells.setMatrixAt(i,dm)}cells.instanceMatrix.needsUpdate=true;
+ for(let i=0;i<NG;i++){let q=((rand(i+700)-p*1.4)%1+1)%1;const c=tc.getPointAt(q),n=V(rand(i+11)-.5,rand(i+12)-.5,rand(i+13)-.5).normalize();c.addScaledVector(n,rand(i+14)*.8);dq.setFromEuler(new THREE.Euler(p*20+i,p*13+i,0));const s=.05+rand(i+15)*.07;dm.compose(c,dq,V(s,s,s));glu.setMatrixAt(i,dm)}glu.instanceMatrix.needsUpdate=true}
+tun.visible=false;
+
+// ================= CAMERA + SHOTS =================
+const cam=new THREE.PerspectiveCamera(36,W/H,.03,300);
+function look(p,t,fov=36,roll=0){cam.position.copy(p);cam.up.set(0,1,0);cam.fov=fov;cam.updateProjectionMatrix();cam.lookAt(t);if(roll)cam.rotateZ(roll)}
+const HL=()=>[carW(V(2.36,0.78,0.62)),carW(V(2.36,0.78,-0.62))];
+const carFront=carW(V(2.7,0.6,0));
+const SHOTS=[
+ ['A',0.00,0.45],['B',0.45,1.20],['C',1.20,2.30],['D',2.30,3.00],['E',3.00,4.50],['F',4.50,6.10],['G',6.10,8.00],['H',8.00,9.50],
+ ['I',9.50,11.20],['J',11.20,12.00],['K',12.00,14.10],['L',14.10,16.00],['MM',16.00,19.00],['N',19.00,21.00],['O',21.00,23.00]];
+const FLASH=[0.45,12.0,19.0];
+let state={};
+function setShot(t){
+ const s=SHOTS.find(s=>t>=s[1]&&t<s[2])||SHOTS[SHOTS.length-1];const u=(t-s[1])/(s[2]-s[1]);const id=s[0];
+ // defaults
+ xray(false);heart.visible=true;eyeG.visible=false;tun.visible=false;sugar.visible=false;frames.visible=false;street.visible=true;car.visible=true;root.visible=true;hair.visible=true;rain.visible=true;
+ scene.background.copy(BG);scene.fog.color.copy(BG);scene.fog.near=12;scene.fog.far=40;hemi.intensity=1.6;moon.intensity=1.4;
+ car.position.copy(CAR0);car.updateMatrixWorld();setRain(0,1);pose(0);
+ state={id,u,glowHL:true,organGlow:null,blur:0};
+ const hd=HEAD;
+ if(id=='A'){look(V(lerp(0.75,0.68,u),1.5,lerp(6.3,5.95,u)),V(-1.1,1.95,-2),36)}
+ else if(id=='B'){const p=carFront.clone().addScaledVector(CARDIR,0.25+u*0.5).add(V(0.0,0.05,0)).addScaledVector(V(-CARDIR.z,0,CARDIR.x),-0.35);look(p,V(MAN0.x,1.25,MAN0.z),32,0.03)}
+ else if(id=='C'){const a=lerp(-0.25,0.12,u);const d=faceDir.clone().applyAxisAngle(V(0,1,0),a);look(hd.clone().addScaledVector(d,lerp(0.95,0.8,u)).add(V(0,-0.04,0)),hd.clone().add(V(0,-0.03,0)),30)}
+ else if(id=='D'){const c=MAN0.clone().lerp(CAR0,0.5);const dv=CAR0.clone().sub(MAN0).normalize().applyAxisAngle(V(0,1,0),-0.25+u*0.2);cam.position.set(c.x,lerp(10.5,9.0,eo(u)),c.z);cam.fov=40;cam.updateProjectionMatrix();cam.up.copy(dv.clone().negate());cam.lookAt(c);state.glowHL=true}
+ else if(id=='E'){xray(true);dimX();liver.visible=false;for(const v of veinMs)v.visible=false;heart.visible=false;const side=faceDir.clone().applyAxisAngle(V(0,1,0),-Math.PI/2);look(hd.clone().addScaledVector(side,lerp(0.95,0.7,eo(u))).addScaledVector(faceDir,0.3).add(V(0,0.06,0)),hd.clone().add(V(0,0.0,0)),30);
+  const k=clamp((u-0.15)/0.45);for(let i=0;i<pulse.length;i++){const q=clamp(k-i*0.03);pulse[i].position.copy(EYEP).lerp(amyg.position,eo(q));pulse[i].visible=k>0&&k<1.05}
+  amyg.scale.setScalar(.012*(1+0.8*clamp((u-0.55)/0.1)*Math.exp(-Math.max(0,u-0.65)*6)));state.organGlow=[[brain.position,170,'255,120,170',.5],[amyg.position,120*(k>=1?1.6:1),'255,230,140',k>=1?.9:.4]];state.glowHL=false}
+ else if(id=='F'){const r=eo((u-0.12)/0.28);pose(r,r);const m=MAN0.clone().add(V(0,0,0.32*r));look(V(m.x+lerp(1.5,1.25,u),0.22,m.z-0.35),V(m.x,0.3,m.z+0.05),34)}
+ else if(id=='G'){xray(true);dimX();liver.visible=false;const a=lerp(-0.45,0.35,u);const d=faceDir.clone().applyAxisAngle(V(0,1,0),a);look(CHEST.clone().addScaledVector(d,lerp(1.05,0.8,u)).add(V(0,0.05,0)),heart.position,30);
+  const bt=t-6.1;let k=0;for(const b of [0.35,0.7,1.0,1.3,1.6])if(bt>b)k=Math.max(k,Math.exp(-(bt-b)*9));heart.scale.setScalar(1+0.35*k);state.organGlow=[[heart.position,260+140*k,'255,60,60',.55+.4*k]];state.glowHL=false;state.shake=k*6}
+ else if(id=='H'){eyeG.visible=true;street.visible=false;car.visible=false;root.visible=false;hair.visible=false;rain.visible=false;scene.background.set('#1e2633');scene.fog.near=50;scene.fog.far=100;
+  const k=eo((u-0.22)/0.3);pupil.scale.set(lerp(.14,.34,k),lerp(.14,.34,k),1);look(EYE.clone().add(V(lerp(0.35,0.1,u),lerp(0.12,0.04,u),lerp(4.6,3.3,ss(u)))),EYE.clone().add(V(0,0,1)),30);state.glowHL=false}
+ else if(id=='I'){xray(true);dimX();sugar.visible=true;setSugar(u*1.7,clamp(u*5));const d=faceDir.clone().applyAxisAngle(V(0,1,0),lerp(0.9,0.6,u));look(BELLY.clone().addScaledVector(d,lerp(1.5,1.15,u)).add(V(0,0.12,0)),BELLY.clone().add(V(0,0.08,0)),34);state.organGlow=[[liver.position,220,'255,170,60',.6],[heart.position,140,'255,60,60',.4]];state.glowHL=false}
+ else if(id=='J'){tun.visible=true;street.visible=false;car.visible=false;root.visible=false;hair.visible=false;rain.visible=false;scene.background.set('#2a0408');scene.fog.color.set('#3a060c');scene.fog.near=1;scene.fog.far=11;
+  const p=0.05+u*0.22;setTunnel(u);const cp=tc.getPointAt(p).add(TUN),ct=tc.getPointAt(p+0.03).add(TUN);look(cp,ct,52,u*0.6);tL1.position.copy(tc.getPointAt(p+0.02));tL2.position.copy(tc.getPointAt(p+0.08));state.glowHL=false;state.speed=1}
+ else if(id=='K'){const c=MAN0.clone().lerp(CAR0,0.18).add(V(0,1.0,0));const a=lerp(0.55,1.7,ss(u));look(c.clone().add(V(Math.cos(a)*5.0,lerp(0.3,1.3,u),Math.sin(a)*5.0)),c,44)}
+ else if(id=='L'){const p=carW(V(lerp(1.05,1.35,u),1.12,0.32));look(p,V(MAN0.x,1.45,MAN0.z),34)}
+ else if(id=='MM'){xray(true);dimX(0.5);frames.visible=true;
+  const k=u;for(let i=0;i<fr.length;i++){const a=clamp((k-0.06-i*0.075)/0.06);fr[i].scale.setScalar(eo(a)*1);fr[i].visible=a>0}
+  const start=hd.clone().addScaledVector(manLeft,0.7).add(V(0,0.05,0.35)),end=fr[fr.length-1].position.clone().add(V(-1.6,0.2,1.2));
+  look(start.clone().lerp(end,ss(u*0.95)),hd.clone().lerp(fr[Math.min(fr.length-1,Math.floor(u*fr.length))].position,ss(u)*0.9),40);
+  const pk=(k*12)%1;state.organGlow=[[brain.position,160+80*(1-pk),'255,140,190',.5+.3*(1-pk)]]}
+ else if(id=='N'){pose(1,1);const tt=t-19.12;state.carT=tt;setRain(Math.max(0,t-19.05)*9,Math.max(1,Math.min(6,(t-19.05)*30)));
+  const m=MAN0.clone().add(V(0,0,0.32));look(V(m.x+1.1,0.5,m.z+2.4),V(m.x-1.3,0.95,m.z-1.8),40);state.blur=4}
+ else if(id=='O'){pose(1,0.25);car.position.copy(CAR0).addScaledVector(CARDIR,60);car.updateMatrixWorld();setRain((t-19.05)*9,6);look(V(lerp(3.4,3.1,u),1.7,lerp(7.6,7.0,u)),V(-0.6,1.15,0.3),36);state.glowHL=false}
+ return state}
+function dimX(k=1){scene.background.set('#1b2433');scene.fog.color.set('#1b2433');scene.fog.near=3;scene.fog.far=22;hemi.intensity=0.9;moon.intensity=0.6}
+
+// ================= MEMORY FRAMES (render targets) =================
+const frames=new THREE.Group();scene.add(frames);const fr=[];
+{const views=[0.2,0.8,1.6,2.6,12.6,15.0];const rts=[];
+ for(const tv of views){const rt=new THREE.WebGLRenderTarget(360,640,{samples:4});rt.texture.colorSpace=THREE.SRGBColorSpace;setShot(tv);cam.aspect=360/640;gl.setRenderTarget(rt);gl.render(scene,cam);gl.setRenderTarget(null);cam.aspect=W/H;rts.push(rt)}
+ const back=HEAD.clone().add(V(0,0,0.05));
+ rts.forEach((rt,i)=>{const gq=new THREE.Group();const p=back.clone().add(V(-0.15-i*0.25,0.2+i*0.22,0.55+i*0.75));gq.position.copy(p);
+  const bd=new THREE.Mesh(new THREE.PlaneGeometry(0.42,0.72),new THREE.MeshBasicMaterial({color:'#f4efe4'}));gq.add(bd);
+  const im=new THREE.Mesh(new THREE.PlaneGeometry(0.38,0.676),new THREE.MeshBasicMaterial({map:rt.texture,toneMapped:false}));im.position.z=0.002;gq.add(im);
+  gq.lookAt(p.clone().add(V(-0.9,0.1,0.5)));gq.rotateZ((rand(i+90)-.5)*0.25);frames.add(gq);fr.push(gq)})}
+frames.visible=false;
+
+// ================= 2D COMPOSE =================
+const out=document.getElementById('c'),c2=out.getContext('2d');
+const acc=document.createElement('canvas');acc.width=W;acc.height=H;const a2=acc.getContext('2d');
+const sm=document.createElement('canvas');sm.width=W/4;sm.height=H/4;const s2=sm.getContext('2d');
+const pr=p=>{const q=p.clone().project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H,q.z]};
+function glowAt(ctx,x,y,r,rgb,a){const gr=ctx.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(${rgb},${a})`);gr.addColorStop(1,`rgba(${rgb},0)`);ctx.fillStyle=gr;ctx.fillRect(x-r,y-r,2*r,2*r)}
+await document.fonts.load('italic 600 100px CormI');await document.fonts.load('500 60px Corm');
+// captions: [start,end,lines] ; line = [[text,style],...] style w=white roman, g=gold italic
+const CAP=[
+ [3.0,4.55,[[['Your brain saw the car','w']],[['before ','w'],['you','g'],[' did.','w']]]],
+ [4.55,5.4,[[['Your legs ','w'],['move.','g']]]],
+ [5.4,6.4,[[['You never ','w'],['decided','g'],[' that.','w']]]],
+ [6.45,7.9,[[['Your heart slams','w']],[['into ','w'],['high gear.','g']]]],
+ [8.05,9.45,[[['Pupils ','w'],['blow wide open.','g']]]],
+ [9.6,11.2,[[['Your liver dumps sugar','w']],[['into your ','w'],['blood.','g']]]],
+ [11.25,12.0,[[['Fuel.','g']]]],
+ [12.2,14.1,[[['And this ','w'],['slow motion?','g']]]],
+ [14.2,16.0,[[['Not ','w'],['real.','g']]]],
+ [16.1,19.0,[[['Your brain just recorded','w']],[['every ','w'],['frame.','g']]]],
+ [19.2,21.0,[[["That's why it felt like",'w']],[['forever.','g']]]]];
+function segFont(st,sz){return st=='g'?`italic 600 ${sz*1.12}px CormI`:`500 ${sz}px Corm`}
+function drawLines(lines,cy,sz,pop){c2.save();c2.textBaseline='alphabetic';c2.shadowColor='rgba(8,12,20,.6)';c2.shadowBlur=20;c2.shadowOffsetY=3;
+ const s=1+0.12*Math.pow(1-clamp(pop),3);c2.translate(W/2,cy);c2.scale(s,s);c2.globalAlpha=clamp(pop*4);
+ lines.forEach((ln,li)=>{let fs=sz;let w;do{w=0;for(const [t,st] of ln){c2.font=segFont(st,fs);w+=c2.measureText(t).width}if(w>860)fs-=2}while(w>860);
+  let x=-w/2;const y=(li-(lines.length-1)/2)*fs*1.18;for(const [t,st] of ln){c2.font=segFont(st,fs);c2.fillStyle=st=='g'?'#ecc979':'#f6f2ea';c2.textAlign='left';c2.fillText(t,x,y);x+=c2.measureText(t).width}});
+ c2.restore()}
+function compose(t,st){
+ // punch-in on each cut
+ const s=SHOTS.find(s=>t>=s[1]&&t<s[2])||SHOTS[SHOTS.length-1];const k=clamp((t-s[1])/0.14);let z=1+0.045*Math.pow(1-k,2);if(t<0.02)z=1;
+ const sh=st.shake||0;const ox=(rand(t*91)-.5)*sh,oy=(rand(t*57)-.5)*sh;
+ c2.save();c2.translate(W/2+ox,H/2+oy);c2.scale(z,z);c2.drawImage(acc,-W/2,-H/2);c2.restore();
+ c2.globalCompositeOperation='screen';
+ if(st.glowHL&&car.visible){for(const p of HL()){const [x,y,q]=pr(p);if(q<1&&x>-400&&x<W+400&&y>-400&&y<H+400){glowAt(c2,x,y,340,'255,246,225',.5);glowAt(c2,x,y,110,'255,250,235',.85)}}}
+ if(st.organGlow)for(const [p,r,rgb,a] of st.organGlow){const [x,y,q]=pr(p);if(q<1)glowAt(c2,x,y,r,rgb,a)}
+ // soft bloom
+ s2.clearRect(0,0,sm.width,sm.height);s2.filter='blur(6px)';s2.drawImage(out,0,0,sm.width,sm.height);s2.filter='none';c2.globalAlpha=.12;c2.drawImage(sm,0,0,W,H);c2.globalAlpha=1;
+ c2.globalCompositeOperation='source-over';
+ for(const f of FLASH){const d=t-f;if(d>=0&&d<0.12){c2.fillStyle=`rgba(255,250,240,${.55*(1-d/0.12)})`;c2.fillRect(0,0,W,H)}}
+ // title (hook)
+ if(t<3.0){c2.save();c2.textAlign='center';c2.shadowColor='rgba(0,0,0,.45)';c2.shadowBlur=18;c2.shadowOffsetY=3;
+  c2.font='italic 600 124px CormI';c2.fillStyle='#e8c879';c2.fillText('What if',W/2,470);
+  c2.font='500 70px Corm';c2.fillStyle='#f4f1ea';c2.fillText('time froze one second',W/2,568);c2.fillText('before a car hit you?',W/2,650);c2.restore()}
+ for(const [a,b,lines] of CAP)if(t>=a&&t<b)drawLines(lines,1300,66,(t-a)/0.25);
+ if(t>=21.1){const p=(t-21.1)/0.3;drawLines([[['Ever had one?','g']]],760,110,p);if(t>=21.6)drawLines([[['Tell me in the comments','w']]],880,58,(t-21.6)/0.3)}
+}
+window.renderFrame=(t)=>{const st=setShot(t);
+ if(st.blur){const n=st.blur;a2.clearRect(0,0,W,H);for(let i=0;i<n;i++){const tt=st.carT+ i/(n*30);const d=tt>0?(14*tt+6*tt*tt):0;car.position.copy(CAR0).addScaledVector(CARDIR,d);car.updateMatrixWorld();gl.render(scene,cam);a2.globalAlpha=1/(i+1);a2.drawImage(gl.domElement,0,0)}a2.globalAlpha=1}
+ else{gl.render(scene,cam);a2.clearRect(0,0,W,H);a2.drawImage(gl.domElement,0,0)}
+ compose(t,st);return out.toDataURL('image/jpeg',0.9)};
+window.DONE=1;
+</script></body></html>
