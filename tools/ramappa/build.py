@@ -9,7 +9,7 @@ CB=[0,3,5,7,10,13,15,17,20,22,25,27,31,35,38,42,44,46,50]
 times=[t(i) for i in CB]+[99]
 json.dump(times,open(W+"times_v2.json","w"))
 S=1.30  # splash shot length
-E=[(0,"Craftsman_drops",3.45,1.0),(S,"Craftsman_drops",7.6,0.5),
+E=[(0,"Craftsman_drops",3.45,0.4),(S,"Craftsman_drops",7.6,0.5),
    (t(5),"Visitors_viewing",7.0,.35),(t(10),"Ramappa_Temple_entrance",7.0,.35),(t(13),"Builders_constructing",0.6,.35),
    (t(15),"Shiva_lingam",7.0,.35),(t(17),"Builders_constructing",6.0,.35),(t(20),"Craftsman_holding",0.8,.35),
    (t(22),"Craftsman_holding",7.6,.45),(t(25),"Workers_pouring",3.0,.45),(t(31),"Stone_temple_sand",1.5,.35),
