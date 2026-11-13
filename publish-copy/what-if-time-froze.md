@@ -4,7 +4,7 @@
 |---|---|
 | Status | v3 delivered 13 Nov 2026 (danger-first hook, 1.1x VO); Teja to pick Mark or Jessica |
 | Upload file | `final-reels/body-questions/what-if-time-froze_mark.mp4` or `what-if-time-froze_jessica.mp4` (same picture) |
-| Length | 23.4 s, 9:16, 1080x1920 |
+| Length | 22.4 s, 9:16, 1080x1920 |
 | Voice | ElevenLabs "Mark - Natural Conversations" or "Jessica", 1.1x |
 | Visuals | Faceted low-poly 3D (three.js), x-ray body shots. Animation, not footage |
 
