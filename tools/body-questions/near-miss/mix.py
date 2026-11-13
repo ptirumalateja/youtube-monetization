@@ -10,7 +10,7 @@ for x in w:
 assert len(lines)==14,len(lines)
 src=f'/home/user/nm/vo/{V}11_tight.wav'
 SFX='/home/user/nm/sfx'
-CUES=[('brain_zap',2.50,-7),('whip',4.38,-10),('foot_scrape',4.50,-6),
+CUES=[('car_speed_cut',0.0,-2),('brain_zap',2.50,-7),('whip',4.38,-10),('foot_scrape',4.50,-6),
 ('heart_slam',6.90,-3),('whip',8.48,-8),('iris_open',8.95,-6),('sugar_rush',10.30,-7),('whip',12.08,-8),('tunnel',12.35,-6),('bullet_time',13.45,-5),('glitch_snap',15.08,-7),
 ('memory_frames',16.10,-9),('screech_stop',18.55,-3),('rain_start',18.58,-6)]
 ins=[];fil=[];lab=[]
@@ -24,7 +24,7 @@ fil.append(f'[{n}:a]aresample=48000,aloop=loop=2:size=480000,atrim=0:{DUR},volum
 fil.append(f'[{n+1}:a]aresample=48000,atrim=0:4.3,volume=-22dB,afade=t=in:d=0.2,afade=t=out:st=3.3:d=1,adelay=18600|18600[rn]')
 fl=['[dr]','[rn]']
 for k,(f,st,g) in enumerate(CUES):
-    ins+=['-i',f'{SFX}/{f}.mp3'];ms=int(st*1000);j=n+2+k
+    ins+=['-i',f'{SFX}/{f}.wav' if f.endswith('_cut') else f'{SFX}/{f}.mp3'];ms=int(st*1000);j=n+2+k
     fil.append(f'[{j}:a]aresample=48000,volume={g}dB,adelay={ms}|{ms}[s{k}]');fl.append(f'[s{k}]')
 fil.append(''.join(fl)+f'amix=inputs={len(fl)}:normalize=0[fx]')
 fil.append('[vo]asplit[vo1][vo2]')
