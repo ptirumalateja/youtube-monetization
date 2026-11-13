@@ -1,0 +1,128 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Silk;src:url(m8JUjfVPf62XiF7kO-i9aAhAfmyi2A.woff2)}
+@font-face{font-family:Fred;src:url(X7nP4b87HvSqjb_WIi2yDCRwoQ_k7367_B-i2yQag0-mac3OFiX8EemK.woff2)}
+body{margin:0;background:#000}#wrap{position:relative;width:1080px;height:1920px}
+canvas{position:absolute;left:0;top:0}
+</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+const S=new URLSearchParams(location.search).get('s')||'voxel';
+const W=1080,H=1920;
+const rand=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const gl=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});gl.setSize(W,H);gl.shadowMap.enabled=true;gl.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(38,W/H,.1,400);
+
+function pixTex(n,fn){const c=document.createElement('canvas');c.width=c.height=n;const g=c.getContext('2d');for(let y=0;y<n;y++)for(let x=0;x<n;x++){g.fillStyle=fn(x,y);g.fillRect(x,y,1,1)}const t=new THREE.CanvasTexture(c);t.magFilter=t.minFilter=THREE.NearestFilter;t.colorSpace=THREE.SRGBColorSpace;return t}
+const tone=(r,g,b,k)=>`rgb(${Math.min(255,r*k)|0},${Math.min(255,g*k)|0},${Math.min(255,b*k)|0})`;
+
+function voxel(){
+ scene.background=new THREE.Color('#8fd0ff');scene.fog=new THREE.Fog('#bfe6ff',40,120);
+ const L=t=>new THREE.MeshLambertMaterial({map:t});
+ const gTop=pixTex(16,(x,y)=>tone(92,200,74,.85+rand(x*31+y)*.3));
+ const dirt=pixTex(16,(x,y)=>tone(160,104,60,.8+rand(x*17+y*3)*.35));
+ const side=pixTex(16,(x,y)=>y<4?tone(92,200,74,.9):tone(160,104,60,.8+rand(x+y*7)*.35));
+ const grass=[L(side),L(side),L(gTop),L(dirt),L(side),L(side)];
+ const pathM=L(pixTex(16,(x,y)=>tone(222,200,160,.85+rand(x*5+y*13)*.25)));
+ const leaves=L(pixTex(16,(x,y)=>tone(60,150,60,.7+rand(x*3+y*29)*.5)));
+ const wood=L(pixTex(16,(x,y)=>tone(120,84,50,.8+((x%4==0)?-.15:rand(y+x*2)*.2))));
+ const stone=c=>L(pixTex(16,(x,y)=>{const win=(x%4!=0&&y%4!=0);return win?tone(...c,.75+rand(x+y*9)*.4):tone(...c,.55)}));
+ const box=new THREE.BoxGeometry(1,1,1);
+ // ground: grid x -20..20, z -60..6
+ const tiles=[];for(let x=-20;x<=20;x++)for(let z=-60;z<=8;z++){const onPath=Math.abs(x-Math.sin(z*.08)*2)<2.2;tiles.push([x,z,onPath])}
+ const gi=new THREE.InstancedMesh(box,grass,tiles.length),pi=new THREE.InstancedMesh(box,pathM,tiles.length);let gn=0,pn=0;const m=new THREE.Matrix4();
+ tiles.forEach(([x,z,p])=>{m.makeTranslation(x,p?-.6:-.5,z);if(p)pi.setMatrixAt(pn++,m);else gi.setMatrixAt(gn++,m)});gi.count=gn;pi.count=pn;gi.receiveShadow=pi.receiveShadow=true;scene.add(gi,pi);
+ const add=(mat,x,y,z,sx=1,sy=1,sz=1)=>{const b=new THREE.Mesh(box,mat);b.position.set(x,y,z);b.scale.set(sx,sy,sz);b.castShadow=b.receiveShadow=true;scene.add(b);return b};
+ // trees
+ const tree=(x,z,h)=>{for(let y=0;y<h;y++)add(wood,x,y+.5-.0,z);for(let dx=-2;dx<=2;dx++)for(let dz=-2;dz<=2;dz++)for(let dy=0;dy<3;dy++){if(Math.abs(dx)+Math.abs(dz)+dy>4)continue;if(rand(x*7+dx*3+dz*11+dy)<.15)continue;add(leaves,x+dx,h+dy,z+dz)}};
+ [[-7,-4,4],[7,-6,5],[-9,-14,5],[9,-16,4],[-6,-24,5],[8,-28,5],[-12,-34,4],[12,-38,5]].forEach(t=>tree(...t));
+ // lamp post
+ const iron=new THREE.MeshLambertMaterial({color:'#2f4a3a'});add(iron,3.5,2.5,-3,.3,5,.3);const lampm=new THREE.MeshBasicMaterial({color:'#ffe9a8'});add(lampm,3.5,5.3,-3,.7,.7,.7);
+ // bench
+ const benchW=L(pixTex(16,(x,y)=>tone(170,110,60,(y%4==0)?.6:.9+rand(x+y)*.1)));add(benchW,-4,.9,-1,3,.25,1);add(benchW,-4,1.5,-1.45,3,.6,.15);add(iron,-5.3,.4,-1,.2,.8,.8);add(iron,-2.7,.4,-1,.2,.8,.8);
+ // flowers
+ for(let i=0;i<40;i++){const x=(rand(i)-.5)*30,z=-rand(i+3)*20+6;if(Math.abs(x)<3)continue;add(new THREE.MeshLambertMaterial({color:['#ff6b6b','#ffd84d','#ffffff','#ff9fd0'][i%4]}),Math.round(x)+.0,.15,Math.round(z),.3,.3,.3)}
+ // skyline: big blocky towers far away
+ for(let i=0;i<16;i++){const x=-40+i*5.5+rand(i)*2,h=7+rand(i+9)*14;add(stone([150+rand(i)*30|0,170,195]),x,h/2,-85-rand(i+4)*10,4+rand(i+2)*2,h,4)}
+ // clouds
+ const cloudM=new THREE.MeshLambertMaterial({color:'#ffffff',emissive:'#ffffff',emissiveIntensity:.35});[[-8,24,-40,10],[10,28,-50,14],[0,20,-30,7]].forEach(([x,y,z,w])=>add(cloudM,x,y,z,w,1.2,w*.5));
+ // blocky man (2 units tall-ish): legs, body, arms, head with pixel face
+ const skin=L(pixTex(16,()=>tone(232,180,143,1)));
+ const face=L(pixTex(16,(x,y)=>{if(y<5)return '#3b2a20';if((x==4||x==5||x==10||x==11)&&(y==8||y==9))return x%2?'#ffffff':'#2a1d16';if(y==12&&x>5&&x<10)return '#a0573f';return tone(232,180,143,1)}));
+ const hairS=L(pixTex(16,(x,y)=>y<5?'#3b2a20':tone(232,180,143,1)));
+ const hairT=L(pixTex(16,()=> '#3b2a20'));
+ const jacket=L(pixTex(16,(x,y)=>tone(224,163,58,.9+rand(x+y*16)*.1)));
+ const jeans=L(pixTex(16,(x,y)=>tone(44,58,86,.9+rand(x*3+y)*.15)));
+ const P=new THREE.Group();scene.add(P);
+ const part=(mats,x,y,z,sx,sy,sz)=>{const b=new THREE.Mesh(box,mats);b.position.set(x,y,z);b.scale.set(sx,sy,sz);b.castShadow=true;P.add(b);return b};
+ part(jeans,-.25,.75,0,.48,1.5,.5);part(jeans,.25,.75,0,.48,1.5,.5);
+ part(jacket,0,2.2,0,1,1.4,.55);part(jacket,-.72,2.15,0,.42,1.35,.45);part(jacket,.72,2.15,0,.42,1.35,.45);
+ part(skin,-.72,1.32,0,.4,.35,.4);part(skin,.72,1.32,0,.4,.35,.4);
+ part([hairS,hairS,hairT,skin,face,hairS],0,3.35,0,.95,.95,.95);
+ P.position.set(0,0,1);P.rotation.y=-.25;
+ scene.add(new THREE.HemisphereLight('#dff3ff','#6a8a4a',1.6));const sun=new THREE.DirectionalLight('#fff3dd',2.4);sun.position.set(-12,20,14);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-20,right:20,top:20,bottom:-20,far:80});scene.add(sun);
+ cam.position.set(0,6,21);cam.lookAt(0,4.6,0);
+}
+
+function clay(){
+ const bump=new THREE.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#808080';g.fillRect(0,0,512,512);
+  for(let i=0;i<900;i++){g.strokeStyle=rand(i)>.5?'rgba(255,255,255,.1)':'rgba(0,0,0,.1)';g.lineWidth=1+rand(i+3)*2.5;g.beginPath();g.arc(rand(i+1)*512,rand(i+2)*512,6+rand(i+4)*26,rand(i+5)*6,rand(i+5)*6+2);g.stroke()}return c})());
+ bump.wrapS=bump.wrapT=THREE.RepeatWrapping;
+ const C=col=>new THREE.MeshStandardMaterial({color:col,roughness:.78,bumpMap:bump,bumpScale:2.2});
+ // painted backdrop card
+ const bc=document.createElement('canvas');bc.width=512;bc.height=1024;const bg=bc.getContext('2d');const gr=bg.createLinearGradient(0,0,0,1024);gr.addColorStop(0,'#6fb7ff');gr.addColorStop(1,'#d6efff');bg.fillStyle=gr;bg.fillRect(0,0,512,1024);
+ for(let i=0;i<14;i++){const h=120+rand(i)*260,w=26+rand(i+1)*30,x=i*38-10;bg.fillStyle=i%2?'#a9bed6':'#b8cadf';bg.beginPath();bg.roundRect(x,880-h,w,h+200,8);bg.fill()}
+ const bt=new THREE.CanvasTexture(bc);bt.colorSpace=THREE.SRGBColorSpace;
+ const card=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshBasicMaterial({map:bt}));card.position.set(0,18,-30);scene.add(card);
+ scene.background=new THREE.Color('#6fb7ff');
+ const add=(geo,mat,x,y,z,sx=1,sy=1,sz=1)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=m.receiveShadow=true;scene.add(m);return m};
+ const sph=new THREE.SphereGeometry(1,40,28),cap=new THREE.CapsuleGeometry(1,1,12,24),cyl=new THREE.CylinderGeometry(1,1,1,32);
+ // diorama ground block
+ add(new THREE.BoxGeometry(40,2,40),C('#5fbf4a'),0,-1,-10);
+ // path: flattened capsule shapes
+ const pathM=C('#f1d9a8');for(let i=0;i<8;i++){add(sph,pathM,Math.sin(i*.6)*.6,.02,4-i*3.2,2.4-i*.15,.06,2.2)}
+ // trees: capsule trunk + clustered spheres
+ const tree=(x,z,s)=>{add(cyl,C('#8a5a33'),x,1.6*s,z,.35*s,3.2*s,.35*s);[[0,3.8,0,1.6],[-.9,3.2,.3,1.2],[.9,3.3,-.2,1.25],[0,4.7,0,1.1]].forEach(([dx,dy,dz,r],k)=>add(sph,C(k%2?'#3fa34a':'#58b94d'),x+dx*s,dy*s,z+dz*s,r*s,r*s,r*s))};
+ tree(-5.5,-2,1.1);tree(5.8,-4,1.2);tree(-7,-12,1);tree(7,-14,1);tree(-4,-20,.9);tree(4.5,-22,.9);
+ // lamp
+ add(cyl,C('#2f4a3a'),3,2.5,-1,.12,5,.12);add(sph,new THREE.MeshStandardMaterial({color:'#ffe9a8',emissive:'#ffcf6b',emissiveIntensity:.9,roughness:.6}),3,5.2,-1,.38,.42,.38);
+ // bench
+ const bw=C('#c0703e');add(new THREE.BoxGeometry(1,1,1),bw,-4,.9,0,2.6,.22,.8);add(new THREE.BoxGeometry(1,1,1),bw,-4,1.5,-.4,2.6,.6,.14);add(cyl,C('#3b3530'),-5.1,.45,0,.08,.9,.08);add(cyl,C('#3b3530'),-2.9,.45,0,.08,.9,.08);
+ // flowers
+ for(let i=0;i<30;i++){const x=(rand(i)-.5)*16,z=-rand(i+3)*14+5;if(Math.abs(x)<2.2)continue;add(sph,C(['#ff5a4f','#ffd23f','#ffffff','#b07cff'][i%4]),x,.18,z,.18,.18,.18)}
+ // clay clouds + sun on sticks in the sky
+ const cl=C('#ffffff');[[-5,13,-12],[5,15,-14]].forEach(([x,y,z])=>{[-1.2,0,1.2].forEach((d,k)=>add(sph,cl,x+d,y+(k==1?.5:0),z,1.3,1,1))});
+ add(sph,new THREE.MeshStandardMaterial({color:'#ffd23f',roughness:.8,bumpMap:bump,bumpScale:2,emissive:'#ffb000',emissiveIntensity:.35}),6.5,18,-16,1.8,1.8,1.4);
+ // puppet man
+ const P=new THREE.Group();scene.add(P);const pp=(geo,mat,x,y,z,sx,sy,sz,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.z=rz;m.castShadow=true;P.add(m);return m};
+ const skin=C('#f0b48a'),jac=C('#f2a531'),jean=C('#2f4f8f'),shoe=C('#4a2f22');
+ pp(cap,jean,-.3,.95,0,.26,.5,.26);pp(cap,jean,.3,.95,0,.26,.5,.26);
+ pp(sph,shoe,-.32,.18,.12,.3,.18,.42);pp(sph,shoe,.32,.18,.12,.3,.18,.42);
+ pp(cap,jac,0,2.35,0,.72,.55,.5);
+ pp(cap,jac,-.85,2.25,0,.22,.5,.22,-.15);pp(cap,jac,.85,2.25,0,.22,.5,.22,.15);
+ pp(sph,skin,-.98,1.45,0,.2,.2,.2);pp(sph,skin,.98,1.45,0,.2,.2,.2);
+ pp(sph,skin,0,3.75,0,.72,.78,.68);
+ pp(sph,C('#3b2a20'),0,4.12,-.08,.74,.5,.66);
+ const eye=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.4});const pup=new THREE.MeshStandardMaterial({color:'#111',roughness:.3});
+ pp(sph,eye,-.25,3.8,.58,.16,.18,.1);pp(sph,eye,.25,3.8,.58,.16,.18,.1);pp(sph,pup,-.25,3.79,.66,.08,.09,.05);pp(sph,pup,.25,3.79,.66,.08,.09,.05);
+ pp(sph,skin,0,3.62,.66,.13,.11,.1);
+ pp(new THREE.TorusGeometry(.18,.04,8,20,Math.PI),C('#a0402f'),0,3.42,.62,1,1,1,Math.PI);
+ P.position.set(0,0,2.6);P.rotation.y=-.15;P.rotation.z=.01;
+ scene.add(new THREE.HemisphereLight('#eaf6ff','#7a9a5a',1.1));const sun=new THREE.DirectionalLight('#fff1dc',2.6);sun.position.set(-8,14,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.radius=6;Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15,far:60});scene.add(sun);
+ gl.toneMapping=THREE.ACESFilmicToneMapping;gl.toneMappingExposure=1.1;
+ cam.position.set(0,4.6,21);cam.lookAt(0,4.9,0);
+}
+
+({voxel,clay})[S]();
+gl.render(scene,cam);
+// text overlay on a 2D canvas
+const out=document.getElementById('c'),g=out.getContext('2d');g.drawImage(gl.domElement,0,0);
+await document.fonts.load('40px Silk');await document.fonts.load('40px Fred');
+g.textAlign='center';
+if(S==='voxel'){g.font='86px Silk';[['WHY DO FINGERS',420],['WRINKLE?',540]].forEach(([t,y])=>{[['#3f2a17',8],['#5b3a1e',6],['#2f7a2a',4],['#3e9a35',2]].forEach(([c,k])=>{g.fillStyle=c;g.fillText(t,W/2+k,y+k)});g.fillStyle='#fff';g.fillText(t,W/2,y)})}
+else{g.font='110px Fred';const cols=['#ff5a4f','#ffd23f','#58b94d','#4fa3ff','#b07cff','#ff8a3d'];[['Why do fingers',430],['wrinkle?',560]].forEach(([t,y],li)=>{const tw=g.measureText(t).width;let x=W/2-tw/2;g.textAlign='left';[...t].forEach((ch,i)=>{const w=g.measureText(ch).width;g.fillStyle='rgba(40,30,20,.35)';g.fillText(ch,x+4,y+8);g.fillStyle=cols[(i+li*2)%cols.length];g.fillText(ch,x,y);g.fillStyle='rgba(255,255,255,.35)';g.save();g.beginPath();g.rect(x,y-80,w,26);g.clip();g.fillText(ch,x,y);g.restore();x+=w})})}
+window.DONE=1;
+</script></body></html>
