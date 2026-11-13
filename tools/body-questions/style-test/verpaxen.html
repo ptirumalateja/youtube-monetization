@@ -1,0 +1,115 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:CormI;src:url(corm_it.woff2);font-style:italic;font-weight:600}
+@font-face{font-family:Corm;src:url(corm.woff2);font-weight:500}
+body{margin:0;background:#000}</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from './jsm/loaders/GLTFLoader.js';
+import {SimplifyModifier} from './jsm/modifiers/SimplifyModifier.js';
+const Q=new URLSearchParams(location.search);
+const W=1080,H=1920;const rand=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const gl=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});gl.setSize(W,H);
+gl.shadowMap.enabled=true;gl.shadowMap.type=THREE.PCFSoftShadowMap;gl.toneMapping=THREE.ACESFilmicToneMapping;gl.toneMappingExposure=1.05;gl.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#3c4a60');scene.fog=new THREE.Fog('#3c4a60',12,40);
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.85,metalness:0,flatShading:true,...o});
+const add=(geo,mat,x,y,z,sx=1,sy=1,sz=1,par=scene,r=[0,0,0])=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.set(...r);m.castShadow=m.receiveShadow=true;par.add(m);return m};
+const box=new THREE.BoxGeometry(1,1,1),cyl=new THREE.CylinderGeometry(1,1,1,10);
+
+// ---------- set: clean night street
+add(box,M('#2b313c',{roughness:.6}),0,-0.05,-10,90,0.1,90);// asphalt
+for(let i=-4;i<=4;i++)add(box,M('#b9c2cf',{roughness:.7}),i*1.0+0.2,0.006,-0.6,0.5,0.012,3.4);// zebra (crossing runs along z)
+add(box,M('#4f5a6c'),0,0.09,-8.6,90,0.18,7.2);add(box,M('#8a95a6'),0,0.1,-5.0,90,0.2,0.12);// far sidewalk + kerb
+add(box,M('#4f5a6c'),0,0.09,4.8,90,0.18,3.2);
+for(const z of [-2.3,1.1])for(let i=-12;i<=12;i++)if(Math.abs(i)>1)add(box,M('#c9d0da'),i*2.2,0.006,z,1.1,0.012,0.08);// lane dashes
+// buildings (clean, architectural)
+const facade=['#55657d','#61718a','#4b5a71','#6a7a93'];
+for(let i=0;i<9;i++){const x=-22+i*5.6,h=10+rand(i+7)*14,d=-15-rand(i)*2;const b=add(box,M(facade[i%4]),x,h/2,d,5.4,h,6);
+ add(box,M('#5d6a80'),x,h+0.15,d,5.6,0.3,6.2);// parapet
+ const rows=Math.floor((h-1.5)/2.1);
+ for(let r=0;r<rows;r++)for(let k=0;k<3;k++){const lit=rand(i*17+r*5+k)>.8;const wx=x-1.7+k*1.7,wy=1.9+r*2.1;
+  add(box,lit?new THREE.MeshStandardMaterial({color:'#3a2c1c',emissive:'#ffbf75',emissiveIntensity:.55}):M('#1d2633',{roughness:.25,metalness:.3}),wx,wy,d+3.02,1.2,1.4,0.05);
+  add(box,M('#5d6a80'),wx,wy-0.78,d+3.06,1.35,0.08,0.12)}
+ add(box,M('#222b38',{roughness:.3,metalness:.3}),x,1.3,d+3.02,2.6,2.4,0.05);}// shop glass
+// awning + shop light strip
+for(let i=0;i<9;i++){const x=-22+i*5.6,d=-15-rand(i)*2;if(rand(i+40)>.45)add(box,new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ffd7a0',emissiveIntensity:2}),x,2.65,d+3.05,2.8,0.06,0.06)}
+// street lamps
+const lampM=new THREE.MeshStandardMaterial({color:'#fff',emissive:'#ffe1b5',emissiveIntensity:3});
+for(const x of [-13,-4,5,14]){add(cyl,M('#2c3340'),x,2.6,-5.6,.07,5.2,.07);add(box,M('#2c3340'),x+0.45,5.2,-5.6,1.0,.08,.12);add(box,lampM,x+0.8,5.12,-5.6,.4,.06,.2);
+ const pl=new THREE.PointLight('#ffd9a8',14,14,1.6);pl.position.set(x+0.8,4.9,-5.4);scene.add(pl)}
+// bollards / sign on near side
+add(cyl,M('#2c3340'),2.6,1.3,3.6,.05,2.6,.05);add(box,M('#e9edf2'),2.6,2.55,3.62,.55,.55,.04,scene,[0,0,Math.PI/4]);add(box,M('#2f5fb0'),2.6,2.55,3.6,.5,.5,.04,scene,[0,0,Math.PI/4]);
+
+// ---------- car: extruded low-poly profile
+const prof=new THREE.Shape([[-2.25,0.32],[2.25,0.32],[2.32,0.55],[2.28,0.82],[1.95,0.95],[0.75,1.02],[0.2,1.45],[-1.05,1.47],[-1.75,1.12],[-2.25,1.02],[-2.33,0.7]].map(p=>new THREE.Vector2(...p)));
+const carG=new THREE.ExtrudeGeometry(prof,{depth:1.8,bevelEnabled:true,bevelThickness:.08,bevelSize:.06,bevelSegments:1});carG.translate(0,0,-0.9);
+const car=new THREE.Group();scene.add(car);
+const paint=M('#2f6c79',{roughness:.3,metalness:.25});
+add(carG,paint,0,0,0,1,1,1,car);
+const glass=M('#151c27',{roughness:.15,metalness:.4});
+const winG=new THREE.ExtrudeGeometry(new THREE.Shape([[0.68,1.03],[0.17,1.42],[-1.02,1.44],[-1.62,1.11],[-1.6,1.04]].map(p=>new THREE.Vector2(...p))),{depth:1.92,bevelEnabled:false});winG.translate(0,0,-0.96);add(winG,glass,0,0.005,0,1,1,1,car);
+const wsG=new THREE.ExtrudeGeometry(new THREE.Shape([[0.76,1.02],[0.86,1.0],[0.24,1.44],[0.19,1.45]].map(p=>new THREE.Vector2(...p))),{depth:1.7,bevelEnabled:false});wsG.translate(0,0,-0.85);add(wsG,glass,0,0.01,0,1,1,1,car);
+for(const [x,z] of [[-1.45,0.86],[1.45,0.86],[-1.45,-0.86],[1.45,-0.86]]){add(cyl,M('#16181d'),x,0.36,z,.36,.26,.36,car,[Math.PI/2,0,0]);add(cyl,M('#8a919c',{metalness:.6,roughness:.3}),x,0.36,z*1.08,.2,.04,.2,car,[Math.PI/2,0,0])}
+const hlM=new THREE.MeshStandardMaterial({color:'#fff',emissive:'#fff6e0',emissiveIntensity:6});
+for(const z of [0.62,-0.62])add(box,hlM,2.33,0.78,z,.06,.1,.42,car);
+add(box,M('#1a1f28'),2.36,0.5,0,.05,.16,1.1,car);// grille
+add(box,new THREE.MeshStandardMaterial({color:'#ff3b30',emissive:'#ff2a1a',emissiveIntensity:2}),-2.36,0.85,0,.04,.07,1.5,car);
+car.position.set(-3.3,0,-2.0);car.rotation.y=-0.55;
+for(const z of [0.62,-0.62]){const s=new THREE.SpotLight('#fff1d6',140,30,0.42,0.55,1.2);s.castShadow=true;s.shadow.mapSize.set(1024,1024);const p=new THREE.Vector3(2.45,0.8,z).applyMatrix4(car.updateMatrixWorld()||car.matrixWorld);s.position.copy(p);s.target.position.set(p.x+8,0.6,p.z+0.4);scene.add(s,s.target)}
+
+// ---------- lights
+scene.add(new THREE.HemisphereLight('#a9bddb','#26303f',1.6));
+const moon=new THREE.DirectionalLight('#a9c1e6',1.4);moon.position.set(6,14,-10);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-10,right:10,top:10,bottom:-10});moon.shadow.bias=-0.0005;scene.add(moon);
+const rim=new THREE.DirectionalLight('#ffd6a0',0.6);rim.position.set(-8,3,-2);scene.add(rim);
+
+// ---------- frozen rain
+const dropM=new THREE.MeshStandardMaterial({color:'#cfe3ff',emissive:'#9fc4ff',emissiveIntensity:.9,transparent:true,opacity:.75,flatShading:true});const dropG=new THREE.OctahedronGeometry(1,0);
+for(let i=0;i<260;i++){const m=new THREE.Mesh(dropG,dropM);m.position.set(-7+rand(i)*12,0.1+rand(i+1)*5.5,-6+rand(i+2)*9);m.scale.set(.012,.05,.012);scene.add(m)}
+
+// ---------- man (ReadyPlayerMe rig): pose, bake, decimate, flat shade
+const COL={Wolf3D_Head:'#c08a6a',Wolf3D_Body:'#c08a6a',Wolf3D_Beard:'#2e221c',Wolf3D_Headwear:'#2e221c',Wolf3D_Outfit_Top:'#7d8fa6',Wolf3D_Outfit_Bottom:'#2a3242',Wolf3D_Outfit_Footwear:'#e4e7ec',Wolf3D_Teeth:'#ddd',Wolf3D_Eye:'#1a1a1a'};
+const g=await new GLTFLoader().loadAsync('models/rpm.glb');const root=g.scene;scene.add(root);
+const B={};root.traverse(o=>{if(o.isBone)B[o.name]=o});
+const qa=new THREE.Quaternion(),qp=new THREE.Quaternion(),qb=new THREE.Quaternion();
+function rotW(name,ax,deg){const b=B[name];root.updateMatrixWorld(true);b.parent.getWorldQuaternion(qp);b.getWorldQuaternion(qb);qa.setFromAxisAngle(new THREE.Vector3(...ax).normalize(),deg*Math.PI/180);b.quaternion.copy(qp.invert().multiply(qa.multiply(qb)));b.updateMatrixWorld(true)}
+const X=[1,0,0],Y=[0,1,0],Z=[0,0,1];
+// model faces +z; car will be on the man's left (+x in model space)
+rotW('LeftUpLeg',X,-24);rotW('LeftLeg',X,14);rotW('LeftFoot',X,6);
+rotW('RightUpLeg',X,16);rotW('RightLeg',X,30);rotW('RightFoot',X,-8);
+rotW('Spine',Y,10);rotW('Spine1',Y,10);rotW('Spine2',Y,8);rotW('Spine1',X,-6);
+rotW('Neck',Y,22);rotW('Head',Y,30);rotW('Head',X,-4);
+rotW('RightArm',Z,74);rotW('RightForeArm',Z,6);
+rotW('LeftArm',Z,-66);rotW('LeftArm',Y,-12);rotW('LeftForeArm',Y,-30);
+for(const sd of ['Left','Right']){const sg=sd=='Left'?(+Q.get('ls')||1):1;rotW(sd+'Hand',Y,sg*(+Q.get('hy')||70));for(const f of ['Index','Middle','Ring','Pinky'])for(const k of [1,2,3])rotW(sd+'Hand'+f+k,[sg*0,0,0].map((_,i)=>0)&&Z,0)}
+root.updateMatrixWorld(true);
+const man=new THREE.Group();const meshes=[];root.traverse(o=>{if(o.isSkinnedMesh)meshes.push(o)});
+const v=new THREE.Vector3(),mod=new SimplifyModifier();
+for(const sm of meshes){if(sm.name.match(/Eye|Teeth|Headwear/))continue;const src=sm.geometry,n=src.attributes.position.count,pos=new Float32Array(n*3);
+ for(let i=0;i<n;i++){sm.getVertexPosition(i,v);v.applyMatrix4(sm.matrixWorld);pos.set([v.x,v.y,v.z],i*3)}
+ let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setIndex(src.index);
+ geo=mod.modify(geo,Math.floor(n*(+Q.get('dec')||0.45)));geo.computeVertexNormals();
+ const m=new THREE.Mesh(geo,M(COL[sm.name]||'#888',{roughness:.8,side:THREE.DoubleSide}));m.castShadow=m.receiveShadow=true;man.add(m)}
+const hp=B.Head.getWorldPosition(new THREE.Vector3());const hair=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),M('#2a1f19',{roughness:.9}));hair.position.set(hp.x,hp.y+0.115,hp.z-0.03);hair.scale.set(.102,.085,.118);hair.castShadow=true;man.add(hair);scene.remove(root);scene.add(man);
+man.rotation.y=Math.PI;man.position.set(-0.05,0,1.5);
+
+// ---------- camera: low, behind the shoulder, looking at the car
+const cam=new THREE.PerspectiveCamera(36,W/H,.1,200);cam.position.set(0.75,1.5,6.3);cam.lookAt(-1.1,1.95,-2);
+gl.render(scene,cam);
+const out=document.getElementById('c'),c2=out.getContext('2d');c2.drawImage(gl.domElement,0,0);
+// headlight bloom
+const pr=p=>{const q=p.clone().project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H]};
+c2.globalCompositeOperation='screen';
+for(const z of [0.62,-0.62]){const [x,y]=pr(new THREE.Vector3(2.36,0.78,z).applyMatrix4(car.matrixWorld));for(const [r,a] of [[340,.55],[110,.9]]){const gr=c2.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,`rgba(255,246,225,${a})`);gr.addColorStop(1,'rgba(255,246,225,0)');c2.fillStyle=gr;c2.fillRect(x-r,y-r,2*r,2*r)}
+ c2.fillStyle=c2.createLinearGradient(x-500,0,x+500,0);}
+c2.globalCompositeOperation='source-over';
+// soft vignette top for text legibility (light, not black)
+const tg=c2.createLinearGradient(0,0,0,900);tg.addColorStop(0,'rgba(20,28,40,.3)');tg.addColorStop(1,'rgba(20,28,40,0)');c2.fillStyle=tg;c2.fillRect(0,0,W,900);
+// ---------- typography (verpaxen: gold italic serif + white serif)
+await document.fonts.load('italic 600 100px CormI');await document.fonts.load('500 60px Corm');
+c2.textAlign='center';c2.shadowColor='rgba(0,0,0,.45)';c2.shadowBlur=18;c2.shadowOffsetY=3;
+c2.font='italic 600 124px CormI';c2.fillStyle='#e8c879';c2.fillText('What if',W/2,470);
+c2.font='500 70px Corm';c2.fillStyle='#f4f1ea';
+c2.fillText('time froze one second',W/2,568);c2.fillText('before a car hit you?',W/2,650);
+window.DONE=1;
+</script></body></html>
