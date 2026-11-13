@@ -2,19 +2,21 @@
 
 | | |
 |---|---|
-| Status | v4 (latest version) |
+| Status | Final (v4) |
 | Upload file | `final-reels/he-moved-a-mountain_v4_master.mp4` (share: `_v4.mp4`) |
 | Length | 17.0 s |
 | Voice | None (wordless, no music in the file) |
 | Copy taken from | `final-reels/he-moved-a-mountain.md` section 7 |
 
-> **13 Nov 2026 storage cleanup:** the v1-v3 files were deleted from project files. The copy below was written for v3; check the hook and beat timings against v4 before posting.
+> **13 Nov 2026:** v1-v3 were deleted from project files. The copy below is updated for v4 and checked against the v4 file (17.0 s; the beat drop is still at 0:09.6).
 
 ## Version notes
 
 - v3 moved the beat drop from 0:16.6 to **0:09.6** (the wall breaking). The upload settings below are updated for that.
 - v3 hook on screen: "55 KM THE LONG WAY. / ONE MOUNTAIN. / ONE HAMMER."
-- A v4 is being built in the habit time-lapse thread (mocking crowd in the hook, DAY counter 1 to 8,030, "ONE BLOW A DAY" payoff). When it lands, the title, captions and drop time here will need a refresh.
+- v4 hook: nine villagers laugh beside the cut ("THEY CALLED HIM MAD."), then walk away one by one ("NOBODY STAYED.").
+- v4 counter: DAY 1 to 8,030, with YEAR and metres carved beneath it.
+- v4 payoff after the 0:09.6 drop: the villagers walk through the new opening, "8,030 DAYS.", 55 km vs 15 km, "110 METRES CARVED." / "ONE BLOW A DAY.", Manjhi credit. The loop rewinds to the laughing crowd on frame 0.
 
 ## Publish copy
 
@@ -30,14 +32,14 @@
 > #MountainMan #DashrathManjhi #consistency #discipline #stickman #animation #truestory #shorts
 
 **Instagram / Facebook caption:**
-> He hit a mountain every day for 22 years. ⛏️
+> They called him mad. He hit a mountain every day for 22 years. ⛏️
 > 110 m of rock. One hammer and chisel. His shortcut cut the trip from 55 km to 15 km.
 > True story: Dashrath Manjhi, Bihar, 1960-1982.
 > #mountainman #dashrathmanjhi #consistency #stickman #reels
 
-**Pinned comment:** What would you keep hitting for 22 years?
+**Pinned comment:** They called him mad. What would you keep hitting for 8,030 days?
 
-**Upload settings:** 9:16, AI/synthetic media label on (synthetic scene), no music claimed in the file; if you add a track in Instagram, put its drop at 0:09.6 (v3).
+**Upload settings:** 9:16, AI/synthetic media label on (synthetic scene), no music claimed in the file; if you add a track in Instagram, put its drop at 0:09.6 (the wall breaking).
 
 ## Facts and sources
 
@@ -47,6 +49,8 @@
 | 110 m carved | 110 m long, 9.1 m wide, 7.7 m deep (the scene uses these dimensions) | Wikipedia, Dashrath Manjhi |
 | Hammer and chisel | "using only a hammer and a chisel" | Wikipedia |
 | They called him mad | Manjhi: "people called me a lunatic" | Wikipedia |
+| 8,030 days | 22 years × 365 = 8,030 | arithmetic on 1960-1982 |
+| One blow a day | about 1.4 cm a day on average (110 m / 8,030 days) | metaphor, not a documented work rate |
 | 55 km became 15 km | Atri to Wazirganj blocks, Gaya district | Wikipedia |
 | Routes not to scale | the map compresses 55 km into one ridge-end detour | tag on screen |
 
