@@ -1,0 +1,49 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anek+Telugu:wght@700;800&family=Ramabhadra&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#222}
+  .t{position:relative;overflow:hidden;font-family:'Ramabhadra',sans-serif;background:#0b0d14}
+  .half{position:absolute;background-size:cover;filter:saturate(1.15) contrast(1.08)}
+  .title{color:#ffd27a;line-height:1;text-shadow:0 7px 0 #3a1a00,0 0 30px rgba(0,0,0,.9),0 0 5px #000;text-align:center}
+  .pill{display:inline-block;background:#f2b544;color:#1a1310;border-radius:18px;line-height:1.25}
+  .tag{position:absolute;font-family:'Anek Telugu',sans-serif;font-weight:800;color:#fff;background:rgba(0,0,0,.72);border-radius:12px}
+  .tag b{color:#ffd27a}
+  /* vertical 1080x1920: diagonal split */
+  #v{width:1080px;height:1920px}
+  #v .top{inset:0;background-image:url(palm.png);background-position:center 45%;clip-path:polygon(0 0,100% 0,100% 44%,0 56%)}
+  #v .bot{inset:0;background-image:url(crown.png);background-position:center 40%;clip-path:polygon(0 56%,100% 44%,100% 100%,0 100%)}
+  #v .line{position:absolute;left:-20px;right:-20px;top:50%;height:14px;background:linear-gradient(90deg,#d9922a,#ffd98a,#d9922a);transform:rotate(-6.4deg);box-shadow:0 0 30px rgba(255,200,90,.8)}
+  #v .center{position:absolute;left:0;right:0;top:760px;text-align:center}
+  #v .title{font-size:210px}
+  #v .pill{font-size:86px;padding:12px 46px;margin-top:22px}
+  #v .tag{font-size:50px;padding:8px 26px}
+  #v .tag.a{left:60px;top:250px}
+  #v .tag.b{right:60px;bottom:420px}
+  /* horizontal 1280x720: vertical-ish diagonal split */
+  #h{width:1280px;height:720px}
+  #h .left{inset:0;background-image:url(palm.png);background-size:720px auto;background-position:-40px -330px;background-repeat:no-repeat;clip-path:polygon(0 0,46% 0,40% 100%,0 100%)}
+  #h .right{inset:0;background-image:url(crown.png);background-size:760px auto;background-position:right -60px top -260px;background-repeat:no-repeat;clip-path:polygon(60% 0,100% 0,100% 100%,54% 100%)}
+  #h .mid{position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,13,20,0) 36%,#0b0d14 44%,#0b0d14 56%,rgba(11,13,20,0) 64%)}
+  #h .center{position:absolute;left:0;right:0;top:170px;text-align:center}
+  #h .title{font-size:150px}
+  #h .pill{font-size:62px;padding:8px 32px;margin-top:20px}
+  #h .tag{font-size:34px;padding:6px 18px}
+  #h .tag.a{left:30px;bottom:34px}
+  #h .tag.b{right:30px;bottom:34px}
+</style></head><body>
+<div id="v" class="t">
+  <div class="half top"></div><div class="half bot"></div><div class="line"></div>
+  <div class="tag a">మన <b>కృష్ణా తీరం</b></div>
+  <div class="tag b"><b>లండన్</b> కిరీటం</div>
+  <div class="center"><div class="title">కోహినూర్</div><div class="pill">మనదా? వాళ్లదా?</div></div>
+</div>
+<br>
+<div id="h" class="t">
+  <div class="half left"></div><div class="half right"></div><div class="mid"></div>
+  <div class="tag a">మన <b>కృష్ణా తీరం</b></div>
+  <div class="tag b"><b>లండన్</b> కిరీటం</div>
+  <div class="center"><div class="title">కోహినూర్</div><div class="pill">మనదా? వాళ్లదా?</div></div>
+</div>
+</body></html>

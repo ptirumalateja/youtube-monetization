@@ -43,6 +43,8 @@ def build(cfg_path):
         src = os.path.join(W, sc["clip"]); s0, s1 = sc["src"]
         hold = 0.0
         speed = (s1 - s0) / L
+        if speed > sc.get("max_speed", 1.3):             # too much footage for the slot: use less of it instead of fast-forwarding
+            s1 = s0 + L * 1.15; speed = 1.15
         if speed < sc.get("min_speed", 0.9):            # not enough footage: play at min speed, then hold last frame
             speed = sc.get("min_speed", 0.9); hold = L - (s1 - s0) / speed
         zin, zout = sc.get("zoom", [1.0, 1.08])
