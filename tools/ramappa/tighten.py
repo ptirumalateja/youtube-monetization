@@ -1,6 +1,7 @@
 # Cut VO into phrases at long gaps, rejoin with capped pauses, then tempo.
 import json,subprocess,sys
-src="/tmp/claude-0/ram/vo/b_creative.mp3"
+import os
+src=os.environ.get("VOSRC","/tmp/claude-0/ram/vo/b_creative.mp3")
 d=json.load(open(src+".stt.json"))
 ws=[w for w in d["words"] if w["type"]=="word"]
 # pause cap after the word ending a phrase (index-based on word text match)
@@ -18,5 +19,5 @@ for i,(a,b,p,txt) in enumerate(segs):
     out.append(f"[0:a]atrim={a}:{b},asetpts=PTS-STARTPTS,afade=t=in:d=0.02,afade=t=out:st={b-a-0.03}:d=0.03,apad=pad_dur={p}[s{i}]")
     print(f"{t:6.2f} {txt}"); t+=b-a+p
 fc=";".join(out)+";"+"".join(f"[s{i}]" for i in range(len(segs)))+f"concat=n={len(segs)}:v=0:a=1,rubberband=tempo={sys.argv[1]}:pitchq=quality:transients=crisp,aresample=48000[o]"
-subprocess.run(["ffmpeg","-v","error","-y","-i",src,"-filter_complex",fc,"-map","[o]","-ac","1","-c:a","pcm_s16le","/tmp/claude-0/ram/work/vo.wav"],check=True)
+subprocess.run(["ffmpeg","-v","error","-y","-i",src,"-filter_complex",fc,"-map","[o]","-ac","1","-c:a","pcm_s16le",os.environ.get("VOOUT","/tmp/claude-0/ram/work/vo.wav")],check=True)
 print("tight",t,"final",t/float(sys.argv[1]))

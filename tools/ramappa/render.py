@@ -22,6 +22,10 @@ EDL=[
  (19.44,21.86,"Visitors_viewing",0.5,0.35),
  (21.86,TOTAL,"Shiva_lingam",0.0,0.35),
 ]
+if os.environ.get('EDL'):
+    J=json.load(open(os.environ['EDL'])); EDL=[tuple(e) for e in J['edl']]; TOTAL=J['total']; ECT=J['endcard']; VOF=J['vo']
+else: ECT=23.44; VOF=W+"vo.wav"; J={}
+SB,S1,S2=J.get('sfx',[480,2050,15700])
 inputs=[];fc=[]
 for i,(a,b,k,s,g) in enumerate(EDL):
     d=b-a
@@ -41,11 +45,11 @@ for j,(a,b,p) in enumerate(caps):
     inputs+=["-i",p]; b=min(b,TOTAL)
     fc.append(f"[{last}][{k}:v]overlay=0:0:enable='between(t,{a},{b-0.001})'[o{j}]"); last=f"o{j}"; k+=1
 inputs+=["-loop","1","-t",str(TOTAL),"-i",W+"caps/endcard.png"]
-fc.append(f"[{k}:v]format=rgba,fade=t=in:st=23.44:d=0.25:alpha=1[ec]")
-fc.append(f"[{last}][ec]overlay=0:0:enable='gte(t,23.44)'[vout]"); k+=1
+fc.append(f"[{k}:v]format=rgba,fade=t=in:st={ECT}:d=0.25:alpha=1[ec]")
+fc.append(f"[{last}][ec]overlay=0:0:enable='gte(t,{ECT})'[vout]"); k+=1
 # audio
 SFX="/tmp/claude-0/ram/repo/tools/sfxlib/"
-inputs+=["-i",W+"vo.wav"]; vo=k; k+=1
+inputs+=["-i",VOF]; vo=k; k+=1
 inputs+=["-i",W+"music.mp3"]; mu=k; k+=1
 inputs+=["-i",SFX+"722633__chakong__cinematic-braaam.wav"]; br=k; k+=1
 inputs+=["-i",SFX+"649445__audiopapkin__cinematic-woosh-sfx-015.wav"]; wo=k; k+=1
@@ -54,9 +58,9 @@ fc.append(f"[vo]asplit[vo1][vo2]")
 fc.append(f"[{mu}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:{TOTAL},volume={os.environ.get("MUSIC","0.30")},afade=t=out:st={TOTAL-1.2}:d=1.2[mu]")
 fc.append(f"[nat][mu]amix=inputs=2:normalize=0[bed]")
 fc.append(f"[bed][vo1]sidechaincompress=threshold=0.03:ratio=6:attack=15:release=300[bedd]")
-fc.append(f"[{br}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:3,volume=0.55,afade=t=out:st=2.2:d=0.8,adelay=480|480[br]")
+fc.append(f"[{br}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:3,volume=0.55,afade=t=out:st=2.2:d=0.8,adelay={SB}|{SB}[br]")
 fc.append(f"[{wo}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:1.2,volume=0.35,asplit=2[w1][w2]")
-fc.append(f"[w1]adelay=2050|2050[w1d];[w2]adelay=15700|15700[w2d]")
+fc.append(f"[w1]adelay={S1}|{S1}[w1d];[w2]adelay={S2}|{S2}[w2d]")
 fc.append(f"[bedd][vo2][br][w1d][w2d]amix=inputs=5:normalize=0:duration=first,atrim=0:{TOTAL},loudnorm=I=-14:TP=-1.5:LRA=11[aout]")
 out=sys.argv[1] if len(sys.argv)>1 else W+"ramappa_te.mp4"
 cmd=["ffmpeg","-v","error","-y",*inputs,"-filter_complex",";".join(fc),"-map","[vout]","-map","[aout]","-t",str(TOTAL),

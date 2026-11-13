@@ -1,5 +1,5 @@
 # Telugu caption PNGs (PIL raqm shaping; libass does not shape Telugu here).
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import json, os
 F="/tmp/claude-0/ram/fonts/NotoSansTelugu-800.ttf"
 EMO="/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
@@ -28,7 +28,15 @@ def _render(lines,size,y,name,emoji_after=None):
             ImageDraw.Draw(e).text((0,0),"👇",font=ef,embedded_color=True)
             e=e.crop(e.getbbox()).resize((int(size*0.95),int(size*0.95)),Image.LANCZOS)
             im.alpha_composite(e,(x+bb[2]+int(size*0.15),yy+bb[1]+(bb[3]-bb[1]-e.height)//2))
-    a=im.getbbox(); assert a[1]>=300 and a[3]<=1440 and a[0]>=100 and a[2]<=980,(name,a)
+    a=im.getbbox()
+    if os.environ.get("BOX","1")=="1":
+        bg=Image.new("RGBA",(W,H),(0,0,0,0)); bd=ImageDraw.Draw(bg)
+        bd.rounded_rectangle((a[0]-34,a[1]-22,a[2]+34,a[3]+22),radius=34,fill=(0,0,0,120))
+        sh=Image.new("RGBA",(W,H),(0,0,0,0)); sh.putalpha(im.getchannel("A").point(lambda v:min(255,int(v*0.9))))
+        sh=sh.filter(ImageFilter.GaussianBlur(14))
+        bg=Image.alpha_composite(bg,sh); bg.alpha_composite(im); im=bg
+        a=im.getbbox()
+    assert a[1]>=300 and a[3]<=1440 and a[0]>=60 and a[2]<=1020,(name,a)
     im.save(f"{OUT}/{name}.png"); return a
 CY=1170  # caption band
 caps=[
@@ -52,6 +60,9 @@ caps=[
  (21.86,23.44,[("ఇలాంటి మరిన్ని",Wh),("విషయాల కోసం…",Wh)],"c"),
  (23.44,99,[("లైక్, షేర్,",Wh),("సబ్‌స్క్రైబ్ చేయండి!",Wh)],"c"),
 ]
+import sys
+T=json.load(open(os.environ['TIMES'])) if os.environ.get('TIMES') else None
+if T: caps=[(T[i],T[i+1],c[2],c[3]) for i,c in enumerate(caps)]
 meta=[]
 for i,(a,b,lines,kind) in enumerate(caps):
     if kind=="big": bbox=render(lines,104,420,f"cap{i:02d}")
