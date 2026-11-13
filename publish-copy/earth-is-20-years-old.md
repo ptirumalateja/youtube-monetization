@@ -2,15 +2,18 @@
 
 | | |
 |---|---|
-| Status | Final (v2) |
-| Upload file | `final-reels/earth-is-20-years-old_v2_master.mp4` (share: `_v2.mp4`) |
-| Length | 24.0 s |
+| Status | Final (v4, one continuous shot with V2's story and ending) |
+| Upload file | `final-reels/earth-is-20-years-old_v4_master.mp4` (share: `_v4.mp4`, small: `_v4_mobile.mp4`) |
+| Length | 25.0 s |
 | Voice | None (wordless) |
 | Copy taken from | `final-reels/earth-is-20-years-old.md` section 7 |
+
+> **13 Nov 2026:** v1-v3 were deleted from project files. v4 keeps V2's timeline, on-screen text and ending (now as one continuous shot with Earth itself lapping the galaxy, counter still ending at 19.7), so the copy below applies to v4 unchanged. Checked against the v4 file and its build notes.
 
 ## Version notes
 
 - v2 has the same timeline, text and sound as v1 with more galaxy detail, so the v1 copy applies unchanged.
+- v4 (25.0 s) is V2's story and text as one unbroken camera move: a real-looking Earth whose surface changes with its age (molten, first oceans, oxygen, Snowball Earth, Pangaea, the Yucatan asteroid, city lights) instead of a glowing bead. Adds an asteroid streak and impact to the sound.
 
 ## Publish copy
 
@@ -27,14 +30,15 @@ Thought experiment, not to scale: the galaxy is compressed and the spiral arms a
 
 Facts: galactic year about 220-250 million years (NRAO, Live Science); Earth 4.54 billion years (USGS); oldest fossils about 3.5 billion years (Pilbara stromatolites); Great Oxidation Event about 2.4 billion years ago; Cambrian 539 million years ago; first dinosaurs about 231 million years ago; extinction 66 million years ago; Homo sapiens about 300,000 years.
 
-Sound: original synthesized design, plus "wind.ogg" by sleepCircle (Freesound, CC0).
+Sound: original synthesized design (including the asteroid impact), plus "wind.ogg" by sleepCircle (Freesound, CC0).
 
 #space #galaxy #milkyway #earth #dinosaurs #science #astronomy #deeptime #slowlight
 
 **Pinned comment:** How old would you be in galactic years? (A 30-year-old is about 0.00000013.)
 
 ### Instagram / Facebook
-Earth is 20 years old. In galactic years. 🌌
+Watch Earth change while it laps the galaxy 20 times. 🌍🌌
+Earth is 20 years old. In galactic years.
 One lap of the Sun around the Milky Way takes about 230 million years. The dinosaurs died less than one lap ago, and all of modern humanity fits in the last half degree.
 Thought experiment, not to scale. Sound: original + CC0 wind (sleepCircle, Freesound).
 #space #milkyway #galaxy #deeptime #dinosaurs #science #slowlight

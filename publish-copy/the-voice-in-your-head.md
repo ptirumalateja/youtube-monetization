@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | V2 final (reach cut, 23 Oct 2026), awaiting Teja's review. V1 (chalk on navy) kept as an alternative. |
-| Upload file | `final-reels/the-voice-in-your-head-v2.mp4` (silent: `the-voice-in-your-head-v2_silent.mp4`); V1: `final-reels/the-voice-in-your-head.mp4` |
+| Status | V2 final (reach cut, 23 Oct 2026), awaiting Teja's review. V1 (chalk on navy) was deleted on 13 Nov 2026. |
+| Upload file | `final-reels/the-voice-in-your-head-v2.mp4` (silent: `the-voice-in-your-head-v2_silent.mp4`) |
 | Length | 20.0 s |
 | Voice | None (wordless) |
 | Copy taken from | `final-reels/the-voice-in-your-head-v2.md` on branch `claude/project-thread-hagl9o` |
