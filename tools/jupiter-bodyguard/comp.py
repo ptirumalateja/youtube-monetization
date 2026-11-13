@@ -19,7 +19,7 @@ F_MED = "/usr/share/fonts/opentype/inter/Inter-Medium.otf"
 # ------------------------------------------------------------------ chat script
 # (time, who, text). S = Saturn, E = Earth, E! = Earth big, T = Earth typing, X = system line.
 CHAT = [
-    (1.33, "S", "Earth, you're so tiny {1f602}"),
+    (1.50, "S", "Earth, you're so tiny {1f602}"),
     (2.33, "E", "I have life {1f331}"),
     (3.45, "S", "I have rings {1f48d}\nand REAL gravity {1f4aa}"),
     (4.50, "S", "who protects YOU? {1f60f}"),
@@ -28,7 +28,7 @@ CHAT = [
     (10.20, "S", "...nvm {1f636}"),
     (10.90, "X", "Saturn left the chat"),
 ]
-CHAT_CLEAR = [(0.0, 1.3), (5.6, 5.65), (9.0, 10.20)]
+CHAT_CLEAR = [(0.0, 1.5), (5.6, 5.65), (9.0, 10.20)]
 HOOK_TITLE = ("EARTH HAS A", "BODYGUARD {1f6e1}")
 END_TITLE = ("TAG YOUR", "JUPITER {1f6e1}")
 END_T = 12.05
@@ -132,10 +132,10 @@ def bubble(who, text):
     d = ImageDraw.Draw(im)
     if left:
         im.alpha_composite(_emoji("1fa90", av), (0, by + bh - av))
-        d.text((bx + 14, 0), "Saturn", font=nf, fill=(235, 235, 245, 240))
+        d.text((bx + 14, 0), "Saturn", font=nf, fill=(240, 240, 248, 255), stroke_width=4, stroke_fill=(0, 0, 0, 200))
     else:
         im.alpha_composite(_emoji("1f30d", av), (bw + gap, by + bh - av))
-        d.text((bw - 14 - nf.getlength("Earth"), 0), "Earth", font=nf, fill=(235, 235, 245, 240))
+        d.text((bw - 14 - nf.getlength("Earth"), 0), "Earth", font=nf, fill=(240, 240, 248, 255), stroke_width=4, stroke_fill=(0, 0, 0, 200))
     _bubble_cache[key] = im
     return im
 
@@ -273,7 +273,7 @@ def fireballs(t, cam, objs):
             flashes.append((t - hit[0], hit[1], idx))
             continue
         i1 = np.searchsorted(ts, t)
-        i0 = np.searchsorted(ts, t - 0.5)
+        i0 = np.searchsorted(ts, t - (0.9 if t < 1.5 else 0.5))
         seg = ps[max(i0, 0):max(i1, 1)]
         if len(seg) < 2:
             continue
@@ -291,8 +291,17 @@ def fireballs(t, cam, objs):
                 break
             run.append(q)
         run = run[::-1]
+        if len(run) >= 9:   # round off any sharp turn in screen space (head stays exact)
+            arr = np.array(run, np.float64)
+            sm = arr.copy()
+            n_ = len(arr)
+            for k in range(n_):
+                hw = min(12, k, n_ - 1 - k)
+                sm[k] = arr[k - hw:k + hw + 1].mean(0)
+            run = [tuple(q) for q in sm]
         if len(run) >= 2:
-            ws = [PX_PER_UNIT / q[2] * 0.20 * ((k + 1) / len(run)) ** 1.2 for k, q in enumerate(run)]
+            wv = (0.65 + 0.7 * ((idx * 0.6180339) % 1.0)) * (1 + 0.15 * math.sin(t * 41 + idx * 2.3))
+            ws = [PX_PER_UNIT / q[2] * 0.20 * wv * ((k + 1) / len(run)) ** (1.0 + 0.6 * ((idx * 0.37) % 1.0)) for k, q in enumerate(run)]
             _trail(lay, run, ws, FIRE_OUT)
             _trail(lay, run, [w * 0.38 for w in ws], FIRE_IN)
         hd = pts[-1]
@@ -309,10 +318,13 @@ def fireballs(t, cam, objs):
             # embers shed behind
             if len(run) > 6:
                 bx, by = run[-6][0], run[-6][1]
-                for _ in range(8):
-                    sx = bx + rng.normal(0, r * 2.0); sy = by + rng.normal(0, r * 2.0)
+                for _ in range(3):
+                    sx = bx + rng.normal(0, r * 1.2); sy = by + rng.normal(0, r * 1.2)
                     cv2.circle(lay, (int(sx), int(sy)), max(1, int(r * 0.22)), tuple(float(v) for v in FIRE_OUT * 1.6), -1, cv2.LINE_AA)
     J = objs[0]
+    ilay = np.zeros_like(lay)
+    rlay = np.zeros_like(lay)
+    hlay = np.zeros_like(lay)
     for dt, p, idx in flashes:
         x, y, z = project(cam, p)
         nrm = (p - J[0:3]); nrm /= np.linalg.norm(nrm)
@@ -324,36 +336,75 @@ def fireballs(t, cam, objs):
         # screen direction of the surface normal = minor axis of the projected disc
         x2, y2, _ = project(cam, p + nrm * 0.5)
         ang = math.degrees(math.atan2(y2 - y, x2 - x))
-        # scar: dark, elongated along the cloud bands, stays
-        sr = sc * (0.2 + 0.45 * (1 - math.exp(-dt * 2.5)))
-        cv2.ellipse(scar, (int(x), int(y)), (max(int(sr * fs), 1), max(int(sr * 1.4), 2)), ang, 0, 360, 0.8, -1, cv2.LINE_AA)
-        if dt > 1.4:
+        # band direction on Jupiter's surface (zonal), for the plume smear
+        tb_ = np.cross(np.array([0.0, 1.0, 0.0]), nrm); tb_ /= max(np.linalg.norm(tb_), 1e-6)
+        xb, yb, _ = project(cam, p + tb_ * 0.5)
+        bang = math.degrees(math.atan2(yb - y, xb - x))
+        bl = max(math.hypot(xb - x, yb - y) / (0.5 * sc), 0.2)    # foreshortening along the band
+        # scar: irregular dark-brown plume, smeared ~3:1 along the band and sheared by zonal wind
+        fade = math.exp(-max(dt - 0.8, 0.0) / 2.2)
+        grow = 1 - math.exp(-dt * 2.0)
+        srng = np.random.default_rng(idx * 7 + 3)
+        for j in range(5):
+            off = (j - 2) * sc * 0.09 * (0.6 + 1.6 * grow) * bl
+            off += srng.normal(0, sc * 0.03)
+            cx_ = x + math.cos(math.radians(bang)) * off
+            cy_ = y + math.sin(math.radians(bang)) * off + srng.normal(0, sc * 0.02) * fs
+            ra = sc * (0.10 + 0.14 * grow) * srng.uniform(0.6, 1.2)
+            cv2.ellipse(scar, (int(cx_), int(cy_)), (max(int(ra * 1.9 * bl), 1), max(int(ra * 0.65 * fs), 1)), bang, 0, 360,
+                        float(0.8 * fade * srng.uniform(0.6, 1.0)), -1, cv2.LINE_AA)
+        if dt > 0.9:
             continue
-        k = math.exp(-dt * 3.0)
-        # orange fireball flash (kept below clipping)
-        cv2.ellipse(lay, (int(x), int(y)), (max(int(sc * 0.35 * fs * (0.5 + dt)), 2), max(int(sc * 0.35 * (0.5 + dt)), 2)), ang, 0, 360,
-                    (0.15 * k, 0.75 * k, 2.0 * k), -1, cv2.LINE_AA)
-        cv2.ellipse(lay, (int(x), int(y)), (max(int(sc * 0.13 * fs), 2), max(int(sc * 0.13), 2)), ang, 0, 360,
-                    (0.9 * k, 1.6 * k, 2.4 * k), -1, cv2.LINE_AA)
-        # one soft shock ring lying on the sphere
-        rr = sc * (0.2 + 1.1 * (1 - math.exp(-dt * 2.4)))
-        cv2.ellipse(lay, (int(x), int(y)), (max(int(rr * fs), 1), max(int(rr), 2)), ang, 0, 360,
-                    (0.10 * k, 0.38 * k, 0.85 * k), max(3, int(sc * 0.12)), cv2.LINE_AA)
-        # debris sparks thrown off the impact
-        if dt < 0.6:
+        k = math.exp(-dt * 5.0)
+        # hot fireball bloom, no outline (soft via the glow pass)
+        rb = sc * 0.16 * (0.6 + 1.4 * (1 - math.exp(-dt * 6)))
+        cv2.ellipse(ilay, (int(x), int(y)), (max(int(rb * fs * 1.2), 2), max(int(rb), 2)), ang, 0, 360,
+                    (0.25 * k, 1.1 * k, 2.6 * k), -1, cv2.LINE_AA)
+        if dt < 0.07:   # two frames of hard white core
+            cv2.circle(hlay, (int(x), int(y)), max(int(sc * 0.26), 4), (3.0, 3.0, 3.2), -1, cv2.LINE_AA)
+            cv2.circle(ilay, (int(x), int(y)), max(int(sc * 0.45), 4), (1.2, 1.6, 2.2), -1, cv2.LINE_AA)
+        elif dt < 0.2:  # then a hard-edged orange fireball
+            kk = 1 - (dt - 0.07) / 0.13
+            cv2.ellipse(hlay, (int(x), int(y)), (max(int(sc * 0.34 * max(fs, 0.5)), 3), max(int(sc * 0.34), 3)), ang, 0, 360,
+                        (0.35 * kk + 0.1, 1.3 * kk + 0.3, 2.6 * kk + 0.6), -1, cv2.LINE_AA)
+            cv2.circle(hlay, (int(x), int(y)), max(int(sc * 0.14), 3), (1.6 * kk, 2.2 * kk, 2.8 * kk), -1, cv2.LINE_AA)
+        # one thick soft shock ring lying on the sphere, gone within 0.4 s
+        if dt < 0.4:
+            kr = (1 - dt / 0.4) ** 1.5
+            rr = sc * (0.12 + 0.55 * (1 - math.exp(-dt * 6)))
+            cv2.ellipse(rlay, (int(x), int(y)), (max(int(rr * fs), 1), max(int(rr), 2)), ang, 0, 360,
+                        (0.15 * kr, 0.4 * kr, 0.8 * kr), max(3, int(sc * 0.09)), cv2.LINE_AA)
+        # debris streaks thrown outward
+        if dt < 0.5:
             rng = np.random.default_rng(idx * 17)
-            for j in range(10):
-                th = rng.uniform(0, 2 * math.pi); sp = rng.uniform(0.6, 1.6) * sc
-                d = sp * dt * 2.2
-                sx = x + math.cos(th) * d; sy = y + math.sin(th) * d * 0.8 - 0.4 * d
-                cv2.circle(lay, (int(sx), int(sy)), max(1, int(sc * 0.05)), (0.3 * k, 1.0 * k, 2.2 * k), -1, cv2.LINE_AA)
+            kd = 1 - dt / 0.5
+            for j in range(9):
+                th = rng.uniform(0, 2 * math.pi); sp = rng.uniform(0.3, 1.6) * sc
+                d1 = sp * dt * 1.6; d0 = max(d1 - sp * 0.07, 0)
+                ex_, ey_ = math.cos(th), math.sin(th) * 0.8 - 0.35
+                cv2.line(ilay, (int(x + ex_ * d0), int(y + ey_ * d0)), (int(x + ex_ * d1), int(y + ey_ * d1)),
+                         (0.3 * kd, 1.0 * kd, 2.2 * kd), max(1, int(sc * 0.015)), cv2.LINE_AA)
+    # depth test against Earth: impact light and scars never paint over Earth's disc
+    for o in objs[1:]:
+        ex, ey, ez = project(cam, o[0:3])
+        if ez > 0:
+            er = o[3] / ez / cam[12] * 960
+            m = np.ones((H, W), np.float32)
+            cv2.circle(m, (int(ex), int(ey)), int(er * 1.02), 0.0, -1, cv2.LINE_AA)
+            m = cv2.GaussianBlur(m, (0, 0), 1.5)
+            scar *= m
+            ilay *= m[..., None]
+            rlay *= m[..., None]
+            hlay *= m[..., None]
+    lay += ilay + cv2.GaussianBlur(rlay, (0, 0), 5)
     soft = cv2.GaussianBlur(lay, (0, 0), 2.0)
     glow = cv2.GaussianBlur(lay, (0, 0), 14)
     scar = cv2.GaussianBlur(scar, (0, 0), 5)
+    soft = soft + cv2.GaussianBlur(hlay, (0, 0), 0.8)
     return (soft * 1.0 + glow * 0.8)[..., ::-1].copy(), scar, flashes
 
 
-PULSES = [0.02, 7.35]
+PULSES = [7.35]
 
 
 def gravity_pulse(img, t, cam, objs):
@@ -368,15 +419,15 @@ def gravity_pulse(img, t, cam, objs):
             continue
         rj = J[3] / jz / cam[12] * 960
         R = rj * (1.0 + 1.6 * dt / 0.9)
-        amp = 28 * (1 - dt / 0.9) ** 1.5
+        amp = 42 * (1 - dt / 0.9) ** 1.3
         yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
         dx, dy = xx - jx, yy - jy
         r = np.sqrt(dx * dx + dy * dy) + 1e-3
-        w = np.exp(-((r - R) / 60.0) ** 2) * amp
+        w = np.exp(-((r - R) / 90.0) ** 2) * amp
         mx = xx - dx / r * w; my = yy - dy / r * w
         img = cv2.remap(img.astype(np.float32), mx.astype(np.float32), my.astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
         # faint bright crest
-        img = (img + (np.exp(-((r - R) / 25.0) ** 2) * 0.05 * (1 - dt / 0.9))[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32)
+        img = (img + (np.exp(-((r - R) / 25.0) ** 2) * 0.09 * (1 - dt / 0.9))[..., None] * np.array([1.0, 0.8, 0.6], np.float32)).astype(np.float32)
     return img
 
 
@@ -387,14 +438,22 @@ _vig = None
 def finish(raw, t, cam, objs, name):
     global _vig
     fb, scar, flashes = fireballs(t, cam, objs)
-    img = raw * (1 - scar[..., None] * np.array([0.6, 0.68, 0.75], np.float32)) + fb
+    img = raw * (1 - scar[..., None] * np.array([0.62, 0.74, 0.86], np.float32)) + fb
     img = gravity_pulse(img, t, cam, objs)
+    kick = sum(math.exp(-d * 18) for d, _, _ in flashes if d < 0.3)
+    if kick > 0.05:
+        amp = min(kick, 1.6) * (9.0 if t < 1.5 else 5.0)
+        rs = np.random.default_rng(int(t * 30) * 7 + 1)
+        dx_, dy_ = rs.uniform(-1, 1, 2) * amp
+        Mk = np.float32([[1, 0, dx_], [0, 1, dy_]])
+        img = cv2.warpAffine(img.astype(np.float32), Mk, (W, H), borderMode=cv2.BORDER_REFLECT)
     fl = sum(math.exp(-d * 7) for d, _, _ in flashes if d < 1)
-    img = img * (1 + 0.08 * min(fl, 2))
+    img = img * (1 + 0.15 * min(fl, 2))
     br = np.clip(img - 0.9, 0, None)
     bloom = cv2.GaussianBlur(br, (0, 0), 8) * 0.5 + cv2.GaussianBlur(br, (0, 0), 30) * 0.5 + cv2.GaussianBlur(br, (0, 0), 90) * 0.4
     img = img + bloom * 0.6
     out = tonemap(img, 1.0)
+    out = out + 0.6 * (out - cv2.GaussianBlur(out, (0, 0), 1.5))
     out = out * 0.97 + np.array([0.012, 0.008, 0.022], np.float32)
     if _vig is None:
         yy, xx = np.mgrid[0:H, 0:W]
@@ -410,10 +469,10 @@ _title_cache = {}
 
 def _title_pill(text):
     if text not in _title_cache:
-        f = ImageFont.truetype(F_BOLD, 50)
+        f = ImageFont.truetype(F_BOLD, 64)
         w = int(f.getlength(text)) + 80
-        im = Image.new("RGBA", (w, 96), (0, 0, 0, 0))
-        ImageDraw.Draw(im).rounded_rectangle((0, 0, w - 1, 94), 47, fill=(255, 255, 255, 235))
+        im = Image.new("RGBA", (w, 112), (0, 0, 0, 0))
+        ImageDraw.Draw(im).rounded_rectangle((0, 0, w - 1, 110), 55, fill=(255, 255, 255, 235))
         ImageDraw.Draw(im).text((40, 16), text, font=f, fill=(20, 20, 26, 255))
         _title_cache[text] = im
     return _title_cache[text]
@@ -427,12 +486,12 @@ def _title(key, lines, size):
 
 def overlay(frame, t):
     frame.alpha_composite(chat_layer(t))
-    if t < 1.3:
+    if t < 1.5:
         ti = _title("hook", HOOK_TITLE, 104)
-        frame.alpha_composite(ti, ((W - ti.size[0]) // 2, 1440 - ti.size[1] + 20))
-    if 1.3 <= t < 2.25:
+        frame.alpha_composite(ti, ((W - ti.size[0]) // 2, 1380 - ti.size[1] + 20))
+    if 1.5 <= t < 2.3:
         pl = _title_pill("earlier...")
-        a = min(1.0, (t - 1.3) / 0.1) * min(1.0, (2.25 - t) / 0.15)
+        a = min(1.0, (t - 1.5) / 0.06) * min(1.0, (2.3 - t) / 0.12)
         frame.alpha_composite(_fade(pl, a), ((W - pl.size[0]) // 2, 1090))
     if t >= END_T:
         a, sc = pop(t, END_T + 0.05, 0.3)

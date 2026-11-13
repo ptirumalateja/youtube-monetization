@@ -5,10 +5,12 @@ DUR = 14.0
 # (file, start_s, gain_db, trim_start, trim_len)
 EV = [
     ("space", 0.0, -20, 0, 6.0), ("space", 6.0, -20, 0, 6.0), ("space", 12.0, -20, 0, 2.0),
-    ("whoosh", 0.0, -5, 0.2, 1.0),             # fireballs roaring at Earth on frame 0
-    ("impacts", 0.28, -1, 0.0, 1.0),            # yanked into Jupiter
-    ("impacts", 0.82, -4, 1.0, 0.6),
-    ("msg_in", 1.33, -3, 0, 0.6),
+    ("whoosh", 0.0, -4, 0.2, 1.0),             # meteor shower screaming at Earth on frame 0
+    ("whoosh", 0.15, -7, 0.0, 0.6),            # the yank
+    ("impacts", 0.50, 0, 0.0, 1.0),             # slammed into Jupiter
+    ("impacts", 1.14, -4, 1.0, 0.5),
+    ("impacts", 1.30, -6, 0.3, 0.3),
+    ("msg_in", 1.50, -3, 0, 0.6),
     ("msg_out", 2.33, -3, 0, 0.6),
     ("msg_in", 3.45, -3, 0, 0.6),
     ("msg_in", 4.50, -3, 0, 0.6),
@@ -17,10 +19,13 @@ EV = [
     ("braam", 7.30, 0, 0, 4.0),
     ("msg_out", 7.35, -6, 0, 0.6),
     ("whoosh", 7.9, -6, 0, 1.5),
-    ("impacts", 8.6, -2, 0, 1.5),
-    ("whoosh", 9.3, -8, 0, 1.5),
-    ("impacts", 9.8, -3, 0.3, 1.5),
-    ("impacts", 11.0, -4, 0.0, 1.3),
+    ("impacts", 8.78, -2, 0, 1.2),
+    ("whoosh", 9.0, -8, 0, 1.5),
+    ("impacts", 9.59, -3, 0.3, 1.0),
+    ("impacts", 10.32, -4, 0.0, 1.0),
+    ("impacts", 11.06, -4, 0.3, 1.0),
+    ("impacts", 11.71, -5, 0.0, 1.0),
+    ("impacts", 12.35, -8, 0.3, 0.8),
     ("msg_in", 10.20, -3, 0, 0.6),
     ("leave", 10.90, -5, 0, 1.0),
     ("braam", 12.05, -10, 1.0, 1.95),

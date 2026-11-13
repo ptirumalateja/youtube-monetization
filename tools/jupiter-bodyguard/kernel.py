@@ -57,6 +57,28 @@ def hash2(i, j):
     return (h ^ (h >> 16)) / 4294967295.0
 
 
+@njit(fastmath=True, inline="always")
+def vnoise(x, y):
+    xi = math.floor(x); yi = math.floor(y)
+    fx = x - xi; fy = y - yi
+    fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy)
+    i = int(xi); j = int(yi)
+    a = hash2(i, j); b = hash2(i + 1, j); c = hash2(i, j + 1); d = hash2(i + 1, j + 1)
+    return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy
+
+
+@njit(fastmath=True, inline="always")
+def jdetail(u, v, edge):
+    """Fine zonal turbulence: domain-warped value noise stretched along the bands, +-1."""
+    x = u * 900.0; y = v * 1400.0
+    wx = vnoise(x * 0.35 + 17.0, y * 0.35) - 0.5
+    wy = vnoise(x * 0.35, y * 0.35 + 31.0) - 0.5
+    ws = 1.5 + 4.0 * edge
+    x += wx * ws; y += wy * ws * 0.6
+    n = vnoise(x, y) * 0.55 + vnoise(x * 2.1 + 5.0, y * 2.1) * 0.3 + vnoise(x * 4.3, y * 4.3 + 9.0) * 0.15
+    return (n - 0.5) * 2.0
+
+
 @njit(fastmath=True)
 def stars(dx, dy, dz, pix):
     """Procedural point stars on a cube-ish lat/lon grid. pix = angular pixel size."""
@@ -235,7 +257,8 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             # city lights on the night side
             nl = (1 - lit) * (1 - clc * 0.8)
             ln = srgb2lin(night[0]) * 0.5 + srgb2lin(night[1]) * 0.5
-            cr += ln * nl * 12.0; cg += ln * nl * 7.5; cb += ln * nl * 3.0
+            lnb = ln ** 0.8
+            cr += lnb * nl * 44.0; cg += lnb * nl * 24.0; cb += lnb * nl * 7.0
             # warm Jupiter-shine fill on the side facing Jupiter
             if prm[19] > 0:
                 jx_, jy_, jz_ = prm[16] - hx, prm[17] - hy, prm[18] - hz
@@ -253,10 +276,13 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             shear = prm[9] * math.sin(lat * 6.0) + prm[9] * 0.4 * math.sin(lat * 13.0 + 1.0)
             u = 0.5 + lon / (2 * math.pi) + prm[2] + shear
             c = samp(jup, u, v)
+            ca = samp(jup, u, v - 0.0015); cb_ = samp(jup, u, v + 0.0015)
+            edge = min(abs((ca[0] + ca[1]) - (cb_[0] + cb_[1])) * 6.0, 1.0)
+            dn = 1.0 + jdetail(u, v, edge) * (0.10 + 0.08 * edge)
             # extra contrast for the bands
-            cr = srgb2lin(c[0]) ** 1.15 * 1.1
-            cg = srgb2lin(c[1]) ** 1.15 * 1.0
-            cb = srgb2lin(c[2]) ** 1.15 * 0.9
+            cr = srgb2lin(c[0]) ** 1.3 * 1.18 * dn
+            cg = srgb2lin(c[1]) ** 1.3 * 1.06 * dn
+            cb = srgb2lin(c[2]) ** 1.3 * 0.94 * dn
             diff = smooth(-0.08, 1.0, ndl) ** 1.2
             limb = 0.55 + 0.45 * max(ndv, 0.0) ** 0.6
             cr *= diff * limb * 1.25; cg *= diff * limb * 1.2; cb *= diff * limb * 1.15
@@ -268,7 +294,13 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
         else:  # SATURN
             u = 0.5 + lon / (2 * math.pi) + prm[3]
             c = samp(sat, u, v)
-            cr = srgb2lin(c[0]) ** 1.6 * 1.25; cg = srgb2lin(c[1]) ** 1.6 * 1.15; cb = srgb2lin(c[2]) ** 1.6 * 0.95
+            # polar cap: fade to a flat band colour (hides the map's pole pinch / decal)
+            pw = smooth(1.0, 1.22, abs(lat))
+            if pw > 0:
+                c2 = samp(sat, 0.31, 0.5 - math.copysign(1.0, lat) / math.pi)
+                for q in range(3):
+                    c[q] = c[q] * (1 - pw) + c2[q] * pw
+            cr = srgb2lin(c[0]) ** 1.9 * 1.45; cg = srgb2lin(c[1]) ** 1.9 * 1.33; cb = srgb2lin(c[2]) ** 1.9 * 1.08
             diff = smooth(-0.06, 1.0, ndl) ** 1.1
             limb = 0.6 + 0.4 * max(ndv, 0.0) ** 0.5
             cr *= diff * limb * 1.15; cg *= diff * limb * 1.1; cb *= diff * limb
@@ -292,6 +324,7 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             uu = (rr - prm[7]) / (prm[8] - prm[7])
             rc = samp(ring, uu, 0.5)
             ra = samp1(ring, uu, 0.5, 3)
+            ra *= 1 - 0.85 * math.exp(-((uu - 0.69) / 0.012) ** 2)    # Cassini Division
             rx_ = srgb2lin(rc[0]) ** 1.25 * 1.6 + 0.02; ry_ = srgb2lin(rc[1]) ** 1.25 * 1.38 + 0.017; rz_ = srgb2lin(rc[2]) ** 1.25 * 1.05 + 0.01
             # planet shadow on rings
             hx, hy, hz = ox + dx * rt, oy + dy * rt, oz + dz * rt
