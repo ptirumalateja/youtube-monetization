@@ -323,7 +323,11 @@ function salaryCount(t) { return DRIPS.filter(l => t >= l).length; }
 
 // ---------- manager ----------
 function managerPose(t) {
-  const o = { x: MX, y: SEAT, dir: -1, s: MS, warm: true, tie: true };
+  // v3: he grows from frame 0. Same size as the employee at t=0, each gulp puffs him up a step, ~1.5x by 3 s.
+  const tg = Math.max(0, t), gN = Math.floor(tg * 1.9), gF = (tg * 1.9) % 1, step = k => 0.72 * (1 - Math.exp(-k / 4));
+  const grow = t < OVER ? lerp(step(gN), step(gN + 1), eout(clamp(gF / 0.35))) : step(Math.floor(OVER * 1.9) + 1) + 0.06 * ss(OVER, 6, t);
+  const sM = 1.0 + grow;
+  const o = { x: 521 - 38 * sM, y: SEAT, dir: -1, s: sM, warm: true, tie: true };
   // gulps: head bobs, mouth snaps
   const gph = (t * 1.9) % 1, gulp = t < OVER ? Math.exp(-gph * 7) : 0;
   let p = MSIT;
@@ -338,7 +342,8 @@ function managerPose(t) {
   const sk = ss(FLAIL1 - 0.35, FLAIL1 + 0.2, t); if (sk > 0) p = mix(p, MSTUFF, sk);
   if (gulp > 0) { p = Object.assign({}, p); p.head = [p.head[0] + 2 * gulp, p.head[1] + 4 * gulp]; }
   o.mouth = t < OVER ? 0.75 + 0.25 * (1 - gulp) : lerp(0.35, 0.9, 0.5 + 0.5 * Math.sin(t * 11));
-  o.belly = clamp(0.25 + 0.75 * t / OVER) * (1 + 0.15 * ss(OVER, 6, t));
+  o.belly = clamp(0.1 + 0.9 * grow / 0.5) * (1 + 0.15 * ss(OVER, 6, t));
+  p = Object.assign({}, p); const fy = (FLOOR - SEAT - 4) / sM; p.ft1 = [p.ft1[0], fy]; p.ft2 = [p.ft2[0], fy];
   return [p, o];
 }
 
@@ -376,7 +381,7 @@ function drawScene(g, t) {
   if (ep.hold >= 0) { const [hx, hy] = handPos(t); coin(g, hx, hy - 6, 5.8, t * 3); glowDot(g, hx, hy - 6, 4.5, 0.9 * (0.75 + 0.25 * Math.sin(t * 8))); }
   drip(g, t);
   // labels in the scene (JetBrains, like WAITS / TEXTS FIRST)
-  label(g, 'PROFIT', 300, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
+  label(g, 'PROFIT', 262, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
     sceneCounters(g, t);
   const lA = 1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t);
   const sa = ss(SALARY_ON, SALARY_ON + 0.3, t);
