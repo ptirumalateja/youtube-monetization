@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | v8/v9 delivered 13 Nov 2026, awaiting Teja's pick |
-| Upload file | `final-reels/golf-1-percent/golf-1-percent_v8_until.mp4` (night green). Alternatives: `golf-1-percent_v9_studio.mp4` (Silence Is Distance charcoal background), `golf-1-percent_v8_breaking-point.mp4` (hook "What's your breaking point?") |
+| Upload file | `final-reels/golf-1-percent/golf-1-percent_v8_until_fb-safe.mp4` (night green). Alternatives: `golf-1-percent_v9_studio_fb-safe.mp4` (Silence Is Distance charcoal background), `golf-1-percent_v8_breaking-point_fb-safe.mp4` (hook "What's your breaking point?") |
 | Length | 13 s, 9:16, 1080x1920 |
 | Voice | None. Wordless, foley only (strikes, rolls, lip-out rattles, the final drop). No music, so don't add platform music |
 | Visuals | 3D animation of three putting lanes. The 93% never swing, the 6% miss once and drop the club, and the 1% miss 34 times and then sink it |

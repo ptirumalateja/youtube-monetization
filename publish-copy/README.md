@@ -26,7 +26,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [Last 1% (wireman)](last-one-percent.md) | Final (v3 captions) | `final-reels/last-one-percent_v3_music-ready.mp4` (silent, add platform music) or `last-one-percent_v3.mp4` (with sound) |
 | [Nine Minutes (CAR-T vs cancer)](nine-minutes.md) | v1 final (with the "cancer cell" hook); v2 paused as untested WIP | `final-reels/nine-minutes.mp4` |
 | [Not a Vortex (the solar system's real motion)](not-a-vortex.md) | Final (v2.2) | `final-reels/not-a-vortex_master.mp4` (share: `not-a-vortex.mp4`) |
-| [How Many Misses Until You Quit? (93/6/1 golf)](how-many-misses.md) | v8/v9 delivered 13 Nov 2026, awaiting Teja's pick; wordless 13 s | `final-reels/golf-1-percent/golf-1-percent_v8_until.mp4` (alt: `_v9_studio.mp4`, `_v8_breaking-point.mp4`) |
+| [How Many Misses Until You Quit? (93/6/1 golf)](how-many-misses.md) | v8/v9 delivered 13 Nov 2026, awaiting Teja's pick; wordless 13 s | `final-reels/golf-1-percent/golf-1-percent_v8_until_fb-safe.mp4` (alt: `_v9_studio_fb-safe.mp4`, `_v8_breaking-point_fb-safe.mp4`) |
 | [One Step a Day (stickman)](one-step-a-day.md) | Final | `final-reels/one-step-a-day.mp4` |
 | [Photon Rain (200 MP vs 24 MP)](photon-rain.md) | v2 final; a v3 storyboard is waiting on Teja's hook pick | `final-reels/photon-rain-v2.mp4` |
 | [Proton Laps: One Minute](proton-laps-one-minute.md) | Final (v3) | `final-reels/proton-laps-one-minute.mp4` |
