@@ -20,7 +20,7 @@ const root = __dirname, out = process.env.OUT || path.join(root, 'output'); fs.m
     if (mode === 'stills') {
       for (const t of (process.env.TIMES || '0.3,1.2,2.6,3.9,4.8,6.5,7.3,9.9,11.2').split(',').map(Number)) await shot(t, path.join(out, `still-${t.toFixed(2).padStart(5, '0')}.jpg`));
     } else if (mode === 'events') {
-      fs.writeFileSync(path.join(out, 'events.json'), JSON.stringify({ dur, events: await page.evaluate(() => window.events) }, null, 1));
+      fs.writeFileSync(path.join(out, 'events.json'), JSON.stringify({ dur, tl: await page.evaluate(() => window.TL), events: await page.evaluate(() => window.events) }, null, 1));
     } else if (mode === 'frames') {
       const wk = +(a1 || 0), n = +(a2 || 1), t0 = Date.now();
       for (let f = wk; f < total; f += n) {
