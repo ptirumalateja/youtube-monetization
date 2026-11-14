@@ -1,7 +1,7 @@
 import json,subprocess,sys
 V=sys.argv[1]  # mark|jessica
 DUR=22.4
-SLOTS=[0.1, 1.05, 2.5, 4.45, 5.55, 6.8, 8.8, 10.35, 12.45, 13.15, 14.65, 15.7, 18.0, 20.25]
+SLOTS=[0.47, 1.35, 2.5, 4.45, 5.55, 6.8, 8.8, 10.35, 12.45, 13.15, 14.65, 15.7, 18.0, 20.25]
 w=json.load(open(f'/home/user/nm/vo/{V}11_words.json'))
 lines=[];cur=[]
 for x in w:
