@@ -12,6 +12,7 @@
 - People search for: "Kepler-452b", "Earth 2.0", "Earth's twin", "super Earth", "Jupiter protects Earth", "Jupiter bodyguard", "Jupiter gravity asteroids", "Great Red Spot", "planets talking", "planet conversation".
 - The hook is the rivalry: Kepler-452b calls itself the better Earth. The payoff is Jupiter's line "She doesn't have to."
 - The CTA asks the viewer to pick a side (Team Earth or Team Kepler), which drives comments.
+- Captions add what the video doesn't say: HOW Jupiter protects Earth (mass, slingshots, real impacts). They don't repeat the dialogue (Teja, 14 Nov).
 - It's a playful premise, so no hedging in titles (Teja's rule for this reel). The fun-fact line in the description stays accurate.
 
 ## Publish copy
@@ -25,15 +26,19 @@
 4. When Kepler-452b Meets Earth's Bodyguard
 
 **Description**
-Kepler-452b, the planet they call "Earth 2.0", thinks it's the better Earth. Bigger oceans. Thicker atmosphere. Punches asteroids out of the sky by itself.
+How does Jupiter protect Earth? 🪐
 
-Then Earth's bodyguard shows up. 🪐
+Jupiter is 318 times heavier than Earth. Its gravity is so strong that when a comet or asteroid swings past, Jupiter either swallows it or slingshots it off course, sometimes right out of the solar system.
 
-Jupiter is 318 times heavier than Earth. For billions of years its gravity has pulled in, flung away and swallowed comets and asteroids that wander through our solar system. In 1994 it caught comet Shoemaker-Levy 9 and took all 21 pieces head-on.
+🛡️ 1994: comet Shoemaker-Levy 9 was torn into 21 pieces by Jupiter's gravity and slammed into it. Some impact scars were bigger than Earth.
+🛡️ 2009: something hit Jupiter and left a dark scar the size of the Pacific Ocean.
+🛡️ Telescopes still catch flashes of small rocks hitting Jupiter every few years.
 
-Kepler-452b is real. It was found by NASA's Kepler space telescope in 2015, about 1,800 light-years away. It's around 1.6 times Earth's size and orbits a Sun-like star in the habitable zone.
+Its gravity also keeps the asteroid belt stirred up, so those rocks never clumped into a planet, and it shepherds thousands of "Trojan" asteroids in its own orbit.
 
-Team Earth 🌍 or Team Kepler 🌊? Comment below 👇
+Every hit Jupiter takes is one that never comes near us.
+
+Did you know Jupiter does this? Team Earth 🌍 or Team Kepler 🌊? 👇
 
 Visuals: 3D renders plus real images from NASA's Juno spacecraft (NASA/JPL-Caltech/SwRI/MSSS) and the Hubble Space Telescope (NASA/ESA).
 
@@ -52,13 +57,16 @@ Jupiter has been quietly taking hits for us for 4.5 billion years. Team Earth �
 ### Instagram Reels
 
 **Caption**
-"Earth 2.0" came to brag. Jupiter ended it in 4 words. 🪐
+Jupiter has been taking hits for Earth for 4.5 billion years. 🪐🛡️
 
-Kepler-452b has bigger oceans and a thicker atmosphere, and says it punches asteroids out of the sky by itself.
-Earth doesn't have to. Jupiter is 318 times her mass and has been pulling space rocks off course for billions of years.
+It's 318 times heavier than our planet, so its gravity grabs comets and asteroids that wander too close, swallowing them or flinging them away.
+☄️ 1994: Shoemaker-Levy 9 was ripped into 21 pieces and smashed into Jupiter, leaving scars bigger than Earth.
+☄️ 2009: another impact left a scar the size of the Pacific.
 
-Team Earth 🌍 or Team Kepler 🌊? 👇
-Send this to the friend who always has your back 🛡️
+Every rock Jupiter catches is one that never reaches us.
+
+Did you know this? Team Earth 🌍 or Team Kepler 🌊? 👇
+Send this to your Jupiter 🛡️
 
 #jupiter #kepler452b #earth #space #solarsystem #astronomy #planets #universe #spacefacts #exoplanet #nasa #cosmos #greatredspot #reels #explorepage
 
@@ -68,13 +76,13 @@ Send this to the friend who always has your back 🛡️
 ### Facebook Reels
 
 **Caption**
-Kepler-452b, the planet they call "Earth 2.0", tried to show off in front of Earth. Bigger. Older. Punches asteroids out of the sky by itself.
+Why Earth doesn't have to fight asteroids on her own 🪐
 
-Then Jupiter stepped in: "She doesn't have to." 🪐
+Jupiter is 318 times heavier than Earth. Its gravity catches comets and asteroids that drift too close, pulling them in or slingshotting them away. In 1994 it ripped comet Shoemaker-Levy 9 into 21 pieces and took every one of them head-on, with scars bigger than our whole planet.
 
-Jupiter's gravity has been flinging asteroids and comets around for billions of years. In 1994 it took 21 pieces of comet Shoemaker-Levy 9 head-on.
+4.5 billion years on the job, no days off. 🛡️
 
-Who wins this one: Team Earth 🌍 or Team Kepler 🌊?
+Who's your Jupiter? Tag them 👇
 
 #jupiter #kepler452b #earth #space #solarsystem #astronomy #planets #universe
 
@@ -88,6 +96,9 @@ Who wins this one: Team Earth 🌍 or Team Kepler 🌊?
 ## Facts and sources
 - Kepler-452b: announced by NASA in July 2015. Radius about 1.6 times Earth's. It orbits a G-type (Sun-like) star in the habitable zone with a 385-day year. Its distance was first given as ~1,400 light-years, later revised to ~1,800 light-years. Source: NASA Exoplanet Archive and the Kepler mission pages.
 - Jupiter's mass is about 318 times Earth's. Source: NASA Jupiter fact sheet.
-- Comet Shoemaker-Levy 9 broke into 21 fragments that hit Jupiter in July 1994. Source: NASA/JPL.
+- Comet Shoemaker-Levy 9 was torn apart by Jupiter's tides in 1992 and its 21 fragments hit Jupiter in July 1994. Some impact sites were larger than Earth. Source: NASA/JPL.
+- July 2009 impact (found by amateur Anthony Wesley) left a dark scar about the size of the Pacific Ocean. Source: NASA/JPL, Hubble.
+- Amateur video has caught small impact flashes on Jupiter in 2010, 2012, 2016, 2019 and later. Source: published observation reports.
+- Jupiter's gravity stopped the asteroid belt from forming a planet and holds the Trojan asteroids at its L4/L5 points (NASA Lucy mission pages).
 - Jupiter as a shield: its gravity ejects and captures many comets and asteroids, but studies also show it can send some toward the inner solar system. The reel treats the "bodyguard" idea playfully, and the copy only states the parts that are true (it pulls, flings and swallows space rocks).
 - Juno Great Red Spot image: PIA21775, NASA/JPL-Caltech/SwRI/MSSS (public domain). M15 globular cluster: NASA/ESA Hubble (public domain via Wikimedia Commons).
