@@ -84,10 +84,15 @@ function drawFig(g, pose, o) {
   if (o.belly) { // torso bows forward as he fills up
     const mx = (pose.sh[0] + pose.hip[0]) / 2, my = (pose.sh[1] + pose.hip[1]) / 2; const dx = pose.hip[0] - pose.sh[0], dy = pose.hip[1] - pose.sh[1], l = Math.hypot(dx, dy);
     const nx = -dy / l, ny = dx / l, b = o.belly * 26; const cx = mx + nx * b * (nx > 0 ? 1 : -1), cy = my + ny * b * (nx > 0 ? 1 : -1);
-    g.strokeStyle = near; g.lineWidth = lw * (1.05 + o.belly * 0.9); g.beginPath(); g.moveTo(X(pose.sh), Y(pose.sh)); g.quadraticCurveTo(X([cx, cy]), Y([cx, cy]), X(pose.hip), Y(pose.hip)); g.stroke();
+    g.strokeStyle = near; g.lineWidth = lw * (1.05 + o.belly * 0.5); g.beginPath(); g.moveTo(X(pose.sh), Y(pose.sh)); g.quadraticCurveTo(X([cx, cy]), Y([cx, cy]), X(pose.hip), Y(pose.hip)); g.stroke();
+    // v6: a big round tummy that swells with him (front = +x)
+    const R = (7 + 23 * o.belly) * s, bx = lerp(pose.sh[0], pose.hip[0], 0.62) + R / s * 0.5, by = lerp(pose.sh[1], pose.hip[1], 0.62) - R / s * 0.1;
+    g.fillStyle = near; g.beginPath(); g.ellipse(X([bx, 0]), Y([0, by]), R * 1.02, R * 0.92, 0, 0, 7); g.fill();
+    if (!o.reflect) { g.save(); g.shadowBlur = 0; g.fillStyle = 'rgba(160,140,115,0.25)'; g.beginPath(); g.ellipse(X([bx - R / s * 0.3, 0]), Y([0, by + R / s * 0.35]), R * 0.6, R * 0.35, 0, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.ellipse(X([bx + R / s * 0.25, 0]), Y([0, by - R / s * 0.4]), R * 0.3, R * 0.18, -0.4 * d, 0, 7); g.fill(); g.restore(); }
   } else seg([pose.sh, pose.hip], near, lw * 1.05);
   if (o.tie && !o.reflect) { // small tie hanging from the collar along the chest
-    const a = pose.sh, b = [lerp(pose.sh[0], pose.hip[0], 0.42) + 5, lerp(pose.sh[1], pose.hip[1], 0.42)];
+    const a = pose.sh, b = [lerp(pose.sh[0], pose.hip[0], 0.42) + 5 + 22 * (o.belly || 0), lerp(pose.sh[1], pose.hip[1], 0.42)];
     g.save(); g.shadowBlur = 0; g.strokeStyle = '#c9453a'; g.lineWidth = 5.5 * s; g.beginPath(); g.moveTo(X([a[0] + 4, a[1] + 3]), Y([a[0] + 4, a[1] + 3])); g.lineTo(X(b), Y(b)); g.stroke(); g.restore();
   }
   seg([pose.hip, pose.kn1, pose.ft1], near, lw);
@@ -99,6 +104,16 @@ function drawFig(g, pose, o) {
     g.moveTo(hx, hy); g.arc(hx, hy, 14.5 * s, ang + w, ang - w + Math.PI * 2); g.closePath();
   } else g.arc(X(pose.head), Y(pose.head), 14.5 * s, 0, 7);
   g.fill();
+  if (o.sweat && !o.reflect) {
+    const hx = X(pose.head), hy = Y(pose.head);
+    g.save(); g.shadowBlur = 0;
+    for (let i = 0; i < 3; i++) { const ph = ((T * 0.55 + i * 0.37) % 1), a = Math.sin(ph * Math.PI);
+      const wk = wipeK(T); if (wk > 0.3 && wk < 0.95) continue;
+      const dx = (10 + 4 * i) * s * d, dy = (-8 + 18 * ph) * s; g.fillStyle = `rgba(150,200,255,${0.85 * a})`;
+      g.beginPath(); g.moveTo(hx + dx, hy + dy - 4.5 * s); g.quadraticCurveTo(hx + dx + 3 * s, hy + dy + 1.5 * s, hx + dx, hy + dy + 2.5 * s); g.quadraticCurveTo(hx + dx - 3 * s, hy + dy + 1.5 * s, hx + dx, hy + dy - 4.5 * s); g.fill(); }
+    const wk = wipeK(T); if (wk > 0.7) { const k = (wk - 0.7) / 0.3; for (let i = 0; i < 4; i++) { g.fillStyle = `rgba(150,200,255,${0.9 * (1 - k)})`; g.beginPath(); g.arc(hx - (14 + 30 * k * (0.6 + 0.2 * i)) * s * d, hy - (6 + 10 * Math.sin(k * 3) * (0.5 + 0.3 * i)) * s + 30 * k * k * s, 2 * s, 0, 7); g.fill(); } }
+    g.restore();
+  }
   if (o.glow > 0 && !o.reflect) { // laptop light on the face
     const hx = X(pose.hd1), hy = Y(pose.hd1);
     g.shadowBlur = 0; g.globalCompositeOperation = 'lighter';
@@ -109,16 +124,22 @@ function drawFig(g, pose, o) {
   g.restore();
 }
 function laptop(g, pose, o, X, Y) {
-  // base on the knees, lid hinged at the far end, screen faces him
-  const b0 = [pose.kn1[0] - 14, pose.kn1[1] - 7], b1 = [pose.kn1[0] + 24, pose.kn1[1] - 10], lid = [b1[0] + 9, b1[1] - 30];
+  // v6: bigger laptop on his thighs: keyboard slab + open lid with a glowing screen facing him
+  const b0 = [pose.kn1[0] - 20, pose.kn1[1] - 5], b1 = [pose.kn1[0] + 30, pose.kn1[1] - 9], lid = [b1[0] + 9, b1[1] - 40];
   g.save(); g.shadowBlur = 0; g.lineCap = 'round'; g.lineJoin = 'round';
-  // glowing screen face (a thin quad on the inside of the lid)
   g.globalCompositeOperation = 'lighter';
-  const sc = g.createRadialGradient(X([b1[0] - 6, b1[1] - 14]), Y([0, b1[1] - 14]), 0, X([b1[0] - 6, 0]), Y([0, b1[1] - 14]), 34 * o.s);
-  sc.addColorStop(0, rgba(C.gold, 0.35 * o.glow + 0.1)); sc.addColorStop(1, rgba(C.gold, 0)); g.fillStyle = sc; g.beginPath(); g.arc(X([b1[0] - 6, 0]), Y([0, b1[1] - 14]), 34 * o.s, 0, 7); g.fill();
+  const cx = X([lerp(b1[0], lid[0], 0.5) - 14, 0]), cy = Y([0, lerp(b1[1], lid[1], 0.5)]);
+  const sc = g.createRadialGradient(cx, cy, 0, cx, cy, 46 * o.s); sc.addColorStop(0, rgba(C.gold, 0.3 * o.glow + 0.12)); sc.addColorStop(1, rgba(C.gold, 0));
+  g.fillStyle = sc; g.beginPath(); g.arc(cx, cy, 46 * o.s, 0, 7); g.fill();
   g.globalCompositeOperation = 'source-over';
-  g.strokeStyle = '#30313a'; g.lineWidth = 6 * o.s; g.beginPath(); g.moveTo(X(b0), Y(b0)); g.lineTo(X(b1), Y(b1)); g.lineTo(X(lid), Y(lid)); g.stroke();
-  g.strokeStyle = rgba(C.goldHot, 0.6 + 0.4 * o.glow); g.lineWidth = 3 * o.s; g.beginPath(); g.moveTo(X([b1[0] - 3, b1[1] - 4]), Y([b1[0] - 3, b1[1] - 4])); g.lineTo(X([lid[0] - 3, lid[1] + 2]), Y([lid[0] - 3, lid[1] + 2])); g.stroke();
+  // keyboard base (slab with a light top edge)
+  g.strokeStyle = '#4a4c58'; g.lineWidth = 7 * o.s; g.beginPath(); g.moveTo(X(b0), Y(b0)); g.lineTo(X(b1), Y(b1)); g.stroke();
+  g.strokeStyle = 'rgba(220,226,240,0.55)'; g.lineWidth = 1.6 * o.s; g.beginPath(); g.moveTo(X([b0[0], b0[1] - 3]), Y([b0[0], b0[1] - 3])); g.lineTo(X([b1[0] - 2, b1[1] - 3]), Y([b1[0] - 2, b1[1] - 3])); g.stroke();
+  // lid: dark back + bright screen on the side facing him
+  g.strokeStyle = '#4a4c58'; g.lineWidth = 7 * o.s; g.beginPath(); g.moveTo(X(b1), Y(b1)); g.lineTo(X(lid), Y(lid)); g.stroke();
+  g.strokeStyle = rgba(C.goldHot, 0.75 + 0.25 * o.glow); g.lineWidth = 3.4 * o.s; g.beginPath(); g.moveTo(X([b1[0] - 4, b1[1] - 5]), Y([b1[0] - 4, b1[1] - 5])); g.lineTo(X([lid[0] - 4, lid[1] + 3]), Y([lid[0] - 4, lid[1] + 3])); g.stroke();
+  // apple-less logo dot on the back of the lid
+  g.fillStyle = 'rgba(220,226,240,0.5)'; g.beginPath(); g.arc(X([lerp(b1[0], lid[0], 0.55) + 4, 0]), Y([0, lerp(b1[1], lid[1], 0.55)]), 1.8 * o.s, 0, 7); g.fill();
   g.restore();
 }
 
@@ -207,7 +228,7 @@ const PIPE_PTS = (() => { // polyline along the pipe from the hose coupling to t
   return p;
 })();
 function hosePts() { // laptop -> floor -> up into the pipe coupling
-  const lid = [EX + 50, 778]; const a = lid, b = [EX + 64, 812], c = [EX + 50, 832], d = [EX + 20, 832];
+  const lid = [EX + 46, 786]; const a = lid, b = [EX + 64, 812], c = [EX + 50, 832], d = [EX + 20, 832];
   const p = []; for (let u = 0; u <= 1; u += 0.05) { const v = 1 - u; p.push([v * v * v * a[0] + 3 * v * v * u * b[0] + 3 * v * u * u * c[0] + u * u * u * d[0], v * v * v * a[1] + 3 * v * v * u * b[1] + 3 * v * u * u * c[1] + u * u * u * d[1]]); }
   for (let x = EX + 20; x >= HX + 24; x -= 4) p.push([x, 832]);
   for (let u = 0; u <= 1; u += 0.1) p.push([HX + 24 - 24 * Math.sin(u * Math.PI / 2), 832 - 24 * (1 - Math.cos(u * Math.PI / 2))]);
@@ -332,12 +353,20 @@ function drip(g, t) {
   }
 }
 // employee pose: types; looks up and cups his hands for each drip; holds the coin, sets it down beside him
+const WIPES = [0.9, 5.15, 10.4];
+const WIPE_D = 0.75;
+function wipeK(t) { for (const w of WIPES) if (t >= w && t < w + WIPE_D) return (t - w) / WIPE_D; return -1; }
 function empPose(t) {
   let p = TYPE, look = 0, hold = -1;
+  const wk = wipeK(t);
+  if (wk >= 0) { // near hand comes up and wipes across his forehead, other hand keeps typing; head drops a little after
+    const up = ss(0, 0.25, wk) * (1 - ss(0.78, 1, wk)), sweep = ss(0.25, 0.75, wk);
+    p = Object.assign({}, TYPE); p.el1 = [lerp(6, 16, up), lerp(-40, -70, up)]; p.hd1 = [lerp(20, lerp(24, 6, sweep), up), lerp(-47, -90, up)];
+    p.head = [6 - 3 * up, -84 + 2 * up]; }
   for (let j = 0; j < DRIPS.length; j++) { const l = DRIPS[j]; const k = ss(l - 0.95, l - 0.55, t) * (1 - ss(l + 0.75, l + 1.1, t)); if (k > 0) { p = mix(TYPE, CUP, eio(k)); look = k; } if (t >= l && t < l + 0.95) hold = j; }
   return { p, look, hold };
 }
-function empO(t) { return { x: EX, y: FLOOR, dir: 1, s: 1, warm: false, typing: empPose(t).look < 0.2, laptop: true, glow: 0.55 + 0.35 * Math.max(0, Math.sin(t * 7)) * (1 - empPose(t).look) }; }
+function empO(t) { return { x: EX, y: FLOOR, dir: 1, s: 1, warm: false, typing: empPose(t).look < 0.2, laptop: true, sweat: true, glow: 0.55 + 0.35 * Math.max(0, Math.sin(t * 7)) * (1 - empPose(t).look) }; }
 function handPos(t) { const { p } = empPose(t); const o = empO(t); return [o.x + (p.hd1[0] + p.hd2[0]) / 2 * o.s, o.y + (p.hd1[1] + p.hd2[1]) / 2 * o.s]; }
 function salaryCount(t) { return DRIPS.filter(l => t >= l).length; }
 
@@ -362,7 +391,7 @@ function managerPose(t) {
   const sk = ss(FLAIL1 - 0.35, FLAIL1 + 0.2, t); if (sk > 0) p = mix(p, MSTUFF, sk);
   if (gulp > 0) { p = Object.assign({}, p); p.head = [p.head[0] + 2 * gulp, p.head[1] + 4 * gulp]; }
   o.mouth = t < OVER ? 0.75 + 0.25 * (1 - gulp) : lerp(0.35, 0.9, 0.5 + 0.5 * Math.sin(t * 11));
-  o.belly = clamp(0.1 + 0.9 * grow / 0.5) * (1 + 0.15 * ss(OVER, 6, t));
+  o.belly = clamp(0.12 + 0.88 * grow / 0.55) * (1 + 0.15 * ss(OVER, 6, t));
   p = Object.assign({}, p); const fy = (FLOOR - SEAT - 4) / sM; p.ft1 = [p.ft1[0], fy]; p.ft2 = [p.ft2[0], fy];
   return [p, o];
 }
@@ -371,7 +400,7 @@ function managerPose(t) {
 // slow push-in on the whole scene; for each salary drip it leans toward the employee and back.
 function cam(t) {
   // floor lands at design y ~1000 (1500 px), pipe at ~385; push in slowly from frame 0
-  let z = lerp(1.5, 1.62, eout(clamp(t / 3))) + 0.04 * clamp((t - 3) / 9), cx = 384, cy = 610;
+  const hk = eio(clamp(t / 3)); let z = lerp(1.45, 1.8, hk) * (t < 3 ? 1 : 0) + (t >= 3 ? lerp(1.6, 1.66, clamp((t - 5.2) / 6.8)) : 0), cx = t < 3 ? lerp(384, 400, hk) : 384, cy = t < 3 ? lerp(610, 592, hk) : 610;
   for (const l of DRIPS) { const k = ss(l - 1.0, l - 0.35, t) * (1 - ss(l + 0.5, l + 1.2, t)); z = lerp(z, 1.68, k); cx = lerp(cx, 362, k); cy = lerp(cy, 604, k); }
   // v5 (vidIQ pattern breaks): hard cut to a close-up of him and the falling coins at 3.0 s (holds through the overflow),
   // hard cut back wide at 5.2 s, then a hard cut to the pile + his counter at 8.0-8.9 s.
