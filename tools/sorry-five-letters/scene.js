@@ -30,7 +30,7 @@ const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 // ---------- palette (Slow Light, as Silence Is Distance) ----------
 const C = {
-  bgTop: '#191b24', bgMid: '#111219', bgBot: '#16171f',
+  bgTop: '#33333d', bgMid: '#22232c', bgBot: '#2a2b34',
   gold: [255, 190, 92], goldHot: [255, 232, 180],
   figWarm: [255, 247, 234], farWarm: [165, 157, 146],
   figCool: [223, 228, 238], farCool: [138, 144, 156],
@@ -154,8 +154,12 @@ function background(g, t) {
   gr = g.createLinearGradient(0, 0, DW, DH * 0.6);
   gr.addColorStop(0.25, 'rgba(255,255,255,0)'); gr.addColorStop(0.42, 'rgba(255,255,255,0.025)'); gr.addColorStop(0.6, 'rgba(255,255,255,0)');
   g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+  // soft light pools reaching the very edges (top and bottom) so no edge band is flat
+  for (const [x, y, r, c, a] of [[90, 40, 380, '255,200,140', 0.24], [640, 90, 360, '170,190,240', 0.2], [360, -40, 420, '255,215,170', 0.12], [120, 1250, 420, '255,205,150', 0.24], [620, 1210, 400, '160,180,230', 0.2], [360, 1320, 460, '255,220,180', 0.06]]) {
+    const gp = g.createRadialGradient(x, y, 0, x, y, r); gp.addColorStop(0, `rgba(${c},${a})`); gp.addColorStop(1, `rgba(${c},0)`); g.fillStyle = gp; g.fillRect(0, 0, DW, DH);
+  }
   for (let i = 0; i < 46; i++) {
-    const x = (hash(i) * DW + t * (4 + 8 * hash(i + 9))) % DW, y = 120 + hash(i + 3) * 960 - t * (3 + 5 * hash(i + 5));
+    const x = (hash(i) * DW + t * (4 + 8 * hash(i + 9))) % DW, y = ((hash(i + 3) * 1280 - t * (3 + 5 * hash(i + 5))) % 1280 + 1280) % 1280;
     const a = 0.10 + 0.18 * hash(i + 7) * (0.6 + 0.4 * Math.sin(t * 1.3 + i));
     g.fillStyle = `rgba(255,240,215,${a})`; g.beginPath(); g.arc(x, y, 0.6 + 1.1 * hash(i + 11), 0, 7); g.fill();
   }
@@ -169,8 +173,13 @@ function ledge(g, crack) {
   gr.addColorStop(1, `rgb(${tone[0] - 22},${tone[1] - 22},${tone[2] - 20})`);
   g.fillStyle = gr; g.fillRect(-60, y0 - LTOP, DW + 120, LTOP + LFRONT);
   gr = g.createLinearGradient(0, y0 + LFRONT, 0, y0 + LFRONT + LDEPTH);
-  gr.addColorStop(0, `rgba(${tone[0] - 30},${tone[1] - 30},${tone[2] - 26},1)`); gr.addColorStop(0.5, 'rgba(36,37,44,1)'); gr.addColorStop(1, 'rgba(30,31,38,1)');
+  gr.addColorStop(0, `rgba(${tone[0] - 30},${tone[1] - 30},${tone[2] - 26},1)`); gr.addColorStop(0.45, 'rgba(52,53,62,1)'); gr.addColorStop(1, 'rgba(66,66,76,1)');
   g.fillStyle = gr; g.fillRect(-60, y0 + LFRONT, DW + 120, LDEPTH);
+  // glossy floor: warm reflection under them + soft pools out to the frame edges (no flat bottom band)
+  for (const [x, y, r, c, al] of [[360, y0 + 120, 330, '255,205,150', 0.16], [70, y0 + 420, 380, '255,200,145', 0.2], [660, y0 + 380, 360, '165,185,235', 0.18], [360, y0 + 470, 300, '230,215,200', 0.08]]) {
+    const gp = g.createRadialGradient(x, y, 0, x, y, r); gp.addColorStop(0, `rgba(${c},${al})`); gp.addColorStop(1, `rgba(${c},0)`);
+    g.fillStyle = gp; g.fillRect(-60, y0 + LFRONT, DW + 120, LDEPTH);
+  }
   g.fillStyle = 'rgba(255,236,205,0.5)'; g.fillRect(-60, y0 + LFRONT - 1.8, DW + 120, 2.2);
   g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(-60, y0 - LTOP, DW + 120, 1.6);
   // cracks under their feet, growing with the weight
