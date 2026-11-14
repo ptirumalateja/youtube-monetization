@@ -8,6 +8,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 
 | Reel | Status | Upload file |
 |---|---|---|
+| [She Doesn't Have To (Kepler-452b vs Earth, Jupiter the bodyguard)](she-doesnt-have-to-jupiter.md) | v3 delivered 14 Nov 2026, awaiting review; 31.2 s, subtitles, no VO | `final-reels/jupiter-bodyguard/jupiter-bodyguard_kepler_v3.mp4` |
 | [Ramappa: Floating Bricks (Telugu)](ramappa-floating-bricks_te.md) | v1 delivered 13 Nov 2026, awaiting review; 26.6 s, Teja Telugu Narrator VO | `final-reels/ramappa/ramappa-floating-bricks_te.mp4` (no-music: `_music-ready.mp4`) |
 | [What If Time Froze? (near-miss body reel)](what-if-time-froze.md) | v3 delivered 13 Nov 2026, Mark vs Jessica pick pending; 23.4 s | `final-reels/body-questions/what-if-time-froze_mark.mp4` (alt: `_jessica.mp4`) |
 | [Sorry Is 5 Letters (stickman)](sorry-is-5-letters.md) | Final (v3, smaller title for edge margins), Teja: "solid" 13 Nov 2026; wordless 13.6 s | `final-reels/sorry-is-5-letters/sorry-is-5-letters-v3.mp4` |
