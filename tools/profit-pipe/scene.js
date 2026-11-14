@@ -371,9 +371,13 @@ function managerPose(t) {
 // slow push-in on the whole scene; for each salary drip it leans toward the employee and back.
 function cam(t) {
   // floor lands at design y ~1000 (1500 px), pipe at ~385; push in slowly from frame 0
-  let z = lerp(1.56, 1.64, eout(clamp(t / DUR))), cx = 384, cy = 610;
+  let z = lerp(1.5, 1.62, eout(clamp(t / 3))) + 0.04 * clamp((t - 3) / 9), cx = 384, cy = 610;
   for (const l of DRIPS) { const k = ss(l - 1.0, l - 0.35, t) * (1 - ss(l + 0.5, l + 1.2, t)); z = lerp(z, 1.68, k); cx = lerp(cx, 362, k); cy = lerp(cy, 604, k); }
-  const shake = (t > OVER && t < FLAIL1) ? 1.6 * Math.sin(t * 41) : 0;
+  // v5 (vidIQ pattern breaks): hard cut to a close-up of him and the falling coins at 3.0 s (holds through the overflow),
+  // hard cut back wide at 5.2 s, then a hard cut to the pile + his counter at 8.0-8.9 s.
+  if (t >= 3.0 && t < 5.2) { const k = (t - 3.0) / 2.2; z = lerp(2.5, 2.78, k); cx = lerp(482, 476, k); cy = lerp(640, 630, k); }
+  if (t >= 8.0 && t < 8.9) { const k = (t - 8.0) / 0.9; z = lerp(2.0, 2.12, k); cx = 444; cy = lerp(706, 700, k); }
+  const shake = (t > OVER && t < FLAIL1) ? 1.6 * Math.sin(t * 41) * (z > 2 ? 1.6 : 1) : 0;
   return { z, cx: cx + shake, cy };
 }
 function sceneTf(t) { const k = W / DW, c = cam(t); return [k * c.z, 0, 0, k * c.z, k * (360 - c.cx * c.z), k * (640 - c.cy * c.z)]; }
@@ -400,21 +404,27 @@ function drawScene(g, t) {
   if (ep.hold >= 0) { const [hx, hy] = handPos(t); coin(g, hx, hy - 6, 5.8, t * 3); glowDot(g, hx, hy - 6, 4.5, 0.9 * (0.75 + 0.25 * Math.sin(t * 8))); }
   drip(g, t);
   // labels in the scene (JetBrains, like WAITS / TEXTS FIRST)
-  label(g, 'PROFIT', 262, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
+  const wideL = cam(t).z < 1.9 ? 1 : 0;
+  if (wideL) label(g, 'PROFIT', 262, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
     sceneCounters(g, t);
   const lA = 1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t);
   const sa = ss(SALARY_ON, SALARY_ON + 0.3, t);
-  if (sa > 0) { label(g, 'SALARY', LEAK_X + 16, PIPE_Y + 40, 12, 0.92 * sa, 3.5, 700, 'left', '214,224,244'); g.save(); g.globalAlpha = sa * 0.6; g.strokeStyle = 'rgba(214,224,244,0.8)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(LEAK_X + 15, PIPE_Y + 38); g.lineTo(LEAK_X + 4, PIPE_Y + 20); g.stroke(); g.restore(); }
+  if (sa > 0 && wideL) { label(g, 'SALARY', LEAK_X + 16, PIPE_Y + 40, 12, 0.92 * sa, 3.5, 700, 'left', '214,224,244'); g.save(); g.globalAlpha = sa * 0.6; g.strokeStyle = 'rgba(214,224,244,0.8)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(LEAK_X + 15, PIPE_Y + 38); g.lineTo(LEAK_X + 4, PIPE_Y + 20); g.stroke(); g.restore(); }
 }
 
 // ---------- HUD (unzoomed, inside y 300-1440 at 1080x1920 = design 200-960) ----------
 function fitFont(g, txt, weight, size, family, maxW) { g.font = `${weight} ${size}px "${family}"`; const w = g.measureText(txt).width; if (w > maxW) { size *= maxW / w; g.font = `${weight} ${size}px "${family}"`; } return size; }
-function title(g, a, b, k, pop) {
+function title(g, a, b, k, pop, shine = -1) {
   g.save(); g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.letterSpacing = '0.5px'; g.globalAlpha *= k;
-  g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 10;
-  g.translate(360, 250); g.scale(pop, pop); g.translate(-360, -250);
-  fitFont(g, a, 900, 56, 'Inter Display', 560); g.fillStyle = 'rgba(255,200,110,1)'; g.fillText(a, 360, 246);
-  fitFont(g, b, 800, 36, 'Inter Display', 540); g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText(b, 360, 292);
+  g.translate(360, 260); g.scale(pop, pop); g.translate(-360, -260);
+  // dark plate behind the two lines so they read over anything
+  g.save(); g.fillStyle = 'rgba(14,15,20,0.55)'; g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 18; g.beginPath(); g.roundRect(70, 196, 580, 118, 22); g.fill(); g.restore();
+  g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 12;
+  fitFont(g, a, 900, 58, 'Inter Display', 540);
+  let fs = 'rgba(255,200,110,1)';
+  if (shine >= 0 && shine <= 1) { const x = lerp(40, 680, shine); const gr = g.createLinearGradient(x - 90, 0, x + 90, 0); gr.addColorStop(0, 'rgb(255,200,110)'); gr.addColorStop(0.5, 'rgb(255,250,230)'); gr.addColorStop(1, 'rgb(255,200,110)'); fs = gr; }
+  g.fillStyle = fs; g.fillText(a, 360, 252);
+  fitFont(g, b, 800, 40, 'Inter Display', 520); g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText(b, 360, 298);
   g.restore();
 }
 function fmt(n) { return n.toLocaleString('en-US'); }
@@ -422,8 +432,8 @@ function sceneCounters(g, t) {
   const you = salaryCount(t), them = 4180 + Math.round(SPAWN.filter(x => x <= t && x >= 0).length * 37);
   let b = 0; for (const l of DRIPS) if (t >= l) b = Math.max(b, Math.exp(-(t - l) * 5));
   // YOU GOT n, above the employee
-  label(g, 'EMPLOYEE', EX + 6, 684, 13, 0.95, 2.5, 700, 'center', '214,224,244');
-  g.save(); g.translate(EX + 6, 712); g.scale(1 + 0.45 * b, 1 + 0.45 * b); g.font = '700 26px "JetBrains Mono"'; g.textAlign = 'center'; g.fillStyle = b > 0.05 ? 'rgba(255,214,150,0.98)' : 'rgba(214,224,244,0.98)'; g.fillText(fmt(you), 0, 0); g.restore();
+  if (cam(t).z < 1.9) label(g, 'EMPLOYEE', EX + 6, 684, 13, 0.95, 2.5, 700, 'center', '214,224,244');
+  if (cam(t).z < 1.9) { g.save(); g.translate(EX + 6, 712); g.scale(1 + 0.45 * b, 1 + 0.45 * b); g.font = '700 26px "JetBrains Mono"'; g.textAlign = 'center'; g.fillStyle = b > 0.05 ? 'rgba(255,214,150,0.98)' : 'rgba(214,224,244,0.98)'; g.fillText(fmt(you), 0, 0); g.restore(); }
   // THEY GOT n, on the front of his seat
   label(g, 'MANAGEMENT', (BOX.x0 + BOX.x1) / 2 + 10, 776, 13, 0.95, 2.5, 700, 'center');
   g.save(); g.font = '700 26px "JetBrains Mono"'; g.textAlign = 'center'; g.shadowColor = rgba(C.gold, 0.7); g.shadowBlur = 8 * W / DW; g.fillStyle = 'rgba(255,214,150,0.98)'; g.fillText(fmt(them), (BOX.x0 + BOX.x1) / 2 + 10, 803); g.restore();
@@ -436,8 +446,10 @@ function frame(g, t) {
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
   // hook -> end lines
   const swap = ss(END_TXT - 0.15, END_TXT, t), pop = 1 + 0.12 * Math.exp(-Math.max(0, t - END_TXT) * 9) * (t >= END_TXT ? 1 : 0);
-  if (swap < 1) title(g, 'YOU FILL THE PIPE.', 'GUESS WHO DRINKS FROM IT?', 1 - swap, 1);
-  if (swap > 0) title(g, 'YOU GET THE DRIPS.', 'THEY GET THE FLOOD.', swap, pop);
+  const hp = 1 + 0.16 * Math.exp(-t * 8) + 0.07 * (t >= 3 ? Math.exp(-(t - 3) * 8) : 0) + 0.012 * Math.sin(t * 1.9 * Math.PI * 2) * (t < OVER ? 1 : 0);
+  const sh = t < 1.2 ? (t - 0.15) / 0.7 : t >= 3 && t < 4 ? (t - 3.05) / 0.6 : -1;
+  if (swap < 1) title(g, 'YOU FILL THE PIPE.', 'GUESS WHO DRINKS FROM IT?', 1 - swap, hp, sh);
+  if (swap > 0) title(g, 'YOU GET THE DRIPS.', 'THEY GET THE FLOOD.', swap, pop, (t - END_TXT - 0.1) / 0.6);
   const ca = ss(CTA_ON, CTA_ON + 0.3, t);
   if (ca > 0) { g.save(); g.globalAlpha = ca; g.font = '700 26px "Inter"'; g.textAlign = 'center'; g.fillStyle = 'rgba(250,246,238,0.95)'; g.fillText('Send this to the coworker', 300, 540); g.fillText('who fills the pipe 💛', 300, 576); g.restore(); }
   label(g, 'SLOW LIGHT', 360, 1270, 11, 0.28, 5, 600, 'center');

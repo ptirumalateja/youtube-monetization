@@ -1,7 +1,7 @@
-# You Fill the Pipe (v4, 12 s, 9:16)
+# You Fill the Pipe (v5, 12 s, 9:16)
 
 Stickman reel in the Silence Is Distance look. The employee's laptop feeds a glowing hose into the PROFIT pipe, which pours gold straight into MANAGEMENT's mouth. He overflows and the coins pile up at his feet. A crack marked SALARY drips one coin to the employee, then another. The counters read YOU GOT 2 against THEY GOT 35,000+.
-File: project files `final-reels/profit-pipe/profit-pipe-v4.mp4` (v4 = full-bleed: wall, factory pipes and glossy floor reach all four edges so FB sees no borders; v3 = management grows with every gulp from frame 0; v2 = EMPLOYEE and MANAGEMENT labels on the figures). Wordless, ElevenLabs foley, no music. Renderer: `tools/profit-pipe` (branch `claude/project-thread-uppxcw`). Remake of a neuronvisuals reference.
+File: project files `final-reels/profit-pipe/profit-pipe-v5.mp4` (v5 = vidIQ fixes: hard cuts to a close-up of him at 3.0-5.2 s and to the pile at 8.0-8.9 s, stronger opening push, title pops in with a gold shine sweep on a dark plate; v4 = full-bleed: wall, factory pipes and glossy floor reach all four edges so FB sees no borders; v3 = management grows with every gulp from frame 0; v2 = EMPLOYEE and MANAGEMENT labels on the figures). Wordless, ElevenLabs foley, no music. Renderer: `tools/profit-pipe` (branch `claude/project-thread-uppxcw`). Remake of a neuronvisuals reference.
 
 ## Facebook caption
 Your hard work fills the pipe. Guess who drinks from it? 💛
