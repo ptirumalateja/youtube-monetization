@@ -123,10 +123,25 @@ function laptop(g, pose, o, X, Y) {
 }
 
 // ---------- background (Silence) ----------
+function bgPipe(g, x0, y0, x1, y1, r, a) {
+  g.save(); g.globalAlpha = a; g.lineCap = 'butt';
+  for (const [w, col, dy] of [[r * 2 + 3, '#262833', 0], [r * 2, '#3b3e4b', 0], [r * 0.8, '#555968', -r * 0.35], [1.6, 'rgba(230,234,250,0.35)', -r * 0.55]]) {
+    g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0 + dy); g.lineTo(x1, y1 + dy); g.stroke(); }
+  g.restore();
+}
 function background(g, t) {
   let gr = g.createLinearGradient(0, 0, 0, DH);
-  gr.addColorStop(0, C.bgTop); gr.addColorStop(0.5, C.bgMid); gr.addColorStop(1, C.bgBot);
-  g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+  gr.addColorStop(0, '#2a2c37'); gr.addColorStop(0.45, '#1c1e27'); gr.addColorStop(1, '#22232c');
+  g.fillStyle = gr; g.fillRect(-200, -200, DW + 400, DH + 400);
+  // wall panels: vertical seams edge to edge + a rail
+  for (let x = -20; x < DW + 60; x += 96) { g.fillStyle = 'rgba(255,255,255,0.035)'; g.fillRect(x, -200, 1.5, DH); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x + 1.5, -200, 2, DH); }
+  g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(-200, 300, DW + 400, 2);
+  // out-of-focus factory pipes along the top and down both sides
+  bgPipe(g, -200, 28, DW + 200, 28, 16, 0.9); bgPipe(g, -200, 92, DW + 200, 92, 9, 0.7);
+  for (let x = 40; x < DW; x += 150) { g.fillStyle = 'rgba(110,114,130,0.7)'; g.fillRect(x, 10, 7, 36); }
+  // a warm work lamp above the scene
+  gr = g.createRadialGradient(400, 0, 10, 400, 0, 620); gr.addColorStop(0, 'rgba(255,200,130,0.16)'); gr.addColorStop(1, 'rgba(255,200,130,0)');
+  g.fillStyle = gr; g.fillRect(-200, -200, DW + 400, DH);
   gr = g.createRadialGradient(560, 600, 10, 560, 600, 470); gr.addColorStop(0, `rgba(255,190,110,${0.11 + 0.05 * ss(OVER, 6, t)})`); gr.addColorStop(1, 'rgba(255,190,110,0)');
   g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
   gr = g.createRadialGradient(180, 720, 10, 180, 720, 380); gr.addColorStop(0, 'rgba(120,150,210,0.08)'); gr.addColorStop(1, 'rgba(120,150,210,0)');
@@ -156,9 +171,14 @@ function floor(g) {
   let gr = g.createLinearGradient(0, y0 - top, 0, y0 + front);
   gr.addColorStop(0, `rgba(${tone[0] + 26},${tone[1] + 26},${tone[2] + 28},1)`); gr.addColorStop(0.45, `rgba(${tone[0]},${tone[1]},${tone[2]},1)`); gr.addColorStop(1, `rgba(${tone[0] - 22},${tone[1] - 22},${tone[2] - 20},1)`);
   g.fillStyle = gr; g.fillRect(-60, y0 - top, DW + 120, top + front);
-  gr = g.createLinearGradient(0, y0 + front, 0, y0 + front + depth);
-  gr.addColorStop(0, `rgba(${tone[0] - 30},${tone[1] - 30},${tone[2] - 26},1)`); gr.addColorStop(1, `rgba(${tone[0] - 30},${tone[1] - 30},${tone[2] - 26},0)`);
-  g.fillStyle = gr; g.fillRect(-60, y0 + front, DW + 120, depth);
+  // v4 (no borders): the glossy floor continues to the bottom edge, lit warm toward the pile, with receding seams
+  gr = g.createLinearGradient(0, y0 + front, 0, y0 + 420);
+  gr.addColorStop(0, 'rgb(40,41,50)'); gr.addColorStop(0.5, 'rgb(46,46,56)'); gr.addColorStop(1, 'rgb(54,52,60)');
+  g.fillStyle = gr; g.fillRect(-200, y0 + front, DW + 400, 420);
+  gr = g.createRadialGradient(400, y0 + 40, 10, 400, y0 + 40, 420); gr.addColorStop(0, 'rgba(255,190,110,0.22)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
+  g.fillStyle = gr; g.fillRect(-200, y0 + front, DW + 400, 420);
+  for (let i = 1, d = 14; i < 12; i++, d *= 1.42) { g.fillStyle = `rgba(255,240,220,${0.10 - i * 0.004})`; g.fillRect(-200, y0 + front + d, DW + 400, 1.3); }
+  for (let i = -8; i <= 8; i++) { g.strokeStyle = 'rgba(255,240,220,0.045)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(384 + i * 60, y0 + front); g.lineTo(384 + i * 60 * 3.2, y0 + 420); g.stroke(); }
   g.fillStyle = 'rgba(255,236,205,0.45)'; g.fillRect(-60, y0 + front - 1.2, DW + 120, 1.6);
   g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(-60, y0 - top, DW + 120, 1.2);
 }
@@ -359,7 +379,6 @@ function cam(t) {
 function sceneTf(t) { const k = W / DW, c = cam(t); return [k * c.z, 0, 0, k * c.z, k * (360 - c.cx * c.z), k * (640 - c.cy * c.z)]; }
 
 function drawScene(g, t) {
-  background(g, t);
   floor(g);
   // reflections on the glossy floor
   g.save(); g.beginPath(); g.rect(-60, FLOOR - 21, DW + 120, 60); g.clip();
@@ -411,6 +430,7 @@ function sceneCounters(g, t) {
 }
 function frame(g, t) {
   T = t;
+  g.setTransform(W / DW, 0, 0, H / DH, 0, 0); background(g, t);
   g.setTransform(...sceneTf(t));
   drawScene(g, t);
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
