@@ -376,9 +376,8 @@ function drawScene(g, t) {
   if (ep.hold >= 0) { const [hx, hy] = handPos(t); coin(g, hx, hy - 6, 5.8, t * 3); glowDot(g, hx, hy - 6, 4.5, 0.9 * (0.75 + 0.25 * Math.sin(t * 8))); }
   drip(g, t);
   // labels in the scene (JetBrains, like WAITS / TEXTS FIRST)
-  label(g, 'PROFIT', 250, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
-  label(g, 'MANAGEMENT', 432, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
-  sceneCounters(g, t);
+  label(g, 'PROFIT', 300, PIPE_Y - 21, 12, 0.9 * (1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t)), 3, 700, 'center');
+    sceneCounters(g, t);
   const lA = 1 - ss(CTA_ON - 0.2, CTA_ON + 0.1, t);
   const sa = ss(SALARY_ON, SALARY_ON + 0.3, t);
   if (sa > 0) { label(g, 'SALARY', LEAK_X + 16, PIPE_Y + 40, 12, 0.92 * sa, 3.5, 700, 'left', '214,224,244'); g.save(); g.globalAlpha = sa * 0.6; g.strokeStyle = 'rgba(214,224,244,0.8)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(LEAK_X + 15, PIPE_Y + 38); g.lineTo(LEAK_X + 4, PIPE_Y + 20); g.stroke(); g.restore(); }
@@ -399,10 +398,10 @@ function sceneCounters(g, t) {
   const you = salaryCount(t), them = 4180 + Math.round(SPAWN.filter(x => x <= t && x >= 0).length * 37);
   let b = 0; for (const l of DRIPS) if (t >= l) b = Math.max(b, Math.exp(-(t - l) * 5));
   // YOU GOT n, above the employee
-  label(g, 'YOU GOT', EX + 6, 684, 12, 0.75, 2.5, 600, 'center', '214,224,244');
+  label(g, 'EMPLOYEE', EX + 6, 684, 13, 0.95, 2.5, 700, 'center', '214,224,244');
   g.save(); g.translate(EX + 6, 712); g.scale(1 + 0.45 * b, 1 + 0.45 * b); g.font = '700 26px "JetBrains Mono"'; g.textAlign = 'center'; g.fillStyle = b > 0.05 ? 'rgba(255,214,150,0.98)' : 'rgba(214,224,244,0.98)'; g.fillText(fmt(you), 0, 0); g.restore();
   // THEY GOT n, on the front of his seat
-  label(g, 'THEY GOT', (BOX.x0 + BOX.x1) / 2 + 10, 776, 12, 0.75, 2.5, 600, 'center');
+  label(g, 'MANAGEMENT', (BOX.x0 + BOX.x1) / 2 + 10, 776, 13, 0.95, 2.5, 700, 'center');
   g.save(); g.font = '700 26px "JetBrains Mono"'; g.textAlign = 'center'; g.shadowColor = rgba(C.gold, 0.7); g.shadowBlur = 8 * W / DW; g.fillStyle = 'rgba(255,214,150,0.98)'; g.fillText(fmt(them), (BOX.x0 + BOX.x1) / 2 + 10, 803); g.restore();
 }
 function frame(g, t) {
