@@ -104,7 +104,7 @@ function pose(r,arm=r){// r: 0 frozen mid-step, 1 recoiled back
  rotW('RightUpLeg',X,lerp(16,24,r));rotW('RightLeg',X,lerp(30,16,r));rotW('RightFoot',X,-8);
  rotW('Spine',Y,10);rotW('Spine1',Y,10);rotW('Spine2',Y,8);rotW('Spine1',X,lerp(-6,-16,r));
  rotW('Neck',Y,22);rotW('Head',Y,30);rotW('Head',X,lerp(-4,-10,r));
- rotW('RightArm',Z,lerp(74,50,arm));rotW('RightForeArm',Z,6);rotW('RightForeArm',Y,lerp(0,-60,arm));{const k=1-arm;const F=window.ARMFIX||[20,0,70];rotW('RightArm',Y,F[0]*k);rotW('RightForeArm',Y,F[1]*k);rotW('RightForeArm',X,F[2]*k);}
+ rotW('RightArm',Z,lerp(74,50,arm));rotW('RightForeArm',Z,6);rotW('RightForeArm',Y,lerp(0,-60,arm));{const k=1-arm;const F=window.ARMFIX||[-45,0,30,-10,0];rotW('RightArm',Z,(F[3]||0)*k);rotW('RightArm',X,(F[4]||0)*k);rotW('RightArm',Y,F[0]*k);rotW('RightForeArm',Y,F[1]*k);rotW('RightForeArm',X,F[2]*k);}
  rotW('LeftArm',Z,lerp(-66,-20,arm));rotW('LeftArm',Y,lerp(-12,-40,arm));rotW('LeftForeArm',Y,lerp(-30,-80,arm));
  for(const sd of ['Left','Right'])rotW(sd+'Hand',Y,70);
  root.rotation.y=Math.PI;root.position.copy(MAN0).add(V(0,0,0.32*r));root.updateMatrixWorld(true)}
