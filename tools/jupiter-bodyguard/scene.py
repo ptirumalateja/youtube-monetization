@@ -51,9 +51,9 @@ def tonemap(img, exposure=1.0):
 
 
 def prm(earth_rot=0.0, cloud_rot=0.0, jup_rot=0.0, sat_rot=0.0, lens=0.0, sky=1.0,
-        neb=1.0, rin=1.22, rout=2.30, shear=0.0, t=0.0, jglow=1.0, pix=0.0006, star=1.0, sky_roll=0.6, sky_yaw=0.0, jpos=(0.0, 0.0, 0.0), jfill=0.0):
+        neb=1.0, rin=1.22, rout=2.30, shear=0.0, t=0.0, jglow=1.0, pix=0.0006, star=1.0, sky_roll=0.6, sky_yaw=0.0, jpos=(0.0, 0.0, 0.0), jfill=0.0, atm=1.0, jlimb=0.0):
     return np.array([earth_rot, cloud_rot, jup_rot, sat_rot, lens, sky, neb, rin, rout,
-                     shear, t, jglow, pix, star, sky_roll, sky_yaw, jpos[0], jpos[1], jpos[2], jfill], np.float64)
+                     shear, t, jglow, pix, star, sky_roll, sky_yaw, jpos[0], jpos[1], jpos[2], jfill, atm, jlimb], np.float64)
 
 
 def ease(x):

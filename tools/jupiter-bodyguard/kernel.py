@@ -268,6 +268,7 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             # atmosphere rim on disc
             rim = (1 - max(ndv, 0.0)) ** 3.0
             al = smooth(-0.3, 0.4, ndl)
+            rim *= prm[20]
             cr += rim * 0.25 * (al + 0.06); cg += rim * 0.55 * (al + 0.08); cb += rim * 1.25 * (al + 0.1)
             # warm terminator band
             term = math.exp(-((ndl - 0.03) / 0.035) ** 2) * (0.3 + clc * 0.7)
@@ -285,6 +286,7 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             cb = srgb2lin(c[2]) ** 1.3 * 0.94 * dn
             diff = smooth(-0.08, 1.0, ndl) ** 1.2
             limb = 0.55 + 0.45 * max(ndv, 0.0) ** 0.6
+            limb = limb * (1 - prm[21]) + (0.25 + 0.75 * max(ndv, 0.0) ** 0.75) * prm[21]
             cr *= diff * limb * 1.25; cg *= diff * limb * 1.2; cb *= diff * limb * 1.15
             rim = (1 - max(ndv, 0.0)) ** 4.0 * smooth(-0.2, 0.5, ndl)
             cr += rim * 0.35; cg += rim * 0.22; cb += rim * 0.12
@@ -376,7 +378,7 @@ def shade_ray(ox, oy, oz, dx, dy, dz, objs, nobj, Lx, Ly, Lz,
             sl *= (1 - ringa)
         hh = max(h, 0.0)
         if kind == EARTH:
-            g = math.exp(-hh / 0.018) * 1.4 + math.exp(-hh / 0.07) * 0.25
+            g = (math.exp(-hh / 0.018) * 1.4 + math.exp(-hh / 0.07) * 0.25) * prm[20]
             sl2 = sl + 0.05
             cr += g * 0.30 * sl2; cg += g * 0.62 * sl2; cb += g * 1.45 * sl2
         elif kind == JUPITER:
