@@ -79,7 +79,7 @@ _yy, _xx = np.mgrid[0:H, 0:W].astype(np.float32)
 def bg_navy():
     if "navy" not in _c:
         y = _yy / H
-        top = np.array([0.010, 0.034, 0.095], np.float32)
+        top = np.array([0.005, 0.016, 0.046], np.float32)
         bot = np.array([0.0015, 0.004, 0.012], np.float32)
         k = np.clip(y * 1.25, 0, 1) ** 0.8
         _c["navy"] = top * (1 - k[..., None]) + bot * k[..., None]
@@ -191,33 +191,87 @@ def flare(lay, x, y, s, rings=True):
     return lay
 
 
+def _swirl(im, cx, cy, ax, ay, ang, flow):
+    """Spin the storm: rotate elliptical rings around (cx, cy), inner rings faster; shear the jets."""
+    h, w = im.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    ex = (xx - cx) / ax; ey = (yy - cy) / ay
+    rho = np.sqrt(ex * ex + ey * ey)
+    th = ang * np.exp(-(rho / 0.9) ** 2) * (1.0 - 0.35 * np.exp(-(rho / 0.25) ** 2))
+    c, s = np.cos(th), np.sin(th)
+    sx = cx + (c * ex - s * ey) * ax
+    sy = cy + (s * ex + c * ey) * ay
+    sx = sx + flow * np.sin(yy / 23.0) * (1 - np.exp(-(rho / 1.1) ** 2))
+    return cv2.remap(im, sx.astype(np.float32), sy.astype(np.float32), cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+
+def juno_top(st):
+    """Close on the storm itself, turned vertical, spinning, with a moon's shadow sliding across."""
+    u = st["u"]; dur = ks.SHOTS[st["idx"]][1] - ks.SHOTS[st["idx"]][0]
+    im = asset("juno")
+    im = _swirl(im, 660, 523, 270, 120, 0.20 * (u + 1.0) * dur, 6.0 * (u + 1.0) * dur)
+    rot = cv2.rotate(im, cv2.ROTATE_90_COUNTERCLOCKWISE)        # storm long axis now vertical
+    # in rot: original (x, y) -> (y, 1279 - x)
+    gx, gy = 523.0, 1279.0 - 660.0
+    s = 1.45 * (1 + 0.07 * u)
+    big = cv2.resize(rot, (int(rot.shape[1] * s), int(rot.shape[0] * s)), interpolation=cv2.INTER_CUBIC)
+    cx, cy = int(gx * s + 40 - 30 * u), int(gy * s)
+    x0, y0 = cx - 540, cy - 960
+    pad = np.zeros((H, W, 3), np.float32)
+    xs, xe = max(0, -x0), min(W, big.shape[1] - x0)
+    ys, ye = max(0, -y0), min(H, big.shape[0] - y0)
+    pad[ys:ye, xs:xe] = big[y0 + ys:y0 + ye, x0 + xs:x0 + xe]
+    pad = pad + 0.35 * (pad - cv2.GaussianBlur(pad, (0, 0), 2.0))
+    out = _lin(pad)
+    sx, sy = 300 + 260 * u, 700 + 160 * u
+    sh = np.exp(-(np.sqrt((_xx - sx) ** 2 + (_yy - sy) ** 2) / 62.0) ** 8)
+    sh = cv2.GaussianBlur(sh.astype(np.float32), (0, 0), 7)
+    out = out * (1 - 0.9 * sh)[..., None]
+    out = out * (1 - 0.40 * np.clip(((_xx - 540) / 760) ** 2 + ((_yy - 960) / 1150) ** 2, 0, 1))[..., None]
+    return out
+
+
 def juno_shot(st):
     u, t = st["u"], st["t"]
     dur = ks.SHOTS[st["idx"]][1] - ks.SHOTS[st["idx"]][0]
     im = asset("juno")
-    s = 1.25 * (1 + 0.04 * u)
+    # the storm is alive: counter-clockwise spin, jets sliding past
+    im = _swirl(im, 660, 523, 270, 120, 0.16 * u * dur, 7.0 * u * dur)
+    s = 1.25 * (1 + 0.06 * u)
     big = cv2.resize(im, (int(1280 * s), int(1138 * s)), interpolation=cv2.INTER_AREA)
     gx, gy = 660 * s, 523 * s
     hz = 88 * s
-    oy = int(640 - hz)
-    x0 = int(gx - 540)
+    oy = int(640 - hz + 30 * u)
+    x0 = int(gx - 540 - 40 * u)
     out = np.zeros((H, W, 3), np.float32)
     ys, ye = max(0, oy), min(H, oy + big.shape[0])
     out[ys:ye] = big[ys - oy:ye - oy, x0:x0 + W]
     out = _lin(out)
-    # faint stars + haze above the horizon
+    # depth: the cloud deck falls away into shadow toward the bottom, haze where the limb meets space
+    fall = np.clip((_yy - 1150) / 770, 0, 1) ** 1.3
+    out *= (1 - 0.72 * fall)[..., None]
+    hzn = 640 + 30 * u
+    out *= (1 - 0.35 * np.exp(-((_yy - hzn - 40) / 70) ** 2))[..., None] + 0.0
+    haze = np.exp(-((_yy - hzn) / 90) ** 2)[..., None] * np.array([0.10, 0.065, 0.035], np.float32)
+    out += haze
+    # dusty space with soft bokeh, drifting
     rng = np.random.default_rng(3)
     for _ in range(140):
         sx, sy = rng.integers(0, W), rng.integers(0, 640)
-        if out[sy, sx].sum() < 0.01:
+        if out[sy, sx].sum() < 0.02:
             b = rng.random() ** 3 * 0.8 + 0.05
             cv2.circle(out, (int(sx), int(sy)), 1, (b, b, b * 1.1), -1, cv2.LINE_AA)
-    haze = np.exp(-((_yy - 640) / 110) ** 2)[..., None] * np.array([0.05, 0.035, 0.02], np.float32)
-    out += haze
+    bok = np.zeros((H, W, 3), np.float32)
+    for _ in range(9):
+        bx, by, br = rng.integers(0, W), rng.integers(40, 560), rng.integers(18, 46)
+        cv2.circle(bok, (int(bx - 25 * u), int(by)), int(br), (0.018, 0.015, 0.012), -1, cv2.LINE_AA)
+    out += cv2.GaussianBlur(bok, (0, 0), 3) * (_yy < hzn)[..., None]
+    dust = np.exp(-((_yy - 300) / 360) ** 2) * np.exp(-((_xx - 500) / 600) ** 2)
+    out += dust[..., None] * np.array([0.030, 0.022, 0.014], np.float32) * (_yy < hzn)[..., None]
     lay = np.zeros((H, W, 3), np.float32)
     # asteroid streaking in from upper right toward the limb above the storm
     a0, a1 = 0.05, 0.62
-    P0, P1, P2, P3 = (np.array(p, float) for p in ((1180, 120), (900, 420), (740, 560), (600, 650)))
+    P0, P1, P2, P3 = (np.array(p, float) for p in ((1180, 120), (900, 420), (740, 560), (600, 670)))
 
     def at(q):
         m = 1 - q
@@ -230,10 +284,13 @@ def juno_shot(st):
             for k in range(len(pts) - 1):
                 f = (k + 1) / len(pts)
                 cv2.line(lay, tuple(int(v) for v in pts[k]), tuple(int(v) for v in pts[k + 1]),
-                         (2.6 * f, 1.2 * f, 0.35 * f), max(1, int(12 * f ** 1.5)), cv2.LINE_AA)
+                         (2.8 * f, 1.3 * f, 0.38 * f), max(1, int(26 * f ** 1.4)), cv2.LINE_AA)
             lay = cv2.GaussianBlur(lay, (0, 0), 1.5)
             hx, hy = at(q)
-            flare(lay, hx, hy, 0.8 + 0.4 * q)
+            cv2.circle(lay, (int(hx), int(hy)), 15, (4.0, 3.2, 2.2), -1, cv2.LINE_AA)
+            g = np.exp(-((_xx - hx) ** 2 + (_yy - hy) ** 2) / (2 * 55.0 ** 2))
+            lay += g[..., None] * np.array([1.6, 0.8, 0.25], np.float32)
+            flare(lay, hx, hy, 0.9 + 0.5 * q)
         else:
             dt = (u - a1) * dur
             hx, hy = at(1.0)
@@ -266,7 +323,7 @@ def subtitle(who, text):
     if key in _sub:
         return _sub[key]
     f = font(40)
-    maxw = 960
+    maxw = 860
     words = text.split(" ")
     lines, cur = [], (who + ": ") if who else ""
     for wd in words:
@@ -306,23 +363,35 @@ def _ramp(u, a, b):
     return x * x * (3 - 2 * x)
 
 
+DISSOLVE = {"K": 0.30, "E": 0.30, "C": 0.6}
+
+
 def frame(t, ss=2):
-    """Final frame with cinematic transitions: white-flash carry into M, dissolve M -> C."""
+    """Final frame: soft dissolves between the speakers (both shots keep moving), white-flash carry into M,
+    dissolve M -> C."""
     i, s = ks.shot_at(t)
-    if s[2] == "C" and t - s[0] < 0.6:
-        k = _ramp(t - s[0], 0.0, 0.6)
-        a = np.asarray(_frame(s[0] - 1e-3, ss), np.float32)
-        b = np.asarray(_frame(t, ss), np.float32)
-        return Image.fromarray((a * (1 - k) + b * k).astype(np.uint8))
+    dz = DISSOLVE.get(s[2], 0.0)
+    if i > 0 and dz and t - s[0] < dz:
+        k = _ramp(t - s[0], 0.0, dz)
+        a = np.asarray(_frame(t, ss, idx=i - 1, draw_sub=False), np.float32)
+        b = np.asarray(_frame(t, ss, draw_sub=False), np.float32)
+        im = Image.fromarray((a * (1 - k) + b * k).astype(np.uint8)).convert("RGBA")
+        j = i - 1 if k < 0.5 else i
+        who, line = ks.SHOTS[j][3], ks.SHOTS[j][4]
+        if line and ks.SHOTS[j][2] in ("K", "E"):
+            im.alpha_composite(subtitle(who, line), (0, 310))
+        return im.convert("RGB")
     return _frame(t, ss)
 
 
-def _frame(t, ss=2):
+def _frame(t, ss=2, idx=None, draw_sub=True):
     global _vig
-    st = ks.setup(t)
+    st = ks.setup(t, idx)
     kind = st["shot"]
     if kind == "G":
         img = juno_shot(st)
+    elif kind == "T":
+        img = juno_top(st)
     else:
         img = raw(st, ss)
         bg = st["bg"]
@@ -331,9 +400,6 @@ def _frame(t, ss=2):
             b = {"navy": bg_navy, "cluster": lambda: bg_cluster(st["u"]) * _ramp(st["u"], 0.0, 0.22),
                  "magneto": lambda: bg_magneto(t, st["u"])}[bg]()
             img = img + b * (1 - m)
-        if kind == "K":
-            m = planet_mask(st["cam"], st["objs"])[..., None]
-            img = img + bg_redwisp() * (1 - m)
     if kind == "J":
         img = img * _ramp(st["u"], 0.0, 0.05)
     br = np.clip(img - 0.9, 0, None)
@@ -348,17 +414,20 @@ def _frame(t, ss=2):
     out = out + np.random.default_rng(int(t * 1000)).normal(0, 0.004, (H, W, 1)).astype(np.float32)
     fr = Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8)).convert("RGBA")
     who, line = st["line"]
-    if line:
+    if line and draw_sub and kind in ("K", "E"):
+        fr.alpha_composite(subtitle(who, line), (0, 310))
+        line = None
+    if line and draw_sub:
         sub = subtitle(who, line)
         a0 = ks.SHOTS[st["idx"]][0]
         a0 = a0 + ks.SUB_DELAY.get(kind, 0.0)
-        al = 1.0 if a0 == 0 else min(1.0, (t - a0 + 1 / 30) / (0.12 if kind != "J" else 0.4))
+        al = 1.0 if a0 == 0 else min(1.0, (t - a0 + 1 / 30) / 0.12)
         if al <= 0:
             sub = None
         elif al < 1:
             sub = sub.copy(); sub.putalpha(sub.getchannel("A").point(lambda v: int(v * al)))
         if sub is not None:
-            fr.alpha_composite(sub, (0, 290))
+            fr.alpha_composite(sub, (0, 310))
     return fr.convert("RGB")
 
 

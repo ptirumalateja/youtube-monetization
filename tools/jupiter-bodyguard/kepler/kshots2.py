@@ -24,12 +24,14 @@ SHOTS = [
     (15.6, 17.0, "K", "Kepler", "Of course! Don't you?"),
     (17.0, 21.0, "J", "Jupiter", "She doesn't have to."),
     (21.0, 22.8, "G", None, ""),
-    (22.8, 25.8, "M", None, "(Thanks to Jupiter's gravity, Earth has a cosmic bodyguard. No asteroid punching required.)"),
-    (25.8, 28.6, "C", None, ""),
+    (22.8, 24.0, "T", None, ""),
+    (24.0, 25.4, "S", None, ""),
+    (25.4, 28.4, "M", None, "(Thanks to Jupiter's gravity, Earth has a cosmic bodyguard. No asteroid punching required.)"),
+    (28.4, 31.2, "C", None, ""),
 ]
 DUR = SHOTS[-1][1]
 
-SUB_DELAY = {"J": 2.0}      # Jupiter speaks only once the light has swept across him
+SUB_DELAY = {}
 
 COL = {"Kepler": (72, 222, 190), "Earth": (70, 150, 255), "Jupiter": (255, 128, 48)}
 
@@ -76,30 +78,30 @@ def _tgt_j(cam):
     return cam[0:3] + cam[9:12] * np.linalg.norm(cam[0:3])
 
 
-def setup(t):
-    i, (a, b, kind, who, line) = shot_at(t)
+def setup(t, idx=None):
+    if idx is None:
+        i, (a, b, kind, who, line) = shot_at(t)
+    else:
+        i = idx; a, b, kind, who, line = SHOTS[i]
     u = (t - a) / (b - a)
     k_idx = sum(1 for s in SHOTS[:i] if s[2] == kind)
     out = dict(line=(who, line), shot=kind, idx=i, u=u, t=t, tex="earth", bg=None)
-    if kind == "K":
-        # Kepler: ocean super-Earth, sits low (clear gap under the line), turning steadily the whole reel
+    if kind in ("K", "E"):
+        # one locked "camera" for both speakers: same size, same spot, same sky, same light, so a cut
+        # only swaps the world (and the line), never the framing
         R = 1.0
-        d = _dist(R, 310) * lerp(1.0, 0.97, ease_io(u, 1.4))
-        cam = camera([0.0, 0.0, d], [0.0, 0.55, 0.0], 40, roll=0.0)
-        p = prm(earth_rot=1.10 + 0.045 * t, cloud_rot=0.006 * t, sky=0.0, star=0.32, pix=_pix(40),
-                sky_roll=0.8, sky_yaw=3.6, t=t, atm=0.45)
-        out.update(cam=cam, objs=[obj(EARTH, [0, 0, 0], R, 1.0, -0.25, 0.25)], prm=p,
-                   L=norm([-0.62, 0.50, 0.62]), tex="kepler", bg="kblack")
-        return out
-    if kind == "E":
-        # Earth: day side full of detail, terminator with city lights, navy sky; same continuous spin
-        R = 1.0
-        d = _dist(R, 340) * lerp(1.0, 0.97, ease_io(u, 1.4))
-        cam = camera([0.0, 0.0, d], [0.0, 0.48, 0.0], 40, roll=0.0)
-        p = prm(earth_rot=0.28 + 0.040 * t, cloud_rot=0.005 * t, sky=0.0, star=0.18, pix=_pix(40), t=t, atm=0.55,
-                sky_roll=0.3, sky_yaw=1.0)
-        out.update(cam=cam, objs=[obj(EARTH, [0, 0, 0], R, 1.0, 0.0, 0.42)], prm=p,
-                   L=norm([-0.45, 0.62, 0.55]), tex="earth", bg="navy")
+        d = _dist(R, 325) * (1.0 - 0.0012 * t)        # one slow continuous push across the whole talk
+        cam = camera([0.0, 0.0, d], [0.0, 0.52, 0.0], 40, roll=0.0)
+        if kind == "K":
+            p = prm(earth_rot=1.10 + 0.045 * t, cloud_rot=0.006 * t, sky=0.0, star=0.22, pix=_pix(40),
+                    sky_roll=0.8, sky_yaw=3.6, t=t, atm=0.45)
+            o = obj(EARTH, [0, 0, 0], R, 1.0, -0.25, 0.25)
+        else:
+            p = prm(earth_rot=0.28 + 0.040 * t, cloud_rot=0.005 * t, sky=0.0, star=0.22, pix=_pix(40), t=t,
+                    atm=0.50, sky_roll=0.8, sky_yaw=3.6)
+            o = obj(EARTH, [0, 0, 0], R, 1.0, 0.0, 0.42)
+        out.update(cam=cam, objs=[o], prm=p, L=norm([-0.52, 0.58, 0.62]),
+                   tex="kepler" if kind == "K" else "earth", bg="navy")
         return out
     if kind == "J":
         # the reveal: black silhouette against a blazing star cluster, then the light sweeps across him
@@ -119,6 +121,30 @@ def setup(t):
         return out
     if kind == "G":
         out.update(cam=None, objs=[], prm=None, L=None)
+        return out
+    if kind == "T":
+        # straight down into the Great Red Spot, storm running vertically, camera sinking toward it
+        lat = -0.39
+        dirg = np.array([0.0, math.sin(lat), math.cos(lat)])
+        R = 11.2
+        h = lerp(5.2, 4.3, ease_io(u, 1.3))
+        pos = dirg * (R + h)
+        tgt = dirg * R
+        cam = camera(pos, tgt, 40, roll=1.35 + 0.06 * u)
+        p = prm(jup_rot=GRS_ROT + 0.003 * (t - a), shear=0.002, sky=0.0, star=0.0, pix=_pix(40), t=t * 3,
+                rin=0.0, rout=0.0, jlimb=0.0, jglow=0.0)
+        out.update(cam=cam, objs=[obj(JUPITER, [0, 0, 0], R, 0.935, 0.0)], prm=p, L=norm([-0.25, 0.25, 0.94]),
+                   tex="io", bg=None)
+        return out
+    if kind == "S":
+        # the whole southern hemisphere turning past us, globe hanging into frame from the upper right
+        R = 11.2
+        d = lerp(30.0, 28.5, ease_io(u, 1.3))
+        cam = camera([4.0, -16.0, d], [-5.5, -1.0, 0.0], 40, roll=-0.35)
+        p = prm(jup_rot=GRS_ROT - 0.35 + 0.06 * u, shear=0.002, sky=0.0, star=0.15, pix=_pix(40), t=t,
+                rin=0.0, rout=0.0, jlimb=1.0, jglow=0.0, sky_roll=0.8, sky_yaw=2.0)
+        out.update(cam=cam, objs=[obj(JUPITER, [0, 0, 0], R, 0.935, 0.0)], prm=p, L=norm([0.35, -0.2, 0.92]),
+                   tex="io", bg="kblack")
         return out
     if kind == "M":
         cam, R, d = jupiter_front(t, u, 250, 960, push=0.04, L=None)
