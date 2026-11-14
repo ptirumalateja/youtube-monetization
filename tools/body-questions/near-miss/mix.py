@@ -10,9 +10,9 @@ for x in w:
 assert len(lines)==14,len(lines)
 src=f'/home/user/nm/vo/{V}11_tight.wav'
 SFX='/home/user/nm/sfx'
-CUES=[('brain_zap',2.50,-7),('whip',4.38,-10),('foot_scrape',4.50,-6),
+CUES=[('whip',4.38,-10),('foot_scrape',4.50,-6),
 ('heart_slam',7.29,-3),('whip',8.48,-8),('iris_open',8.95,-6),('sugar_rush',10.30,-7),('whip',12.08,-8),('tunnel',12.35,-6),('bullet_time',12.95,-5),('glitch_snap',14.58,-7),
-('memory_frames',15.60,-9),('screech_stop',18.05,-3),('rain_start',18.08,-6)]
+('memory_frames',15.60,-9)]
 ins=[];fil=[];lab=[]
 for i,((a,b),st) in enumerate(zip(lines,SLOTS)):
     ins+=['-i',src];ms=int(st*1000)
@@ -21,7 +21,7 @@ n=len(lines)
 fil.append(''.join(lab)+f'amix=inputs={n}:normalize=0,apad=whole_dur={DUR}[vo]')
 ins+=['-i',f'{SFX}/rain_amb.mp3','-i',f'{SFX}/rain_amb.mp3']
 fil.append(f'[{n}:a]aresample=48000,aloop=loop=2:size=480000,atrim=0:{DUR},volume=-60dB,afade=t=in:d=0.2,afade=t=out:st={DUR-1.2}:d=1.2[dr]')
-fil.append(f'[{n+1}:a]aresample=48000,atrim=0:4.3,volume=-22dB,afade=t=in:d=0.2,afade=t=out:st=3.3:d=1,adelay=18100|18100[rn]')
+fil.append(f'[{n+1}:a]aresample=48000,atrim=0:4.3,volume=-90dB,afade=t=in:d=0.2,afade=t=out:st=3.3:d=1,adelay=18100|18100[rn]')
 fl=['[dr]','[rn]']
 for k,(f,st,g) in enumerate(CUES):
     ins+=['-i',f'{SFX}/{f}.wav' if f.endswith('_cut') else f'{SFX}/{f}.mp3'];ms=int(st*1000);j=n+2+k
