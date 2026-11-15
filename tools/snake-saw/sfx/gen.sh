@@ -1,0 +1,22 @@
+#!/bin/bash
+# ElevenLabs foley for mix.py. Needs ELEVENLABS_API_KEY. One request at a time.
+cd "$(dirname "$0")"
+gen(){ n=$1; d=$2; p="$3"; [ -s $n.mp3 ] && [ -z "$FORCE" ] && return; for i in 1 2 3; do curl -sS -o $n.mp3 -X POST https://api.elevenlabs.io/v1/sound-generation -H "xi-api-key: $ELEVENLABS_API_KEY" -H "Content-Type: application/json" -d "{\"text\":\"$p\",\"duration_seconds\":$d,\"prompt_influence\":0.7}"; [ $(stat -c%s $n.mp3) -gt 2000 ] && break; sleep 4; done; echo $n $(stat -c%s $n.mp3); }
+gen scrape 3 "A snake's scales sliding slowly over a metal saw blade, soft dry scraping, close-up, quiet, no music"
+gen nick 0.8 "A tiny sharp metallic slice, a small cut on a saw tooth, quick thin ting, close-up, no music"
+gen hiss 1.6 "A snake hissing angrily, sharp aggressive hiss, close-up, no music"
+gen strike 0.8 "A snake striking and biting a metal saw blade, fast snap and metallic clink, no music"
+gen squeeze 4 "Metal saw blade creaking under pressure as a snake squeezes it, scales grinding on steel teeth, tense, no music"
+gen heart 4 "Heavy slow heartbeat thumping, getting slower, close and deep, no music"
+gen wings 1.5 "Small bat wings flapping fast, leathery flutter passing by, no music"
+gen neigh 1.6 "A horse whinnying in panic, loud frightened neigh, no music"
+gen gallop 3 "A single horse galloping fast in panic on dry ground, hooves pounding, no music"
+gen thud 1.2 "A large animal collapsing heavily to the ground, deep body thud and dust, no music"
+gen buzz 0.9 "A smartphone vibrating once with a notification, buzz on a hard surface, no music"
+gen typing 2 "Fast angry typing on a smartphone touchscreen, rapid taps, close-up, no music"
+gen clock 4 "A clock ticking in a silent room at night, steady tick tock, no music"
+gen boom 1.5 "A small spark crackle that bursts into a big fiery whoosh and boom, no music"
+gen drain 2.5 "An electronic power-down sound, battery draining, falling pitch, soft, no music"
+gen room 8 "Quiet room tone at night, very soft air, faint distant hum, no music"
+gen tick2 1.2 "A soft clean two-second timer tick, then a gentle bright click, no music"
+gen slide 3 "A snake sliding away smoothly over a wooden floor, soft dry rustle fading away, no music"
