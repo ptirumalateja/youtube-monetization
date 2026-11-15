@@ -151,25 +151,14 @@ function bgPipe(g, x0, y0, x1, y1, r, a) {
   g.restore();
 }
 function background(g, t) {
+  // v7: 30 Friends (Slow Light Dark) look - near-black void, one warm lamp (drawn in the scene), faint navy corners
   let gr = g.createLinearGradient(0, 0, 0, DH);
-  gr.addColorStop(0, '#2a2c37'); gr.addColorStop(0.45, '#1c1e27'); gr.addColorStop(1, '#22232c');
+  gr.addColorStop(0, '#0e1016'); gr.addColorStop(0.5, '#08090c'); gr.addColorStop(1, '#0b0c10');
   g.fillStyle = gr; g.fillRect(-200, -200, DW + 400, DH + 400);
-  // wall panels: vertical seams edge to edge + a rail
-  for (let x = -20; x < DW + 60; x += 96) { g.fillStyle = 'rgba(255,255,255,0.035)'; g.fillRect(x, -200, 1.5, DH); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(x + 1.5, -200, 2, DH); }
-  g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(-200, 300, DW + 400, 2);
-  // out-of-focus factory pipes along the top and down both sides
-  bgPipe(g, -200, 28, DW + 200, 28, 16, 0.9); bgPipe(g, -200, 92, DW + 200, 92, 9, 0.7);
-  for (let x = 40; x < DW; x += 150) { g.fillStyle = 'rgba(110,114,130,0.7)'; g.fillRect(x, 10, 7, 36); }
-  // a warm work lamp above the scene
-  gr = g.createRadialGradient(400, 0, 10, 400, 0, 620); gr.addColorStop(0, 'rgba(255,200,130,0.16)'); gr.addColorStop(1, 'rgba(255,200,130,0)');
-  g.fillStyle = gr; g.fillRect(-200, -200, DW + 400, DH);
-  gr = g.createRadialGradient(560, 600, 10, 560, 600, 470); gr.addColorStop(0, `rgba(255,190,110,${0.11 + 0.05 * ss(OVER, 6, t)})`); gr.addColorStop(1, 'rgba(255,190,110,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
-  gr = g.createRadialGradient(180, 720, 10, 180, 720, 380); gr.addColorStop(0, 'rgba(120,150,210,0.08)'); gr.addColorStop(1, 'rgba(120,150,210,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
-  gr = g.createLinearGradient(0, 0, DW, DH * 0.6);
-  gr.addColorStop(0.25, 'rgba(255,255,255,0)'); gr.addColorStop(0.42, 'rgba(255,255,255,0.025)'); gr.addColorStop(0.6, 'rgba(255,255,255,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+  gr = g.createRadialGradient(0, 0, 10, 0, 0, 520); gr.addColorStop(0, 'rgba(40,52,90,0.22)'); gr.addColorStop(1, 'rgba(40,52,90,0)'); g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+  gr = g.createRadialGradient(DW, DH, 10, DW, DH, 560); gr.addColorStop(0, 'rgba(40,52,90,0.2)'); gr.addColorStop(1, 'rgba(40,52,90,0)'); g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+  // barely-there silhouettes of factory pipes up in the dark
+  bgPipe(g, -200, 28, DW + 200, 28, 16, 0.35); bgPipe(g, -200, 92, DW + 200, 92, 9, 0.25);
   for (let i = 0; i < 46; i++) {
     const x = (hash(i) * DW + t * (4 + 8 * hash(i + 9))) % DW, y = 120 + hash(i + 3) * 960 - t * (3 + 5 * hash(i + 5));
     const a = 0.10 + 0.18 * hash(i + 7) * (0.6 + 0.4 * Math.sin(t * 1.3 + i));
@@ -188,18 +177,18 @@ function glowDot(g, x, y, r, a) {
 
 // ---------- glossy floor + seat box (Silence ledge material) ----------
 function floor(g) {
-  const y0 = FLOOR, top = 21, front = 24, depth = 140, tone = [56, 57, 66];
+  const y0 = FLOOR, top = 21, front = 24, depth = 140, tone = [40, 40, 47];
   let gr = g.createLinearGradient(0, y0 - top, 0, y0 + front);
   gr.addColorStop(0, `rgba(${tone[0] + 26},${tone[1] + 26},${tone[2] + 28},1)`); gr.addColorStop(0.45, `rgba(${tone[0]},${tone[1]},${tone[2]},1)`); gr.addColorStop(1, `rgba(${tone[0] - 22},${tone[1] - 22},${tone[2] - 20},1)`);
   g.fillStyle = gr; g.fillRect(-60, y0 - top, DW + 120, top + front);
   // v4 (no borders): the glossy floor continues to the bottom edge, lit warm toward the pile, with receding seams
   gr = g.createLinearGradient(0, y0 + front, 0, y0 + 420);
-  gr.addColorStop(0, 'rgb(40,41,50)'); gr.addColorStop(0.5, 'rgb(46,46,56)'); gr.addColorStop(1, 'rgb(54,52,60)');
+  gr.addColorStop(0, 'rgb(20,20,25)'); gr.addColorStop(0.5, 'rgb(15,15,19)'); gr.addColorStop(1, 'rgb(12,12,16)');
   g.fillStyle = gr; g.fillRect(-200, y0 + front, DW + 400, 420);
-  gr = g.createRadialGradient(400, y0 + 40, 10, 400, y0 + 40, 420); gr.addColorStop(0, 'rgba(255,190,110,0.22)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
+  gr = g.createRadialGradient(400, y0 + 40, 10, 400, y0 + 40, 360); gr.addColorStop(0, 'rgba(255,190,110,0.2)'); gr.addColorStop(1, 'rgba(255,190,110,0)');
   g.fillStyle = gr; g.fillRect(-200, y0 + front, DW + 400, 420);
-  for (let i = 1, d = 14; i < 12; i++, d *= 1.42) { g.fillStyle = `rgba(255,240,220,${0.10 - i * 0.004})`; g.fillRect(-200, y0 + front + d, DW + 400, 1.3); }
-  for (let i = -8; i <= 8; i++) { g.strokeStyle = 'rgba(255,240,220,0.045)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(384 + i * 60, y0 + front); g.lineTo(384 + i * 60 * 3.2, y0 + 420); g.stroke(); }
+  for (let i = 1, d = 14; i < 12; i++, d *= 1.42) { g.fillStyle = `rgba(255,240,220,${0.05 - i * 0.003})`; g.fillRect(-200, y0 + front + d, DW + 400, 1.3); }
+  for (let i = -8; i <= 8; i++) { g.strokeStyle = 'rgba(255,240,220,0.025)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(384 + i * 60, y0 + front); g.lineTo(384 + i * 60 * 3.2, y0 + 420); g.stroke(); }
   g.fillStyle = 'rgba(255,236,205,0.45)'; g.fillRect(-60, y0 + front - 1.2, DW + 120, 1.6);
   g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(-60, y0 - top, DW + 120, 1.2);
 }
@@ -411,7 +400,32 @@ function cam(t) {
 }
 function sceneTf(t) { const k = W / DW, c = cam(t); return [k * c.z, 0, 0, k * c.z, k * (360 - c.cx * c.z), k * (640 - c.cy * c.z)]; }
 
+const LAMP = { x: 400, y: 268 };
+function lampBeam(g, t) {
+  const { x, y } = LAMP, fl = 1 - 0.04 * Math.max(0, Math.sin(t * 23) * Math.sin(t * 7.3));
+  // cord + shade
+  g.strokeStyle = '#2a2b33'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, -400); g.lineTo(x, y - 18); g.stroke();
+  g.fillStyle = '#34353f'; g.beginPath(); g.moveTo(x - 9, y - 18); g.lineTo(x + 9, y - 18); g.lineTo(x + 26, y + 4); g.lineTo(x - 26, y + 4); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,236,200,0.9)'; g.beginPath(); g.ellipse(x, y + 4, 24, 4, 0, 0, 7); g.fill();
+  glowDot(g, x, y + 6, 9, 0.9 * fl);
+  // beam: a soft cone to the floor (several layered wedges = feathered edges)
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 5; k++) {
+    const w = 250 + k * 34, a = (0.055 - k * 0.009) * fl;
+    const gr = g.createLinearGradient(0, y, 0, FLOOR + 30); gr.addColorStop(0, rgba(C.gold, a * 1.6)); gr.addColorStop(1, rgba(C.gold, a * 0.6));
+    g.fillStyle = gr; g.beginPath(); g.moveTo(x - 20 - k * 3, y + 4); g.lineTo(x + 20 + k * 3, y + 4); g.lineTo(x + w, FLOOR + 30); g.lineTo(x - w, FLOOR + 30); g.closePath(); g.fill();
+  }
+  // dust motes caught in the beam
+  for (let i = 0; i < 70; i++) {
+    const v = hash(i * 3.3), yy = y + 20 + ((v * 560 + t * (6 + 10 * hash(i))) % 560), half = 20 + (yy - y) / (FLOOR + 30 - y) * 250;
+    const xx = x + (hash(i * 7.1) * 2 - 1) * half * 0.9 + Math.sin(t * 0.7 + i) * 6;
+    const a = (0.25 + 0.5 * hash(i + 5)) * (0.6 + 0.4 * Math.sin(t * 1.7 + i * 2));
+    g.fillStyle = `rgba(255,228,180,${a})`; g.beginPath(); g.arc(xx, yy, 0.5 + 0.9 * hash(i + 2), 0, 7); g.fill();
+  }
+  g.restore();
+}
 function drawScene(g, t) {
+  lampBeam(g, t);
   floor(g);
   // reflections on the glossy floor
   g.save(); g.beginPath(); g.rect(-60, FLOOR - 21, DW + 120, 60); g.clip();
@@ -473,6 +487,14 @@ function frame(g, t) {
   g.setTransform(...sceneTf(t));
   drawScene(g, t);
   g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
+  { // vignette + grain (30 Friends finish)
+    const gr = g.createRadialGradient(360, 620, 260, 360, 640, 900); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.42)');
+    g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+    if (!window._grain) { window._grain = []; for (let n = 0; n < 4; n++) { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); const im = x.createImageData(256, 256);
+      for (let p = 0; p < im.data.length; p += 4) { const v = Math.random() * 255; im.data[p] = im.data[p + 1] = im.data[p + 2] = v; im.data[p + 3] = 255; } x.putImageData(im, 0, 0); window._grain.push(c); } }
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 0.05; g.globalCompositeOperation = 'overlay'; g.fillStyle = g.createPattern(window._grain[((Math.floor(t * 30) % 4) + 4) % 4], 'repeat'); g.fillRect(0, 0, W, H); g.restore();
+    g.setTransform(W / DW, 0, 0, H / DH, 0, 0);
+  }
   // hook -> end lines
   const swap = ss(END_TXT - 0.15, END_TXT, t), pop = 1 + 0.12 * Math.exp(-Math.max(0, t - END_TXT) * 9) * (t >= END_TXT ? 1 : 0);
   const hp = 1 + 0.16 * Math.exp(-t * 8) + 0.07 * (t >= 3 ? Math.exp(-(t - 3) * 8) : 0) + 0.012 * Math.sin(t * 1.9 * Math.PI * 2) * (t < OVER ? 1 : 0);
