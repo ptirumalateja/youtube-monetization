@@ -81,7 +81,7 @@ def build(cfg_path):
           "[V4+ Styles]", "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
           st("Cap", cfg["cap_size"], "&H00E6F6FF", 2, 500, 6), st("Hook", cfg["hook_size"], "&H006BD3FF", 8, 230, 7), "",
           "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
-    L_.append(f"Dialogue: 0,{ts(0.0)},{ts(cfg['hook_end'])},Hook,,0,0,0,,{{\\fad(0,200)\\fscx80\\fscy80\\t(0,160,\\fscx100\\fscy100)}}{cfg['hook']}")
+    L_.append(f"Dialogue: 0,{ts(0.0)},{ts(cfg['hook_end'])},Hook,,0,0,0,,{{\\fad(0,200)}}{cfg['hook']}")
     for s_, e_, txt in cfg.get("extra", []):
         e_ = total - 0.1 if e_ == "END" else e_ / T + off
         L_.append(f"Dialogue: 1,{ts(s_ / T + off)},{ts(e_)},Hook,,0,0,0,,{{\\fad(80,120)\\fscx70\\fscy70\\t(0,140,\\fscx100\\fscy100)}}{txt}")
