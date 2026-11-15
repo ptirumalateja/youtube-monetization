@@ -1,11 +1,11 @@
-# Everyone Saw the Catch (Starship Flight 15 ship catch, v3, 17.7 s, 9:16)
+# You Saw the Catch (Starship Flight 15 ship catch, v4, 17.7 s, 9:16)
 
-Animated remake of the Neuron Visuals "Tesla Roadster flip" format in its dark monochrome glow look. It opens on Flight 15: the ship flips, fires its engines and is caught by the tower's chopsticks (CAUGHT). Then it rewinds to Flight 01 and runs through what really happened to every earlier ship, faster and faster, each tagged NOT CAUGHT: Flight 1 stack lost, 2 lost on ascent, 3 broke up on reentry, 4-6 splashed down and tipped over, 7-8 exploded on ascent, 9 broke up, 10-11 splashed down, 12-14 a fast blur. It ends back on 15: plasma reentry, flip, catch, smoke, tiny people cheering, then "WHICH FLIGHT WOULD YOU HAVE QUIT?"
-v2 (15 Nov): darker moonlit-sea tone with moving glints, a 15-cell progress bar under the counter (fills red per miss, white on the catch) and "UNTIL THIS ONE." under the caught ship. Files: project files `final-reels/spacex-ship-catch/ship-catch_v3.mp4` (with sound), `_music-ready.mp4` (silent, for a trending audio), `_mobile.mp4` (720p preview). Wordless. v3 (15 Nov): flights 12-14 are one continuous fall past the open arms (v2 restarted the fall per flight and looked like a glitch); sound is now ElevenLabs SFX (roar, clank, explosions, rewind, plasma, crowd cheer at the end), no music. Renderer: `tools/ship-catch` (render.py + mix.py).
+Animated remake of the Neuron Visuals "Tesla Roadster flip" format in its dark monochrome glow look. It opens on Flight 15: the ship flips, fires its engines and is caught by the tower's chopsticks (CAUGHT). Then it rewinds to Flight 01 and runs through what really happened to every earlier ship, faster and faster, each tagged with its real outcome (12-14 just NOT CAUGHT): Flight 1 stack lost, 2 lost on ascent, 3 broke up on reentry, 4-6 splashed down and tipped over, 7-8 exploded on ascent, 9 broke up, 10-11 splashed down, 12-14 a fast blur. It ends back on 15: plasma reentry, flip, catch, smoke, tiny people cheering, then "WHICH FLIGHT WOULD YOU HAVE QUIT?"
+v2 (15 Nov): darker moonlit-sea tone with moving glints, a 15-cell progress bar under the counter (fills red per miss, white on the catch) and "UNTIL THIS ONE." under the caught ship. Files: project files `final-reels/spacex-ship-catch/ship-catch_v4.mp4` (with sound), `_music-ready.mp4` (silent, for a trending audio), `_mobile.mp4` (720p preview). Wordless. v3 (15 Nov): flights 12-14 are one continuous fall past the open arms (v2 restarted the fall per flight and looked like a glitch); sound is now ElevenLabs SFX (roar, clank, explosions, rewind, plasma, crowd cheer at the end), no music. Renderer: `tools/ship-catch` (render.py + mix.py).
 Time-sensitive: the catch was 14 Nov 2026, so post within a day or two.
 
 ## Facebook caption
-Everyone saw SpaceX catch Starship out of the sky. Nobody talks about the 14 flights before it. 🚀
+You saw SpaceX catch Starship out of the sky. Not the 14 flights before it. 🚀
 
 How the catch actually works: the tower at Starbase, Texas ("Mechazilla") has two giant arms nicknamed chopsticks. The ship falls back from orbit belly-first like a skydiver, with 18,000 heat-shield tiles taking the heat of reentry. Seconds before the ground it relights its engines, swings upright and slows almost to a hover. The arms close and the ship hangs on two small pins near its top. No legs, no landing pad.
 
@@ -29,7 +29,7 @@ Which flight would you have quit at? 👇
 #spacex #starship #mechazilla #rocket #space #engineering #neverquit #reels #explorepage #slowlight
 
 ## YouTube Shorts
-Title: Everyone saw the catch. Nobody saw the 14 before it. 🚀 #shorts
+Title: You saw the catch. Not the 14 before it. 🚀 #shorts
 
 Description:
 On 14 Nov 2026, SpaceX's launch tower caught a Starship coming back from orbit, a first for any rocket upper stage. It launched on 13 Nov, deployed 26 Starlink satellites, went around Earth 14 times and fell back belly-first through reentry. Then it relit three engines, flipped upright and slowed to a hover, and the tower's "chopsticks" closed on it.
@@ -48,8 +48,8 @@ Tags: spacex, starship, starship flight 15, starship ship catch, spacex catches 
 Flights 7 and 8 both blew up after things were going well. Would you have kept going? 👇
 
 ## Upload checklist
-- Upload `ship-catch_v3.mp4` (sound is mixed in). For a trending sound instead, use `ship-catch_v3_music-ready.mp4` and add audio in the app (the ref used a screaming meme sound).
-- Cover frame: frame 0 (ship mid-flip next to the open arms, "EVERYONE SAW THE CATCH.").
+- Upload `ship-catch_v4.mp4` (sound is mixed in). For a trending sound instead, use `ship-catch_v4_music-ready.mp4` and add audio in the app (the ref used a screaming meme sound).
+- Cover frame: frame 0 (ship mid-flip next to the open arms, "YOU SAW THE CATCH.").
 - All on-screen text sits in y 300-1440; edges checked for the FB black-border flag (top/bottom/left/right bands lit and textured).
 - Optional credit: "Whoosh by stewdio2003 (CC0) via Freesound." Other sounds are ElevenLabs generated.
 

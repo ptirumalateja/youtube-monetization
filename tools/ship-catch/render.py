@@ -456,13 +456,13 @@ def overlay_text(t, rew_k=0.0):
     seg = segment_at(t)
     # --- headline
     if t < OPEN_END:
-        draw_text(d, 'EVERYONE SAW', W / 2, 318, 64, (255, 255, 255, 255), 4)
+        draw_text(d, 'YOU SAW', W / 2, 318, 64, (255, 255, 255, 255), 4)
         draw_text(d, 'THE CATCH.', W / 2, 404, 64, (255, 255, 255, 255), 4)
         head_bottom = 480
     elif t < QUIT_T:
-        draw_text(d, 'EVERYONE SAW THE CATCH.', W / 2, 318, 34, (255, 255, 255, 235), 3)
+        draw_text(d, 'YOU SAW THE CATCH.', W / 2, 318, 34, (255, 255, 255, 235), 3)
         k = clamp((t - (OPEN_END + 0.15)) / 0.45)
-        line2 = 'NOBODY SAW THE 14 BEFORE IT.'
+        line2 = 'NOT THE 14 BEFORE IT.'
         n = int(round(len(line2) * k))
         if n:
             draw_text(d, line2[:n], W / 2 - text_w(line2, 34, 3) / 2, 368, 34, (255, 255, 255, 235), 3, anchor='l')
@@ -498,7 +498,7 @@ def overlay_text(t, rew_k=0.0):
         elif seg[0] not in ('rewind',):
             fate, fl, s, dd = seg
             fail_at = s + fail_time(fate, dd)
-            if t >= fail_at: tag = ('NOT CAUGHT', clamp((t - fail_at) / 0.08))
+            if t >= fail_at: tag = (FATE_LABEL.get(fl, 'NOT CAUGHT'), clamp((t - fail_at) / 0.08))
         if tag:
             txt, k = tag
             ty = y0 + 84
@@ -537,6 +537,11 @@ def overlay_text(t, rew_k=0.0):
         k = clamp((t - CONTACT - 0.05) / 0.2)
         draw_text(d, 'UNTIL THIS ONE.', W / 2, 1222, 54, (255, 255, 255, int(255 * k)), 4)
     return im
+
+# verified ship outcomes (Flights 1-11); 12-14 not re-verified, so they only say NOT CAUGHT
+FATE_LABEL = {1: 'EXPLODED', 2: 'LOST ON ASCENT', 3: 'BROKE UP ON REENTRY', 4: 'SPLASHED DOWN',
+              5: 'SPLASHED DOWN', 6: 'SPLASHED DOWN', 7: 'EXPLODED ON ASCENT', 8: 'EXPLODED ON ASCENT',
+              9: 'BROKE UP ON REENTRY', 10: 'SPLASHED DOWN', 11: 'SPLASHED DOWN'}
 
 def fail_time(fate, d):
     return {'stack': 0.78, 'ascent': 0.5, 'breakup': 0.5, 'splash': 0.55, 'blur': 0.35}[fate] * d
