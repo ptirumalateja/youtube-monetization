@@ -1,0 +1,63 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anek+Telugu:wght@600;700;800&family=Ramabhadra&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#222}
+.t{position:relative;overflow:hidden;font-family:'Ramabhadra',sans-serif;background:#0b0907}
+.bg{position:absolute;background-size:cover;filter:saturate(1.15) contrast(1.06)}
+.title{color:#ffd27a;line-height:1;text-shadow:0 7px 0 #3a1a00,0 0 30px rgba(0,0,0,.9),0 0 5px #000}
+.pill{display:inline-block;background:#f2b544;color:#1a1310;border-radius:18px;line-height:1.25}
+.info{font-family:'Anek Telugu',sans-serif;font-weight:800;color:#fff}
+.chip{background:rgba(10,8,6,.86);border:3px solid #f2b544;border-radius:20px}
+.chip .k{color:#ffd27a}
+.chip .s{color:#ffb35c}
+/* vertical 1080x1920 */
+#v{width:1080px;height:1920px}
+#v .bg{inset:0;background-image:url(namaste.jpg);background-position:center 30%}
+#v .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,.05) 18%,rgba(0,0,0,0) 40%,rgba(0,0,0,.75) 56%,rgba(0,0,0,.92) 70%,#0b0907 100%)}
+#v .top{position:absolute;top:70px;left:0;right:0;text-align:center}
+#v .tag{display:inline-block;font-family:'Anek Telugu';font-weight:800;font-size:46px;color:#1a1310;background:#ff8a2a;padding:6px 30px;border-radius:40px}
+#v .mid{position:absolute;top:960px;left:0;right:0;text-align:center}
+#v .title{font-size:176px}
+#v .pill{font-size:76px;padding:10px 40px;margin-top:62px}
+#v .grid{position:absolute;left:50px;right:50px;top:1400px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+#v .chip{padding:18px 22px;font-size:40px;line-height:1.3;text-align:center}
+#v .chip.wide{grid-column:1/3;font-size:46px}
+#v .chip .big{font-size:56px}
+/* horizontal 1280x720 */
+#h{width:1280px;height:720px}
+#h .bg{left:0;top:0;bottom:0;width:560px;background-image:url(lingam.jpg);background-position:center 40%}
+#h .fade{position:absolute;left:380px;top:0;bottom:0;width:200px;background:linear-gradient(90deg,rgba(11,9,7,0),#0b0907)}
+#h .txt{position:absolute;left:560px;right:34px;top:26px;text-align:center}
+#h .title{font-size:124px}
+#h .pill{font-size:52px;padding:6px 28px;margin-top:46px}
+#h .grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:24px}
+#h .chip{padding:8px 14px;font-size:34px;line-height:1.3}
+#h .chip.wide{font-size:34px}
+#h .chip .big{font-size:36px}
+</style></head><body>
+<div id="v" class="t"><div class="bg"></div><div class="shade"></div>
+  <div class="top"><span class="tag">నవం 10 – డిసెం 8</span></div>
+  <div class="mid"><div class="title">కార్తీక మాసం</div><div class="pill">ఎందుకు ఇంత ప్రత్యేకం?</div></div>
+  <div class="grid info">
+    <div class="chip wide"><span class="k">4 సోమవారాలు</span><br><span class="big">16 • 23 • 30 నవం | 7 డిసెం</span></div>
+    <div class="chip"><span class="k">నవం 24</span><br>కార్తీక పౌర్ణమి దీపం</div>
+    <div class="chip"><span class="k">శివుడు + విష్ణువు</span><br>ఇద్దరికీ ప్రియమైన నెల</div>
+    <div class="chip"><span class="s">🌅</span> తెల్లవారే నదీ స్నానం</div>
+    <div class="chip"><span class="s">🪔</span> సాయంత్రం దీపం</div>
+  </div>
+</div>
+<br>
+<div id="h" class="t"><div class="bg"></div><div class="fade"></div>
+  <div class="txt">
+    <div class="title">కార్తీక మాసం</div><div class="pill">ఎందుకు ఇంత ప్రత్యేకం?</div>
+    <div class="grid info">
+      <div class="chip wide"><span class="k">4 సోమవారాలు:</span> <span class="big">16 • 23 • 30 నవం | 7 డిసెం</span></div>
+      <div class="chip"><span class="k">నవం 24:</span> కార్తీక పౌర్ణమి దీపం</div>
+      <div class="chip"><span class="k">శివుడు + విష్ణువు</span> ఇద్దరికీ ప్రియమైన నెల</div>
+      <div class="chip">🌅 తెల్లవారే స్నానం • 🪔 సాయంత్రం దీపం</div>
+    </div>
+  </div>
+</div>
+</body></html>
