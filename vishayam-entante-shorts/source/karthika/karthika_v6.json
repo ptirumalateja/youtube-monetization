@@ -702,7 +702,7 @@
   "స్తంభంగా",
   "మహా"
  ],
- "whoosh": true,
+ "whoosh": false,
  "whoosh_vol": 0.3,
  "sfx_files": {
   "whoosh": "whoosh.mp3",
