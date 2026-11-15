@@ -387,22 +387,49 @@ def render_smoke(img, P, scale=0.5):
 # ---------------------------------------------------------------- background
 _BG = None
 def background():
+    """Darker 'moonlit sea' tone (v2, after Teja liked the other version's tone): near-black sky with a
+    faint haze so no edge is flat black, a fog band on the horizon, dark sea (glints added per frame)."""
     global _BG
     if _BG is not None: return _BG
     y = np.arange(H, dtype=np.float32)[:, None]
-    sky = np.where(y < YF, lerp(0.075, 0.16, (y / YF) ** 2.2), 0)
-    flo = np.where(y >= YF, lerp(0.13, 0.075, np.clip((y - YF) / (H - YF), 0, 1) ** 0.7), 0)
-    band = 0.10 * np.exp(-((y - YF) / 26.0) ** 2) + 0.05 * np.exp(-((y - YF + 60) / 120.0) ** 2)
+    sky = np.where(y < YF, lerp(0.022, 0.05, (y / YF) ** 2.0), 0)
+    flo = np.where(y >= YF, lerp(0.045, 0.02, np.clip((y - YF) / (H - YF), 0, 1) ** 0.6), 0)
+    band = 0.06 * np.exp(-((y - YF) / 22.0) ** 2) + 0.045 * np.exp(-((y - YF + 90) / 140.0) ** 2)
     base = (sky + flo + band) * np.ones((1, W), np.float32)
     rng = np.random.default_rng(7)
-    n = gaussian_filter(rng.standard_normal((H // 8, W // 8)).astype(np.float32), 6)
+    n = gaussian_filter(rng.standard_normal((H // 8, W // 8)).astype(np.float32), 9)
     n = zoom(n / (n.std() + 1e-6), 8, order=1)[:H, :W]
-    base = base + 0.007 * n + 0.03 * n * np.exp(-y / 420.0) + 0.025 * np.exp(-y / 300.0)
-    # soft glow behind the tower/catch zone
+    base = base + 0.004 * n + 0.012 * np.clip(n, 0, None) * np.exp(-y / 500.0)
+    # fog banks sitting on the horizon (like the other cut's soft grey mounds)
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    base += 0.05 * np.exp(-(((xx - 560) / 520) ** 2 + ((yy - 950) / 620) ** 2))
-    _BG = np.repeat(base[:, :, None], 3, 2) * np.array([1.0, 1.0, 1.04], np.float32)
+    for cx, cy, rx, ry, a in ((120, YF - 70, 260, 110, 0.05), (520, YF - 40, 300, 80, 0.035), (980, YF - 80, 280, 120, 0.045)):
+        base += a * np.exp(-(((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2))
+    base += 0.03 * np.exp(-(((xx - 560) / 520) ** 2 + ((yy - 950) / 620) ** 2))
+    _BG = np.repeat(base[:, :, None], 3, 2) * np.array([1.0, 1.0, 1.03], np.float32)
     return _BG
+
+_GL = None
+def sea_glints(t):
+    """moving light glints on the sea, wider and brighter toward the camera"""
+    global _GL
+    if _GL is None:
+        r = np.random.default_rng(11)
+        _GL = dict(z=r.random(70) ** 0.8, x=r.random(70) * 1400 - 160, ph=r.random(70) * 6.28, sp=r.uniform(4, 14, 70))
+    g = _GL
+    out = np.zeros((H - YF, W), np.float32)
+    hh = H - YF
+    for z, x0, ph, sp in zip(g['z'], g['x'], g['ph'], g['sp']):
+        cy = 6 + (hh - 6) * z ** 1.5
+        a = 25 + 230 * z; b = 1.5 + 10 * z
+        cx = (x0 + sp * t * (0.3 + z)) % 1400 - 160
+        br = (0.03 + 0.11 * z) * (0.55 + 0.45 * math.sin(t * 1.3 + ph))
+        y0, y1 = int(max(0, cy - 3 * b)), int(min(hh, cy + 3 * b + 1))
+        x0_, x1_ = int(max(0, cx - 2.5 * a)), int(min(W, cx + 2.5 * a + 1))
+        if y1 <= y0 or x1_ <= x0_: continue
+        gy = np.exp(-((np.arange(y0, y1) - cy) / b) ** 2)
+        gx = np.exp(-((np.arange(x0_, x1_) - cx) / a) ** 2)
+        out[y0:y1, x0_:x1_] += br * np.outer(gy, gx)
+    return out
 
 # ---------------------------------------------------------------- text
 _FONTS = {}
@@ -484,6 +511,31 @@ def overlay_text(t, rew_k=0.0):
                 col = (255, 70, 85, int(255 * k))
                 d.rounded_rectangle([bx0, ty, bx1, ty + 48], 6, outline=col, width=3)
                 draw_text(d, txt, W / 2, ty + 9, 24, col, 4)
+    # --- 15-cell progress bar (14 misses, then the catch)
+    if t >= OPEN_END + 0.25:
+        ka = clamp((t - OPEN_END - 0.25) / 0.3)
+        by = 606 if head_bottom is not None else 582
+        cw, gap, ch = 40, 8, 14
+        x0 = W / 2 - (15 * cw + 14 * gap) / 2
+        cur = seg[1] if seg[0] not in ('open', 'rewind') else None
+        for i in range(15):
+            fl = i + 1
+            cx = x0 + i * (cw + gap)
+            if fl < 15:
+                s_, d_ = [(s, dd) for f_, fa, s, dd in SEGS if f_ == fl][0]
+                fate_ = [fa for f_, fa, s, dd in SEGS if f_ == fl][0]
+                filled = t >= s_ + fail_time(fate_, d_)
+                col = (255, 70, 85, int(235 * ka)) if filled else (120, 120, 128, int(110 * ka))
+            else:
+                filled = t >= CONTACT + 0.08
+                col = (255, 255, 255, int(255 * ka)) if filled else (120, 120, 128, int(110 * ka))
+            d.rectangle([cx, by, cx + cw, by + ch], fill=col)
+            if cur == fl and not filled:
+                d.rectangle([cx - 2, by - 2, cx + cw + 2, by + ch + 2], outline=(255, 255, 255, int(220 * ka)), width=2)
+    # --- payoff line under the caught ship
+    if t >= CONTACT + 0.05:
+        k = clamp((t - CONTACT - 0.05) / 0.2)
+        draw_text(d, 'UNTIL THIS ONE.', W / 2, 1222, 54, (255, 255, 255, int(255 * k)), 4)
     return im
 
 def fail_time(fate, d):
@@ -710,7 +762,7 @@ def render_frame(fi):
     # cheering figures at the base after the finale catch
     if kind == 'finale' and t > CONTACT + 0.5:
         k = clamp((t - CONTACT - 0.5) / 0.3)
-        for i, fx in enumerate((835, 880, 925, 990)):
+        for i, fx in enumerate((880, 922, 964, 1020)):
             wave = math.sin((t - CONTACT) * 9 + i * 1.7)
             draw_figure(ctx, fx, YF - 20, k, wave, i)
 
@@ -718,6 +770,7 @@ def render_frame(fi):
     A = np.ndarray((H, W, 4), np.uint8, surf.get_data()).astype(np.float32) / 255.0
     G = np.ndarray((H, W, 4), np.uint8, gsurf.get_data()).astype(np.float32) / 255.0
     img = background().copy()
+    img[YF:] += sea_glints(t)[:, :, None]
     # subtle drifting haze
     img = img * (1 - A[:, :, 3:4]) + A[:, :, 2::-1][:, :, :3]
     img = render_smoke(img, SMOKE.state(t))
