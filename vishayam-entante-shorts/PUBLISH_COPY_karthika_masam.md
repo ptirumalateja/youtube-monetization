@@ -1,6 +1,6 @@
 # Karthika Masam: Publish Copy (విషయం ఏంటంటే)
 
-Video: `karthika_masam_te.mp4` (1080×1920, ~30s, Teja voice + captions)
+Video: `karthika_masam_te.mp4` (1080×1920, ~25s, Teja voice + pop captions + SFX)
 Cover: `karthika_cover_1080x1920.jpg` · Thumbnail: `karthika_thumbnail_1280x720.jpg`
 **Post tonight (Sun, Nov 15)** so it's live before the first Karthika Somavaram (Mon, Nov 16).
 **Every platform:** turn on the AI label (the Vishnu, fire-pillar, river and Arunachala shots are AI). YouTube: "Altered or synthetic content" → Yes. Instagram/Facebook: "AI info". Audience: not made for kids.

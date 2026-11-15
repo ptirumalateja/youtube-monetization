@@ -79,13 +79,31 @@ def build(cfg_path):
         st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H00102040,&H96000000,-1,0,0,0,100,100,0,0,1,{ol},2,{al},80,80,{mv},1")
     L_ = ["[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0", "ScaledBorderAndShadow: yes", "",
           "[V4+ Styles]", "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-          st("Cap", cfg["cap_size"], "&H00E6F6FF", 2, 500, 6), st("Hook", cfg["hook_size"], "&H006BD3FF", 8, 230, 7), "",
+          st("Cap", cfg["cap_size"], "&H00E6F6FF", 2, 500, 6), st("Pop", cfg.get("pop_size", 104), "&H00FFFFFF", 2, 560, 8), st("Hook", cfg["hook_size"], "&H006BD3FF", 8, 230, 7), "",
           "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
     L_.append(f"Dialogue: 0,{ts(0.0)},{ts(cfg['hook_end'])},Hook,,0,0,0,,{{\\fad(0,200)}}{cfg['hook']}")
     for s_, e_, txt in cfg.get("extra", []):
         e_ = total - 0.1 if e_ == "END" else e_ / T + off
         L_.append(f"Dialogue: 1,{ts(s_ / T + off)},{ts(e_)},Hook,,0,0,0,,{{\\fad(80,120)\\fscx70\\fscy70\\t(0,140,\\fscx100\\fscy100)}}{txt}")
-    caps = cfg["caps"]
+    caps = [] if cfg.get("words") else cfg["caps"]
+    if cfg.get("words"):
+        # pop captions: 1-3 word chunks, break after punctuation, keyword highlight
+        ws, hl = cfg["words"], cfg.get("hl", [])
+        chunks, cur = [], []
+        for w in ws:
+            cur.append(w)
+            t = w[2]
+            if len(cur) >= cfg.get("chunk", 2) or t[-1:] in "…,!?." or len("".join(c[2] for c in cur)) > 16:
+                chunks.append(cur); cur = []
+        if cur: chunks.append(cur)
+        for i, ch in enumerate(chunks):
+            s_ = ch[0][0] / T + off
+            e_ = (chunks[i+1][0][0] / T + off - 0.02) if i + 1 < len(chunks) else min(ch[-1][1] / T + off + 0.4, total - 0.1)
+            parts_ = []
+            for w in ch:
+                t = w[2]
+                parts_.append("{\\c&H40B4FF&}" + t + "{\\c&HFFFFFF&}" if any(h in t for h in hl) else t)
+            L_.append(f"Dialogue: 0,{ts(s_)},{ts(e_)},Pop,,0,0,0,,{{\\fscx70\\fscy70\\t(0,90,\\fscx108\\fscy108)\\t(90,160,\\fscx100\\fscy100)}}{' '.join(parts_)}")
     for i, (s, e, txt) in enumerate(caps):
         s = s / T + off; e = (total if e == "END" else e / T + off)
         if i + 1 < len(caps):
@@ -112,9 +130,34 @@ def build(cfg_path):
               f"afade=t=in:st=0:d=0.3,afade=t=out:st={total-1.5:.2f}:d=1.5[mus]")
     fc.append("[mus][vosc]sidechaincompress=threshold=0.05:ratio=4:attack=20:release=300[musd]")
     fc.append(f"{aprev}atrim=0:{total:.3f}[sfx]")
-    fc.append("[vo][musd][sfx]amix=inputs=3:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=9[aout]")
+    extra_in = []
+    ev = []
+    if cfg.get("whoosh"):
+        cut_t = [b / T + off for b in cfg["bounds"]]
+        ev += [(t - 0.12, "whoosh", cfg.get("whoosh_vol", 0.35)) for t in cut_t if t < total - 0.3]
+    ev += [(t / T + off - 0.05, k, v) for t, k, v in cfg.get("hits", [])]
+    if ev:
+        import numpy as np, wave
+        SR = 48000
+        def load(p):
+            raw = subprocess.check_output(["ffmpeg", "-v", "error", "-i", os.path.join(W, p), "-f", "s16le", "-ac", "1", "-ar", str(SR), "-"])
+            return np.frombuffer(raw, np.int16).astype(np.float32) / 32768
+        clips = {k: load(p) for k, p in cfg["sfx_files"].items()}
+        track = np.zeros(int(total * SR) + SR, np.float32)
+        for t, k, v in ev:
+            i0 = max(int(t * SR), 0); x = clips[k] * v
+            n = min(len(x), len(track) - i0); track[i0:i0+n] += x[:n]
+        track = np.clip(track, -1, 1)
+        evp = os.path.join(tmp, "events.wav")
+        with wave.open(evp, "wb") as wf:
+            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(SR); wf.writeframes((track * 32767).astype(np.int16).tobytes())
+        extra_in = ["-i", evp]
+        fc.append(f"[{len(parts)+2}:a]aformat=channel_layouts=stereo,atrim=0:{total:.3f}[evm]")
+        fc.append("[vo][musd][sfx][evm]amix=inputs=4:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=9[aout]")
+    else:
+        fc.append("[vo][musd][sfx]amix=inputs=3:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=9[aout]")
     out = cfg["out"]; os.makedirs(os.path.dirname(out), exist_ok=True)
-    run(["ffmpeg", "-y", "-v", "error"] + inputs + ["-i", vo, "-i", os.path.join(W, cfg["music"]),
+    run(["ffmpeg", "-y", "-v", "error"] + inputs + ["-i", vo, "-i", os.path.join(W, cfg["music"])] + extra_in + [
          "-filter_complex", ";".join(fc), "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-crf", "17",
          "-preset", "medium", "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", str(FPS), "-c:a", "aac", "-b:a", "192k",
          "-movflags", "+faststart", "-t", f"{total:.3f}", out])
