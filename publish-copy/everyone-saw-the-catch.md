@@ -1,7 +1,7 @@
-# Everyone Saw the Catch (Starship Flight 15 ship catch, v2, 17.7 s, 9:16)
+# Everyone Saw the Catch (Starship Flight 15 ship catch, v3, 17.7 s, 9:16)
 
 Animated remake of the Neuron Visuals "Tesla Roadster flip" format in its dark monochrome glow look. It opens on Flight 15: the ship flips, fires its engines and is caught by the tower's chopsticks (CAUGHT). Then it rewinds to Flight 01 and runs through what really happened to every earlier ship, faster and faster, each tagged NOT CAUGHT: Flight 1 stack lost, 2 lost on ascent, 3 broke up on reentry, 4-6 splashed down and tipped over, 7-8 exploded on ascent, 9 broke up, 10-11 splashed down, 12-14 a fast blur. It ends back on 15: plasma reentry, flip, catch, smoke, tiny people cheering, then "WHICH FLIGHT WOULD YOU HAVE QUIT?"
-v2 (15 Nov): darker moonlit-sea tone with moving glints, a 15-cell progress bar under the counter (fills red per miss, white on the catch) and "UNTIL THIS ONE." under the caught ship. Files: project files `final-reels/spacex-ship-catch/ship-catch_v2.mp4` (with sound), `_music-ready.mp4` (silent, for a trending audio), `_mobile.mp4` (720p preview). Wordless. Sound: shaped rocket roar, Freesound explosion/whoosh/warp, metal clank, no music. Renderer: `tools/ship-catch` (render.py + mix.py).
+v2 (15 Nov): darker moonlit-sea tone with moving glints, a 15-cell progress bar under the counter (fills red per miss, white on the catch) and "UNTIL THIS ONE." under the caught ship. Files: project files `final-reels/spacex-ship-catch/ship-catch_v3.mp4` (with sound), `_music-ready.mp4` (silent, for a trending audio), `_mobile.mp4` (720p preview). Wordless. v3 (15 Nov): flights 12-14 are one continuous fall past the open arms (v2 restarted the fall per flight and looked like a glitch); sound is now ElevenLabs SFX (roar, clank, explosions, rewind, plasma, crowd cheer at the end), no music. Renderer: `tools/ship-catch` (render.py + mix.py).
 Time-sensitive: the catch was 14 Nov 2026, so post within a day or two.
 
 ## Facebook caption
@@ -48,10 +48,10 @@ Tags: spacex, starship, starship flight 15, starship ship catch, spacex catches 
 Flights 7 and 8 both blew up after things were going well. Would you have kept going? 👇
 
 ## Upload checklist
-- Upload `ship-catch_v2.mp4` (sound is mixed in). For a trending sound instead, use `ship-catch_v2_music-ready.mp4` and add audio in the app (the ref used a screaming meme sound).
+- Upload `ship-catch_v3.mp4` (sound is mixed in). For a trending sound instead, use `ship-catch_v3_music-ready.mp4` and add audio in the app (the ref used a screaming meme sound).
 - Cover frame: frame 0 (ship mid-flip next to the open arms, "EVERYONE SAW THE CATCH.").
 - All on-screen text sits in y 300-1440; edges checked for the FB black-border flag (top/bottom/left/right bands lit and textured).
-- Optional credit: "CC0 sounds by qubodup, GammaGool and stewdio2003 via Freesound."
+- Optional credit: "Whoosh by stewdio2003 (CC0) via Freesound." Other sounds are ElevenLabs generated.
 
 ## Facts and sources
 - Launch Fri 13 Nov 2026, 22:47 UTC, Starbase, Texas; Booster 22, Ship 42; 26 Starlink V3 deployed; 14 orbits; ship caught by the tower arms Sat 14 Nov ~21:20 UTC, the first ship catch (SpaceX had caught boosters before). Booster aborted its tower catch and was lost offshore; cause first called a guidance issue, then early indications pointed to a low fuel mass alarm ending its boostback burn early. Sources: Space.com live blog (spacex-starship-flight-15-live-updates-nov-14-2026) and booster article; Tesla Oracle 15 Nov 2026 (18,000 tiles, 3-engine landing burn).

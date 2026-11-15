@@ -641,9 +641,16 @@ def montage_scene(ctx, glow, fate, fl, u, d, t, smoke_events):
                 draw_ship(ctx, glow, cx, cy, ang, 0.95, 0.3, 0, t)
             draw_explosion(glow, ctx, sx - 40, YF - 60, q - 0.12, 0.9, seed)
     elif fate == 'blur':
-        y = lerp(300, 1200, p)
-        for j in range(6):
-            draw_ship(ctx, glow, 300, y - j * 60, 0.0, 0.95, 0.8, 0, t, alpha=0.5 / (j + 1))
+        # flights 12-14 share ONE continuous fall past the open arms (no restart per flight);
+        # fates not depicted, the ship just drops past the tower into the fog
+        bl = [(s_, d_) for f_, fa, s_, d_ in SEGS if fa == 'blur']
+        s0 = bl[0][0]; tot = sum(d_ for _, d_ in bl)
+        q = clamp((t - s0) / tot)
+        y = lerp(850, 1330, ease_in(q, 1.5))
+        fade = 1 - smooth((q - 0.8) / 0.2)
+        for j in range(3, -1, -1):
+            draw_ship(ctx, glow, 250, y - j * 34 * (0.4 + q), 0.0, 0.95, 0.6 * fade, 0, t,
+                      alpha=fade * (1.0 if j == 0 else 0.22 / j))
 
 def add_montage_smoke(sm):
     for fl, fate, s, d in SEGS:
@@ -799,6 +806,7 @@ def render_frame(fi):
 
     # montage cut flashes
     for fl, fate, s, d in SEGS + [(15, 'f', FINALE_START, 0)]:
+        if fl in (13, 14): continue      # 12-14 is one continuous shot: no cut flash inside it
         q = t - s
         if 0 <= q < 0.07: img = img + 0.12 * (1 - q / 0.07)
 
