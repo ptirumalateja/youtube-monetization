@@ -524,7 +524,10 @@ window.renderAt = (t, sub = 1) => {
 window.events = (() => {
   const e = [];
   e.push({ t: VALVE - 0.05, s: 'clunk', g: 0.8, pan: 0.05 });
-  for (let tg = 0.0; tg < OVER; tg += 1 / 1.9) e.push({ t: tg + 0.02, s: 'gulp', g: 0.42, pan: 0.45, rate: 0.95 + 0.1 * hash(tg * 10) });
+  // v8: gulps are loud from frame 0 and grow louder + deeper with every swallow (his size grows in step)
+  for (let tg = 0.0; tg < OVER; tg += 1 / 1.9) { const k = tg / OVER;
+    e.push({ t: tg + 0.02, s: 'gulp', g: lerp(0.95, 1.6, k), pan: 0.4, rate: lerp(1.0, 0.74, k) + 0.04 * hash(tg * 10) });
+    e.push({ t: tg + 0.02, s: 'gulp', g: lerp(0.25, 0.85, k), pan: 0.3, rate: lerp(0.7, 0.5, k) }); }
   e.push({ t: OVER, s: 'choke', g: 0.85, pan: 0.45 });
   e.push({ t: OVER + 0.25, s: 'pile', g: 0.6, pan: 0.4 }, { t: OVER + 3.5, s: 'pile', g: 0.5, pan: 0.45, rate: 0.95 });
   for (const l of DRIPS) e.push({ t: l, s: 'tink', g: 0.95, pan: -0.45 });
