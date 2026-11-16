@@ -79,12 +79,15 @@ def build(cfg_path):
         st = lambda n, size, col, al, mv, ol: (f"Style: {n},{cfg['font']},{size},{col},&H000000FF,&H00102040,&H96000000,-1,0,0,0,100,100,0,0,1,{ol},2,{al},80,80,{mv},1")
     L_ = ["[Script Info]", "ScriptType: v4.00+", "PlayResX: 1080", "PlayResY: 1920", "WrapStyle: 0", "ScaledBorderAndShadow: yes", "",
           "[V4+ Styles]", "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-          st("Cap", cfg["cap_size"], "&H00E6F6FF", 2, 500, 6), st("Pop", cfg.get("pop_size", 104), "&H00FFFFFF", 2, 560, 8), st("Hook", cfg["hook_size"], "&H006BD3FF", 8, 230, 7), "",
+          st("Cap", cfg["cap_size"], "&H00E6F6FF", 2, 500, 6), st("Pop", cfg.get("pop_size", 104), "&H00FFFFFF", 2, 560, 8), st("Hook", cfg["hook_size"], "&H006BD3FF", 8, 230, 7),
+          f"Style: Draw,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1", "",
           "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"]
     L_.append(f"Dialogue: 0,{ts(0.0)},{ts(cfg['hook_end'])},Hook,,0,0,0,,{{\\fad(0,200)}}{cfg['hook']}")
     for s_, e_, txt in cfg.get("extra", []):
         e_ = total - 0.1 if e_ == "END" else e_ / T + off
         L_.append(f"Dialogue: 1,{ts(s_ / T + off)},{ts(e_)},Hook,,0,0,0,,{{\\fad(80,120)\\fscx70\\fscy70\\t(0,140,\\fscx100\\fscy100)}}{txt}")
+    for r in cfg.get("raw", []):
+        L_.append(r)
     caps = [] if cfg.get("words") else cfg["caps"]
     if cfg.get("words"):
         # pop captions: 1-3 word chunks, break after punctuation, keyword highlight
@@ -122,7 +125,19 @@ def build(cfg_path):
         fc.append(f"{vprev}[{k+1}:v]xfade=transition={tt}:duration={td}:offset={o:.3f}[v{k}]")
         fc.append(f"{aprev}[{k+1}:a]acrossfade=d={td}[a{k}]")
         vprev, aprev = f"[v{k}]", f"[a{k}]"; acc = o + lens[k+1]
-    fc.append(f"{vprev}ass={ass}:fontsdir={FONTS}:shaping=complex,format=yuv420p,fade=t=out:st={total-0.5:.2f}:d=0.5[vout]")
+    ovs = cfg.get("overlays", [])
+    if ovs:
+        fc.append(f"{vprev}ass={ass}:fontsdir={FONTS}:shaping=complex[vass]")
+        cur = "[vass]"
+        for j, ov in enumerate(ovs):
+            idx = len(parts) + 3 + j   # after vo, music, events
+            e_ = total - 0.05 if ov["end"] == "END" else ov["end"]
+            fc.append(f"[{idx}:v]scale={ov['w']}:-1,format=rgba,fade=t=in:st={ov['start']}:d=0.15:alpha=1,fade=t=out:st={e_-0.2:.2f}:d=0.2:alpha=1[ov{j}]")
+            fc.append(f"{cur}[ov{j}]overlay=x={ov['x']}:y={ov['y']}:enable='between(t,{ov['start']},{e_:.2f})':eof_action=pass[vo{j}]")
+            cur = f"[vo{j}]"
+        fc.append(f"{cur}format=yuv420p,fade=t=out:st={total-0.5:.2f}:d=0.5[vout]")
+    else:
+        fc.append(f"{vprev}ass={ass}:fontsdir={FONTS}:shaping=complex,format=yuv420p,fade=t=out:st={total-0.5:.2f}:d=0.5[vout]")
     vi, mi = len(parts), len(parts) + 1
     od = int(off * 1000)
     fc.append(f"[{vi}:a]adelay={od}|{od},apad,atrim=0:{total:.3f},asplit=2[vo][vosc]")
@@ -157,7 +172,7 @@ def build(cfg_path):
     else:
         fc.append("[vo][musd][sfx]amix=inputs=3:duration=first:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=9[aout]")
     out = cfg["out"]; os.makedirs(os.path.dirname(out), exist_ok=True)
-    run(["ffmpeg", "-y", "-v", "error"] + inputs + ["-i", vo, "-i", os.path.join(W, cfg["music"])] + extra_in + [
+    run(["ffmpeg", "-y", "-v", "error"] + inputs + ["-i", vo, "-i", os.path.join(W, cfg["music"])] + (extra_in or ["-f", "lavfi", "-t", "0.1", "-i", "anullsrc=r=48000:cl=stereo"]) + sum([["-loop", "1", "-t", f"{total:.3f}", "-i", os.path.join(W, ov["png"])] for ov in cfg.get("overlays", [])], []) + [
          "-filter_complex", ";".join(fc), "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-crf", "17",
          "-preset", "medium", "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", str(FPS), "-c:a", "aac", "-b:a", "192k",
          "-movflags", "+faststart", "-t", f"{total:.3f}", out])
