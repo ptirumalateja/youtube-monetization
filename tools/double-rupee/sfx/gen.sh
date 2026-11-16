@@ -10,3 +10,13 @@ gen heart 3 "Slow heavy heartbeat, deep thumps, tense, silent background, no mus
 gen boom 1.5 "A massive deep cinematic boom impact with a sub bass hit, no music"
 gen rise 1.2 "A fast rising whoosh building up into an impact, cinematic, no music"
 gen room 6 "Very quiet empty large room tone with faint distant hum, no music"
+# v2 notification-storm sounds
+gen ping 0.5 "A short bright smartphone payment received notification chime, two quick rising tones, clean digital, no music"
+gen buzz 0.5 "A smartphone vibrating once on a wooden table, short buzz, close, no music"
+gen stamp 0.5 "A heavy rubber stamp slammed onto paper on a desk, one punchy thunk, close, no music"
+gen crack 1.0 "A smartphone glass screen cracking sharply, crisp glass crack, no music"
+gen shatter 1.5 "A glass screen shattering into pieces that fly apart, bright glass explosion, no music"
+gen whoosh 0.6 "A fast short air whoosh swipe transition, clean, no music"
+gen scratch 0.6 "A short vinyl record scratch, comedic stop, no music"
+gen ooh 1.5 "A small crowd of people going ooooh in surprise, amazed, no music"
+gen chime 2.0 "A big bright cash register ka-ching followed by shimmering coins, celebratory, no music"
