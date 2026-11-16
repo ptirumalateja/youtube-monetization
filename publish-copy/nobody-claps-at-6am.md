@@ -33,5 +33,7 @@ A new habit takes about 66 days on average to become automatic (UCL habit study,
 
 #shorts #discipline #motivation #consistency #habits #stickman #animation
 
+Tags: nobody claps at 6am, discipline motivation, discipline over motivation, consistency, 6am morning routine, wake up at 6am, no one is watching, keep going, never give up, habits, 66 days habit, 1 percent better every day, self improvement, stay disciplined, hard work pays off, motivational shorts, stickman animation, stickman story, animated motivation, slow light
+
 ## Pinned comment
 What time does YOUR alarm go off? ⏰👇
