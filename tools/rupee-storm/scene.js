@@ -35,7 +35,7 @@ for (let d = 2; d <= 30; d++) TD.push(
 const T_FOLD = 1.25, T_FLIP = TD[24], T_SLAM = TD[30], T_SHAT = 15.65, T_PAY = 16.0, T_CHART = 17.35, T_CTA = 18.75, T_END = T_PAY;
 const dayAt = t => { let d = 0; for (let i = 1; i <= 30; i++) if (t >= TD[i]) d = i; return d; };
 const val = d => Math.pow(2, d) - 1;
-const liveVal = t => { const d = dayAt(t); if (d <= 1) return 1; return lerp(val(d - 1), val(d), eout((t - TD[d]) / 0.16)); };
+const liveVal = t => { const d = dayAt(t); if (d <= 1) return 1; return lerp(val(d - 1), val(d), eout((t - TD[d]) / 0.07)); };
 const PX = 360, PY = 780; // B phone centre once it owns the screen
 
 // ---------- textures ----------
@@ -163,7 +163,7 @@ function raceBar(g, t, d, v) {
   const fx = flagX(v);
   const badge = () => { g.fillStyle = PINK; g.beginPath(); g.arc(3, 3, 34, 0, 7); g.fill(); g.fillStyle = INDIGO; g.beginPath(); g.arc(0, 0, 34, 0, 7); g.fill();
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '900 17px "Inter Display"'; g.fillText('₹1', 0, -3); g.font = '900 13px "Inter Display"'; g.fillText('CRORE', 0, 13); };
-  if (t >= T_FOLD + 0.3 && t < T_FLIP) { const k = spr(t - T_FOLD - 0.3); g.save(); g.translate(BX + BW, BYY + BH / 2); g.scale(k, k); badge(); g.restore(); }
+  if (t < T_FLIP) { const k = t < T_FOLD + 0.3 ? 1 + 0.25 * popAt(t, 0) : 1 + 0.35 * Math.max(0, 1 - (t - T_FOLD - 0.3) / 0.15); g.save(); g.translate(BX + BW, BYY + BH / 2); g.scale(k, k); badge(); g.restore(); }
   if (t >= T_FLIP) {
     const k = t - T_FLIP; if (k < 1.2) { g.save(); g.translate(BX + BW - 330 * k, BYY + BH / 2 - 120 * k + 1300 * k * k); g.scale(1 + k, 1 + k); g.rotate(-k * 7); badge(); g.restore(); }
     g.fillStyle = INDIGO; g.fillRect(fx - 2.5, BYY - 10, 5, BH + 20);
@@ -252,7 +252,7 @@ function payoff(g, t) {
       g.globalAlpha = clamp(a * 2); g.fillStyle = INK; g.font = '900 26px "Inter Display"'; const top = BASE - h;
       if (b.lab3) { g.fillText(b.lab, b.x, top - 60); g.fillText(b.lab3, b.x, top - 34); } else g.fillText(b.lab, b.x, top - 34);
       g.font = '800 22px "JetBrains Mono"'; g.fillStyle = b.col === SAFF ? '#C25A00' : INK; g.fillText(b.lab2, b.x, top - 10); g.globalAlpha = 1; }
-    stamp(g, ['1.3× STATUE', 'OF UNITY'], win(t, T_CHART + 0.6, T_CTA), { x: 520, y: 845, size: 30, size2: 30, pop: popAt(t, T_CHART + 0.6), bg: YEL, shadow: INK, rot: -0.1, maxW: 260 });
+    stamp(g, ['1.3× STATUE', 'OF UNITY'], win(t, T_CHART + 0.6, T_CTA), { x: 170, y: 820, size: 30, size2: 30, pop: popAt(t, T_CHART + 0.6), bg: YEL, shadow: INK, rot: -0.1, maxW: 260 });
   }
 }
 function statue(g, x, base, h, col) { // riso silhouette: pedestal + standing figure with shawl, head ~ top
