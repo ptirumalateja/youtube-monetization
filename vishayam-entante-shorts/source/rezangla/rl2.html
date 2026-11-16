@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Ramabhadra&family=Anek+Telugu:wght@800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#222}
+.t{position:relative;overflow:hidden;font-family:'Ramabhadra',sans-serif;background:#000}
+.bg{position:absolute;inset:0;background-size:cover;filter:saturate(1.35) contrast(1.18) brightness(1.08)}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
+.l1{display:inline-block;background:#d71920;color:#fff;border-radius:14px;transform:rotate(-2deg);box-shadow:0 8px 0 rgba(0,0,0,.45);line-height:1.15}
+.l2{color:#ffe100;-webkit-text-stroke:0;paint-order:stroke fill;text-shadow:
+  0 0 0 #000,6px 6px 0 #000,-6px 6px 0 #000,6px -6px 0 #000,-6px -6px 0 #000,0 9px 0 #000,0 -7px 0 #000,9px 0 0 #000,-9px 0 0 #000,0 14px 18px rgba(0,0,0,.8);line-height:1.1}
+.badge{position:absolute;display:flex;align-items:center;gap:10px;background:#fff;color:#111;font-family:'Anek Telugu';font-weight:800;border-radius:40px;box-shadow:0 6px 14px rgba(0,0,0,.5)}
+.badge img{display:block}
+svg{position:absolute;overflow:visible}
+/* vertical */
+#v{width:1080px;height:1920px}
+#v .bg{background-image:url(face.png);background-position:58% 70%;background-size:1500px auto}
+#v .txt{position:absolute;top:70px;left:30px;right:30px;text-align:center}
+#v .l1{font-size:84px;padding:10px 34px 4px}
+#v .l2{font-size:178px;margin-top:30px}
+#v .badge{left:40px;bottom:60px;font-size:50px;padding:10px 28px 8px 16px}
+#v .badge img{height:64px}
+/* horizontal */
+#h{width:1280px;height:720px}
+#h .bgblur{position:absolute;inset:0;background:url(face.png) center 40%/1400px auto;filter:blur(18px) brightness(.45) saturate(1.2)}
+#h .panel{position:absolute;left:0;top:0;bottom:0;width:640px;background:url(face.png) -60px -400px/780px auto;filter:saturate(1.35) contrast(1.18) brightness(1.08);box-shadow:20px 0 40px rgba(0,0,0,.6)}
+#h .txt{position:absolute;top:40px;left:650px;right:20px;text-align:center}
+#h .l1{font-size:58px;padding:8px 26px 2px}
+#h .l2{font-size:118px;margin-top:26px}
+#h .badge{right:28px;bottom:30px;font-size:38px;padding:8px 22px 6px 12px}
+#h .badge img{height:50px}
+</style></head><body>
+<div id="v" class="t"><div class="bg"></div><div class="vig"></div>
+  <div class="txt"><div class="l1">3 నెలల తర్వాత మంచులో...</div><div class="l2">చేతిలో ఇంకా<br>తుపాకీ!</div></div>
+  <svg width="1080" height="1920" style="left:0;top:0">
+    <defs><marker id="ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#ff1f1f" stroke="#fff" stroke-width=".6"/></marker></defs>
+    <path d="M 880 760 C 1000 960, 1010 1180, 900 1330" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round"/>
+    <path d="M 880 760 C 1000 960, 1010 1180, 900 1330" fill="none" stroke="#ff1f1f" stroke-width="22" stroke-linecap="round" marker-end="url(#ah)"/>
+  </svg>
+  <div class="badge"><img src="flag_emoji.png">రెజాంగ్ లా • 1962</div>
+</div>
+<br>
+<div id="h" class="t"><div class="bgblur"></div><div class="panel"></div>
+  <div class="txt"><div class="l1">3 నెలల తర్వాత మంచులో...</div><div class="l2">చేతిలో ఇంకా<br>తుపాకీ!</div></div>
+  <svg width="1280" height="720" style="left:0;top:0">
+    <defs><marker id="ah2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#ff1f1f" stroke="#fff" stroke-width=".6"/></marker></defs>
+    <path d="M 760 520 C 720 600, 660 640, 590 600" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 760 520 C 720 600, 660 640, 590 600" fill="none" stroke="#ff1f1f" stroke-width="16" stroke-linecap="round" marker-end="url(#ah2)"/>
+  </svg>
+  <div class="badge"><img src="flag_emoji.png">రెజాంగ్ లా • 1962</div>
+</div>
+</body></html>
