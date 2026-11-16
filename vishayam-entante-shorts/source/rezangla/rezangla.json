@@ -15,6 +15,7 @@
  "box": true,
  "out": "/home/user/youtube-monetization/vishayam-entante-shorts/rezangla_te.mp4",
  "bounds": [
+  0.7,
   1.4,
   2.92,
   4.58,
@@ -37,6 +38,10 @@
   [
    "fade",
    0.084
+  ],
+  [
+   "fadewhite",
+   0.1
   ],
   [
    "fade",
@@ -105,13 +110,51 @@
  ],
  "scenes": [
   {
-   "clip": "clean/cc48bcbe.mp4",
+   "clip": "clean/f1b55ca5.mp4",
    "src": [
-    3.6,
-    5.0
+    1.0,
+    1.7
    ],
    "zoom": [
     1.25,
+    1.05
+   ],
+   "pan_x": [
+    0.5,
+    0.45
+   ],
+   "pan_y": [
+    0.45,
+    0.5
+   ]
+  },
+  {
+   "clip": "clean/f1b55ca5.mp4",
+   "src": [
+    8.0,
+    8.8
+   ],
+   "zoom": [
+    1.15,
+    1.35
+   ],
+   "pan_x": [
+    0.6,
+    0.6
+   ],
+   "pan_y": [
+    0.45,
+    0.45
+   ]
+  },
+  {
+   "clip": "clean/cc48bcbe.mp4",
+   "src": [
+    3.8,
+    5.0
+   ],
+   "zoom": [
+    1.0,
     1.5
    ],
    "pan_x": [
@@ -126,27 +169,27 @@
   {
    "clip": "clean/cc48bcbe.mp4",
    "src": [
-    0.3,
-    2.6
+    5.6,
+    8.0
    ],
    "zoom": [
-    1.0,
-    1.2
+    1.05,
+    1.45
    ],
    "pan_x": [
     0.5,
     0.5
    ],
    "pan_y": [
-    0.4,
-    0.45
+    0.5,
+    0.5
    ]
   },
   {
    "clip": "clean/cc48bcbe.mp4",
    "src": [
-    5.6,
-    8.0
+    0.3,
+    2.6
    ],
    "zoom": [
     1.0,
@@ -157,27 +200,8 @@
     0.5
    ],
    "pan_y": [
-    0.5,
-    0.5
-   ]
-  },
-  {
-   "clip": "clean/cc48bcbe.mp4",
-   "src": [
-    8.0,
-    10.0
-   ],
-   "zoom": [
-    1.25,
-    1.5
-   ],
-   "pan_x": [
-    0.5,
+    0.35,
     0.45
-   ],
-   "pan_y": [
-    0.5,
-    0.5
    ]
   },
   {
@@ -762,7 +786,7 @@
   ]
  ],
  "chunk": 2,
- "pop_size": 100,
+ "pop_size": 108,
  "hl": [
   "మంచులో",
   "తుపాకులు",
@@ -797,6 +821,11 @@
   "impact": "impact.mp3"
  },
  "hits": [
+  [
+   0.0,
+   "impact",
+   0.55
+  ],
   [
    4.6,
    "impact",
