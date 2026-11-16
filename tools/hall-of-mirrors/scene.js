@@ -462,32 +462,39 @@ function inkWipe(g, k) { // black torn edge sweeps right -> left, covers, then u
 const WIPES = [[K.wipe1 - 0.25, 0.5], [K.wipe2 - 0.2, 0.55], [K.wipe3 - 0.15, 0.5], [K.cta - 0.4, 0.5]];
 
 // ======================= text =======================
-const CAPS = [ // [t0, t1, line1, line2]  parts: [text, color]
-  [K.story, K.enter - 0.1, [['AN OLD STORY...', INK]], [['A HALL OF ', INK], ['MIRRORS', RED]]],
-  [K.enter, K.surround, [['ONE NIGHT, A STRAY DOG...', INK]], null],
-  [K.surround, K.growl, [['SURROUNDED.', RED]], null],
-  [K.growl, K.teeth, [['HE GROWLED.', INK]], [['1,000 GROWLED ', RED], ['BACK.', RED]]],
-  [K.teeth, K.attack, [['HE BARED HIS TEETH.', INK]], [['1,000 MOUTHS OF ', INK], ['TEETH.', RED]]],
-  [K.attack, K.night, [['HE ATTACKED.', INK]], [['THEY ALL ', INK], ['ATTACKED BACK.', RED]]],
-  [K.night, K.wipe2 - 0.3, [['ALL NIGHT...', INK]], [['UNTIL HE ', INK], ['DROPPED.', RED]]],
-  [K.morning, K.tails, [['THE NEXT MORNING...', INK]], [['SHE ', INK], ['WAGGED HER TAIL.', RED]]],
-  [K.tails, K.same, [['1,000 TAILS ', RED], ['WAGGED BACK.', INK]], null],
-  [K.same, K.name - 0.1, [['SAME ROOM. SAME 1,000 DOGS.', INK]], [['A DIFFERENT ', INK], ['WORLD.', RED]]],
-  [K.name, K.bias - 0.1, [['PSYCHOLOGISTS HAVE A NAME', INK]], [['FOR THE FIRST DOG...', INK]]],
-  [K.seeing, K.wipe3 - 0.1, [['SEEING AN ', INK], ['ATTACK', RED]], [['WHERE THERE ISN\'T ONE.', INK]]],
-  [K.everyday, K.friend, [['AND WE DO IT ', INK], ['EVERY DAY.', RED]], null],
-  [K.friend, K.cold - 0.1, [['A FRIEND DOESN\'T REPLY...', INK]], null],
-  [K.cold - 0.1, K.boss, [['YOU GO ', INK], ['COLD.', RED]], [['NOW THEY GO ', INK], ['COLD TOO.', RED]]],
-  [K.boss, K.getOne - 0.05, [['YOUR BOSS SOUNDS SHORT.', INK]], [['YOU WALK IN ', INK], ['READY TO FIGHT.', RED]]],
-  [K.getOne - 0.05, K.most, [['AND YOU ', INK], ['GET ONE.', RED]], null],
-  [K.most, K.mirrorW, [['MOST ENEMIES ARE JUST', INK]], [['YOUR OWN ', INK], ['REFLECTION.', RED]]],
+const CAPS = [ // [t0, t1, line]  one short punchy line per beat, timed to the VO
+  [K.story + 0.2, K.reveal, [['A HALL OF ', INK], ['MIRRORS.', RED]]],
+  [K.enter, K.surround, [['ONE STRAY DOG.', INK]]],
+  [K.surround, K.growl, [['SURROUNDED.', RED]]],
+  [K.growl, K.growlBack, [['HE GROWLED.', INK]]],
+  [K.growlBack, K.teeth, [['THEY ', INK], ['GROWLED BACK.', RED]]],
+  [K.teeth, K.thousandMouths, [['TEETH.', INK]]],
+  [K.thousandMouths, K.attack, [['1,000 MOUTHS.', RED]]],
+  [K.attack, K.back, [['HE ATTACKED.', INK]]],
+  [K.back, K.night, [['THEY ', INK], ['ATTACKED BACK.', RED]]],
+  [K.night, K.dropped - 0.05, [['ALL NIGHT.', INK]]],
+  [K.dropped - 0.05, K.wipe2 - 0.3, [['UNTIL HE ', INK], ['DROPPED.', RED]]],
+  [K.morning, K.wag, [['NEXT MORNING...', INK]]],
+  [K.wag, K.tails, [['SHE ', INK], ['WAGGED.', RED]]],
+  [K.tails, K.same, [['1,000 TAILS ', RED], ['WAGGED BACK.', INK]]],
+  [K.same, K.world, [['SAME ROOM.', INK]]],
+  [K.world, K.name - 0.1, [['DIFFERENT ', INK], ['WORLD.', RED]]],
+  [K.name, K.bias - 0.1, [['IT HAS A NAME:', INK]]],
+  [K.seeing, K.wipe3 - 0.1, [['SEEING ATTACKS ', RED], ['THAT AREN\'T THERE.', INK]]],
+  [K.everyday, K.friend, [['WE DO IT ', INK], ['TOO.', RED]]],
+  [K.friend, K.cold - 0.1, [['NO REPLY?', INK]]],
+  [K.cold - 0.1, K.theyCold - 0.1, [['YOU GO ', INK], ['COLD.', RED]]],
+  [K.theyCold - 0.1, K.boss, [['THEY GO ', INK], ['COLD TOO.', RED]]],
+  [K.boss, K.walkIn, [['SHORT TONE?', INK]]],
+  [K.walkIn, K.getOne - 0.05, [['YOU WALK IN ', INK], ['READY TO FIGHT.', RED]]],
+  [K.getOne - 0.05, K.most, [['YOU ', INK], ['GET ONE.', RED]]],
+  [K.most, K.mirrorW, [['THE ENEMY? ', INK], ['YOUR REFLECTION.', RED]]],
 ];
 function caption(g, t) {
-  for (const [t0, t1, a, b] of CAPS) { if (t < t0 || t >= t1) continue; const k = ss(t0, t0 + 0.15, t), pop = 1 + 0.06 * Math.exp(-(t - t0) * 10);
-    g.save(); g.globalAlpha = k * (1 - ss(t1 - 0.1, t1, t)); g.translate(360, 912); g.scale(pop, pop); g.translate(-360, -912);
-    // soft paper plate so captions read over tiles
-    g.fillStyle = 'rgba(237,230,214,0.85)'; g.beginPath(); g.roundRect(70, 868 - (b ? 0 : -24), 580, b ? 104 : 62, 14); g.fill();
-    words(g, a, 360, b ? 908 : 912, 44, 560); if (b) words(g, b, 360, 958, 44, 560); g.restore(); }
+  for (const [t0, t1, a] of CAPS) { if (t < t0 || t >= t1) continue; const k = ss(t0, t0 + 0.1, t), pop = 1 + 0.1 * Math.exp(-(t - t0) * 12);
+    g.save(); g.globalAlpha = k * (1 - ss(t1 - 0.06, t1, t)); g.translate(360, 912); g.scale(pop, pop); g.translate(-360, -912);
+    g.fillStyle = 'rgba(237,230,214,0.88)'; g.beginPath(); g.roundRect(60, 876, 600, 70, 14); g.fill();
+    words(g, a, 360, 926, 54, 570); g.restore(); }
 }
 function counterBox(g, t) {
   let label = null, val = '', col = RED;
@@ -517,18 +524,43 @@ function bigLines(g, t) { // hook title, rule, CTA
 }
 
 // ======================= camera =======================
-function cam(t) { // [zoom, cx, cy, shake]
-  if (t < K.wipe1) return [1.12 + 0.05 * eout(clamp(t / 3)), 360, 700, 3 * Math.exp(-((t + 0.12) * 1.5 % 1) * 9)];
+function cam(t) { // [zoom, cx, cy, shake]  punch-ins, whips and hard cuts for variety
+  const HEAD = [470, 690];
+  if (t < K.wipe1) {
+    // frame 0: tight on the snarling face, whip out to the hall by 0.6 s; 1.55-2.4 s hard cut to a snarling reflection; back wide
+    if (t < 0.6) { const k = eio(clamp(t / 0.6)); return [lerp(2.7, 1.14, k), lerp(HEAD[0], 360, k), lerp(HEAD[1], 700, k), 4 * (1 - k)]; }
+    if (t >= 1.55 && t < 2.45) { const k = clamp((t - 1.55) / 0.9); return [lerp(1.9, 2.1, k), 582, 640, 2 * Math.exp(-(t - 1.55) * 8)]; }
+    return [1.14 + 0.04 * eout(clamp((t - 0.6) / 3)), 360, 700, 3 * Math.exp(-((t + 0.12) * 1.5 % 1) * 9)];
+  }
   if (t < K.reveal) return [1, 360, 640, 0];
   if (t < K.enter) { const k = eout(clamp((t - K.reveal) / 0.6)); return [lerp(2.6, 1.05, k), 360, lerp(600, 680, k), 0]; }
-  if (t < K.teeth) return [1.05 + 0.08 * ss(K.surround, K.surround + 0.4, t), 360, 700, 2 * Math.exp(-Math.max(0, t - K.surround) * 8)];
+  if (t < K.surround) { const hx = heroState(t).o.x; return [1.35, clamp(hx + 60, 240, 480), 720, 0]; } // tracking the stray as he walks in
+  if (t < K.growl) { const k = eout(clamp((t - K.surround) / 0.35)); return [lerp(1.35, 1.05, k), lerp(390, 360, k), lerp(720, 680, k), 5 * Math.exp(-(t - K.surround) * 7)]; }
+  if (t < K.growlBack) { const k = eout(clamp((t - K.growl) / 0.3)); return [lerp(1.05, 1.5, k), lerp(360, 430, k), lerp(680, 700, k), 0]; } // punch in on his growl
+  if (t < K.teeth) { const k = eout(clamp((t - K.growlBack) / 0.25)); return [lerp(1.9, 1.08, k), 360, 650, 4 * Math.exp(-(t - K.growlBack) * 6)]; } // whip out: the hall answers
   if (t < K.thousandMouths) { const k = eio(ss(K.teeth, K.teeth + 0.4, t)); return [lerp(1.13, 2.3, k), lerp(360, 480, k), lerp(700, 690, k), 0]; }
   if (t < K.attack) { const k = eio(ss(K.thousandMouths, K.thousandMouths + 0.35, t)); return [lerp(2.3, 1.0, k), lerp(480, 360, k), lerp(690, 640, k), 0]; }
-  if (t < K.wipe2) { const fast = t > K.night ? 2.6 : 1.5, c = ((t - K.attack) * fast) % 1; return [1.08 + 0.04 * Math.exp(-Math.max(0, c - 0.25) * 6) * (c > 0.25 ? 1 : 0), 360, 680, (c > 0.22 && c < 0.5 ? 6 : 0) * (t < K.dropped ? 1 : 0)]; }
-  if (t < K.same) return [lerp(1.0, 1.08, ss(K.wag, K.same, t)), 360, 680, 0];
-  if (t < K.name) return [1.0, 360, 640, 0];
-  if (t < K.wipe3) return [1.0 + 0.04 * ss(K.name, K.wipe3, t), 360, 640, 0];
-  if (t < K.cta) return [1.0 + 0.03 * Math.sin((t - K.wipe3) * 0.4), 360, 640, t >= K.getOne && t < K.getOne + 0.4 ? 6 * (1 - (t - K.getOne) / 0.4) : 0];
+  if (t < K.wipe2) { // fight: a hard cut to a new angle on every lunge, shake on impact
+    const fast = t > K.night ? 2.6 : 1.5, ph = (t - K.attack) * fast, n = Math.floor(ph), c = ph % 1;
+    const A = [[1.1, 360, 680], [1.75, 560, 640], [1.5, 430, 700], [1.3, 250, 660]][n % 4];
+    if (t >= K.dropped - 0.3) { const k = eout(clamp((t - K.dropped + 0.3) / 0.8)); return [lerp(1.1, 1.3, k), 360, lerp(680, 760, k), 0]; }
+    return [A[0] + 0.05 * (c > 0.25 ? Math.exp(-(c - 0.25) * 6) : 0), A[1], A[2], c > 0.22 && c < 0.5 ? 7 : 0];
+  }
+  if (t < K.wag) { const sx = sheState(t).o.x; return [1.3, clamp(sx + 40, 240, 480), 720, 0]; }
+  if (t < K.tails) { const k = eout(clamp((t - K.wag) / 0.4)); return [lerp(1.3, 1.5, k), lerp(370, 420, k), 700, 0]; }
+  if (t < K.same) { const k = eout(clamp((t - K.tails) / 0.35)); return [lerp(1.5, 1.04, k), lerp(420, 360, k), lerp(700, 660, k), 3 * Math.exp(-(t - K.tails) * 7)]; }
+  if (t < K.world) return [lerp(1.0, 1.06, ss(K.same, K.world, t)), 360, 640, 0];
+  if (t < K.name) { const k = eout(clamp((t - K.world) / 0.3)); return [lerp(1.06, 1.18, k), 360, 640, 0]; }
+  if (t < K.seeing) return [1.0 + 0.05 * ss(K.name, K.seeing, t), 300, 660, 0];
+  if (t < K.wipe3) { const k = eout(clamp((t - K.seeing) / 0.3)); return [lerp(1.05, 1.3, k), lerp(300, 250, k), lerp(660, 600, k), 0]; }
+  if (t < K.cold) return [1.0 + 0.04 * ss(K.everyday, K.cold, t), 360, 640, 0];
+  if (t < K.theyCold) { const k = eout(clamp((t - K.cold) / 0.3)); return [lerp(1.04, 1.4, k), lerp(360, 230, k), lerp(640, 620, k), 0]; }
+  if (t < K.boss) { const k = eout(clamp((t - K.theyCold) / 0.3)); return [lerp(1.4, 1.3, k), lerp(230, 500, k), 620, 0]; }
+  if (t < K.walkIn) return [1.0, 360, 640, 0];
+  if (t < K.getOne) return [1.0 + 0.2 * ss(K.walkIn, K.getOne, t), 380, 640, 0];
+  if (t < K.most) { const k = eout(clamp((t - K.getOne) / 0.3)); return [lerp(1.45, 1.05, k), 400, 640, 7 * Math.exp(-(t - K.getOne) * 5)]; }
+  if (t < K.mirrorW) return [1.0 + 0.1 * ss(K.most, K.mirrorW, t), 360, 600, 0];
+  if (t < K.cta) { const k = eout(clamp((t - K.mirrorW) / 0.5)); return [lerp(1.1, 1.0, k), 360, 640, 0]; }
   return [1, 360, 640, 0];
 }
 function scene(g, t) {

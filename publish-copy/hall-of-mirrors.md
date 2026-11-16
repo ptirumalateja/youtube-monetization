@@ -1,6 +1,6 @@
-# The Dog in the Hall of Mirrors: publish copy (v2, 16 Nov 2026)
+# The Dog in the Hall of Mirrors: publish copy (v3, 16 Nov 2026)
 
-File: `final-reels/hall-of-mirrors/hall-of-mirrors-v2.mp4` (60.6 s, 1080x1920, -14.5 LUFS). For phone preview, use `hall-of-mirrors-v2_mobile.mp4`.
+File: `final-reels/hall-of-mirrors/hall-of-mirrors-v3.mp4` (60.6 s, 1080x1920, -14.5 LUFS). For phone preview, use `hall-of-mirrors-v3_mobile.mp4`.
 
 ## On-screen hook
 HE FOUGHT 1,000 DOGS. / ONLY ONE WAS REAL.
