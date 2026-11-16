@@ -99,7 +99,7 @@ function phone(g, who, t, o = {}) {
     g.save(); g.translate(0, -186); g.scale(1 + 0.06 * pop, 1 + 0.06 * pop); g.fillStyle = '#fff'; fitFont(g, inr(bal), 900, 50, 'Inter Display', 236); g.fillText(inr(bal), 0, 17); g.restore();
     g.font = '800 13px "JetBrains Mono"'; g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillText('BALANCE', 0, -128);
   }
-  if (who === 'A') card(g, -130, -90, 260, 78, '₹1,00,00,000', 'CREDITED · TODAY');
+  if (who === 'A') { card(g, -130, -90, 260, 78, '₹1,00,00,000', 'CREDITED · TODAY'); g.save(); g.globalAlpha = 0.38; for (let k = 1; k <= 3; k++) card(g, -130, -90 + k * 86, 260, 78, '+₹0', `DAY ${k + 1} · NOTHING`); g.restore(); }
   else if (d > 0) {
     const e = d === 1 ? 1 : spr((t - TD[d]) * 1.3);
     for (let k = 0; k < 7; k++) { const j = d - k; if (j < 1) break; const y = -90 + (k - (1 - e)) * 86; if (y > 300) break;
@@ -131,14 +131,17 @@ const popAt = (t, a) => t < a ? 0 : Math.max(0, 1 - (t - a) / 0.12);
 // ---------- camera ----------
 function camAt(t) {
   const d = dayAt(t); const punch = d >= 2 && t < T_SLAM + 0.5 ? 0.035 * Math.exp(-(t - TD[d]) * 9) : 0;
-  let cx = 360, cy = 640, z = 1;
+  let cx = 360, cy = 640, z = 1, rot = 0;
   if (t >= TD[10] && t < TD[11]) { cx = PX; cy = PY - 186 * 1.08 - 10; z = 1.55; }                       // hard cut in on the ₹1,023
   else if (t >= TD[20] && t < TD[20] + 0.8) { cx = PX; cy = PY - 186 * 1.08 - 10; z = 1.5 + 0.08 * (t - TD[20]); } // hard cut in on ₹10 lakh
-  else if (t >= TD[15] && t < TD[17]) { cx = PX - 40; cy = 605; z = 1.22 + 0.04 * (t - TD[15]); }            // hard cut in on the credit list
+  else if (t >= TD[14] && t < TD[17]) { cx = PX - 40; cy = 605; z = 1.22 + 0.04 * (t - TD[14]); }            // hard cut in on the credit list
+  else if (t >= TD[17] && t < TD[20]) { cx = PX + 10; cy = 596; z = 1.12 + 0.03 * (t - TD[17]); rot = -0.12; }   // dutch tilt
+  else if (t >= TD[7] && t < TD[10]) { cx = PX + 30; cy = PY - 175; z = 1.18 + 0.05 * (t - TD[7]); rot = 0.04; } // off-centre push on the early cards
   else if (t >= T_FOLD && t < T_FLIP) z = 1 + 0.07 * ss(TD[21], T_FLIP, t);
+  else if (t >= TD[29] && t < T_SLAM) { const q = ein((t - TD[29]) / (T_SLAM - TD[29])); z = 1.06 + 0.18 * q; cy = 640 - 40 * q; }   // crash push into the last day
   else if (t >= T_FLIP && t < T_SLAM) z = 1 + 0.06 * ss(TD[25], T_SLAM, t);
   else if (t >= T_SLAM) z = 1.06 + 0.04 * ss(T_SLAM, T_SHAT, t) - 0.2 * eout((t - T_SHAT) / 0.5);
-  return { cx, cy, z: z + punch };
+  return { cx, cy, z: z + punch, rot };
 }
 function shakeAt(t) {
   let s = 0; const d = dayAt(t);
@@ -173,7 +176,7 @@ function raceBar(g, t, d, v) {
   const dd = Math.max(1, d); g.save(); g.translate(BX, BYY + BH + 38); g.scale(1 + 0.1 * pp, 1 + 0.1 * pp);
   g.fillStyle = d >= 28 ? RED : INK; rr(g, -2, -32, 160, 46, 23); g.fill(); g.fillStyle = '#fff'; g.font = '800 29px "JetBrains Mono"'; g.textAlign = 'center'; g.fillText(`DAY ${String(dd).padStart(2, '0')}`, 78, 1); g.restore();
   g.textAlign = 'right'; g.font = '900 30px "Inter Display"';
-  if (v < 1e7) { const gap = 1e7 - v; g.fillStyle = RED; g.fillText(`${inr(gap)} BEHIND`, BX + BW, BYY + BH + 40); }
+  if (v < 1e7) { const gap = 1e7 - v; g.fillStyle = RED; g.fillText(`${inr(gap)} BEHIND`, BX + BW - 26, BYY + BH + 42); }
   else { const m = v / 1e7; g.save(); g.translate(BX + BW, BYY + BH + 46); g.scale(1 + 0.07 * pp, 1 + 0.07 * pp); g.textAlign = 'right'; g.font = '900 44px "Inter Display"'; riso(g, `${m < 10 ? m.toFixed(1) : Math.round(m)}× ₹1 CRORE`, 0, 0, '#0A8A4E', 3, YEL); g.restore(); }
   g.restore();
 }
@@ -184,10 +187,12 @@ function frame(g, t) {
   const d = dayAt(t), v = liveVal(t), pop = d > 1 ? Math.exp(-(t - TD[d]) * 9) : 0;
   background(g, t);
   const c = camAt(t), [sx, sy] = shakeAt(t);
-  const world = () => g.setTransform(KK * c.z, 0, 0, KK * c.z, KK * (360 - c.cx * c.z + sx), KK * (640 - c.cy * c.z + sy));
+  const world = () => { g.setTransform(KK, 0, 0, KK, 0, 0); g.translate(360 + sx, 640 + sy); g.rotate(c.rot || 0); g.scale(c.z, c.z); g.translate(-c.cx, -c.cy); };
   if (t < T_SHAT) {
     const f = eout((t - T_FOLD) / 0.35);
-    const bx = lerp(530, PX, f), by = lerp(PY + 40, PY, f), bs = lerp(1.04, 1.08, f);
+    let bx = lerp(530, PX, f), by = lerp(PY + 40, PY, f), bs = lerp(1.04, 1.08, f);
+    const split = t >= TD[11] && t < TD[14]; if (split) { bx = 238; bs = 0.98; by = PY + 20; }
+    if (split) { world(); calendar(g, t, d); }
     world(); g.save(); g.translate(bx, by); g.scale(bs, bs); if (d >= 25) g.rotate(Math.sin(t * 60) * 0.004 * (d - 24));
     phone(g, 'B', t, { pop, cracks: d >= 25 ? (d - 25) + clamp((t - TD[d]) / 0.2) + (t >= T_SLAM ? 2 * clamp((t - T_SLAM) / 0.3) : 0) : 0 }); g.restore();
     if (t < T_FOLD + 0.35) {
@@ -197,17 +202,17 @@ function frame(g, t) {
     const bs = 1.08, sc = KK * 1.4; PG.setTransform(1, 0, 0, 1, 0, 0); PG.clearRect(0, 0, PH.width, PH.height); PG.setTransform(sc, 0, 0, sc, PH.width / 2, PH.height / 2);
     phone(PG, 'B', T_SHAT - 0.001, { bal: val(30), cracks: 7 });
     const k = t - T_SHAT; world();
-    for (const s of SHARDS) { g.save(); g.translate(PX + (s.cx + s.vx * k) * bs, PY + (s.cy + s.vy * k + 900 * k * k) * bs); g.rotate(s.rot * k); g.scale(bs, bs); g.translate(-s.cx, -s.cy);
+    for (const s of SHARDS) { g.save(); g.translate(PX + (s.cx + s.vx * k) * bs, PY + (s.cy + (Math.abs(s.vy) * 0.5 + 250) * k + 1400 * k * k) * bs); g.rotate(s.rot * k); g.scale(bs, bs); g.translate(-s.cx, -s.cy);
       g.beginPath(); g.moveTo(...s.p[0]); g.lineTo(...s.p[1]); g.lineTo(...s.p[2]); g.closePath(); g.clip(); g.globalAlpha = clamp(1.4 - k);
       g.drawImage(PH, -PH.width / 2 / sc, -PH.height / 2 / sc, PH.width / sc, PH.height / sc); g.restore(); }
   }
   if (t >= T_SLAM && t < T_SHAT + 0.9) { g.setTransform(KK, 0, 0, KK, 0, 0); const k = clamp((t - T_SLAM) / 0.12), sc = lerp(2.2, 1, eout(k)); const fly = Math.max(0, t - T_SHAT);
-    g.save(); g.translate(360 + sx, 700 - 900 * fly * fly - 200 * fly + sy); g.rotate(-0.05 + fly * 0.8); g.scale(sc, sc); g.globalAlpha = clamp(k * 3) * clamp(1.4 - fly * 2);
+    g.save(); g.translate(360 + 500 * fly + sx, 700 + 250 * fly + 1500 * fly * fly + sy); g.rotate(-0.05 + fly * 0.8); g.scale(sc, sc); g.globalAlpha = clamp(k * 3) * clamp(1.4 - fly * 2);
     card(g, -285, -95, 570, 190, '+₹53,68,70,912', 'DAY 30 · ONE DAY', true); g.restore(); }
   if (t >= T_PAY - 0.05 && t < T_CTA) payoff(g, t);
-  if (t < T_CTA) raceBar(g, t, d, v);
-  if (t < T_FOLD + 0.15 && !NOTEXT) { g.setTransform(KK, 0, 0, KK, 0, 0); const up = ein((t - T_FOLD + 0.1) / 0.25);
-    g.save(); g.translate(0, -200 * up); g.textAlign = 'center'; const p2 = popAt(t, 0.4);
+  if (t < T_CHART) raceBar(g, t, d, v);
+  if (t < T_FOLD + 0.15 && !NOTEXT) { g.setTransform(KK, 0, 0, KK, 0, 0); const up = ein((t - T_FOLD - 0.03) / 0.12);
+    g.save(); g.translate(360, 296); g.scale(1 + 0.3 * up, 1 + 0.3 * up); g.translate(-360, -296); g.globalAlpha = 1 - up; g.textAlign = 'center'; const p2 = popAt(t, 0.4);
     fitFont(g, '₹1 CRORE NOW…', 900, 74, 'Inter Display', 560); riso(g, '₹1 CRORE NOW…', 360, 262, INDIGO, 4);
     g.save(); g.translate(360, 330); g.scale(1 + p2 * 0.25, 1 + p2 * 0.25); fitFont(g, 'OR ₹1 DOUBLED 30 DAYS?', 900, 66, 'Inter Display', 570); riso(g, 'OR ₹1 DOUBLED 30 DAYS?', 0, 0, SAFF, 4, INK); g.restore();
     g.restore(); }
@@ -227,34 +232,49 @@ function frame(g, t) {
   stamp(g, ['1 DAY LEFT…', 'HOW MUCH WILL IT ADD?'], win(t, TD[29], T_SLAM - 0.02), { size: 54, size2: 34, l2at: TD[29] + 0.38, pop: popAt(t, TD[29]), bg: RED, fg: '#fff', shadow: INK, rot: 0.03 });
   for (const [a, s] of [[T_FLIP, 0.55], [T_SLAM, 0.35], [T_SHAT, 0.6]]) if (t >= a && t < a + 0.1) { g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = `rgba(255,255,255,${s * (1 - (t - a) / 0.1)})`; g.fillRect(0, 0, W, H); }
   if (t >= T_CTA) cta(g, t);
-  if (t >= T_CTA - 0.13 && t < T_CTA + 0.16) { g.setTransform(KK, 0, 0, KK, 0, 0); const q = t < T_CTA ? eout((t - T_CTA + 0.13) / 0.13) : 1 - ein((t - T_CTA) / 0.16); const r = 26 * q; g.fillStyle = YEL;
-    for (let y = 0; y < DH + 40; y += 34) for (let x = (Math.round(y / 34) % 2) * 17; x < DW + 40; x += 34) { g.beginPath(); g.arc(x, y, r * (0.75 + 0.25 * hash(x * 7 + y)), 0, 7); g.fill(); } }
+  if (t >= T_CTA - 0.13 && t < T_CTA + 0.16) { g.setTransform(KK, 0, 0, KK, 0, 0); const u = t < T_CTA ? 1.4 * (t - T_CTA + 0.13) / 0.13 : 1.4 * (t - T_CTA) / 0.16; g.fillStyle = YEL;
+    for (let y = 0; y < DH + 40; y += 34) for (let x = (Math.round(y / 34) % 2) * 17; x < DW + 40; x += 34) { const pos = (x / DW + y / DH) / 2 * 0.95; const q = t < T_CTA ? clamp((u - pos) / 0.4) : 1 - clamp((u - pos) / 0.4); if (q <= 0) continue; g.beginPath(); g.arc(x, y, 26 * eout(q) * (0.75 + 0.25 * hash(x * 7 + y)), 0, 7); g.fill(); } }
   grainPass(g, t);
 }
 function confetti(g, t, t0, n, a = 0.85) { for (let i = 0; i < n; i++) { const s = 0.5 + hash(i) * 0.9, x = hash(i + 3) * 760 - 20 + Math.sin(t * 2 + i) * 20, y = -60 + ((t - t0 + 0.3) * (260 + 200 * hash(i + 7)) + hash(i + 11) * 1300) % 1400;
   g.save(); g.translate(x, y); g.rotate(t * (2 + hash(i) * 4) + i); g.fillStyle = [SAFF, INDIGO, PINK, YEL, GREEN][i % 5]; g.globalAlpha = a; g.fillRect(-7 * s, -3.5 * s, 14 * s, 7 * s); g.restore(); } }
-const BASE = 960, CSC = 222 / 236;
+const BASE = 960, CSC = 440 / 236, BW2 = 130;
 const BARS = [{ x: 150, m: 2.2, col: INDIGO, lab: '₹1 CRORE', lab2: '2.2 m' }, { x: 360, m: 182, col: null, lab: 'STATUE OF', lab3: 'UNITY', lab2: '182 m' }, { x: 570, m: 236, col: SAFF, lab: 'DAY 30', lab2: '236 m' }];
+function calendar(g, t, d) { // riso tear-off day calendar, right of the phone
+  const x = 548, y = 520, w = 220, h = 290;
+  g.save(); g.fillStyle = 'rgba(27,31,59,0.35)'; rr(g, x - w / 2 + 12, y + 14, w, h, 14); g.fill();
+  for (let k = 3; k >= 1; k--) { g.fillStyle = k % 2 ? '#EFE6D3' : '#F8F1E2'; rr(g, x - w / 2 + k * 2, y + k * 5, w, h, 14); g.fill(); }
+  const page = (dd, ox, oy, r, a) => { g.save(); g.translate(x + ox, y + h / 2 + oy); g.rotate(r); g.globalAlpha = a; g.translate(-x, -(y + h / 2));
+    g.fillStyle = '#FFFBF2'; rr(g, x - w / 2, y, w, h, 14); g.fill(); g.fillStyle = RED; rr(g, x - w / 2, y, w, 70, [14, 14, 0, 0]); g.fill();
+    g.fillStyle = INK; for (const hx of [-60, 60]) { g.beginPath(); g.arc(x + hx, y + 8, 7, 0, 7); g.fill(); }
+    if (!NOTEXT) { g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = '900 30px "Inter Display"'; g.fillText('DAY', x, y + 50);
+      g.font = '900 150px "Inter Display"'; g.fillStyle = PINK; g.fillText(String(dd), x + 5, y + 222); g.fillStyle = INK; g.fillText(String(dd), x, y + 217);
+      g.font = '800 20px "JetBrains Mono"'; g.fillStyle = 'rgba(27,31,59,0.7)'; g.fillText('OF 30', x, y + 262); }
+    g.restore(); };
+  page(d, 0, 0, 0, 1);
+  const k = t - TD[d]; if (d > 11 && k < 0.4) page(d - 1, 120 * k, -60 * k + 1500 * k * k, 2.2 * k, clamp(1 - k * 2.2));
+  g.restore(); }
 function payoff(g, t) {
   g.setTransform(KK, 0, 0, KK, 0, 0); const k = t - T_PAY;
   confetti(g, t, T_PAY, 70);
   if (NOTEXT) return;
   const n = lerp(val(29), val(30), eout(k / 0.5)); g.textAlign = 'center';
-  const p = popAt(t, T_PAY); g.save(); g.translate(360, 568); g.scale(1 + p * 0.2, 1 + p * 0.2); g.rotate(-0.03);
+  const up = eout((t - T_CHART) / 0.35); const p = popAt(t, T_PAY); g.save(); g.translate(360, lerp(568, 300, up)); g.scale(1 + p * 0.2, 1 + p * 0.2); g.rotate(-0.03);
   fitFont(g, '₹107 CRORE', 900, 112, 'Inter Display', 520); riso(g, '₹107 CRORE', 0, 0, INDIGO, 5); g.restore();
-  if (k > 0.5) { g.font = '800 34px "JetBrains Mono"'; g.fillStyle = INK; g.fillText(inr(val(30)), 360, 618); }
-  stamp(g, ['HALF OF IT CAME', 'ON THE LAST DAY.'], win(t, T_PAY + 0.2, T_CHART - 0.02), { y: 740, size: 50, pop: popAt(t, T_PAY + 0.2), bg: YEL, shadow: PINK });
+  if (k > 0.5) { g.font = '800 34px "JetBrains Mono"'; g.fillStyle = INK; g.fillText(inr(val(30)), 360, lerp(618, 350, up)); }
+  stamp(g, ['HALF OF IT CAME', 'ON THE LAST DAY.'], win(t, T_PAY + 0.2, T_CHART - 0.02), { y: 740, size: 50, l2at: T_PAY + 0.62, pop: popAt(t, T_PAY + 0.2), bg: YEL, shadow: PINK });
   const a = eout((t - T_CHART) / 1.1); if (a > 0) {
-    g.globalAlpha = clamp(a * 2); g.font = '800 26px "JetBrains Mono"'; g.fillStyle = INK; g.fillText('STACKED IN ₹500 NOTES', 360, 660); g.globalAlpha = 1;
-    g.fillStyle = INK; g.fillRect(80, BASE, 560, 4);
-    for (const b of BARS) { const h = Math.max(4, b.m * CSC * a);
+    g.globalAlpha = clamp((t - T_CHART - 0.3) / 0.15); g.font = '800 30px "JetBrains Mono"'; g.fillStyle = INK; g.fillText('STACKED IN ₹500 NOTES', 360, 400); g.globalAlpha = 1;
+    g.fillStyle = INK; g.fillRect(70, BASE, 580, 4);
+    for (const b of BARS) { const h = Math.max(12, b.m * CSC * a);
       if (!b.col) { statue(g, b.x + 4, BASE, h, PINK); statue(g, b.x, BASE, h, INK); }
-      else { g.fillStyle = b.col; g.fillRect(b.x - 50, BASE - h, 100, h); g.fillStyle = 'rgba(27,31,59,0.18)'; for (let yy = BASE - 7; yy > BASE - h; yy -= 9) g.fillRect(b.x - 50, yy, 100, 1.6);
+      else { g.fillStyle = INK; g.fillRect(b.x - BW2 / 2 + 6, BASE - h + 6, BW2, h - 6); g.fillStyle = b.col; g.fillRect(b.x - BW2 / 2, BASE - h, BW2, h); g.fillStyle = 'rgba(27,31,59,0.18)'; for (let yy = BASE - 7; yy > BASE - h; yy -= 9) g.fillRect(b.x - BW2 / 2, yy, BW2, 1.6);
+        if (b.col === SAFF) { g.fillStyle = 'rgba(255,255,255,0.28)'; for (let yy = BASE - 22; yy > BASE - h + 8; yy -= 36) { g.fillRect(b.x - 30, yy, 60, 12); } }
         }
-      g.globalAlpha = clamp(a * 2); g.fillStyle = INK; g.font = '900 26px "Inter Display"'; const top = BASE - h;
-      if (b.lab3) { g.fillText(b.lab, b.x, top - 60); g.fillText(b.lab3, b.x, top - 34); } else g.fillText(b.lab, b.x, top - 34);
-      g.font = '800 22px "JetBrains Mono"'; g.fillStyle = b.col === SAFF ? '#C25A00' : INK; g.fillText(b.lab2, b.x, top - 10); g.globalAlpha = 1; }
-    stamp(g, ['1.3× STATUE', 'OF UNITY'], win(t, T_CHART + 0.6, T_CTA), { x: 170, y: 820, size: 30, size2: 30, pop: popAt(t, T_CHART + 0.6), bg: YEL, shadow: INK, rot: -0.1, maxW: 260 });
+      g.globalAlpha = clamp(a * 8); g.fillStyle = INK; g.font = '900 32px "Inter Display"'; const top = BASE - h;
+      if (b.lab3) { g.fillText(b.lab, b.x, top - 74); g.fillText(b.lab3, b.x, top - 42); } else g.fillText(b.lab, b.x, top - 42);
+      g.font = '800 27px "JetBrains Mono"'; g.fillStyle = b.col === SAFF ? '#C25A00' : INK; g.fillText(b.col === SAFF ? Math.round(236 * a) + ' m' : b.lab2, b.x, top - 12); g.globalAlpha = 1; }
+    stamp(g, ['54 m TALLER THAN', 'STATUE OF UNITY'], win(t, T_CHART + 0.6, T_CTA), { x: 160, y: 700, size: 34, size2: 34, pop: popAt(t, T_CHART + 0.6), bg: YEL, shadow: INK, rot: -0.1, maxW: 260 });
   }
 }
 function statue(g, x, base, h, col) { // riso silhouette: pedestal + standing figure with shawl, head ~ top
@@ -266,16 +286,16 @@ function cta(g, t) {
   background(g, t); g.setTransform(KK, 0, 0, KK, 0, 0); confetti(g, t, T_CTA, 40, 0.7);
   const k = eout((t - T_CTA) / 0.32);
   const btn = (b, tx, num, l1, l2, col, on) => { const h0 = Math.max(4, b.m * CSC);
-    const x = lerp(b.x - 50, tx - 125, k), y = lerp(BASE - h0, 640, k), w = lerp(100, 250, k), h = lerp(h0, 150, k), r = lerp(0, 24, k);
+    const x = lerp(b.x - BW2 / 2, tx - 125, k), y = lerp(BASE - h0, 640, k), w = lerp(BW2, 250, k), h = lerp(h0, 150, k), r = lerp(0, 24, k);
     g.save(); if (on && k >= 1) { g.translate(tx, 715); g.scale(1.06, 1.06); g.translate(-tx, -715); }
     g.fillStyle = INK; rr(g, x + 6, y + 6, w, h, r); g.fill(); g.fillStyle = col; rr(g, x, y, w, h, r); g.fill();
     if (on && k >= 1) { g.strokeStyle = YEL; g.lineWidth = 8; rr(g, x - 9, y - 9, w + 18, h + 18, r + 6); g.stroke(); }
-    if (!NOTEXT) { g.globalAlpha = clamp((k - 0.6) * 3); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '900 44px "Inter Display"'; g.fillText(num, tx, y + 52); fitFont(g, l1, 900, 30, 'Inter Display', 220); g.fillText(l1, tx, y + 94); g.font = '800 21px "JetBrains Mono"'; fitFont(g, l2, 800, 21, 'JetBrains Mono', 230); g.fillText(l2, tx, y + 126); g.globalAlpha = 1; }
+    if (!NOTEXT) { g.globalAlpha = clamp((k - 0.6) * 3); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '900 44px "Inter Display"'; g.fillText(num, tx, y + 52); fitFont(g, l1, 900, 30, 'Inter Display', 220); g.fillText(l1, tx, y + 94); fitFont(g, l2, 900, 26, 'Inter Display', 226); g.fillText(l2, tx, y + 126); g.globalAlpha = 1; }
     g.restore(); };
   const sel = Math.floor((t - T_CTA - 0.35) / 0.45) % 2;
   btn(BARS[0], 215, '1', 'TAKE ₹1 CRORE', 'SAFE. TODAY.', INDIGO, sel === 0); btn(BARS[2], 505, '2', 'HOLD 30 DAYS', 'TRUST THE DOUBLING', SAFF, sel === 1);
   if (NOTEXT) return;
-  stamp(g, ['MOST PEOPLE PICK 1.'], win(t, T_CTA + 0.9, DUR + 1), { x: 360, y: 575, size: 28, pop: popAt(t, T_CTA + 0.9), bg: '#fff', shadow: RED, rot: 0.04 });
+  stamp(g, ['MOST PEOPLE PICK 1.'], win(t, T_CTA + 0.45, DUR + 1), { x: 360, y: 575, size: 28, pop: popAt(t, T_CTA + 0.45), bg: '#fff', shadow: RED, rot: 0.04 });
   const p = popAt(t, T_CTA); g.textAlign = 'center';
   g.save(); g.translate(360, 380); g.scale(1 + p * 0.4, 1 + p * 0.4); fitFont(g, 'DAY 17: STILL 98% BEHIND.', 900, 50, 'Inter Display', 560); riso(g, 'DAY 17: STILL 98% BEHIND.', 0, 0, INK, 3);
   fitFont(g, 'WOULD YOU HOLD?', 900, 78, 'Inter Display', 560); riso(g, 'WOULD YOU HOLD?', 0, 92, SAFF, 5, INK); g.restore();
@@ -308,7 +328,8 @@ window.events = (() => {
   e.push({ t: T_SLAM, s: 'boom', g: 1.0, rate: 0.85 }, { t: T_SLAM, s: 'stamp', g: 1.0 }, { t: T_SLAM + 0.02, s: 'ping', g: 1.0, rate: 0.8 });
   e.push({ t: T_SHAT, s: 'shatter', g: 1.0 }, { t: T_SHAT, s: 'boom', g: 0.8, rate: 1.1 }, { t: T_PAY, s: 'chime', g: 1.0 }, { t: T_PAY, s: 'cash', g: 0.7 }, { t: T_PAY + 0.2, s: 'stamp', g: 0.9 }, { t: T_CHART - 0.4, s: 'rise', g: 0.6 }, { t: T_CHART, s: 'bundle', g: 0.9 });
   e.push({ t: T_CHART + 0.6, s: 'stamp', g: 1.0 }, { t: TD[10] + 0.38, s: 'stamp', g: 0.7 }, { t: TD[20] + 0.4, s: 'stamp', g: 0.7 }, { t: TD[29] + 0.38, s: 'stamp', g: 0.7 });
-  e.push({ t: T_CTA + 0.9, s: 'stamp', g: 0.8 }, { t: TD[15], s: 'whoosh', g: 0.5 }, { t: TD[17], s: 'whoosh', g: 0.5 });
+  e.push({ t: T_CTA + 0.45, s: 'stamp', g: 0.8 }, { t: TD[14], s: 'whoosh', g: 0.5 }, { t: TD[17], s: 'whoosh', g: 0.6 }, { t: TD[11], s: 'whoosh', g: 0.6 }, { t: T_CHART, s: 'whoosh', g: 0.6 });
+  for (let d = 12; d <= 13; d++) e.push({ t: TD[d] + 0.02, s: 'riffle', g: 0.5 });
   e.push({ t: T_CTA, s: 'whoosh', g: 0.9 }, { t: T_CTA, s: 'stamp', g: 1.0 });
   for (let k = 0; k < 4; k++) e.push({ t: T_CTA + 0.35 + k * 0.45, s: 'ping', g: 0.45, pan: k % 2 ? 0.4 : -0.4, rate: k % 2 ? 1.25 : 1.0 });
   return e.map(x => ({ pan: 0, ...x })).sort((a, b) => a.t - b.t);

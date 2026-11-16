@@ -40,7 +40,7 @@ mixb[:, 0] += b2 * g2 * BED; mixb[:, 1] += np.roll(b2, 400) * g2 * BED
 b1 = bed('beat'); b1 /= np.sqrt((b1 ** 2).mean()) + 1e-9; g1 = env([(0, 0), (FL, 0), (FL + 0.02, 0.45), (SL - 0.05, 0.6), (SL, 0.6), (SH + 0.3, 0.8), (PAY, 2.0), (CTA, 2.3), (DUR - 0.4, 2.3), (DUR, 0)])
 mixb[:, 0] += b1 * g1 * BED; mixb[:, 1] += np.roll(b1, 300) * g1 * BED
 fade = env([(0, 1), (DUR - 0.6, 1), (DUR, 0.25)]); mixb *= fade[:, None]
-mixb = np.tanh(mixb * 1.3) / np.tanh(1.3) * 0.89
+mixb = mixb / (np.abs(mixb).max() + 1e-9) * 0.7  # headroom; loudness handled by loudnorm in render.sh
 with wave.open(sys.argv[2], 'wb') as f:
     f.setnchannels(2); f.setsampwidth(2); f.setframerate(SR); f.writeframes((mixb * 32767).astype('<i2').tobytes())
 print('ok', sys.argv[2])
