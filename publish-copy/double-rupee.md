@@ -1,7 +1,13 @@
-# ₹1 Crore Today or ₹1 Doubled? (v1, 21 s, 9:16)
+# ₹1 Crore or ₹1 Doubled? (v2 "Notification Storm", 20.2 s, 9:16)
 
-Choice reel in the dark spotlight look, no stickman story, just one 1.7 m person for scale. Frame 0 asks WHICH ONE DO YOU TAKE?: a silver ₹1 crore stack of ₹500 notes (2.2 m) next to a single ₹1 coin. The DOUBLED card counts every day: coins to DAY 9, DAY 10: ₹1,023. LOOKS STUPID, RIGHT?, bundles through DAY 20: ₹10 LAKH. STILL WAY BEHIND., a live "BEHIND BY ₹…" gap and a heartbeat, then DAY 24. IT WINS. (₹1,67,77,215, 3.7 m) with a boom. Days 25-30 grow past a house, 5 floors, 10 floors, Charminar, Qutub Minar and the Statue of Unity (236 m, ₹107 crore). Close: SLOW FOR 23 DAYS. / UNSTOPPABLE AFTER. CTA: "Which one did you pick? Be honest 👇".
-File: project files `final-reels/double-rupee/double-rupee-v1.mp4`. Totals are cumulative (₹1 + ₹2 + ₹4 … = 2^n − 1). Stack heights use ₹500 notes at 0.11 mm each. Wordless, ElevenLabs foley, no music. Renderer: `tools/double-rupee` (branch `claude/project-thread-udonb8`).
+v2 replaces the v1 dark-stage look. The style is riso-print cream paper with halftone colour fields and kolam dots, and UPI-style "credited" notifications landing on a phone. On frame 0, ₹1,00,00,000 sits on one phone and ₹1 on the other, under "₹1 CRORE NOW… OR ₹1 DOUBLED 30 DAYS?". The crore phone folds into the finish flag of a race bar, and a live "₹X BEHIND" counter plus the DAY pill stay on screen the whole time.
+
+- **The climb:** credits pile in every ~0.4 s, with hard cut-ins on DAY 10 (₹1,023, "LOOKS STUPID, RIGHT?") and DAY 20 ("STILL ₹89 LAKH BEHIND").
+- **The flip:** on DAY 24 the bar smashes the flag (OVERTAKEN.) and becomes an "N× ₹1 CRORE" counter. The phone cracks under the load.
+- **The finish:** DAY 30 slams "+₹53,68,70,912" and the phone shatters into ₹107 CRORE / HALF OF IT CAME ON THE LAST DAY, then a ₹500-note stack chart (236 m vs Statue of Unity 182 m).
+- **CTA:** a riso halftone wipe into "DAY 17: STILL 98% BEHIND. WOULD YOU HOLD?" with "1 · TAKE ₹1 CRORE" / "2 · HOLD 30 DAYS" and "COMMENT 1 OR 2 👇".
+
+File: project files `final-reels/double-rupee/double-rupee-v2.mp4`. Totals are cumulative (2^n − 1). Wordless, with ElevenLabs foley and a tabla/dhol percussion bed. Renderer: `tools/rupee-storm` (v1 dark-stage renderer: `tools/double-rupee`).
 
 ## Facebook caption
 Most people grab the ₹1 crore. For 23 days, they're right. 👀
@@ -12,7 +18,7 @@ That's exponential growth. Your brain guesses in straight lines, so the slow sta
 
 (Stacked in ₹500 notes, ₹1 crore is about 2.2 m tall. Day 30 is about 236 m, taller than the Statue of Unity.)
 
-Which one did you pick? Be honest 👇
+Day 17, you're still 98% behind. Would you hold? Comment 1 (take the crore) or 2 (hold) 👇
 
 #money #compounding #compoundinterest #exponentialgrowth #finance #personalfinance #investing #mindset #patience #wealth #india #reels #fbreels #viralreels #slowlight
 
@@ -21,7 +27,7 @@ Which one did you pick? Be honest 👇
 
 Each day adds more than every day before it combined. That's why it looks stupid until day 24, and why the last day alone adds ₹53 crore. Your brain thinks in straight lines. Growth doesn't.
 
-Which one did you pick? Be honest 👇
+Day 17, you're still 98% behind. Would you hold? Comment 1 (take the crore) or 2 (hold) 👇
 
 #money #compounding #exponentialgrowth #personalfinance #investing #mindset #wealth #india #reels #explorepage #slowlight
 
@@ -36,4 +42,4 @@ Start with ₹1 and double it every day. By day 10 you have ₹1,023, by day 20 
 Tags: 1 crore or 1 rupee doubled, penny doubled every day, rupee doubled for 30 days, power of compounding, compound interest, exponential growth, doubling challenge, money riddle, would you rather money, personal finance india, investing for beginners, sip power of compounding, wealth mindset, patience pays, money facts, slow light
 
 ## Pinned comment
-Be honest: did you take the ₹1 crore? 🙋 Crore or 🪙 Rupee 👇
+Be honest: on day 17 you're at ₹1.3 lakh while your friend has ₹1 crore. 1 = take it, 2 = hold. 👀
