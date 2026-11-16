@@ -172,7 +172,7 @@ const VO = [[0.1, 3.904], [4.286, 8.066], [8.278, 11.832], [12.087, 14.369], [14
 const DUR = 60.6;
 // key word times
 const K = {
-  wipe1: 4.0, story: 4.3, enter: 8.3, surround: 10.42, growl: 12.0, growlBack: 12.85, teeth: 14.62, thousandMouths: 15.66,
+  wipe1: 4.0, story: 4.3, mirrorsWord: 6.85, reveal: 7.55, enter: 8.3, surround: 10.42, growl: 12.0, growlBack: 12.85, teeth: 14.62, thousandMouths: 15.66,
   attack: 18.06, back: 19.12, night: 21.13, dropped: 22.3, wipe2: 22.85, morning: 23.3, wag: 25.95, tails: 26.95,
   same: 29.05, world: 31.73, name: 33.6, bias: 36.0, seeing: 37.28, wipe3: 39.05, everyday: 39.36, friend: 40.38, cold: 42.66, theyCold: 43.76,
   boss: 45.35, walkIn: 46.6, getOne: 48.21, most: 49.17, mirrorW: 52.2, barking: 54.0, barksBack: 54.88, cta: 57.0,
@@ -267,6 +267,39 @@ function nightWash(g, t) { // the night: a cool grey-blue wash over the paper, s
 }
 function sunShaft(g, t) { const k = ss(K.wipe2 + 0.3, K.morning + 0.6, t); g.save(); g.globalAlpha = 0.5 * k; g.fillStyle = '#fff6d8'; g.beginPath(); g.moveTo(520, -20); g.lineTo(640, -20); g.lineTo(420, DH); g.lineTo(180, DH); g.closePath(); g.fill(); g.restore();
   g.save(); g.globalAlpha = k; g.strokeStyle = INK; g.lineWidth = 3; g.fillStyle = '#f3d36a'; g.beginPath(); g.arc(600, 110, 28, 0, 7); g.fill(); g.stroke(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + t * 0.4; g.beginPath(); g.moveTo(600 + Math.cos(a) * 38, 110 + Math.sin(a) * 38); g.lineTo(600 + Math.cos(a) * 50, 110 + Math.sin(a) * 50); g.stroke(); } g.restore(); }
+
+
+// ======================= story intro: fly through the endless mirror tunnel =======================
+function tunnelScene(g, t) {
+  paper(g, t);
+  for (let i = 0; i < 26; i++) inkLine(g, [[-20, 20 + i * 50], [740, 20 + i * 50]], 1.1, 'rgba(30,25,22,0.14)');
+  const u = Math.max(0, t - K.wipe1), f = 1.25 * u + 0.22 * u * u; // levels travelled, accelerating
+  const fr = f % 1, cx = 360, cy = 720, rot = 0.035 * Math.sin(u * 1.3);
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.translate(-cx, -cy);
+  for (let j = 0; j < 13; j++) {
+    const sc = Math.pow(0.72, j - fr) * 1.05; const w = 640 * sc, h = 1180 * sc; const x0 = cx - w / 2, x1 = cx + w / 2, y1 = cy + h * 0.5, y0 = y1 - h;
+    const a = j > 9 ? clamp(1 - (j - 9 - fr) / 3) : 1; if (a <= 0) continue;
+    g.save(); g.globalAlpha = a;
+    // glass
+    archPath(g, x0, x1, y0, y1); const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, glass(0.5, 0)); gr.addColorStop(1, glass(0.5, 1)); g.fillStyle = gr; g.fill();
+    // floor line inside this mirror
+    inkLine(g, [[x0, y1 - 1], [x1, y1 - 1]], Math.max(1, 2.4 * sc), INK);
+    // gilded frame
+    g.lineWidth = Math.max(2, 14 * sc); g.strokeStyle = '#c9ae86'; archPath(g, x0 - 4 * sc, x1 + 4 * sc, y0 - 4 * sc, y1); g.stroke();
+    inkLine(g, archPts(x0 - 11 * sc, x1 + 11 * sc, y0 - 11 * sc, y1, 20), Math.max(1, 3.4 * sc)); inkLine(g, archPts(x0, x1, y0, y1, 20), Math.max(0.8, 2.6 * sc));
+    // two little candles at the foot of every frame
+    for (const sx of [-1, 1]) { const px = cx + sx * (w / 2 + 34 * sc), py = y1 - 6 * sc, fl = 0.85 + 0.15 * Math.sin(t * 17 + j * 2 + sx);
+      g.fillStyle = FILL; g.strokeStyle = INK; g.lineWidth = Math.max(0.8, 2.4 * sc); g.beginPath(); g.rect(px - 7 * sc, py - 40 * sc, 14 * sc, 40 * sc); g.fill(); g.stroke();
+      g.fillStyle = '#f0a43a'; g.beginPath(); g.moveTo(px, py - 66 * sc * fl); g.quadraticCurveTo(px + 8 * sc, py - 48 * sc, px, py - 42 * sc); g.quadraticCurveTo(px - 8 * sc, py - 48 * sc, px, py - 66 * sc * fl); g.fill(); g.stroke(); }
+    g.restore();
+  }
+  { const gr = g.createRadialGradient(cx, cy + 40, 0, cx, cy + 40, 360); gr.addColorStop(0, 'rgba(255,196,120,0.35)'); gr.addColorStop(1, 'rgba(255,196,120,0)'); g.fillStyle = gr; g.fillRect(cx - 400, cy - 400, 800, 800); }
+  // a lone silhouette deep in the tunnel: the stray, far away, getting closer (foreshadow)
+  const ds = 0.32 + 0.1 * u; g.save(); g.fillStyle = 'rgba(30,25,22,0.15)'; g.beginPath(); g.ellipse(cx, cy + 70, 60 * ds, 6 * ds, 0, 0, 7); g.fill(); g.restore(); drawDog(g, walkPose(STAND, t * 9), { x: cx, y: cy + 70, s: ds, dir: 1, alpha: 0.95 });
+  g.restore();
+  // sheen sweep on "mirrors"
+  const sk = clamp((t - K.mirrorsWord + 0.1) / 0.5); if (sk > 0 && sk < 1) { const x = lerp(-300, 1000, sk); g.save(); g.globalAlpha = 0.55 * Math.sin(sk * Math.PI); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(x, -50); g.lineTo(x + 90, -50); g.lineTo(x - 210, DH + 50); g.lineTo(x - 300, DH + 50); g.closePath(); g.fill(); g.restore(); }
+}
 
 // ======================= split: same room, different world =======================
 function splitScene(g, t) {
@@ -486,7 +519,8 @@ function bigLines(g, t) { // hook title, rule, CTA
 // ======================= camera =======================
 function cam(t) { // [zoom, cx, cy, shake]
   if (t < K.wipe1) return [1.12 + 0.05 * eout(clamp(t / 3)), 360, 700, 3 * Math.exp(-((t + 0.12) * 1.5 % 1) * 9)];
-  if (t < K.enter) return [lerp(1.0, 1.05, ss(K.story, K.enter, t)), 360, 640, 0];
+  if (t < K.reveal) return [1, 360, 640, 0];
+  if (t < K.enter) { const k = eout(clamp((t - K.reveal) / 0.6)); return [lerp(2.6, 1.05, k), 360, lerp(600, 680, k), 0]; }
   if (t < K.teeth) return [1.05 + 0.08 * ss(K.surround, K.surround + 0.4, t), 360, 700, 2 * Math.exp(-Math.max(0, t - K.surround) * 8)];
   if (t < K.thousandMouths) { const k = eio(ss(K.teeth, K.teeth + 0.4, t)); return [lerp(1.13, 2.3, k), lerp(360, 480, k), lerp(700, 690, k), 0]; }
   if (t < K.attack) { const k = eio(ss(K.thousandMouths, K.thousandMouths + 0.35, t)); return [lerp(2.3, 1.0, k), lerp(480, 360, k), lerp(690, 640, k), 0]; }
@@ -498,6 +532,7 @@ function cam(t) { // [zoom, cx, cy, shake]
   return [1, 360, 640, 0];
 }
 function scene(g, t) {
+  if (t >= K.wipe1 && t < K.reveal) return tunnelScene(g, t);
   if (t < K.same) return hallScene(g, t);
   if (t < K.name) return splitScene(g, t);
   if (t < K.wipe3 + 0.1) return conceptScene(g, t);
@@ -514,6 +549,7 @@ function frame(g, t) {
   const hostile = t < K.wipe1 ? 1 : (t >= K.growlBack && t < K.dropped) ? 1 : 0;
   if (hostile) { const p = 0.5 + 0.5 * Math.sin(t * 9); const gr = g.createRadialGradient(360, 640, 420, 360, 640, 900); gr.addColorStop(0, 'rgba(200,40,42,0)'); gr.addColorStop(1, `rgba(200,40,42,${0.1 + 0.1 * p})`); g.fillStyle = gr; g.fillRect(0, 0, DW, DH); }
   const gr = g.createRadialGradient(360, 640, 380, 360, 640, 900); gr.addColorStop(0, 'rgba(120,95,60,0)'); gr.addColorStop(1, 'rgba(120,95,60,0.14)'); g.fillStyle = gr; g.fillRect(0, 0, DW, DH);
+  if (t >= K.reveal && t < K.reveal + 0.18) { g.fillStyle = `rgba(255,252,244,${0.85 * (1 - (t - K.reveal) / 0.18)})`; g.fillRect(0, 0, DW, DH); }
   counterBox(g, t); caption(g, t); bigLines(g, t);
   for (const [w0, d] of WIPES) inkWipe(g, (t - w0) / d);
 }
@@ -528,6 +564,7 @@ window.renderAt = (t, sub = 1) => {
 // ======================= sound cues (no SFX in the hook 0-3 s or after the rule line) =======================
 window.events = (() => { const e = [];
   e.push({ t: K.wipe1 - 0.15, s: 'swipe', g: 0.5, pan: 0 });
+  e.push({ t: K.mirrorsWord - 0.1, s: 'pop', g: 0.45, pan: 0 }, { t: K.reveal - 0.1, s: 'swipe', g: 0.45, pan: 0, rate: 0.8 });
   for (let i = 0; i < 4; i++) e.push({ t: K.enter + 0.2 + i * 0.29, s: 'paws', g: 0.35, pan: -0.3 + i * 0.1 });
   e.push({ t: K.surround - 0.05, s: 'pop', g: 0.7, pan: 0 });
   e.push({ t: K.growl, s: 'growl', g: 0.8, pan: 0 }, { t: K.growlBack - 0.05, s: 'growls', g: 0.9, pan: 0 });
