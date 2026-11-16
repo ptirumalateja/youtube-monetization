@@ -25,7 +25,7 @@ def env(keys): return np.interp(tt, [k[0] for k in keys], [k[1] for k in keys])
 C = TL['T_CUT']; R1, RA, FA, TR, ST, SP, F365, TP, CL = TL['T_RUN1'], TL['T_RAIN'], TL['T_FALL'], TL['T_TRACK'], TL['T_STEPS'], TL['T_STOP'], TL['T_365'], TL['T_TAPE2'], TL['T_CLOSE']
 FH = TL['FALL_SND']
 # beds
-run = env([(0, 0), (R1 - 0.05, 0), (R1, 1), (FH - 0.15, 1), (FH, 0), (8.42, 0), (8.52, 1), (SP + 0.2, 1), (SP + 0.5, 0), (F365 + 0.45, 0), (F365 + 0.65, 1.1), (TP, 1.1), (TP + 0.6, 0),
+run = env([(0, 0), (R1 - 0.05, 0), (R1, 1), (FH - 0.15, 1), (FH, 0), (8.42, 0), (8.52, 1), (SP + 0.2, 1), (SP + 0.5, 0), (F365 + 0.05, 0), (F365 + 0.25, 1.1), (TP, 1.1), (TP + 0.6, 0),
            (CL + 1.4, 0), (CL + 1.8, 0.45), (DUR, 0.45)])
 steps = bed('steps'); mixb[:, 0] += steps * run * 0.55; mixb[:, 1] += np.roll(steps, 900) * run * 0.55
 br = bed('breath'); bg = env([(0, 0), (R1 - 0.05, 0), (R1, 0.5), (SP, 0.5), (SP + 0.6, 0), (DUR, 0)]); mixb += (br * bg * 0.45)[:, None]
