@@ -134,6 +134,7 @@ function camAt(t) {
   let cx = 360, cy = 640, z = 1;
   if (t >= TD[10] && t < TD[11]) { cx = PX; cy = PY - 186 * 1.08 - 10; z = 1.55; }                       // hard cut in on the ₹1,023
   else if (t >= TD[20] && t < TD[20] + 0.8) { cx = PX; cy = PY - 186 * 1.08 - 10; z = 1.5 + 0.08 * (t - TD[20]); } // hard cut in on ₹10 lakh
+  else if (t >= TD[15] && t < TD[17]) { cx = PX - 40; cy = 605; z = 1.22 + 0.04 * (t - TD[15]); }            // hard cut in on the credit list
   else if (t >= T_FOLD && t < T_FLIP) z = 1 + 0.07 * ss(TD[21], T_FLIP, t);
   else if (t >= T_FLIP && t < T_SLAM) z = 1 + 0.06 * ss(TD[25], T_SLAM, t);
   else if (t >= T_SLAM) z = 1.06 + 0.04 * ss(T_SLAM, T_SHAT, t) - 0.2 * eout((t - T_SHAT) / 0.5);
@@ -243,12 +244,13 @@ function payoff(g, t) {
   fitFont(g, '₹107 CRORE', 900, 112, 'Inter Display', 520); riso(g, '₹107 CRORE', 0, 0, INDIGO, 5); g.restore();
   if (k > 0.5) { g.font = '800 34px "JetBrains Mono"'; g.fillStyle = INK; g.fillText(inr(val(30)), 360, 618); }
   stamp(g, ['HALF OF IT CAME', 'ON THE LAST DAY.'], win(t, T_PAY + 0.2, T_CHART - 0.02), { y: 740, size: 50, pop: popAt(t, T_PAY + 0.2), bg: YEL, shadow: PINK });
-  const a = eout((t - T_CHART) / 0.55); if (a > 0) {
+  const a = eout((t - T_CHART) / 1.1); if (a > 0) {
     g.globalAlpha = clamp(a * 2); g.font = '800 26px "JetBrains Mono"'; g.fillStyle = INK; g.fillText('STACKED IN ₹500 NOTES', 360, 660); g.globalAlpha = 1;
     g.fillStyle = INK; g.fillRect(80, BASE, 560, 4);
     for (const b of BARS) { const h = Math.max(4, b.m * CSC * a);
       if (!b.col) { statue(g, b.x + 4, BASE, h, PINK); statue(g, b.x, BASE, h, INK); }
-      else { g.fillStyle = b.col; g.fillRect(b.x - 50, BASE - h, 100, h); g.fillStyle = 'rgba(27,31,59,0.18)'; for (let yy = BASE - 7; yy > BASE - h; yy -= 9) g.fillRect(b.x - 50, yy, 100, 1.6); }
+      else { g.fillStyle = b.col; g.fillRect(b.x - 50, BASE - h, 100, h); g.fillStyle = 'rgba(27,31,59,0.18)'; for (let yy = BASE - 7; yy > BASE - h; yy -= 9) g.fillRect(b.x - 50, yy, 100, 1.6);
+        if (b.col === SAFF) { for (let yy = BASE - 22; yy > BASE - h + 6; yy -= 44) { g.fillStyle = 'rgba(255,248,230,0.92)'; g.fillRect(b.x - 12, yy - 8, 24, 16); g.fillStyle = '#C25A00'; g.font = '900 10px "Inter Display"'; g.fillText('500', b.x, yy + 4); } } }
       g.globalAlpha = clamp(a * 2); g.fillStyle = INK; g.font = '900 26px "Inter Display"'; const top = BASE - h;
       if (b.lab3) { g.fillText(b.lab, b.x, top - 60); g.fillText(b.lab3, b.x, top - 34); } else g.fillText(b.lab, b.x, top - 34);
       g.font = '800 22px "JetBrains Mono"'; g.fillStyle = b.col === SAFF ? '#C25A00' : INK; g.fillText(b.lab2, b.x, top - 10); g.globalAlpha = 1; }
@@ -268,11 +270,12 @@ function cta(g, t) {
     g.save(); if (on && k >= 1) { g.translate(tx, 715); g.scale(1.06, 1.06); g.translate(-tx, -715); }
     g.fillStyle = INK; rr(g, x + 6, y + 6, w, h, r); g.fill(); g.fillStyle = col; rr(g, x, y, w, h, r); g.fill();
     if (on && k >= 1) { g.strokeStyle = YEL; g.lineWidth = 8; rr(g, x - 9, y - 9, w + 18, h + 18, r + 6); g.stroke(); }
-    if (!NOTEXT) { g.globalAlpha = clamp((k - 0.6) * 3); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '900 44px "Inter Display"'; g.fillText(num, tx, y + 52); fitFont(g, l1, 900, 30, 'Inter Display', 220); g.fillText(l1, tx, y + 94); g.font = '800 17px "JetBrains Mono"'; g.fillText(l2, tx, y + 124); g.globalAlpha = 1; }
+    if (!NOTEXT) { g.globalAlpha = clamp((k - 0.6) * 3); g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = '900 44px "Inter Display"'; g.fillText(num, tx, y + 52); fitFont(g, l1, 900, 30, 'Inter Display', 220); g.fillText(l1, tx, y + 94); g.font = '800 21px "JetBrains Mono"'; fitFont(g, l2, 800, 21, 'JetBrains Mono', 230); g.fillText(l2, tx, y + 126); g.globalAlpha = 1; }
     g.restore(); };
   const sel = Math.floor((t - T_CTA - 0.35) / 0.45) % 2;
   btn(BARS[0], 215, '1', 'TAKE ₹1 CRORE', 'SAFE. TODAY.', INDIGO, sel === 0); btn(BARS[2], 505, '2', 'HOLD 30 DAYS', 'TRUST THE DOUBLING', SAFF, sel === 1);
   if (NOTEXT) return;
+  stamp(g, ['MOST PEOPLE PICK 1.'], win(t, T_CTA + 0.9, DUR + 1), { x: 360, y: 575, size: 28, pop: popAt(t, T_CTA + 0.9), bg: '#fff', shadow: RED, rot: 0.04 });
   const p = popAt(t, T_CTA); g.textAlign = 'center';
   g.save(); g.translate(360, 380); g.scale(1 + p * 0.4, 1 + p * 0.4); fitFont(g, 'DAY 17: STILL 98% BEHIND.', 900, 50, 'Inter Display', 560); riso(g, 'DAY 17: STILL 98% BEHIND.', 0, 0, INK, 3);
   fitFont(g, 'WOULD YOU HOLD?', 900, 78, 'Inter Display', 560); riso(g, 'WOULD YOU HOLD?', 0, 92, SAFF, 5, INK); g.restore();
@@ -305,6 +308,7 @@ window.events = (() => {
   e.push({ t: T_SLAM, s: 'boom', g: 1.0, rate: 0.85 }, { t: T_SLAM, s: 'stamp', g: 1.0 }, { t: T_SLAM + 0.02, s: 'ping', g: 1.0, rate: 0.8 });
   e.push({ t: T_SHAT, s: 'shatter', g: 1.0 }, { t: T_SHAT, s: 'boom', g: 0.8, rate: 1.1 }, { t: T_PAY, s: 'chime', g: 1.0 }, { t: T_PAY, s: 'cash', g: 0.7 }, { t: T_PAY + 0.2, s: 'stamp', g: 0.9 }, { t: T_CHART - 0.4, s: 'rise', g: 0.6 }, { t: T_CHART, s: 'bundle', g: 0.9 });
   e.push({ t: T_CHART + 0.6, s: 'stamp', g: 1.0 }, { t: TD[10] + 0.38, s: 'stamp', g: 0.7 }, { t: TD[20] + 0.4, s: 'stamp', g: 0.7 }, { t: TD[29] + 0.38, s: 'stamp', g: 0.7 });
+  e.push({ t: T_CTA + 0.9, s: 'stamp', g: 0.8 }, { t: TD[15], s: 'whoosh', g: 0.5 }, { t: TD[17], s: 'whoosh', g: 0.5 });
   e.push({ t: T_CTA, s: 'whoosh', g: 0.9 }, { t: T_CTA, s: 'stamp', g: 1.0 });
   for (let k = 0; k < 4; k++) e.push({ t: T_CTA + 0.35 + k * 0.45, s: 'ping', g: 0.45, pan: k % 2 ? 0.4 : -0.4, rate: k % 2 ? 1.25 : 1.0 });
   return e.map(x => ({ pan: 0, ...x })).sort((a, b) => a.t - b.t);
