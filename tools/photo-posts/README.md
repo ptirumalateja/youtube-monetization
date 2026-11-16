@@ -1,0 +1,5 @@
+# Photo posts (16 Nov 2026)
+
+- `jupiter_still.py OUT.jpg 1080 1350 3` with `JBDIR=tools/jupiter-bodyguard` (branch claude/project-thread-1q4tlb), `JB_TEX=<textures>`, env `JZ=-70 JY=5.8 TY=7.9`. Then `jupiter_comp.py OUT.jpg.npy earth-has-a-bodyguard.png` (bloom, sky lift, text, watermark).
+- Sorry still: `tools/sorry-five-letters` (branch claude/project-thread-bcntm0) with `toDataURL('image/png')` and the SLOW LIGHT label moved to design y 1034 (alpha 0.42); `W=2160 H=3840 SUB=4 TIMES=1.1 node render.cjs stills`, crop design y 160-1060, resize to 1080x1350.
+- `earth_dot_carousel.py`: run in a folder with frames `f_<t>.png` grabbed from `scale_ladder_3d_v4_A.mp4` at 1.6, 4.2, 10.5, 16.8, 21.6, 25.3 s; crops y 200-1550, lifts the sky, adds n/6 and the swipe cue.
