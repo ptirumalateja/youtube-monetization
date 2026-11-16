@@ -1,0 +1,22 @@
+#!/bin/bash
+# ElevenLabs foley for mix.py. Needs ELEVENLABS_API_KEY. One request at a time.
+cd "$(dirname "$0")"
+gen(){ n=$1; d=$2; p="$3"; [ -s $n.mp3 ] && [ -z "$FORCE" ] && return; for i in 1 2 3; do curl -sS -o $n.mp3 -X POST https://api.elevenlabs.io/v1/sound-generation -H "xi-api-key: $ELEVENLABS_API_KEY" -H "Content-Type: application/json" -d "{\"text\":\"$p\",\"duration_seconds\":$d,\"prompt_influence\":0.7}"; [ $(stat -c%s $n.mp3) -gt 2000 ] && break; sleep 4; done; echo $n $(stat -c%s $n.mp3); }
+gen roar 4 "Huge stadium crowd erupting into a roaring cheer and applause as a runner wins, massive and loud from the first instant, no music"
+gen roar2 5 "Enormous stadium crowd roaring, cheering and clapping in a big final victory, 50000 people, loud, no music"
+gen flash 1.2 "Several press camera flashes popping and shutter clicks in quick succession, close, no music"
+gen alarm 1.0 "One single digital alarm clock beep in a silent dark bedroom, close, no music"
+gen alarm3 2.0 "A digital alarm clock beeping three times in a quiet dark bedroom early morning, no music"
+gen bed 1.2 "Bed sheets rustling as a tired man sits up in bed, quiet room, no music"
+gen lace 1.5 "Pulling and tying running shoe laces tight, close up foley, quiet, no music"
+gen door 1.2 "A front door opening and closing softly early morning, latch click, no music"
+gen steps 6 "Steady running footsteps of one runner on an empty asphalt street at dawn, rhythmic, quiet city, no music"
+gen breath 6 "Heavy rhythmic breathing of a man running alone, close mic, in and out, no music"
+gen rain 6 "Steady rain falling on an empty street at night, wet asphalt, no music"
+gen fall 1.2 "A runner tripping and falling hard onto wet asphalt, body thud and a grunt, no music"
+gen heart 3 "Slow heavy heartbeat, deep thumps, close, silent background, no music"
+gen pant 2.5 "A tired runner stopping and panting hard, catching breath, hands on knees, quiet outdoors, no music"
+gen wind 6 "Cold quiet early morning wind on an empty street, very soft, distant birds, no music"
+gen slam 1.2 "A deep cinematic impact boom hit, punchy, no music"
+gen tape 0.8 "A runner breaking a paper finish line tape, quick snap and flutter, no music"
+gen switch 0.6 "A light switch clicking off in the distance, single click, no music"
