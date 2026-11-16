@@ -278,9 +278,9 @@ function dayPill(g, txt, t0, t, big = false) {
 }
 function caption(g, txt, a, age = 1) { // v2: gold pill + dark text so the run labels pop
   if (a <= 0) return; setScreen(g); g.save(); g.globalAlpha = a;
-  const pop = 1 + 0.25 * Math.exp(-age * 12); g.translate(360, 900); g.scale(pop, pop);
-  g.font = '900 46px "Inter Display"'; g.letterSpacing = '1px'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  const w = Math.min(560, g.measureText(txt).width + 64), h = 76;
+  const pop = 1 + 0.25 * Math.exp(-age * 12); g.translate(360, 432); g.scale(pop, pop);
+  g.font = '900 42px "Inter Display"'; g.letterSpacing = '1px'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const w = Math.min(560, g.measureText(txt).width + 56), h = 68;
   g.shadowColor = 'rgba(255,190,92,0.55)'; g.shadowBlur = 22 * KK; g.fillStyle = 'rgb(255,200,110)';
   g.beginPath(); g.roundRect(-w / 2, -h / 2, w, h, 16); g.fill();
   g.shadowBlur = 0; g.fillStyle = 'rgba(255,250,235,0.55)'; g.fillRect(-w / 2 + 14, -h / 2 + 3, w - 28, 2);
@@ -389,7 +389,7 @@ S.street = (g, t) => {
   dust(g, t, 25, '200,215,255', 0.07);
 };
 S.rain = (g, t) => {
-  runShot(g, t, T_RAIN, { v: () => 230, z: lt => lerp(2.7, 2.55, lt), lead: 30, rim: 'rgba(190,210,255,0.5)', reflA: 0.25, x0: 400,
+  runShot(g, t, T_RAIN, { v: () => 230, z: lt => lerp(2.4, 2.3, lt), lead: 30, rim: 'rgba(190,210,255,0.5)', reflA: 0.25, x0: 400,
     bg: (c) => { sky(g, [[0, '#0f1626'], [0.6, '#0c111d'], [1, '#0a0d16']]); houses(g, c, 0.4, 99, 0.7); ground(g, c, 'wet', t);
       for (let i = -1; i < 6; i++) streetlight(g, c, 300 + i * 300, 300, [255, 180, 100], 1, t); splashes(g, c, t); },
     fg: () => rain(g, t, 1) });
