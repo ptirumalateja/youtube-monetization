@@ -32,7 +32,7 @@ for e in ev['events']:
     p = e.get('pan', 0); l, r = np.sqrt((1 - p) / 2), np.sqrt((1 + p) / 2)
     mixb[i:i + len(s), 0] += s * l; mixb[i:i + len(s), 1] += s * r
 mixb /= np.abs(mixb).max() + 1e-9
-BED = 0.12
+BED = 0.09
 SL, SH, PAY, CTA = TL['T_SLAM'], TL['T_SHAT'], TL['T_PAY'], TL['T_CTA']
 # percussion beds (no melody): tense ticking pulse until the overtake, then a dhol groove that carries the ending
 b2 = bed('beat2'); b2 /= np.sqrt((b2 ** 2).mean()) + 1e-9; g2 = env([(0, 1.1), (5, 1.25), (FL - 0.05, 1.0), (FL, 0), (DUR, 0)])

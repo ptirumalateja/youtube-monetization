@@ -1,13 +1,14 @@
-# ₹1 Crore or ₹1 Doubled? (v3 "Notification Storm", 20.75 s, 9:16)
+# ₹1 Crore or ₹1 Doubled? (v4 "Notification Storm", 20.75 s, 9:16)
 
-v2 replaces the v1 dark-stage look. The style is riso-print cream paper with halftone colour fields and kolam dots, and UPI-style "credited" notifications landing on a phone. On frame 0, ₹1,00,00,000 sits on one phone and ₹1 on the other, under "₹1 CRORE NOW… OR ₹1 DOUBLED 30 DAYS?". The crore phone folds into the finish flag of a race bar, and a live "₹X BEHIND" counter plus the DAY pill stay on screen the whole time.
+v2 replaces the v1 dark-stage look. The style is riso-print cream paper with halftone colour fields and kolam dots, and UPI-style "credited" notifications landing on a phone. On frame 0, ₹1,00,00,000 sits on one phone and ₹1 on the other, under "₹1 CRORE NOW… OR ₹1 DOUBLED 30 DAYS?" with a "ONE OF THESE ENDS AT ₹107 CRORE." sticker. The crore phone folds into the finish flag of a race bar, and a live "₹X BEHIND" counter plus the DAY pill stay on screen the whole time.
 
 - **The climb:** credits pile in every ~0.4 s, with hard cut-ins on DAY 10 (₹1,023, "LOOKS STUPID, RIGHT?") and DAY 20 ("STILL ₹89 LAKH BEHIND").
+- **What it buys:** takeover cards slam in on days 9, 15, 18, 21 and 23 (pizza party, phone, bike, car, 2BHK flat).
 - **The flip:** on DAY 24 the bar smashes the flag (OVERTAKEN.) and becomes an "N× ₹1 CRORE" counter. The phone cracks under the load.
 - **The finish:** DAY 30 slams "+₹53,68,70,912" and the phone shatters into ₹107 CRORE / HALF OF IT CAME ON THE LAST DAY, then a ₹500-note stack chart (236 m vs Statue of Unity 182 m).
-- **CTA:** a riso halftone wipe into "DAY 17: STILL 98% BEHIND. WOULD YOU HOLD?" with "1 · TAKE ₹1 CRORE" / "2 · HOLD 30 DAYS", a "MOST PEOPLE PICK 1." sticker and "COMMENT 1 OR 2 👇".
+- **CTA:** a riso halftone wipe into "DAY 17: STILL 98% BEHIND. WOULD YOU HOLD?" with "1 · TAKE ₹1 CRORE" / "2 · HOLD 30 DAYS", a "MOST PEOPLE PICK 1." sticker, "PICKING 1 COSTS YOU ₹106 CRORE." and "COMMENT 1 OR 2 👇".
 
-File: project files `final-reels/double-rupee/double-rupee-v3.mp4`. Totals are cumulative (2^n − 1). Wordless, with ElevenLabs foley and a tabla/dhol percussion bed. Renderer: `tools/rupee-storm` (v1 dark-stage renderer: `tools/double-rupee`).
+File: project files `final-reels/double-rupee/double-rupee-v4.mp4`. Totals are cumulative (2^n − 1). Wordless, with ElevenLabs foley and a tabla/dhol percussion bed. Renderer: `tools/rupee-storm` (v1 dark-stage renderer: `tools/double-rupee`).
 
 ## Facebook caption
 Most people grab the ₹1 crore. For 23 days, they're right. 👀
