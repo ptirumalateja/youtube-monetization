@@ -1,4 +1,4 @@
-# ₹1 Crore or ₹1 Doubled? (v2 "Notification Storm", 20.2 s, 9:16)
+# ₹1 Crore or ₹1 Doubled? (v2 "Notification Storm", 20.8 s, 9:16)
 
 v2 replaces the v1 dark-stage look. The style is riso-print cream paper with halftone colour fields and kolam dots, and UPI-style "credited" notifications landing on a phone. On frame 0, ₹1,00,00,000 sits on one phone and ₹1 on the other, under "₹1 CRORE NOW… OR ₹1 DOUBLED 30 DAYS?". The crore phone folds into the finish flag of a race bar, and a live "₹X BEHIND" counter plus the DAY pill stay on screen the whole time.
 

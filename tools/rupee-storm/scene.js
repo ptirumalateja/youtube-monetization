@@ -5,7 +5,7 @@
 // payoff chart, whose bars morph into the two comment buttons.
 // window.renderAt(t, sub) -> JPEG. window.events -> sound cues. window.TL -> timeline.
 'use strict';
-const DW = 720, DH = 1280, DUR = 20.15;
+const DW = 720, DH = 1280, DUR = 20.75;
 const qs = new URLSearchParams(location.search);
 const W = +(qs.get('w') || 1080), H = +(qs.get('h') || 1920), KK = W / DW, NOTEXT = qs.get('notext') === '1';
 const cv = document.createElement('canvas'); cv.width = W; cv.height = H; document.body.appendChild(cv);
@@ -32,7 +32,7 @@ for (let d = 2; d <= 30; d++) TD.push(
   d <= 23 ? 9.0 + (d - 21) * 0.6 :
   d === 24 ? 10.9 :
   d <= 29 ? 12.25 + (d - 25) * 0.55 : 15.2);
-const T_FOLD = 1.25, T_FLIP = TD[24], T_SLAM = TD[30], T_SHAT = 15.65, T_PAY = 16.0, T_CHART = 16.75, T_CTA = 18.15, T_END = T_PAY;
+const T_FOLD = 1.25, T_FLIP = TD[24], T_SLAM = TD[30], T_SHAT = 15.65, T_PAY = 16.0, T_CHART = 17.35, T_CTA = 18.75, T_END = T_PAY;
 const dayAt = t => { let d = 0; for (let i = 1; i <= 30; i++) if (t >= TD[i]) d = i; return d; };
 const val = d => Math.pow(2, d) - 1;
 const liveVal = t => { const d = dayAt(t); if (d <= 1) return 1; return lerp(val(d - 1), val(d), eout((t - TD[d]) / 0.16)); };
@@ -213,13 +213,13 @@ function frame(g, t) {
   stamp(g, ['WHICH ONE', 'DO YOU TAKE?'], win(t, T_FOLD + 0.15, TD[6] + 0.1), { size: 44, size2: 40, pop: popAt(t, T_FOLD + 0.15), bg: YEL });
   stamp(g, ['₹1 DOUBLES', 'EVERY DAY. 30 DAYS.'], win(t, TD[6] + 0.12, TD[10] - 0.02), { size: 40, size2: 34, pop: popAt(t, TD[6] + 0.12), shadow: SAFF });
   stamp(g, ['DAY 10: ₹1,023.', 'LOOKS STUPID, RIGHT?'], win(t, TD[10], TD[11] - 0.02), { size: 44, size2: 36, l2at: TD[10] + 0.38, pop: popAt(t, TD[10]), bg: YEL, shadow: INDIGO });
-  stamp(g, ['HALFWAY THERE?', 'NOT EVEN 0.1%.'], win(t, TD[11], TD[14] - 0.02), { size: 44, size2: 38, pop: popAt(t, TD[11]), shadow: SAFF });
+  stamp(g, [`DAY ${d}: ${inr(val(d))}.`, 'NOT EVEN 0.1%.'], win(t, TD[11], TD[14] - 0.02), { size: 44, size2: 38, pop: popAt(t, TD[11]), shadow: SAFF });
   stamp(g, [`DAY ${d}: ${inr(val(d))}.`, 'THAT\'S IT?'], win(t, TD[14], TD[17] - 0.02), { size: 44, size2: 38, pop: popAt(t, TD[14]), bg: YEL, shadow: PINK });
   stamp(g, [`DAY ${d}: ${inr(val(d))}.`, `STILL ${Math.floor((1 - val(d) / 1e7) * 100)}% BEHIND.`], win(t, TD[17], TD[20] - 0.02), { size: 44, size2: 38, pop: popAt(t, TD[d]) * 0.6, shadow: RED });
   stamp(g, ['DAY 20: ₹10 LAKH.', 'STILL ₹89 LAKH BEHIND.'], win(t, TD[20], TD[21] - 0.02), { size: 44, size2: 34, l2at: TD[20] + 0.4, pop: popAt(t, TD[20]), bg: YEL, shadow: RED });
   stamp(g, [`ONLY ${30 - d} DAYS LEFT…`], win(t, TD[21], TD[23] - 0.02), { size: 40, pop: popAt(t, TD[d]) * 0.6, shadow: PINK });
   stamp(g, ['DAY 23: SO CLOSE.'], win(t, TD[23], T_FLIP - 0.02), { size: 46, pop: popAt(t, TD[23]), shadow: RED });
-  stamp(g, ['OVERTAKEN.'], win(t, T_FLIP + 0.02, T_FLIP + 0.85, 0.03), { y: 700, size: 104, pop: popAt(t, T_FLIP + 0.02), bg: RED, fg: '#fff', shadow: INK, rot: -0.08, maxW: 560 });
+  stamp(g, ['OVERTAKEN.'], win(t, T_FLIP + 0.02, T_FLIP + 0.85, 0.03), { y: 700, size: 104, pop: popAt(t, T_FLIP + 0.02), bg: RED, fg: '#fff', shadow: INK, rot: -0.08, maxW: 500 });
   stamp(g, ['DAY 24. AND 6 DAYS', 'ARE STILL LEFT…'], win(t, T_FLIP + 0.85, TD[25] - 0.02), { size: 40, size2: 40, pop: popAt(t, T_FLIP + 0.85), bg: GREEN, fg: '#fff', shadow: INK });
   stamp(g, ['EACH DAY ADDS MORE', 'THAN ALL DAYS BEFORE.'], win(t, TD[25], TD[27] - 0.02), { size: 36, size2: 36, pop: popAt(t, TD[25]), shadow: SAFF });
   stamp(g, ['HOW HIGH', 'DOES IT GO?'], win(t, TD[27], TD[29] - 0.02), { size: 46, size2: 46, pop: popAt(t, TD[27]), bg: YEL, shadow: INDIGO });
@@ -242,12 +242,12 @@ function payoff(g, t) {
   const p = popAt(t, T_PAY); g.save(); g.translate(360, 568); g.scale(1 + p * 0.2, 1 + p * 0.2); g.rotate(-0.03);
   fitFont(g, '₹107 CRORE', 900, 112, 'Inter Display', 520); riso(g, '₹107 CRORE', 0, 0, INDIGO, 5); g.restore();
   if (k > 0.5) { g.font = '800 34px "JetBrains Mono"'; g.fillStyle = INK; g.fillText(inr(val(30)), 360, 618); }
-  stamp(g, ['HALF OF IT CAME', 'ON THE LAST DAY.'], win(t, T_PAY + 0.45, T_CHART - 0.02), { y: 740, size: 50, pop: popAt(t, T_PAY + 0.45), bg: YEL, shadow: PINK });
+  stamp(g, ['HALF OF IT CAME', 'ON THE LAST DAY.'], win(t, T_PAY + 0.2, T_CHART - 0.02), { y: 740, size: 50, pop: popAt(t, T_PAY + 0.2), bg: YEL, shadow: PINK });
   const a = eout((t - T_CHART) / 0.55); if (a > 0) {
     g.globalAlpha = clamp(a * 2); g.font = '800 26px "JetBrains Mono"'; g.fillStyle = INK; g.fillText('STACKED IN ₹500 NOTES', 360, 660); g.globalAlpha = 1;
     g.fillStyle = INK; g.fillRect(80, BASE, 560, 4);
     for (const b of BARS) { const h = Math.max(4, b.m * CSC * a);
-      if (!b.col) { g.save(); g.setLineDash([9, 7]); g.strokeStyle = INK; g.lineWidth = 3.5; g.fillStyle = 'rgba(27,31,59,0.08)'; g.fillRect(b.x - 50, BASE - h, 100, h); g.strokeRect(b.x - 50, BASE - h, 100, h); g.restore(); }
+      if (!b.col) { statue(g, b.x + 4, BASE, h, PINK); statue(g, b.x, BASE, h, INK); }
       else { g.fillStyle = b.col; g.fillRect(b.x - 50, BASE - h, 100, h); g.fillStyle = 'rgba(27,31,59,0.18)'; for (let yy = BASE - 7; yy > BASE - h; yy -= 9) g.fillRect(b.x - 50, yy, 100, 1.6); }
       g.globalAlpha = clamp(a * 2); g.fillStyle = INK; g.font = '900 26px "Inter Display"'; const top = BASE - h;
       if (b.lab3) { g.fillText(b.lab, b.x, top - 60); g.fillText(b.lab3, b.x, top - 34); } else g.fillText(b.lab, b.x, top - 34);
@@ -255,6 +255,11 @@ function payoff(g, t) {
     stamp(g, ['1.3× STATUE', 'OF UNITY'], win(t, T_CHART + 0.6, T_CTA), { x: 520, y: 845, size: 30, size2: 30, pop: popAt(t, T_CHART + 0.6), bg: YEL, shadow: INK, rot: -0.1, maxW: 260 });
   }
 }
+function statue(g, x, base, h, col) { // riso silhouette: pedestal + standing figure with shawl, head ~ top
+  const ped = h * 0.3, fh = h - ped, w = fh * 0.32; g.fillStyle = col; g.beginPath();
+  g.moveTo(x - 46, base); g.lineTo(x + 46, base); g.lineTo(x + 40, base - ped * 0.55); g.lineTo(x + 30, base - ped * 0.6); g.lineTo(x + 26, base - ped); g.lineTo(x - 26, base - ped); g.lineTo(x - 30, base - ped * 0.6); g.lineTo(x - 40, base - ped * 0.55); g.closePath(); g.fill();
+  const y0 = base - ped; g.beginPath(); g.moveTo(x - w * 0.55, y0); g.lineTo(x + w * 0.55, y0); g.lineTo(x + w * 0.62, y0 - fh * 0.55); g.lineTo(x + w * 0.5, y0 - fh * 0.82); g.lineTo(x + w * 0.2, y0 - fh * 0.88); g.lineTo(x - w * 0.2, y0 - fh * 0.88); g.lineTo(x - w * 0.5, y0 - fh * 0.82); g.lineTo(x - w * 0.62, y0 - fh * 0.55); g.closePath(); g.fill();
+  g.beginPath(); g.ellipse(x, y0 - fh * 0.93, w * 0.17, fh * 0.07, 0, 0, 7); g.fill(); }
 function cta(g, t) {
   background(g, t); g.setTransform(KK, 0, 0, KK, 0, 0); confetti(g, t, T_CTA, 40, 0.7);
   const k = eout((t - T_CTA) / 0.32);
@@ -298,7 +303,7 @@ window.events = (() => {
   e.push({ t: T_FLIP, s: 'boom', g: 1.0 }, { t: T_FLIP, s: 'crack', g: 1.0, rate: 0.9 }, { t: T_FLIP + 0.02, s: 'stamp', g: 1.0 }, { t: T_FLIP + 0.1, s: 'ooh', g: 0.7 }, { t: T_FLIP + 0.5, s: 'stamp', g: 0.8 }, { t: T_FLIP + 0.5, s: 'cash', g: 0.7 });
   e.push({ t: T_FLIP + 0.85, s: 'stamp', g: 0.8 }, { t: TD[27], s: 'stamp', g: 0.7 }, { t: TD[11], s: 'stamp', g: 0.6 }, { t: TD[14], s: 'stamp', g: 0.6 }, { t: TD[17], s: 'stamp', g: 0.6 }, { t: 1.6, s: 'rise', g: 0.5 }, { t: TD[25] + 0.01, s: 'stamp', g: 0.5 }, { t: TD[29], s: 'stamp', g: 0.8 }, { t: T_SLAM - 0.7, s: 'rise', g: 0.8 });
   e.push({ t: T_SLAM, s: 'boom', g: 1.0, rate: 0.85 }, { t: T_SLAM, s: 'stamp', g: 1.0 }, { t: T_SLAM + 0.02, s: 'ping', g: 1.0, rate: 0.8 });
-  e.push({ t: T_SHAT, s: 'shatter', g: 1.0 }, { t: T_SHAT, s: 'boom', g: 0.8, rate: 1.1 }, { t: T_PAY, s: 'chime', g: 1.0 }, { t: T_PAY, s: 'cash', g: 0.7 }, { t: T_PAY + 0.45, s: 'stamp', g: 0.9 }, { t: T_CHART - 0.4, s: 'rise', g: 0.6 }, { t: T_CHART, s: 'bundle', g: 0.9 });
+  e.push({ t: T_SHAT, s: 'shatter', g: 1.0 }, { t: T_SHAT, s: 'boom', g: 0.8, rate: 1.1 }, { t: T_PAY, s: 'chime', g: 1.0 }, { t: T_PAY, s: 'cash', g: 0.7 }, { t: T_PAY + 0.2, s: 'stamp', g: 0.9 }, { t: T_CHART - 0.4, s: 'rise', g: 0.6 }, { t: T_CHART, s: 'bundle', g: 0.9 });
   e.push({ t: T_CHART + 0.6, s: 'stamp', g: 1.0 }, { t: TD[10] + 0.38, s: 'stamp', g: 0.7 }, { t: TD[20] + 0.4, s: 'stamp', g: 0.7 }, { t: TD[29] + 0.38, s: 'stamp', g: 0.7 });
   e.push({ t: T_CTA, s: 'whoosh', g: 0.9 }, { t: T_CTA, s: 'stamp', g: 1.0 });
   for (let k = 0; k < 4; k++) e.push({ t: T_CTA + 0.35 + k * 0.45, s: 'ping', g: 0.45, pan: k % 2 ? 0.4 : -0.4, rate: k % 2 ? 1.25 : 1.0 });
