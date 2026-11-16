@@ -250,7 +250,7 @@ function payoff(g, t) {
     for (const b of BARS) { const h = Math.max(4, b.m * CSC * a);
       if (!b.col) { statue(g, b.x + 4, BASE, h, PINK); statue(g, b.x, BASE, h, INK); }
       else { g.fillStyle = b.col; g.fillRect(b.x - 50, BASE - h, 100, h); g.fillStyle = 'rgba(27,31,59,0.18)'; for (let yy = BASE - 7; yy > BASE - h; yy -= 9) g.fillRect(b.x - 50, yy, 100, 1.6);
-        if (b.col === SAFF) { for (let yy = BASE - 22; yy > BASE - h + 6; yy -= 44) { g.fillStyle = 'rgba(255,248,230,0.92)'; g.fillRect(b.x - 12, yy - 8, 24, 16); g.fillStyle = '#C25A00'; g.font = '900 10px "Inter Display"'; g.fillText('500', b.x, yy + 4); } } }
+        }
       g.globalAlpha = clamp(a * 2); g.fillStyle = INK; g.font = '900 26px "Inter Display"'; const top = BASE - h;
       if (b.lab3) { g.fillText(b.lab, b.x, top - 60); g.fillText(b.lab3, b.x, top - 34); } else g.fillText(b.lab, b.x, top - 34);
       g.font = '800 22px "JetBrains Mono"'; g.fillStyle = b.col === SAFF ? '#C25A00' : INK; g.fillText(b.lab2, b.x, top - 10); g.globalAlpha = 1; }
