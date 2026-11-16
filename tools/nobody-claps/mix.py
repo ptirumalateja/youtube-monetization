@@ -23,9 +23,9 @@ def bed(name):
     return o[:N]
 def env(keys): return np.interp(tt, [k[0] for k in keys], [k[1] for k in keys])
 C = TL['T_CUT']; R1, RA, FA, TR, ST, SP, F365, TP, CL = TL['T_RUN1'], TL['T_RAIN'], TL['T_FALL'], TL['T_TRACK'], TL['T_STEPS'], TL['T_STOP'], TL['T_365'], TL['T_TAPE2'], TL['T_CLOSE']
-FH = TL['FALL_HIT']
+FH = TL['FALL_SND']
 # beds
-run = env([(0, 0), (R1 - 0.05, 0), (R1, 1), (FH - 0.15, 1), (FH, 0), (8.35, 0), (8.45, 1), (SP + 0.2, 1), (SP + 0.5, 0), (F365 + 0.1, 0), (F365 + 0.3, 1.1), (TP, 1.1), (TP + 0.6, 0),
+run = env([(0, 0), (R1 - 0.05, 0), (R1, 1), (FH - 0.15, 1), (FH, 0), (8.42, 0), (8.52, 1), (SP + 0.2, 1), (SP + 0.5, 0), (F365 + 0.45, 0), (F365 + 0.65, 1.1), (TP, 1.1), (TP + 0.6, 0),
            (CL + 1.4, 0), (CL + 1.8, 0.45), (DUR, 0.45)])
 steps = bed('steps'); mixb[:, 0] += steps * run * 0.55; mixb[:, 1] += np.roll(steps, 900) * run * 0.55
 br = bed('breath'); bg = env([(0, 0), (R1 - 0.05, 0), (R1, 0.5), (SP, 0.5), (SP + 0.6, 0), (DUR, 0)]); mixb += (br * bg * 0.45)[:, None]
@@ -37,6 +37,7 @@ for e in ev['events']:
     if i < 0: s = s[-i:]; i = 0
     s = s.copy(); te = e['t'] + np.arange(len(s)) / SR
     if e['t'] < C: s *= np.clip((C - te) / 0.015, 0, 1)                        # the hard cut kills the roar dead
+    if e['s'] in ('heart', 'pant'): s *= np.clip((F365 - te) / 0.03, 0, 1)      # lights out: dead silence before the slam
     if e['s'] in ('roar', 'roar2') and e['t'] > F365:
         if e['t'] < TP - 0.5: s *= np.clip((te - e['t']) / 0.9, 0, 1)          # stands filling: roar swells in
         s *= np.interp(te, [CL + 0.4, CL + 2.0], [1, 0.12])                    # fades to his footsteps

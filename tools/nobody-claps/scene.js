@@ -28,10 +28,10 @@ const C = { gold: [255, 190, 92], goldHot: [255, 232, 180], cool: [150, 185, 255
 // ---------- timeline ----------
 const T_CUT = 1.6, T_BED = 2.4, T_DOOR = 3.7, T_RUN1 = 4.7, T_RAIN = 6.5, T_FALL = 7.5, T_TRACK = 8.5, T_STEPS = 9.5,
   T_STOP = 10.5, T_365 = 12.0, T_TAPE2 = 13.7, T_CLOSE = 14.6, T_CTA = 15.6;
-const TAPE1 = 0.12, SWITCH_OFF = 5.75, FALL_HIT = 7.95;
+const TAPE1 = 0.12, SWITCH_OFF = 5.75, FALL_HIT = 7.95, FALL_SND = 7.5 + 0.18 + (FALL_HIT - 7.5 - 0.18) / 0.5;
 const SHOTS = [[0, 'stadiumHook'], [T_CUT, 'road'], [T_BED, 'bedroom'], [T_DOOR, 'door'], [T_RUN1, 'street'], [T_RAIN, 'rain'],
   [T_FALL, 'fall'], [T_TRACK, 'track'], [T_STEPS, 'steps'], [T_STOP, 'rehook'], [T_365, 'finale'], [T_CLOSE, 'close']];
-const DAYS = [[T_RUN1, 'DAY 1'], [T_RAIN, 'DAY 47'], [T_FALL, 'DAY 112'], [T_TRACK, 'DAY 203'], [T_STEPS, 'DAY 311'], [T_STOP, 'DAY 364'], [T_365, 'DAY 365']];
+const DAYS = [[T_RUN1, 'DAY 1'], [T_RAIN, 'DAY 47'], [T_FALL, 'DAY 112'], [T_TRACK, 'DAY 203'], [T_STEPS, 'DAY 311'], [T_STOP, 'DAY 364'], [T_365 + 0.4, 'DAY 365']];
 
 // ---------- rig (local px, facing +x, ground y = 0) - Silence stickman proportions ----------
 const K = ['head', 'sh', 'hip', 'kn1', 'ft1', 'kn2', 'ft2', 'el1', 'hd1', 'el2', 'hd2'];
@@ -266,19 +266,29 @@ function title(g, a, b, k, pop, shine = -1) {
   if (two) { fitFont(g, b, 800, 40, 'Inter Display', 520); g.fillStyle = 'rgba(250,246,238,0.98)'; g.fillText(b, 360, 298); }
   g.restore();
 }
+function endTitle(g, k, pop, shine) { // v4: ~25% bigger close, punch line biggest
+  if (k <= 0) return; setScreen(g); g.save(); g.globalAlpha *= k; g.textAlign = 'center'; g.translate(360, 300); g.scale(pop, pop); g.translate(-360, -300);
+  g.save(); g.fillStyle = 'rgba(12,13,18,0.62)'; g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 18; g.beginPath(); g.roundRect(80, 202, 560, 204, 24); g.fill(); g.restore();
+  g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 12; g.fillStyle = 'rgba(250,246,238,0.98)';
+  fitFont(g, 'THEY CLAPPED', 850, 50, 'Inter Display', 520); g.fillText('THEY CLAPPED', 360, 254);
+  fitFont(g, 'FOR THE FINISH.', 850, 50, 'Inter Display', 520); g.fillText('FOR THE FINISH.', 360, 306);
+  fitFont(g, '6 AM BUILT IT.', 900, 74, 'Inter Display', 530);
+  let fs = 'rgb(255,200,110)'; if (shine >= 0 && shine <= 1) { const x = lerp(40, 680, shine); const gr = g.createLinearGradient(x - 90, 0, x + 90, 0); gr.addColorStop(0, 'rgb(255,200,110)'); gr.addColorStop(0.5, 'rgb(255,250,230)'); gr.addColorStop(1, 'rgb(255,200,110)'); fs = gr; }
+  g.fillStyle = fs; g.fillText('6 AM BUILT IT.', 360, 386); g.restore();
+}
 function dayPill(g, txt, t0, t, big = false) {
   const age = t - t0, pop = 1 + (big ? 0.6 : 0.3) * Math.exp(-age * 9), a = ss(0, 0.06, age);
-  setScreen(g); g.save(); g.globalAlpha = a; const y = big ? 380 : 362; g.translate(360, y); g.scale(pop, pop);
-  g.font = `800 ${big ? 46 : 30}px "JetBrains Mono"`; g.letterSpacing = '3px'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  const w = g.measureText(txt).width + (big ? 56 : 40), h = big ? 70 : 50;
-  g.fillStyle = 'rgba(14,15,20,0.62)'; g.strokeStyle = big ? 'rgba(255,200,110,0.95)' : 'rgba(255,200,110,0.6)'; g.lineWidth = 2;
+  setScreen(g); g.save(); g.globalAlpha = a; const y = big ? 372 : 346; g.translate(360, y); g.scale(pop, pop);
+  g.font = `800 ${big ? 46 : 26}px "JetBrains Mono"`; g.letterSpacing = '3px'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const w = g.measureText(txt).width + (big ? 56 : 32), h = big ? 70 : 38;
+  g.fillStyle = 'rgba(14,15,20,0.62)'; g.strokeStyle = big ? 'rgba(255,200,110,0.95)' : 'rgba(255,200,110,0.4)'; g.lineWidth = 2;
   g.beginPath(); g.roundRect(-w / 2, -h / 2, w, h, h / 2); g.fill(); g.stroke();
   g.shadowColor = rgba(C.gold, 0.7); g.shadowBlur = 10 * KK; g.fillStyle = 'rgba(255,214,150,1)'; g.fillText(txt, 0, 2);
   g.restore();
 }
 function caption(g, txt, a, age = 1) { // v2: gold pill + dark text so the run labels pop
   if (a <= 0) return; setScreen(g); g.save(); g.globalAlpha = a;
-  const pop = 1 + 0.25 * Math.exp(-age * 12); g.translate(360, 432); g.scale(pop, pop);
+  const pop = 1 + 0.25 * Math.exp(-age * 12); g.translate(360, 400); g.scale(pop, pop);
   g.font = '900 42px "Inter Display"'; g.letterSpacing = '1px'; g.textAlign = 'center'; g.textBaseline = 'middle';
   const w = Math.min(560, g.measureText(txt).width + 56), h = 68;
   g.shadowColor = 'rgba(255,190,92,0.55)'; g.shadowBlur = 22 * KK; g.fillStyle = 'rgb(255,200,110)';
@@ -374,7 +384,7 @@ S.door = (g, t) => {
 function runShot(g, t, t0, o) {
   const r = runner(t, t0, o.v), rx = (o.x0 || 0) + r.x;
   const gyFn = o.gy || (() => 0), gy = gyFn(rx);
-  const c = camAt(rx + (o.lead ?? 40), o.gs ?? 880, o.z(t - t0), 0); c.cy += gy;
+  const c = camAt(rx + (typeof o.lead === 'function' ? -90 + 40 * (t - t0) : (o.lead ?? 40)), o.gs ?? 880, o.z(t - t0), 0); c.cy += gy;
   o.bg(c, rx);
   const pose = o.pose ? o.pose(t, r) : runBlend(r.ph, r.v);
   setWorld(g, c); fig(g, pose, rx, gy, { rim: o.rim, sweat: o.sweat, reflA: o.reflA, refl: o.refl });
@@ -389,14 +399,15 @@ S.street = (g, t) => {
   dust(g, t, 25, '200,215,255', 0.07);
 };
 S.rain = (g, t) => {
-  runShot(g, t, T_RAIN, { v: () => 230, z: lt => lerp(2.4, 2.3, lt), lead: 30, rim: 'rgba(190,210,255,0.5)', reflA: 0.25, x0: 400,
+  runShot(g, t, T_RAIN, { v: () => 230, z: lt => lerp(3.15, 3.0, lt), gs: 1010, lead: 10, rim: 'rgba(190,210,255,0.5)', reflA: 0.25, x0: 400,
     bg: (c) => { sky(g, [[0, '#0f1626'], [0.6, '#0c111d'], [1, '#0a0d16']]); houses(g, c, 0.4, 99, 0.7); ground(g, c, 'wet', t);
       for (let i = -1; i < 6; i++) streetlight(g, c, 300 + i * 300, 300, [255, 180, 100], 1, t); splashes(g, c, t); },
     fg: () => rain(g, t, 1) });
 };
-S.fall = (g, t) => {
+S.fall = (g, tReal) => {
+  const lw = tReal - T_FALL, t = T_FALL + (lw < 0.18 ? lw : lw < 0.78 ? 0.18 + (lw - 0.18) * 0.5 : 0.48 + (lw - 0.78) * 2.36);
   const tr = 7.72, v = tt => tt < tr ? 220 : tt < FALL_HIT ? 220 * (1 - (tt - tr) / (FALL_HIT - tr)) : tt < 8.32 ? 0 : 200 * ss(8.32, 8.5, tt);
-  runShot(g, t, T_FALL, { v, z: lt => lerp(2.5, 2.65, lt), x0: 900, rim: 'rgba(190,210,255,0.45)',
+  runShot(g, t, T_FALL, { v, z: lt => 2.45 + 0.55 * ss(0.15, 0.45, lt) * (1 - ss(0.5, 0.8, lt)), x0: 900, rim: 'rgba(190,210,255,0.45)',
     pose: (tt, r) => {
       const run = runBlend(r.ph, Math.max(r.v, tt < 8.3 ? 220 : r.v));
       if (tt < tr) return run;
@@ -412,7 +423,7 @@ S.fall = (g, t) => {
       for (let i = 0; i < 14; i++) { g.fillStyle = `rgba(200,220,255,${0.7 * (1 - k)})`; g.beginPath(); g.arc(rx + 50 + (hash(i) * 2 - 1) * 70 * k, -30 * Math.sin(k * 3) * hash(i + 3) - 2, 2, 0, 7); g.fill(); } } } });
 };
 S.track = (g, t) => {
-  runShot(g, t, T_TRACK, { v: () => 240, z: lt => lerp(2.2, 2.35, lt), rim: 'rgba(190,210,255,0.45)',
+  runShot(g, t, T_TRACK, { v: () => 240, z: lt => lerp(1.3, 1.45, lt), gs: 930, lead: lt => 0, rim: 'rgba(190,210,255,0.45)',
     bg: (c) => { sky(g, [[0, '#0b0f1a'], [1, '#08090e']]); stands(g, c, t, { fill: 0, lit: 0, cheer: 0 }); floodlights(g, t, 0.34, true); ground(g, c, 'track', t);
       lightPool(g, c, c.cx - 120, 300, C.cool, 0.2); } });
   dust(g, t, 30, '200,215,255', 0.08);
@@ -441,28 +452,31 @@ S.rehook = (g, t) => {
   sky(g, [[0, '#0e1424'], [1, '#090b12']]); stands(g, c, t, { fill: 0, lit: 0, cheer: 0 }); floodlights(g, t, 0.34, true); ground(g, c, 'track', t);
   lightPool(g, c, rx, 240, C.cool, 0.22);
   const kk = ss(0.3, 0.6, lt), heave = Math.sin(lt * 9) * 3 * kk;
-  let p = mix(runBlend(r.ph, r.v), KNEES, kk); p = Object.assign({}, p, { sh: [p.sh[0], p.sh[1] + heave], head: [p.head[0], p.head[1] + heave * 1.2] });
+  const UP = Object.assign({}, STAND, { head: [-6, -150], sh: [-2, -124] }); const st = ss(1.0, 1.4, lt);
+  let p = mix(mix(runBlend(r.ph, r.v), KNEES, kk), UP, st); p = Object.assign({}, p, { sh: [p.sh[0], p.sh[1] + heave], head: [p.head[0], p.head[1] + heave * 1.2] });
   setWorld(g, c); fig(g, p, rx, 0, { rim: 'rgba(190,210,255,0.45)', sweat: true, breathe: 0 });
   setWorld(g, c); breath(g, rx + 66, -108, t, 1.2);
   dust(g, t, 30, '200,215,255', 0.08);
 };
 S.finale = (g, t) => {
   const lt = t - T_365;
-  const v = tt => tt < T_TAPE2 ? 290 * ss(T_365, T_365 + 0.5, tt) : Math.max(0, 290 - 260 * (tt - T_TAPE2));
+  const LO = T_365 + 0.4; // lights out until LO, then three banks slam on
+  const v = tt => tt < T_TAPE2 ? 300 * ss(LO + 0.05, LO + 0.45, tt) : Math.max(0, 300 - 270 * (tt - T_TAPE2));
   const r = runner(t, T_365, v), rx = r.x, FIN = integ(v, T_365, T_TAPE2) + 22;
-  const on = ss(0.1, 0.55, lt), fill = ss(0.3, 1.2, lt), cheer = ss(0.5, 1.3, lt);
-  const z = lerp(2.2, 2.6, eio(clamp((lt - 0.2) / 1.5)));
+  const on = ((lt >= 0.4) + (lt >= 0.55) + (lt >= 0.7)) / 3, fill = ss(0.6, 1.3, lt), cheer = ss(0.7, 1.4, lt);
+  const z = lt < 0.4 ? lerp(2.55, 2.65, lt / 0.4) : lerp(2.2, 2.6, eio(clamp((lt - 0.5) / 1.2)));
   const c = camAt(rx + 30, 870, z, t > T_TAPE2 && t < T_TAPE2 + 0.3 ? 3 * Math.sin(t * 70) : 0);
-  sky(g, [[0, lerp(0, 1, on) > 0.5 ? '#1a1622' : '#0e1424'], [1, '#0d0b10']]);
+  sky(g, [[0, on > 0.5 ? '#1a1622' : on > 0 ? '#121420' : '#08090e'], [1, on > 0 ? '#0d0b10' : '#060608']]);
   stands(g, c, t, { fill, lit: on, cheer, blur: 1.2 });
-  floodlights(g, t, lerp(0.34, 1, on), on < 0.5);
-  flashes(g, c, t, T_365 + 0.8, T_CLOSE, 30);
+  floodlights(g, t, on, on < 0.5);
+  flashes(g, c, t, T_365 + 1.0, T_CLOSE, 30);
   ground(g, c, 'track', t);
   lightPool(g, c, rx + 20, 260, C.gold, 0.25 * on);
   tape(g, c, FIN, t, T_TAPE2);
+  if (on === 0) { setScreen(g); g.fillStyle = 'rgba(4,5,8,0.6)'; g.fillRect(0, 0, DW, DH); }
   const up = ss(T_TAPE2 + 0.08, T_TAPE2 + 0.4, t);
-  const pose = armsUp(runBlend(r.ph, Math.max(r.v, 120), 290), up, t * 9);
-  setWorld(g, c); fig(g, pose, rx, 0, {});
+  const UPL = Object.assign({}, STAND, { head: [-6, -150], sh: [-2, -124] }); const pose = armsUp(mix(UPL, runBlend(r.ph, Math.max(r.v, 120), 300), ss(LO, LO + 0.3, t)), up, t * 9);
+  setWorld(g, c); fig(g, pose, rx, 0, { alpha: on > 0 ? 1 : 0.55 });
   confetti(g, t, T_TAPE2 + 0.02);
 };
 S.close = (g, t) => {
@@ -470,10 +484,10 @@ S.close = (g, t) => {
   const v = tt => Math.max(0, 290 - 260 * (tt - T_TAPE2));
   const rx = integ(v, T_365, T_CLOSE) + integ(v, T_CLOSE, t), r = runner(T_CLOSE, T_365, v);
   const turn = ss(0.5, 1.1, lt), dir = Math.cos(Math.PI * turn);
-  const c = camAt(rx + lerp(30, -10, eio(clamp(lt / 2))), 860, lerp(2.6, 2.1, eio(clamp(lt / 2.2))));
+  const c = camAt(rx + lerp(30, -10, eio(clamp(lt / 2))), 900, lerp(2.6, 1.9, eio(clamp(lt / 1.2))));
   sky(g, [[0, '#1a1622'], [1, '#0d0b10']]);
   stands(g, c, t, { fill: 1, lit: lerp(1, 0.75, turn), cheer: lerp(1, 0.6, turn), blur: 2.2 }); floodlights(g, t, 1);
-  setScreen(g); g.fillStyle = `rgba(8,9,14,${0.25 * turn})`; g.fillRect(0, 0, DW, DH);
+  setScreen(g); g.fillStyle = `rgba(8,9,14,${0.2 + 0.3 * turn})`; g.fillRect(0, 0, DW, DH);
   ground(g, c, 'track', t);
   lightPool(g, c, rx, 260, C.gold, 0.22);
   const down = ss(0.1, 0.6, lt), base = armsUp(runBlend(r.ph, 0, 290), 1, t * 9), pose = mix(base, STANDDOWN, down);
@@ -493,23 +507,26 @@ function frame(g, t) {
       for (let p = 0; p < im.data.length; p += 4) { const v = Math.random() * 255; im.data[p] = im.data[p + 1] = im.data[p + 2] = v; im.data[p + 3] = 255; } x.putImageData(im, 0, 0); window._grain.push(c); } }
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 0.05; g.globalCompositeOperation = 'overlay'; g.fillStyle = g.createPattern(window._grain[((Math.floor(t * 30) % 4) + 4) % 4], 'repeat'); g.fillRect(0, 0, W, H); g.restore(); setScreen(g); }
   // flash frame on the hard cuts that matter
-  for (const [tc, a] of [[TAPE1, 0.35], [T_365, 0.4], [T_TAPE2, 0.3]]) if (t >= tc && t < tc + 0.12) { g.fillStyle = `rgba(255,240,220,${a * (1 - (t - tc) / 0.12)})`; g.fillRect(0, 0, DW, DH); }
+  for (const [tc, a] of [[TAPE1, 0.35], [T_365 + 0.4, 0.4], [T_TAPE2, 0.3]]) if (t >= tc && t < tc + 0.12) { g.fillStyle = `rgba(255,240,220,${a * (1 - (t - tc) / 0.12)})`; g.fillRect(0, 0, DW, DH); }
   // titles
   const hp = (t0v) => 1 + 0.14 * Math.exp(-Math.max(0, t - t0v) * 9);
   if (t < T_CUT) title(g, 'EVERYONE CLAPS NOW.', '', 1, hp(0), (t - 0.1) / 0.7);
   else if (t < T_STOP) title(g, 'NOBODY CLAPPED', 'AT 6 AM.', 1, hp(T_CUT), t < T_CUT + 0.9 ? (t - T_CUT - 0.05) / 0.7 : -1);
   else if (t < T_365) title(g, 'JUST HIM.', 'EVERY DAY.', 1, hp(T_STOP), (t - T_STOP - 0.05) / 0.7);
-  else if (t >= T_CLOSE) title(g, 'THEY CLAPPED FOR THE FINISH.', '6 AM BUILT IT.', ss(T_CLOSE, T_CLOSE + 0.15, t), hp(T_CLOSE), (t - T_CLOSE - 0.1) / 0.7);
+  else if (t >= T_CLOSE) endTitle(g, ss(T_CLOSE, T_CLOSE + 0.15, t), hp(T_CLOSE), (t - T_CLOSE - 0.25) / 0.7);
   // day counter
   let day = null; for (const d of DAYS) if (t >= d[0]) day = d; if (t >= T_CLOSE) day = null;
-  if (day && t >= T_RUN1) dayPill(g, day[1], day[0], t, day[0] === T_365);
+  if (day && t >= T_RUN1) { let txt = day[1]; const i = DAYS.indexOf(day), age = t - day[0];
+    if (i > 0 && age < 0.3 && i < DAYS.length - 1) { const a = +DAYS[i - 1][1].slice(4), b = +day[1].slice(4); txt = 'DAY ' + Math.round(lerp(a, b, eout(age / 0.3))); }
+    if (!(t >= T_365 && t < T_365 + 0.4)) dayPill(g, txt, day[0], t, day[0] === T_365 + 0.4); }
   // small lock-in lines
-  const cap = [[T_RUN1 + 0.25, T_RAIN, 'No crowd.'], [T_RAIN + 0.15, T_FALL, 'No likes.'], [T_FALL + 0.15, T_TRACK, 'No applause.'], [T_TRACK + 0.15, T_STEPS + 1.0, 'No one watching.']];
+  const cap = [[T_RUN1 + 0.25, T_RAIN, 'No crowd.'], [T_RAIN + 0.15, T_FALL, 'No likes.'], [T_FALL + 0.15, T_TRACK, 'No applause.'], [T_TRACK + 0.15, T_STEPS, 'No one watching.'], [T_STEPS + 0.12, T_STOP, 'Still showing up.']];
   for (const [a, b, txt] of cap) if (t >= a && t < b) caption(g, txt.toUpperCase(), ss(a, a + 0.08, t), t - a);
   if (t >= T_BED && t < T_RUN1) caption(g, '5:58 AM.', ss(T_BED + 0.1, T_BED + 0.18, t), t - T_BED - 0.1);
   const ca = ss(T_CTA, T_CTA + 0.3, t);
-  if (ca > 0) { setScreen(g); g.save(); g.globalAlpha = ca; g.font = '700 32px "Inter"'; g.textAlign = 'center'; g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 10; g.fillStyle = 'rgba(250,246,238,0.97)';
-    g.fillText('Send this to someone', 360, 905); g.fillText('training in the dark 💛', 360, 946); g.restore(); }
+  if (ca > 0) { setScreen(g); g.save(); g.globalAlpha = ca; g.fillStyle = 'rgba(12,13,18,0.55)'; g.beginPath(); g.roundRect(110, 424, 500, 100, 20); g.fill();
+    g.font = '800 38px "Inter"'; g.textAlign = 'center'; g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 10; g.fillStyle = 'rgba(250,246,238,0.98)';
+    g.fillText('Send this to someone', 360, 466); g.fillText('training in the dark 💛', 360, 510); g.restore(); }
   setScreen(g); g.save(); g.font = '600 11px "JetBrains Mono"'; g.letterSpacing = '5px'; g.textAlign = 'center'; g.fillStyle = 'rgba(242,238,230,0.28)'; g.fillText('SLOW LIGHT', 360, 1270); g.restore();
 }
 
@@ -537,13 +554,13 @@ window.events = (() => {
   e.push({ t: T_BED, s: 'alarm3', g: 0.7, pan: 0.35 }, { t: T_BED + 0.3, s: 'bed', g: 0.6, pan: 0 });
   e.push({ t: T_DOOR + 0.05, s: 'lace', g: 0.7, pan: 0 }, { t: T_DOOR + 0.7, s: 'door', g: 0.6, pan: 0.3 });
   e.push({ t: SWITCH_OFF - 0.02, s: 'switch', g: 0.5, pan: 0.25 });
-  e.push({ t: FALL_HIT - 0.04, s: 'fall', g: 0.95, pan: 0 });
+  e.push({ t: FALL_SND - 0.04, s: 'fall', g: 1.0, pan: 0 });
   e.push({ t: T_STOP + 0.3, s: 'pant', g: 0.85, pan: 0 }, { t: T_STOP + 0.2, s: 'heart', g: 0.75, pan: 0 });
-  e.push({ t: T_365, s: 'slam', g: 1.0, pan: 0 });
-  e.push({ t: T_365 + 0.5, s: 'roar2', g: 0.55, pan: 0 }, { t: T_TAPE2 - 0.25, s: 'roar', g: 1.0, pan: 0 }, { t: T_TAPE2 - 0.02, s: 'tape', g: 0.7, pan: 0.1 }, { t: T_TAPE2, s: 'slam', g: 0.7, pan: 0 },
+  e.push({ t: T_365 - 0.02, s: 'switch', g: 0.7, pan: 0 }); for (const k of [0, 0.15, 0.3]) e.push({ t: T_365 + 0.4 + k, s: 'slam', g: 0.8 + k, pan: 0 });
+  e.push({ t: T_365 + 0.75, s: 'roar2', g: 0.55, pan: 0 }, { t: T_TAPE2 - 0.25, s: 'roar', g: 1.0, pan: 0 }, { t: T_TAPE2 - 0.02, s: 'tape', g: 0.7, pan: 0.1 }, { t: T_TAPE2, s: 'slam', g: 0.7, pan: 0 },
     { t: T_TAPE2 + 0.1, s: 'flash', g: 0.5, pan: 0.3 }, { t: T_TAPE2 + 0.7, s: 'flash', g: 0.4, pan: -0.3 }, { t: T_CLOSE - 0.3, s: 'roar2', g: 0.8, pan: 0 });
   return e.sort((a, b) => a.t - b.t);
 })();
-window.TL = { T_CUT, T_BED, T_DOOR, T_RUN1, T_RAIN, T_FALL, T_TRACK, T_STEPS, T_STOP, T_365, T_TAPE2, T_CLOSE, T_CTA, FALL_HIT, DUR };
+window.TL = { T_CUT, T_BED, T_DOOR, T_RUN1, T_RAIN, T_FALL, T_TRACK, T_STEPS, T_STOP, T_365, T_TAPE2, T_CLOSE, T_CTA, FALL_HIT, FALL_SND, DUR };
 window.DUR = DUR;
 document.fonts.load('600 20px "JetBrains Mono"').then(() => document.fonts.load('800 30px "JetBrains Mono"')).then(() => document.fonts.load('900 56px "Inter Display"')).then(() => document.fonts.load('700 34px "Inter"')).then(() => { window.ready = true; });
