@@ -13,7 +13,7 @@ const root = __dirname, out = process.env.OUT || path.join(root, 'output'); fs.m
     const page = await browser.newPage({ viewport: { width: 400, height: 400 } });
     page.on('pageerror', e => { console.error('[pageerror]', e.message); process.exitCode = 1; });
     page.on('console', m => console.error('[console]', m.text()));
-    await page.goto('file://' + path.join(root, 'index.html') + `?w=${W}&h=${H}`);
+    await page.goto('file://' + path.join(root, 'index.html') + `?w=${W}&h=${H}` + (process.env.NOTEXT ? '&notext=1' : ''));
     await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
     const dur = await page.evaluate(() => window.DUR), total = Math.round(dur * FPS);
     const shot = async (t, file) => { const b64 = await page.evaluate(([t, k]) => window.renderAt(t, k), [t, SUB]); fs.writeFileSync(file, Buffer.from(b64.split(',')[1], 'base64')); };

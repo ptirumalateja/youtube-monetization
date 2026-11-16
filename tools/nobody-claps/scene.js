@@ -520,6 +520,7 @@ function frame(g, t) {
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 0.05; g.globalCompositeOperation = 'overlay'; g.fillStyle = g.createPattern(window._grain[((Math.floor(t * 30) % 4) + 4) % 4], 'repeat'); g.fillRect(0, 0, W, H); g.restore(); setScreen(g); }
   // flash frame on the hard cuts that matter
   for (const [tc, a] of [[TAPE1, 0.35], [T_365, 0.4], [T_TAPE2, 0.3]]) if (t >= tc && t < tc + 0.12) { g.fillStyle = `rgba(255,240,220,${a * (1 - (t - tc) / 0.12)})`; g.fillRect(0, 0, DW, DH); }
+  if (qs.get('notext')) return;
   // titles
   const hp = (t0v) => 1 + 0.14 * Math.exp(-Math.max(0, t - t0v) * 9);
   if (t < T_CUT) title(g, 'EVERYONE CLAPS NOW.', '', 1, hp(0), (t - 0.1) / 0.7);
