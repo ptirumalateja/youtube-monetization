@@ -126,3 +126,37 @@ Alt text (one line per slide): 1 A small Earth beside the edge of the Sun, "Eart
 - Upload as a photo post (carousel for #3), not a reel. Use the 1080x1350 PNGs as they are (no crop).
 - Paste the alt text into Advanced settings > Accessibility on IG, and Alt text on FB.
 - Don't add a music sticker to the Sorry photo on FB if it re-encodes as a video; keep it a photo.
+
+---
+
+## 4. The Old Shoes (3-slide story carousel)
+
+Files, in order: `final-reels/photo-posts/old-shoes-story_1of3_1080x1350.png`, `_2of3`, `_3of3`
+Clean 4:5 stills re-rendered from the Old Shoes scene (`tools/old-shoes`, branch `claude/project-thread-cq34u1`, `W=1080 H=1350 TIMES=22.8,5.9,16.0 node render.cjs stills`) with the reel's grade and caption slabs (`tools/photo-posts/old_shoes_slides.py`).
+1. Dad's taped, patched shoes with the gift box closed on the shelf behind: "HE NEVER / WORE THEM." + SWIPE
+2. Shoe stall, the boy holding new shoes: "MY SHOES TORE. / HE BOUGHT / MINE INSTEAD." + "HIS GOT NEW CARDBOARD. EVERY YEAR."
+3. The grown son hands over the gift: "MY FIRST SALARY / BOUGHT HIM NEW ONES." + "\"I'LL SAVE THEM / FOR A SPECIAL DAY.\""
+Slide 3 loops back to slide 1: the box on the shelf is the gift, still closed.
+
+### Facebook caption
+He's still waiting for a special day. 👞
+
+Dads like this don't skip new shoes because they don't want them. Every rupee spent on himself feels like one taken from you, and the habit outlives the need. So the gift waits on the shelf for an occasion that never feels big enough.
+
+If your dad has a "for a special day" box somewhere, today counts. Take it down and put them on his feet. 💛
+
+Send this to your dad 👇
+
+#dad #father #fatherandson #parents #familylove #firstsalary #emotional #stickman #slowlight
+
+### Instagram caption
+He's still waiting for a special day. 👞
+
+Some dads never stop putting themselves last, even when they don't have to anymore. The box stays closed because no day ever feels big enough.
+
+Today counts. 💛
+Send this to your dad 👇
+
+#dad #father #fatherandson #parents #familylove #firstsalary #emotional #stickman #explorepage #slowlight
+
+Alt text: 1 A dad's taped, worn-out shoes beside a shelf with a wrapped gift box, text "He never wore them." 2 At a shoe stall, the dad buys his small son new shoes, text "My shoes tore. He bought mine instead. His got new cardboard. Every year." 3 The grown son hands his dad a gift, text "My first salary bought him new ones. 'I'll save them for a special day.'"

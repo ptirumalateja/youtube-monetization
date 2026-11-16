@@ -8,7 +8,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 
 | Reel | Status | Upload file |
 |---|---|---|
-| [Slow Light photo posts: Earth Has a Bodyguard, Sorry Is 5 Letters, Earth Is a Dot carousel](photo-posts-first-three.md) | v1 delivered 16 Nov 2026, awaiting review; 1080x1350 photos (FB + IG) | `final-reels/photo-posts/` |
+| [Slow Light photo posts: Earth Has a Bodyguard, Sorry Is 5 Letters, Earth Is a Dot carousel, Old Shoes story carousel](photo-posts-first-three.md) | v1 delivered 16 Nov 2026, awaiting review; 1080x1350 photos (FB + IG) | `final-reels/photo-posts/` |
 | [She Doesn't Have To (Kepler-452b vs Earth, Jupiter the bodyguard)](she-doesnt-have-to-jupiter.md) | v3 delivered 14 Nov 2026, awaiting review; 31.2 s, subtitles, no VO | `final-reels/jupiter-bodyguard/jupiter-bodyguard_kepler_v3.mp4` |
 | [Ramappa: Floating Bricks (Telugu)](ramappa-floating-bricks_te.md) | v1 delivered 13 Nov 2026, awaiting review; 26.6 s, Teja Telugu Narrator VO | `final-reels/ramappa/ramappa-floating-bricks_te.mp4` (no-music: `_music-ready.mp4`) |
 | [What If Time Froze? (near-miss body reel)](what-if-time-froze.md) | v3 delivered 13 Nov 2026, Mark vs Jessica pick pending; 23.4 s | `final-reels/body-questions/what-if-time-froze_mark.mp4` (alt: `_jessica.mp4`) |
