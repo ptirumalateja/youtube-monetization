@@ -1,7 +1,7 @@
-# Nobody Claps at 6 AM (v1, 17 s, 9:16)
+# Nobody Claps at 6 AM (v2, 17 s, 9:16)
 
 Stickman discipline reel in the Silence Is Distance / 30 Friends dark look. It opens on the payoff: he breaks the finish tape in a packed, roaring stadium (EVERYONE CLAPS NOW.). At 1.6 s there's a hard cut to dead silence and the same pose, alone under one streetlight (NOBODY CLAPPED AT 6 AM.). Then the 5:58 alarm, the laces and the door, and a DAY counter climbs through the montage: DAY 1 street, DAY 47 rain, DAY 112 he falls and gets up, DAY 203 empty track, DAY 311 steps at dawn. The rehook is hands on knees in front of empty stands (JUST HIM. EVERY DAY.). DAY 365 slams in, the floodlights come on, the stands fill, and he breaks the tape again. Close: THEY CLAPPED FOR THE FINISH. / 6 AM BUILT IT. CTA: "Send this to someone training in the dark 💛".
-File: project files `final-reels/nobody-claps-at-6am/nobody-claps-at-6am-v1.mp4`. Wordless, ElevenLabs foley, no music. Renderer: `tools/nobody-claps` (branch `claude/project-thread-udonb8`).
+File: project files `final-reels/nobody-claps-at-6am/nobody-claps-at-6am-v2.mp4` (v2 = run labels NO CROWD. / NO LIKES. / NO APPLAUSE. / NO ONE WATCHING. and 5:58 AM. on bold gold pills with dark text). Wordless, ElevenLabs foley, no music. Renderer: `tools/nobody-claps` (branch `claude/project-thread-udonb8`).
 
 ## Facebook caption
 Everyone sees the finish line. Nobody sees the 365 mornings before it. 💛

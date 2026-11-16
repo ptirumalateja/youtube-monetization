@@ -276,8 +276,15 @@ function dayPill(g, txt, t0, t, big = false) {
   g.shadowColor = rgba(C.gold, 0.7); g.shadowBlur = 10 * KK; g.fillStyle = 'rgba(255,214,150,1)'; g.fillText(txt, 0, 2);
   g.restore();
 }
-function caption(g, txt, a) { if (a <= 0) return; setScreen(g); g.save(); g.globalAlpha = a; g.font = '700 34px "Inter"'; g.textAlign = 'center';
-  g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 10; g.fillStyle = 'rgba(245,242,236,0.96)'; g.fillText(txt, 360, 930); g.restore(); }
+function caption(g, txt, a, age = 1) { // v2: gold pill + dark text so the run labels pop
+  if (a <= 0) return; setScreen(g); g.save(); g.globalAlpha = a;
+  const pop = 1 + 0.25 * Math.exp(-age * 12); g.translate(360, 900); g.scale(pop, pop);
+  g.font = '900 46px "Inter Display"'; g.letterSpacing = '1px'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const w = Math.min(560, g.measureText(txt).width + 64), h = 76;
+  g.shadowColor = 'rgba(255,190,92,0.55)'; g.shadowBlur = 22 * KK; g.fillStyle = 'rgb(255,200,110)';
+  g.beginPath(); g.roundRect(-w / 2, -h / 2, w, h, 16); g.fill();
+  g.shadowBlur = 0; g.fillStyle = 'rgba(255,250,235,0.55)'; g.fillRect(-w / 2 + 14, -h / 2 + 3, w - 28, 2);
+  g.fillStyle = '#16120c'; g.fillText(txt, 0, 3); g.restore(); }
 
 // ---------- running helpers ----------
 const STRIDE = 150; // design px per run cycle
@@ -498,8 +505,8 @@ function frame(g, t) {
   if (day && t >= T_RUN1) dayPill(g, day[1], day[0], t, day[0] === T_365);
   // small lock-in lines
   const cap = [[T_RUN1 + 0.25, T_RAIN, 'No crowd.'], [T_RAIN + 0.15, T_FALL, 'No likes.'], [T_FALL + 0.15, T_TRACK, 'No applause.'], [T_TRACK + 0.15, T_STEPS + 1.0, 'No one watching.']];
-  for (const [a, b, txt] of cap) if (t >= a && t < b) caption(g, txt, ss(a, a + 0.12, t));
-  if (t >= T_BED && t < T_RUN1) caption(g, '5:58 AM.', ss(T_BED + 0.1, T_BED + 0.25, t));
+  for (const [a, b, txt] of cap) if (t >= a && t < b) caption(g, txt.toUpperCase(), ss(a, a + 0.08, t), t - a);
+  if (t >= T_BED && t < T_RUN1) caption(g, '5:58 AM.', ss(T_BED + 0.1, T_BED + 0.18, t), t - T_BED - 0.1);
   const ca = ss(T_CTA, T_CTA + 0.3, t);
   if (ca > 0) { setScreen(g); g.save(); g.globalAlpha = ca; g.font = '700 32px "Inter"'; g.textAlign = 'center'; g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 10; g.fillStyle = 'rgba(250,246,238,0.97)';
     g.fillText('Send this to someone', 360, 905); g.fillText('training in the dark 💛', 360, 946); g.restore(); }
