@@ -8,7 +8,7 @@ Main search keywords: **hostile attribution bias**, **psychology facts**, **dog 
 
 ## YouTube Shorts
 
-**Title** (keyword first, 70 characters)
+**Title** (keyword first, 67 characters)
 The House of 1000 Mirrors: A Dog Story About Overthinking 🐕 #shorts
 
 Alt titles to A/B test:
@@ -26,7 +26,7 @@ What's the last "attack" that turned out not to be one? 👇
 
 #shorts #psychology #psychologyfacts #lifelessons #moralstory #overthinking #mindset #selfimprovement
 
-**Tags** (paste into the YouTube tags box, 480 characters)
+**Tags** (paste into the YouTube tags box, 463 characters)
 hostile attribution bias, house of 1000 mirrors, dog in the hall of mirrors, 1000 mirrors story, dog and mirror story, psychology facts, psychology shorts, moral story, life lesson story, motivational story, overthinking, stop overthinking, why people treat you badly, the world is a mirror, mirror story, folk tale, japanese folk tale, cognitive bias, relationships advice, self improvement, mindset shift, emotional intelligence, animated story, parable, shorts
 
 **Pinned comment**
