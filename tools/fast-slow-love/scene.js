@@ -4,7 +4,7 @@ import { Reflector } from 'three/addons/objects/Reflector.js';
 
 export const W = 1080, H = 1920, FPS = 30, DUR = 13.6;
 const SS = 2; // supersample for panels
-export const PANEL = { x: 28, w: 1024, h: 600, top: 262, bot: 1004 };
+export const PANEL = { x: 28, w: 1024, h: 560, top: 432, bot: 1112 };
 const PW = PANEL.w * SS, PH = PANEL.h * SS;
 
 // ---------- helpers ----------
@@ -557,6 +557,14 @@ export function render(t) {
   ctx.fillStyle = '#2a201b';
   ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '8px'; ctx.fillText('DAY', x0, cy + 22);
   ctx.font = `800 104px ${FONT}`; ctx.letterSpacing = '0px'; ctx.fillText(String(day), x0 + dw + 22, cy + 36);
+  ctx.restore();
+  // title
+  ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const parts = [['FAST LOVE', '#d8371f', 78], [' vs ', '#2a201b', 52], ['SLOW LOVE', '#2a201b', 78]];
+  ctx.letterSpacing = '2px';
+  let tw = 0; for (const [s, , z] of parts) { ctx.font = `800 ${z}px ${FONT}`; tw += ctx.measureText(s).width; }
+  let tx = W / 2 - tw / 2;
+  for (const [s, c, z] of parts) { ctx.font = `800 ${z}px ${FONT}`; ctx.fillStyle = c; ctx.fillText(s, tx, 392); tx += ctx.measureText(s).width; }
   ctx.restore();
   // end fade
   const f = smooth(13.15, 13.6, t);
