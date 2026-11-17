@@ -1,6 +1,6 @@
-# Fast Love vs Slow Love (v2, 13.6 s, 17 Nov 2026)
+# Fast Love vs Slow Love (v3, 14.8 s, 17 Nov 2026)
 
-Video: project files `final-reels/fast-slow-love/fast-slow-love-v2.mp4`
+Video: project files `final-reels/fast-slow-love/fast-slow-love-v3.mp4`
 On-screen title: FAST LOVE vs SLOW LOVE
 
 ## Caption (FB / IG)

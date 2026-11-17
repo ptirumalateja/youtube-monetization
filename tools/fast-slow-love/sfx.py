@@ -1,6 +1,6 @@
 # Action-synced SFX only (no music, no ambient bed). Event times mirror scene.js. -> sfx.wav (stereo)
 import numpy as np, wave, sys
-SR = 48000; DUR = 13.6; N = int(SR * DUR)
+SR = 48000; DUR = 14.8; N = int(SR * DUR)
 L = np.zeros(N); R = np.zeros(N)
 rs = np.random.RandomState(5)
 
@@ -108,8 +108,9 @@ for f in range(int(9.35 * 30), int(11.5 * 30)):
         place(tick(2600 + 400 * (t - 9.35) / 2.1), t, .28); last = t
     prev = d
 place(tick(1800, .04), 11.45, .45)
+place(pop(900, 450, .09), 13.45, .55, 0)  # question card
 st = np.stack([L, R], 1)
-fi = int(13.2 * SR); st[fi:] *= np.linspace(1, 0, N - fi)[:, None]
+fi = int(14.4 * SR); st[fi:] *= np.linspace(1, 0, N - fi)[:, None]
 st /= np.max(np.abs(st)) + 1e-9; st *= .89
 with wave.open(sys.argv[1] if len(sys.argv) > 1 else 'sfx.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((st * 32767).astype(np.int16).tobytes())

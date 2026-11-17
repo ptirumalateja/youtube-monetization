@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-export const W = 1080, H = 1920, FPS = 30, DUR = 13.6;
+export const W = 1080, H = 1920, FPS = 30, DUR = 14.8;
 const SS = 2; // supersample for panels
 export const PANEL = { x: 28, w: 1024, h: 560, top: 432, bot: 1112 };
 const PW = PANEL.w * SS, PH = PANEL.h * SS;
@@ -569,5 +569,20 @@ export function render(t) {
   // end fade
   const f = smooth(13.15, 13.6, t);
   if (f > 0) { ctx.fillStyle = `rgba(239,231,218,${f})`; ctx.fillRect(0, 0, W, H); }
+  // closing question card
+  const q = smooth(13.45, 13.75, t);
+  if (q > 0) {
+    ctx.save(); ctx.globalAlpha = q; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    const sc = .92 + .08 * ease(q); ctx.translate(W / 2, 900); ctx.scale(sc, sc);
+    ctx.fillStyle = '#2a201b'; ctx.font = `800 76px ${FONT}`; ctx.letterSpacing = '2px';
+    ctx.fillText('WHICH ONE', 0, -120); ctx.fillText('ARE YOU IN?', 0, -30);
+    ctx.font = `800 64px ${FONT}`; ctx.textAlign = 'left';
+    const segs = [['FAST', '#d8371f'], ['  or  ', '#2a201b'], ['SLOW', '#2a201b']];
+    let w = 0; for (const [s] of segs) w += ctx.measureText(s).width; let x = -w / 2;
+    for (const [s, c] of segs) { ctx.fillStyle = c; ctx.fillText(s, x, 100); x += ctx.measureText(s).width; }
+    ctx.textAlign = 'center'; ctx.fillStyle = '#6b5a4f'; ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '6px';
+    ctx.fillText('COMMENT BELOW \u2193', 0, 200);
+    ctx.restore();
+  }
   return out;
 }
