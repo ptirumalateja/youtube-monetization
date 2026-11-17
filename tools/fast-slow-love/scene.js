@@ -4,7 +4,7 @@ import { Reflector } from 'three/addons/objects/Reflector.js';
 
 export const W = 1080, H = 1920, FPS = 30, DUR = 14.8;
 const SS = 2; // supersample for panels
-export const PANEL = { x: 28, w: 1024, h: 560, top: 432, bot: 1112 };
+export const PANEL = { x: 96, w: 888, h: 500, top: 440, bot: 1060 };
 const PW = PANEL.w * SS, PH = PANEL.h * SS;
 
 // ---------- helpers ----------
@@ -560,11 +560,11 @@ export function render(t) {
   ctx.restore();
   // title
   ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-  const parts = [['FAST LOVE', '#d8371f', 78], [' vs ', '#2a201b', 52], ['SLOW LOVE', '#2a201b', 78]];
+  const parts = [['FAST LOVE', '#d8371f', 58], [' vs ', '#2a201b', 40], ['SLOW LOVE', '#2a201b', 58]];
   ctx.letterSpacing = '2px';
   let tw = 0; for (const [s, , z] of parts) { ctx.font = `800 ${z}px ${FONT}`; tw += ctx.measureText(s).width; }
   let tx = W / 2 - tw / 2;
-  for (const [s, c, z] of parts) { ctx.font = `800 ${z}px ${FONT}`; ctx.fillStyle = c; ctx.fillText(s, tx, 392); tx += ctx.measureText(s).width; }
+  for (const [s, c, z] of parts) { ctx.font = `800 ${z}px ${FONT}`; ctx.fillStyle = c; ctx.fillText(s, tx, 400); tx += ctx.measureText(s).width; }
   ctx.restore();
   // end fade
   const f = smooth(13.15, 13.6, t);
@@ -574,7 +574,7 @@ export function render(t) {
   if (q > 0) {
     ctx.save(); ctx.globalAlpha = q; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     const sc = .92 + .08 * ease(q); ctx.translate(W / 2, 900); ctx.scale(sc, sc);
-    ctx.fillStyle = '#2a201b'; ctx.font = `800 76px ${FONT}`; ctx.letterSpacing = '2px';
+    ctx.fillStyle = '#2a201b'; ctx.font = `800 68px ${FONT}`; ctx.letterSpacing = '2px';
     ctx.fillText('WHICH ONE', 0, -120); ctx.fillText('ARE YOU IN?', 0, -30);
     ctx.font = `800 64px ${FONT}`; ctx.textAlign = 'left';
     const segs = [['FAST', '#d8371f'], ['  or  ', '#2a201b'], ['SLOW', '#2a201b']];
