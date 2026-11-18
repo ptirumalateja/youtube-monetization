@@ -19,3 +19,6 @@ Fast Love vs Slow Love 🔥 Which one lasts?
 
 ## Pinned comment
 Day 2 "I love you" or day 365 "I love you"? Which one hits harder? 👇
+
+## YouTube tags
+fast love vs slow love, fast love, slow love, relationship advice, relationship goals, love story animation, stickman animation, couple animation, love that lasts, healthy relationship, relationship tips, true love, love quotes, moving too fast in a relationship, slow burn love, consistency in love, love shorts, relationship shorts, couple goals, animated short
