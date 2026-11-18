@@ -1,6 +1,6 @@
 # Action-synced SFX only (no music, no ambient bed). Event times mirror scene.js. -> sfx.wav (stereo)
 import numpy as np, wave, sys
-SR = 48000; HOOK = .7; DUR = 14.8 + HOOK; N = int(SR * DUR)
+SR = 48000; HOOK = float(__import__("os").environ.get("HOOK", ".7")); DUR = 14.8 + HOOK; N = int(SR * DUR)
 L = np.zeros(N); R = np.zeros(N)
 rs = np.random.RandomState(5)
 
@@ -109,8 +109,8 @@ for f in range(int(9.35 * 30), int(11.5 * 30)):
     prev = d
 place(tick(1800, .04), 11.45, .45)
 place(pop(900, 450, .09), 13.45, .55, 0)  # question card
-place(roar(1.2), -HOOK, .8, FIRE_PAN)  # hook: the day-7 bonfire
-place(thunk(90, .3), -.02, .7, 0)      # hard cut to the split
+if HOOK > 0: place(roar(1.2), -HOOK, .8, FIRE_PAN)  # hook: the day-7 bonfire
+if HOOK > 0: place(thunk(90, .3), -.02, .7, 0)      # hard cut to the split
 st = np.stack([L, R], 1)
 fi = int((14.4 + HOOK) * SR); st[fi:] *= np.linspace(1, 0, N - fi)[:, None]
 st /= np.max(np.abs(st)) + 1e-9; st *= .89
