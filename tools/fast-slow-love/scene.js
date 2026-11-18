@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-export const W = 1080, H = 1920, FPS = 30, DUR = 14.8;
+export const W = 1080, H = 1920, FPS = 30, DUR = 15.5;
 const SS = 2; // supersample for panels
 export const PANEL = { x: 96, w: 888, h: 500, top: 440, bot: 1060 };
 const PW = PANEL.w * SS, PH = PANEL.h * SS;
@@ -162,6 +162,7 @@ class Track { // keyframes [{t, p}]; values eased between keys
   constructor() { this.k = []; }
   add(t, p, face) { this.k.push({ t, p, face }); return this; }
   at(t) {
+    if (!this._s) { this.k.sort((a, b) => a.t - b.t); this._s = 1; }
     const k = this.k; let i = 0;
     while (i < k.length - 1 && k[i + 1].t <= t) i++;
     const a = k[i], b = k[Math.min(i + 1, k.length - 1)];
@@ -286,7 +287,7 @@ function makeLane(top) {
   const scene = new THREE.Scene();
   const bg = new THREE.Color(0x120d0b); scene.background = bg;
   const cam = new THREE.PerspectiveCamera(26, PANEL.w / PANEL.h, .1, 50);
-  cam.position.set(.2, 1.2, 6.0); cam.lookAt(.2, 1.02, 0);
+  cam.position.set(.2, 1.15, 5.1); cam.lookAt(.2, .98, 0);
   const hemi = new THREE.HemisphereLight(0xd8dcea, 0x2a1d16, .9); scene.add(hemi);
   const key = new THREE.DirectionalLight(0xfff1e6, 1.5); key.position.set(-2, 3, 6); scene.add(key);
   // floor: reflector + dimming layer
@@ -355,8 +356,12 @@ tA.add(7.6, pose(P.hug, { x: -.2, z: .3 })); tB.add(7.6, pose(P.hug, { x: .2, z:
 tA.add(7.95, pose(P.hug, { x: -.17, z: .3, ry: -1.05 }), 'sad'); tB.add(7.95, pose(P.hug, { x: .17, z: .3, ry: 1.05 }), 'sad');
 tA.add(9.3, pose(P.hug, { x: -.17, z: .3, ry: -1.05 })); tB.add(9.3, pose(P.hug, { x: .17, z: .3, ry: 1.05 }));
 // fade away as days fly
-tA.add(10.6, pose(P.hug, { x: -.2, z: .3, ry: -1.1, op: 0 })); tB.add(10.6, pose(P.hug, { x: .2, z: .3, ry: 1.1, op: 0 }));
-tA.add(14, pose(P.hug, { op: 0 })); tB.add(14, pose(P.hug, { op: 0 }));
+tB.add(9.65, pose(P.hug, { x: .17, z: .3, ry: .55, hy: -.75, hx: .05 }), 'sad');   // hesitates, looks back
+tB.add(10.15, pose(P.hug, { x: .17, z: .3, ry: .55, hy: -.75, hx: .05 }));
+tA.add(10.2, pose(P.hug, { x: -.17, z: .3, ry: -1.05, hx: .45 }), 'sad');            // she doesn't turn
+tB.add(10.5, pose(P.hug, { x: .17, z: .3, ry: 1.05, hx: .4 }), 'sad');                // he gives up
+tA.add(11.3, pose(P.hug, { x: -.95, z: .3, ry: -1.1, hx: .45 })); tB.add(11.3, pose(P.hug, { x: .82, z: .3, ry: 1.1, hx: .45 }));
+tA.add(16, pose(P.hug, { x: -.95, z: .3, ry: -1.1, hx: .45 })); tB.add(16, pose(P.hug, { x: .82, z: .3, ry: 1.1, hx: .45 }));
 
 function topFire(t) {
   // grows with each landed log, flare at heave, then dies
@@ -386,17 +391,23 @@ bB.add(-.2, sitB());
 bB.k = []; bB.add(0, sitB({ ...tossR }), 'smile'); bB.add(.35, sitB());
 botToss.push({ who: 'B', pick: -1, rel: -.05, land: .3, from: 'R' });
 bTossA(1.7);
+bA.add(2.75, sitA({ hy: .5, hz: -.08 }), 'happy'); bA.add(3.45, sitA({ hy: .5, hz: -.08 })); bA.add(3.8, sitA(), 'smile');
+bB.add(2.5, sitB({ hy: -.5 }), 'happy'); bB.add(2.95, sitB({ hy: -.3 }));
 bTossB(3.1, 0);
 bTossA(4.3);
-bA.add(5.6, sitA(), 'smile');
-bTossB(5.8, 0);
-// lean in from 6.9
-bA.add(6.9, sitA(), 'smile'); bA.add(7.6, sitA(lean(1)), 'content');
-bB.add(7.0, sitB()); bB.add(7.6, sitB(leanB(1)), 'content');
-bTossB(8.6, 1);
+const holdA = { laf: .42, laa: .5, lae: .12, hy: .3 }, holdB = { raf: .42, raa: .5, rae: .12, hy: -.3 };
+bA.add(5.55, sitA(holdA), 'happy'); bA.add(6.35, sitA(holdA)); bA.add(6.75, sitA(), 'smile');
+bB.add(5.45, sitB(holdB), 'happy'); bB.add(6.25, sitB(holdB));
+bTossB(6.5, 0);
+bA.add(7.6, sitA(lean(1)), 'content');
+bB.add(7.75, sitB(leanB(1)), 'content');
+const warmH = { laf: 1.15, raf: 1.15, lae: .35, rae: .35, laa: .05, raa: .05, ry: .25 };
+bA.add(8.15, sitA(lean(1))); bA.add(8.45, sitA({ ...lean(1), ...warmH })); bA.add(9.2, sitA({ ...lean(1), ...warmH })); bA.add(9.5, sitA(lean(1)));
+bB.add(8.15, sitB(leanB(1))); bB.add(8.45, sitB({ ...leanB(1), ...warmH })); bB.add(9.2, sitB({ ...leanB(1), ...warmH })); bB.add(9.45, sitB(leanB(1)));
+bTossB(9.6, 1);
 bA.add(11.0, sitA(lean(1))); bA.add(11.5, sitA(lean(1.05)));
 bTossB(10.2, 1);
-bB.add(11.4, sitB(leanB(1)), 'content'); bB.add(12.0, sitB({ ...leanB(1.2), hx: .08 }), 'content');
+bB.add(10.9, sitB(leanB(1)), 'content'); bB.add(12.0, sitB({ ...leanB(1.2), hx: .08 }), 'content');
 bA.add(14, sitA(lean(1.05))); bB.add(14, sitB({ ...leanB(1.2), hx: .08 }));
 
 function botFire(t) {
@@ -485,7 +496,7 @@ function drawLane(lane, py, label, t, extra) {
   ctx.save(); rr(PANEL.x, py, PANEL.w, PANEL.h, 34); ctx.strokeStyle = 'rgba(40,30,25,.35)'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
 }
 
-export function render(t) {
+function setTop(t) {
   // ---- top lane state
   const pa = tA.at(t), pb = tB.at(t);
   const idle = Math.sin(t * 2.2) * .012;
@@ -493,7 +504,7 @@ export function render(t) {
   top.A.apply(pa); top.B.apply(pb);
   top.A.root.updateMatrixWorld(true); top.B.root.updateMatrixWorld(true);
   const fs = topFire(t);
-  top.fire.update(t, fs, smooth(7.4, 7.7, t) * (1 - smooth(9.6, 11, t)));
+  top.fire.update(t, fs, smooth(7.4, 7.7, t) * (1 - .6 * smooth(9.6, 11, t)));
   const [nl, nr] = pileCountsTop(t); top.pileL.set(nl); top.pileR.set(nr);
   // seat log: lifted with hands 4.35-4.85, then flies into fire
   const seat = top.seat;
@@ -508,8 +519,39 @@ export function render(t) {
   // lighting mood: darkness as the fire dies
   const warm = clamp(fs / 1.1);
   const life = 1 - smooth(6.3, 7.7, t);
-  top.hemi.intensity = .32 + .58 * life; top.key.intensity = .45 + 1.05 * life;
+  top.hemi.intensity = .34 + .56 * life; top.key.intensity = .5 + 1.0 * life;
+  top.key.color.setRGB(lerp(.62, 1, life), lerp(.72, .95, life), lerp(.95, .9, life)); top.hemi.color.setRGB(lerp(.55, .85, life), lerp(.65, .86, life), lerp(.9, .92, life));
   top.scene.background.setRGB(.022 + .03 * warm, .016 + .016 * warm, .014 + .008 * warm);
+}
+export const HOOK = .7;
+const hookR = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+hookR.setPixelRatio(1); hookR.setSize(W, H, false); hookR.outputColorSpace = THREE.SRGBColorSpace;
+hookR.toneMapping = THREE.ACESFilmicToneMapping; hookR.toneMappingExposure = 1.05; hookR.shadowMap.enabled = true;
+const hookCam = new THREE.PerspectiveCamera(38, W / H, .1, 50);
+function renderHook(T) {
+  const ts = 5.5 + T * .55;            // the day-7 bonfire, both cheering
+  setTop(ts);
+  const k = T / HOOK;
+  hookCam.position.set(.55, 1.25, 6.4 - .5 * k); hookCam.lookAt(.55, 1.32, 0);
+  hookR.render(top.scene, hookCam);
+  ctx.drawImage(hookR.domElement, 0, 0, W, H);
+  // big hook text in the safe zone
+  ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,.65)'; ctx.shadowBlur = 18;
+  ctx.font = `800 120px ${FONT}`; ctx.letterSpacing = '4px'; ctx.fillStyle = '#ffffff';
+  ctx.fillText('DAY 7', W / 2, 470);
+  ctx.font = `800 64px ${FONT}`; ctx.fillStyle = '#ffb27a'; ctx.letterSpacing = '6px';
+  ctx.fillText('ALL AT ONCE', W / 2, 560);
+  ctx.restore();
+  return out;
+}
+export function render(T) {
+  if (T < HOOK) return renderHook(T);
+  return renderStory(T - HOOK);
+}
+function renderStory(t) {
+  setTop(t);
+  const idle = Math.sin(t * 2.2) * .012;
   // ---- bottom lane state
   const qa = bA.at(t), qb = bB.at(t);
   qa.hx += idle * .6; qb.hx -= idle * .6;
@@ -575,7 +617,7 @@ export function render(t) {
     ctx.save(); ctx.globalAlpha = q; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     const sc = .92 + .08 * ease(q); ctx.translate(W / 2, 900); ctx.scale(sc, sc);
     ctx.fillStyle = '#2a201b'; ctx.font = `800 68px ${FONT}`; ctx.letterSpacing = '2px';
-    ctx.fillText('WHICH ONE', 0, -120); ctx.fillText('ARE YOU IN?', 0, -30);
+    ctx.fillText('WHICH ONE', 0, -120); ctx.fillText('HAVE YOU LIVED?', 0, -30);
     ctx.font = `800 64px ${FONT}`; ctx.textAlign = 'left';
     const segs = [['FAST', '#d8371f'], ['  or  ', '#2a201b'], ['SLOW', '#2a201b']];
     let w = 0; for (const [s] of segs) w += ctx.measureText(s).width; let x = -w / 2;

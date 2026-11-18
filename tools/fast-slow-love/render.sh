@@ -1,6 +1,6 @@
 #!/bin/bash
 # render.sh <outdir> : 4 workers, frames 0..407 at 30 fps
-OUT=$1; N=444; K=4; per=$(( (N + K - 1) / K ))
+OUT=$1; N=465; K=4; per=$(( (N + K - 1) / K ))
 for w in $(seq 0 $((K-1))); do
   a=$((w*per)); b=$(( (w+1)*per - 1 )); [ $b -ge $N ] && b=$((N-1))
   ( node shoot.js $OUT/w$w $(python3 -c "print($a/30)") $(python3 -c "print($b/30)") 0.0333333333333 > $OUT/w$w.log 2>&1 ) &

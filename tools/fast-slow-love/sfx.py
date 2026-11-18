@@ -1,6 +1,6 @@
 # Action-synced SFX only (no music, no ambient bed). Event times mirror scene.js. -> sfx.wav (stereo)
 import numpy as np, wave, sys
-SR = 48000; DUR = 14.8; N = int(SR * DUR)
+SR = 48000; HOOK = .7; DUR = 14.8 + HOOK; N = int(SR * DUR)
 L = np.zeros(N); R = np.zeros(N)
 rs = np.random.RandomState(5)
 
@@ -17,7 +17,7 @@ def biquad(x, kind, f, q=.7):
     return y
 
 def place(sig, t, gain=1., pan=0.):
-    i = int(t * SR); j = min(N, i + len(sig))
+    i = int((t + HOOK) * SR); j = min(N, i + len(sig))
     if i >= N or j <= max(i, 0): return
     s = sig[:j - i] * gain
     L[i:j] += s * np.sqrt((1 - pan) / 2) * 1.414; R[i:j] += s * np.sqrt((1 + pan) / 2) * 1.414
@@ -90,7 +90,7 @@ place(low_hit(2.4), 7.98, .8, 0)              # YOU'VE CHANGED
 for tb, pn in [(2.05, -.1), (3.08, .1), (8.0, -.35), (8.3, .35)]:
     place(pop(), tb, .45, pn)
 # ---- bottom lane (quieter, steady care)
-for land in [.3, 2.65, 3.95, 5.25, 6.65, 9.45, 11.05]:
+for land in [.3, 2.65, 3.95, 5.25, 7.35, 10.45]:
     place(thunk(200 + rs.rand() * 40, .16), land, .3, FIRE_PAN)
     place(fwoomp(.5, .3), land, .28, FIRE_PAN)
 for ta in [2.6, 6.2, 9.6, 11.3, 4.0, 7.2, 9.0, 11.8]:
@@ -109,8 +109,10 @@ for f in range(int(9.35 * 30), int(11.5 * 30)):
     prev = d
 place(tick(1800, .04), 11.45, .45)
 place(pop(900, 450, .09), 13.45, .55, 0)  # question card
+place(roar(1.2), -HOOK, .8, FIRE_PAN)  # hook: the day-7 bonfire
+place(thunk(90, .3), -.02, .7, 0)      # hard cut to the split
 st = np.stack([L, R], 1)
-fi = int(14.4 * SR); st[fi:] *= np.linspace(1, 0, N - fi)[:, None]
+fi = int((14.4 + HOOK) * SR); st[fi:] *= np.linspace(1, 0, N - fi)[:, None]
 st /= np.max(np.abs(st)) + 1e-9; st *= .89
 with wave.open(sys.argv[1] if len(sys.argv) > 1 else 'sfx.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((st * 32767).astype(np.int16).tobytes())
