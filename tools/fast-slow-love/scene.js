@@ -287,7 +287,7 @@ function makeLane(top) {
   const scene = new THREE.Scene();
   const bg = new THREE.Color(0x120d0b); scene.background = bg;
   const cam = new THREE.PerspectiveCamera(26, PANEL.w / PANEL.h, .1, 50);
-  cam.position.set(.2, 1.15, 5.1); cam.lookAt(.2, .98, 0);
+  cam.position.set(.2, 1.25, 5.1); cam.lookAt(.2, 1.12, 0);
   const hemi = new THREE.HemisphereLight(0xd8dcea, 0x2a1d16, .9); scene.add(hemi);
   const key = new THREE.DirectionalLight(0xfff1e6, 1.5); key.position.set(-2, 3, 6); scene.add(key);
   // floor: reflector + dimming layer
@@ -493,7 +493,7 @@ function drawLane(lane, py, label, t, extra) {
   ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 8;
   ctx.fillText(label, PANEL.x + 40, py + 36);
   ctx.restore();
-  ctx.save(); rr(PANEL.x, py, PANEL.w, PANEL.h, 34); ctx.strokeStyle = 'rgba(40,30,25,.35)'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
+  ctx.save(); rr(PANEL.x, py, PANEL.w, PANEL.h, 34); ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 3; ctx.stroke(); ctx.restore();
 }
 
 function setTop(t) {
@@ -566,7 +566,7 @@ function renderStory(t) {
 
   // ---- compose
   ctx.save();
-  ctx.fillStyle = '#efe7da'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, W, H);
   // paper grain
   ctx.restore();
   BUB_MIN = PANEL.top + 92;
@@ -589,20 +589,20 @@ function renderStory(t) {
   const { day, ff } = dayInfo(t);
   const cy = (PANEL.top + PANEL.h + PANEL.bot) / 2 + 4;
   ctx.save();
-  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#2a201b';
+  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#f4efe8';
   ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '8px';
   const dw = ctx.measureText('DAY').width;
   ctx.font = `800 104px ${FONT}`; ctx.letterSpacing = '0px';
   const nw = ctx.measureText(String(day)).width;
   const total = dw + 22 + nw; let x0 = W / 2 - total / 2;
   if (ff) { ctx.fillStyle = '#d8371f'; ctx.font = `800 40px ${FONT}`; ctx.fillText('▶▶', x0 - 96, cy + 22); }
-  ctx.fillStyle = '#2a201b';
+  ctx.fillStyle = '#f4efe8';
   ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '8px'; ctx.fillText('DAY', x0, cy + 22);
   ctx.font = `800 104px ${FONT}`; ctx.letterSpacing = '0px'; ctx.fillText(String(day), x0 + dw + 22, cy + 36);
   ctx.restore();
   // title
   ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-  const parts = [['FAST LOVE', '#d8371f', 58], [' vs ', '#2a201b', 40], ['SLOW LOVE', '#2a201b', 58]];
+  const parts = [['FAST LOVE', '#d8371f', 58], [' vs ', '#f4efe8', 40], ['SLOW LOVE', '#f4efe8', 58]];
   ctx.letterSpacing = '2px';
   let tw = 0; for (const [s, , z] of parts) { ctx.font = `800 ${z}px ${FONT}`; tw += ctx.measureText(s).width; }
   let tx = W / 2 - tw / 2;
@@ -610,19 +610,19 @@ function renderStory(t) {
   ctx.restore();
   // end fade
   const f = smooth(13.15, 13.6, t);
-  if (f > 0) { ctx.fillStyle = `rgba(239,231,218,${f})`; ctx.fillRect(0, 0, W, H); }
+  if (f > 0) { ctx.fillStyle = `rgba(0,0,0,${f})`; ctx.fillRect(0, 0, W, H); }
   // closing question card
   const q = smooth(13.45, 13.75, t);
   if (q > 0) {
     ctx.save(); ctx.globalAlpha = q; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     const sc = .92 + .08 * ease(q); ctx.translate(W / 2, 900); ctx.scale(sc, sc);
-    ctx.fillStyle = '#2a201b'; ctx.font = `800 68px ${FONT}`; ctx.letterSpacing = '2px';
+    ctx.fillStyle = '#f4efe8'; ctx.font = `800 68px ${FONT}`; ctx.letterSpacing = '2px';
     ctx.fillText('WHICH ONE', 0, -120); ctx.fillText('HAVE YOU LIVED?', 0, -30);
     ctx.font = `800 64px ${FONT}`; ctx.textAlign = 'left';
-    const segs = [['FAST', '#d8371f'], ['  or  ', '#2a201b'], ['SLOW', '#2a201b']];
+    const segs = [['FAST', '#d8371f'], ['  or  ', '#f4efe8'], ['SLOW', '#f4efe8']];
     let w = 0; for (const [s] of segs) w += ctx.measureText(s).width; let x = -w / 2;
     for (const [s, c] of segs) { ctx.fillStyle = c; ctx.fillText(s, x, 100); x += ctx.measureText(s).width; }
-    ctx.textAlign = 'center'; ctx.fillStyle = '#6b5a4f'; ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '6px';
+    ctx.textAlign = 'center'; ctx.fillStyle = '#a89a8f'; ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '6px';
     ctx.fillText('COMMENT BELOW \u2193', 0, 200);
     ctx.restore();
   }
