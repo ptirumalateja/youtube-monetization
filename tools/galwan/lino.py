@@ -87,9 +87,17 @@ class Canvas:
 
 
 # ---- camera helpers ----
+PUNCH = [1.0]
+
+
 class Cam:
     def __init__(self, cx=540, cy=960, s=1.0, rot=0.0, sx=0, sy=0):
-        self.cx, self.cy, self.s, self.sx, self.sy = cx, cy, s, sx, sy
+        self.cx, self.cy, self.s, self.sx, self.sy = cx, cy, s * PUNCH[0], sx, sy
+
+    def off(self, dx, dy=0):
+        c = Cam.__new__(Cam)
+        c.cx, c.cy, c.s, c.sx, c.sy = self.cx + dx, self.cy + dy, self.s, self.sx, self.sy
+        return c
 
     def p(self, x, y):
         return (540 + (x - self.cx) * self.s + self.sx, 960 + (y - self.cy) * self.s + self.sy)

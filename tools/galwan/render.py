@@ -6,30 +6,27 @@ from lino import Canvas, label, W, H
 from shots import SHOTS
 
 # line -> shots (name, weight)
+# line -> shots (name, phrase index it starts on)
 PLAN = [
-    [("standoff", 1.1), ("front", 0.9), ("milestone", 1.3)],
-    [("date", 0.9), ("valley", 1.6), ("cold", 1.5)],
-    [("tent", 1.5), ("walk", 1.5), ("name", 1.9)],
-    [("rifle", 1.4), ("rocks", 1.5), ("clubs", 1.4)],
-    [("wounded", 1.6), ("moonhero", 1.0), ("moonclose", 1.9)],
-    [("diyas", 1.0)],
-    [("medal", 1.0), ("medal2", 1.0)],
-    [("flag", 1.0)],
+    [("standoff", 0), ("front", 1), ("milestone", 2)],
+    [("date", 0), ("valley", 1), ("cold", 2)],
+    [("tent", 0), ("walk", 1), ("name", 2)],
+    [("rifle", 0), ("rocks", 2), ("clubs", 3)],
+    [("wounded", 0), ("moonclose", 2), ("moonhero", 3)],
+    [("diyas", 0)],
+    [("medal", 0), ("medal2", 1)],
+    [("flag", 0)],
 ]
-NOCAP = {"name", "medal", "medal2", "flag", "moonclose", "date", "standoff", "front"}
+NOPUNCH = {"standoff", "diyas", "flag", "name", "date", "rifle"}
+NOCAP = {"milestone", "name", "medal", "medal2", "flag", "moonclose", "date", "standoff", "front"}
 WIPE = 0.12  # seconds of brayer wipe across a cut
 
 
 def build(timing):
-    lines = timing["lines"]
     shots = []
-    for (a, b), plan in zip(lines, PLAN):
-        tot = sum(w for _, w in plan)
-        t = a
-        for n, w in plan:
-            dur = (b - a) * w / tot
-            shots.append((n, t, t + dur))
-            t += dur
+    for ph, plan in zip(timing["phrases"], PLAN):
+        for n, k in plan:
+            shots.append((n, max(0, ph[k] - 0.08), None))
     # first shot starts at 0, last ends at total
     shots[0] = (shots[0][0], 0.0, shots[0][2])
     for i in range(len(shots) - 1):
@@ -42,12 +39,15 @@ def frame(args):
     t, shots, caps = args
     idx = max(i for i, s in enumerate(shots) if s[1] <= t + 1e-6)
     n, a, b = shots[idx]
+    import lino
+    lino.PUNCH[0] = 1.14 if (b - a > 1.25 and t - a > (b - a) * 0.5 and n not in NOPUNCH) else 1.0
     C = Canvas(t)
     SHOTS[n](C, t - a, b - a)
     img = C.out()
     # wipe from previous shot
     if idx > 0 and t - a < WIPE and n not in ("standoff",):
         pn, pa, pb = shots[idx - 1]
+        lino.PUNCH[0] = 1.14 if (pb - pa > 1.25 and pn not in NOPUNCH) else 1.0
         P = Canvas(t)
         SHOTS[pn](P, t - pa, pb - pa)
         prev = P.out()

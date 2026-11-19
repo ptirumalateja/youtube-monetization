@@ -42,7 +42,7 @@ def s_standoff(C, T, D):
     # our officer, from behind, huge, saffron rim
     x0 = 330 - 20 * ease(u)
     d = C.L("saff", rough=0.8)
-    figure_front(d, Cam(cam.cx - 12, cam.cy + 6, cam.s), x0, 2560, 1700, arms=(10, 10, 4))
+    figure_front(d, cam.off(-12, 6), x0, 2560, 1700, arms=(10, 10, 4))
     d = C.L("ink", rough=0.8)
     figure_front(d, cam, x0, 2560, 1700, arms=(10, 10, 4))
     snow(C, cam, T + 0.5, n=90, wind=1.0 + 1.6 * max(0, 1 - abs(T - 0.45) / 0.3), size=1.2)
@@ -61,7 +61,7 @@ def s_front_of_men(C, T, D):
     for i, (x, hh) in enumerate([(70, 560), (190, 600), (300, 640), (120, 520), (250, 560)]):
         soldier(d, cam, x, 1360 + i * 6, hh, dict(la=5, ra=-5), facing=1, rifle=True)
     d = C.L("saff", rough=0.8)
-    figure_front(d, Cam(cam.cx - 10, cam.cy, cam.s), 680, 1520, 1000, arms=(40, 8, 20), legs=8)
+    figure_front(d, cam.off(-10), 680, 1520, 1000, arms=(40, 8, 20), legs=8)
     d = C.L("ink", rough=0.8)
     figure_front(d, cam, 680, 1520, 1000, arms=(40, 8, 20), legs=8)
     snow(C, cam, T + 2, n=80)
@@ -125,7 +125,7 @@ def s_valley(C, T, D):
     sky(C, cam, T)
     moon(C, cam, 300, 520, 110, T)
     for i, (b, a, col) in enumerate([(820, 320, "deep"), (1000, 300, "ink"), (1250, 260, "ink")]):
-        c2 = Cam(cam.cx, cam.cy + (i - 1) * 40 * u, cam.s * (1 + i * 0.04 * u))
+        c2 = cam.off(0, (i - 1) * 40 * u); c2.s = cam.s * (1 + i * 0.04 * u)
         mountains(C, c2, 50 + i, b, a, col=col)
     # river ribbon
     d = C.L("paper", rough=0.7)
@@ -162,7 +162,7 @@ def s_cold(C, T, D):
     hx, hy = 400, 1120
     for col, off in (("saff", 12), ("ink", 0)):
         d = C.L(col, rough=0.8)
-        c2 = Cam(cam.cx - off, cam.cy + off * 0.3, cam.s)
+        c2 = cam.off(-off, off * 0.3)
         circ(d, c2, hx, hy, 230)
         poly(d, c2, [(hx + 180, hy - 40), (hx + 285, hy + 50), (hx + 200, hy + 80)])
         poly(d, c2, [(hx + 150, hy + 120), (hx + 225, hy + 150), (hx + 160, hy + 210)])
@@ -230,7 +230,7 @@ def s_walk(C, T, D):
     sw = 26 * math.sin(ph)
     pose = dict(lt=sw, ls=max(0, -sw) * 0.8, rt=-sw, rs=max(0, sw) * 0.8, la=-sw * 0.8, le=10, ra=sw * 0.8, re=10, lean=4)
     d = C.L("saff", rough=0.8)
-    soldier(d, Cam(cam.cx - 9, cam.cy, cam.s), x, 1520 - abs(math.sin(ph)) * 10, 900, pose)
+    soldier(d, cam.off(-9), x, 1520 - abs(math.sin(ph)) * 10, 900, pose)
     d = C.L("ink", rough=0.8)
     soldier(d, cam, x, 1520 - abs(math.sin(ph)) * 10, 900, pose)
     for i, (dx, hh) in enumerate([(-300, 600), (-420, 560), (-520, 520)]):
@@ -299,14 +299,14 @@ def s_rocks(C, T, D):
     for i, x in enumerate([120, 300, 470, 640]):
         soldier(d, cam, x, 1480 + i * 8, 560, dict(ra=-160, re=-60, la=-150, le=-60, lean=-6), facing=1)
     r = np.random.default_rng(9)
-    d2 = C.L("ink", rough=0.7)
+    d2 = C.L("paper", rough=0.7)
     for k in range(26):
         st = r.random() * 1.5
         tt = (T * 1.2 + st) % 1.0
         x0, y0 = 1000 + r.random() * 500, 200 + r.random() * 500
         x = x0 - tt * (700 + r.random() * 300)
         y = y0 + tt * 1100 + tt * tt * 300
-        s = 18 + r.random() * 34
+        s = 30 + r.random() * 50
         P = [(x + s * math.cos(a) * (0.7 + 0.5 * r.random()), y + s * math.sin(a) * (0.7 + 0.5 * r.random())) for a in np.linspace(0, 6.28, 7)[:-1]]
         poly(d2, cam, P)
         line(d2, cam, [(x + 40, y - 60), (x + 160, y - 220)], 3)
@@ -353,7 +353,7 @@ def s_wounded(C, T, D):
         soldier(d, cam, x, 1410, 480, dict(la=8, ra=-8), facing=1 if x < 540 else -1, rifle=True)
     ar = (70 + 6 * math.sin(T * 3), 12, -10)
     d = C.L("saff", rough=0.8)
-    figure_front(d, Cam(cam.cx + 10, cam.cy, cam.s), 540, 1580, 1000, arms=ar, legs=10)
+    figure_front(d, cam.off(+10), 540, 1580, 1000, arms=ar, legs=10)
     d = C.L("ink", rough=0.8)
     figure_front(d, cam, 540, 1580, 1000, arms=ar, legs=10)
     r = np.random.default_rng(12)
@@ -402,8 +402,6 @@ def s_diyas(C, T, D):
     cam = Cam(540, 1000, 1.0 + 0.05 * u)
     sky(C, cam, T, density=0.6)
     n_lit = min(20, int(T / (D * 0.82) * 20) + 1)
-    d = C.L("paper", rough=0.8, alpha=0.9)
-    poly(d, cam, [(-400, 1500), (1480, 1490), (1480, 4000), (-400, 4000)])
     pos = []
     for row in range(4):
         for c in range(5):
@@ -412,12 +410,12 @@ def s_diyas(C, T, D):
     for i in range(n_lit):
         x, y = pos[i]
         circ(d, cam, x + 10, y - 55, 70)
-    d = C.L("ink", rough=0.7)
+    d = C.L("paper", rough=0.7, alpha=0.9)
     for x, y in pos:
         diya(d, cam, x, y, 1.0)
-    d = C.L("paper", rough=0.6)
+    d = C.L("ink", rough=0.6, alpha=0.7)
     for x, y in pos:
-        line(d, cam, [(x - 50, y + 6), (x + 50, y + 6)], 4)
+        line(d, cam, [(x - 50, y + 10), (x + 50, y + 10)], 4)
     for i in range(n_lit):
         x, y = pos[i]
         fl = 1 + 0.12 * math.sin(T * 17 + i)
@@ -499,7 +497,7 @@ def s_flag(C, T, D):
     u = T / D
     sky(C, Cam(), T, density=0.6)
     cam = Cam(540, 900, 1.0 + 0.05 * u)
-    x0, x1, y0, h = 120, 1040, 560, 600
+    x0, x1, y0, h = 120, 1040, 470, 600
     bands = [("saff", 0), ("paper", 1), ("green", 2)]
     d = C.L("ink", rough=0.7)
     line(d, cam, [(100, 480), (100, 2000)], 22)
@@ -523,7 +521,9 @@ def s_flag(C, T, D):
         a = k * math.pi / 12 + T * 0.3
         line(d, cam, [(cx, cy), (cx + 78 * math.cos(a), cy + 78 * math.sin(a))], 4)
     s = 1 + 0.25 * (1 - eout(T / 0.15))
-    text_layer(C, "జై హింద్", 540, 1330, 170, col="paper", scale=s, maxw=860)
+    text_layer(C, "జై హింద్", 540, 1240, 170, col="paper", scale=s, maxw=860)
+    if T > 0.9:
+        text_layer(C, "కామెంట్‌లో చెప్పండి", 540, 1395, 72, col="saff", maxw=820)
 
 
 SHOTS = {
