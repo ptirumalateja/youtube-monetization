@@ -5,7 +5,20 @@ import subprocess, sys
 import numpy as np
 
 SR = 48000
-DUR = 33.1
+SEGS = [(0, 3.5, 1), (3.5, 8.9, 1.15), (8.9, 12.2, 1), (13.3, 16.07, 1), (16.07, 18.0, 1.5), (18.0, 18.5, 1), (18.5, 22.8, 1.3),
+        (22.8, 25.0, 1), (26.6, 28.0, 1), (28.0, 30.4, 1.3), (30.4, 33.1, 1)]  # must match scene.html
+
+
+def s2o(t):
+    o = 0.0
+    for a, b, r in SEGS:
+        if a <= t < b:
+            return o + (t - a) / r
+        o += (b - a) / r
+    return None
+
+
+DUR = sum((b - a) / r for a, b, r in SEGS)
 LIB = '../sfxlib/'
 out = np.zeros((int(SR * (DUR + 0.5)), 2), np.float32)
 rng = np.random.default_rng(3)
@@ -21,6 +34,10 @@ def load(name, a=0.0, b=None):
 
 
 def put(x, t, g=1.0, pan=0.0):
+    """t is scene time; dropped if that moment is cut from the V2 edit"""
+    t = s2o(t)
+    if t is None:
+        return
     if x.ndim == 1:
         x = np.stack([x * (1 - max(pan, 0)), x * (1 + min(pan, 0))], 1)
     i = int(t * SR)
@@ -116,7 +133,7 @@ put(whoosh, 10.7 - 1.0, 0.5)
 put(braam, 10.8 - 0.15, 0.55); put(boom(45, 1.2, 0.8), 10.8)
 put(riser, 11.2 - 0.5, 0.7)
 put(boom(60, 0.6, 0.7), 11.7)
-put(accent, 12.2, 0.8)
+put(accent, 13.3, 0.8)
 put(boom(48, 0.8, 0.7), 13.3)
 for t in (14.2, 14.5, 14.8, 15.0): put(boom(52, 0.5, 0.85), t)
 put(boom(35, 0.9, 0.6), 15.3)
@@ -130,9 +147,13 @@ put(cas, 18.0, 0.8)
 put(pop(700, 0.12), 20.85, 0.7)
 put(whoosh, 23.2 - 1.0, 0.6)
 put(pop(1200, 0.06), 24.0, 0.6); put(boom(55, 0.6, 0.7), 24.75)
-put(whoosh[::-1].copy(), 28.0 - 1.2, 0.5); put(boom(60, 0.6, 0.7), 28.0)
-put(whoosh, 31.2 - 1.0, 0.55)
-put(sparkle(1.8, 22, 2200, 0.7), 30.8); put(boom(45, 1.4, 0.9), 31.2)
+put(boom(60, 0.6, 0.7), 28.0)
+# breakthrough: crack creaks, then shatter + boom + light shimmer
+for k in range(5): put(clink(0.55 + 0.05 * k, 0.12), 29.6 + k * 0.15, 0.35)
+shat = rng.standard_normal(int(0.7 * SR)).astype(np.float32) * env(int(0.7 * SR), 0.002, 0.18).astype(np.float32) * 0.8
+put(shat, 30.4, 0.8); put(boom(38, 1.6, 1.2), 30.4); put(braam, 30.4 - 0.15, 0.4)
+for k in range(16): put(clink(rng.uniform(0.6, 1.0), 0.12), 30.45 + rng.uniform(0, 0.6), 0.25)
+put(sparkle(2.4, 30, 2200, 0.8), 30.5)
 
 # limiter-ish normalise
 peak = np.abs(out).max()

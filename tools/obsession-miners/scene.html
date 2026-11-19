@@ -29,11 +29,12 @@ const BANDS=[ // x0, x1, colour
   [2620,3150,'#1a2638','goldbg'],[3150,3230,'#362a16','olive'],[3230,3800,'#3d1d13','lava'],
   [3800,4250,'#110f1b','slate'],[4250,9000,'#050408','black']];
 const GOLD={x0:2620,x1:3150,y0:330,y1:2050};
-const PYR={x0:4400,x1:5600,apex:1000,base:1750};
+const PYR={x0:4450,x1:5450,apex:1000,base:1750};
+const WALLX=4430, BREAK=30.4;
 const NUG={x:1150,y:520};
 
 // miner x tracks (world x of body)
-const OBS=[[0,-90],[0.6,-70],[3.5,900],[4.4,1000],[6,1120],[9,1560],[11.5,1800],[16,1990],[17.5,2100],[18,2450],[18.5,2650],[20.5,2900],[21.4,3160],[22.5,3420],[23,3520],[27.5,3900],[28,4000],[30.4,4250],[31.2,4300],[33.2,4330]];
+const OBS=[[0,-90],[0.6,-70],[3.5,900],[4.4,1000],[6,1120],[9,1560],[11.5,1800],[16,1990],[17.5,2100],[18,2450],[18.5,2650],[20.5,2900],[21.4,3160],[22.5,3420],[23,3520],[27.5,3900],[28,4000],[30.4,4200],[31.2,4280],[33.2,4330]];
 const EGO=[[0,-90],[0.6,-70],[3.5,860],[16,1950],[18.5,2600],[20.3,2690],[40,2690]];
 const TAL=[[0,-90],[0.6,-70],[3.5,900],[4.4,1050],[40,1050]];
 const MOT=[[0,-90],[0.6,-70],[3.2,690],[40,690]];
@@ -68,7 +69,7 @@ const CAM=[
  {t:21.0,x:2970,cy:1543,z:0.77},{t:22.8,x:3080,cy:1543,z:0.77},
  {t:23.2,x:3105,cy:1232,z:0.39},{t:23.6,x:2753,cy:1232,z:0.17},{t:27.85,x:2753,cy:1232,z:0.17},{t:28.0,x:3700,cy:1232,z:0.5},
  {t:28.0,dx:98,cy:1175,z:1.1,cut:true},{t:30.4,dx:98,cy:1150,z:1.15},
- {t:31.2,dx:431,cy:1285,z:0.58},{t:33.2,dx:431,cy:1285,z:0.6}];
+ {t:31.2,dx:500,cy:1285,z:0.58},{t:33.2,dx:500,cy:1285,z:0.61}];
 function keyX(k,t){return k.x!==undefined?k.x:pw(OBS,t)+k.dx;}
 function camAt(t){
   let i=CAM.length-1;for(let j=1;j<CAM.length;j++){if(t<CAM[j].t){i=j;break;}}
@@ -115,6 +116,21 @@ function drawWorld(t,c,frozen){
   for(const d of dias){const tw2=0.5+0.5*Math.sin(tw*4+d[4]*40);ctx.fillStyle=d[3]===0&&tw2>0.9?'#ffffff':shades[d[3]];
     ctx.beginPath();ctx.moveTo(d[0],d[1]-d[2]);ctx.lineTo(d[0]+d[2]*0.8,d[1]);ctx.lineTo(d[0],d[1]+d[2]);ctx.lineTo(d[0]-d[2]*0.8,d[1]);ctx.closePath();ctx.fill();
     ctx.strokeStyle='#1c2230';ctx.lineWidth=2;ctx.stroke();}
+  // V2 breakthrough: rock wall hides the diamonds until Obsession breaks it
+  if(tw>=28){
+    if(tw<BREAK){ctx.fillStyle='#14121c';ctx.fillRect(WALLX,TOP,9000,BOT-TOP);
+      const u=seg(tw,29.5,BREAK);if(u>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.6*u)+')';ctx.lineWidth=7;const rc=rng(31);
+        for(let k=0;k<7;k++){let x=WALLX,y=1060;const a=-1.1+k*0.37;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<5;j++){x+=Math.cos(a+(rc()-0.5)*0.8)*90*u;y+=Math.sin(a+(rc()-0.5)*0.8)*90*u;ctx.lineTo(x,y);}ctx.stroke();}}}
+    else{const u=seg(tw,BREAK,BREAK+0.6);
+      ctx.save();ctx.globalCompositeOperation='lighter';const g=ctx.createRadialGradient(4950,1450,50,4950,1450,1300);g.addColorStop(0,'rgba(255,230,160,'+(0.55*u)+')');g.addColorStop(1,'rgba(255,200,90,0)');ctx.fillStyle=g;ctx.fillRect(3500,0,3000,3000);
+      ctx.translate(4950,1450);ctx.rotate(tw*0.15);ctx.fillStyle='rgba(255,235,180,'+(0.1*u)+')';for(let k=0;k<14;k++){ctx.rotate(Math.PI*2/14);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(1500,-70);ctx.lineTo(1500,70);ctx.closePath();ctx.fill();}ctx.restore();
+      // re-draw diamonds bright on top of the light
+      for(const d of dias){if(d[4]<0.82)continue;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(d[0],d[1]-d[2]);ctx.lineTo(d[0]+d[2]*0.8,d[1]);ctx.lineTo(d[0],d[1]+d[2]);ctx.lineTo(d[0]-d[2]*0.8,d[1]);ctx.closePath();ctx.fill();}
+      // flying shards
+      const v=tw-BREAK;if(v<0.9){const rs=rng(41);ctx.fillStyle='#2a2636';ctx.strokeStyle='#0a0910';ctx.lineWidth=3;
+        for(let k=0;k<34;k++){const a=-1.3+rs()*2.6,sp=500+rs()*1300,sz=18+rs()*40;const x=WALLX+Math.cos(a)*sp*v,y=1060+Math.sin(a)*sp*v+900*v*v;
+          ctx.save();ctx.globalAlpha=1-v/0.9;ctx.translate(x,y);ctx.rotate(rs()*6+v*8);ctx.beginPath();ctx.moveTo(-sz,-sz*0.4);ctx.lineTo(sz*0.6,-sz);ctx.lineTo(sz,sz*0.5);ctx.lineTo(-sz*0.3,sz);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();}}}
+  }
   // scaffold
   ctx.strokeStyle='#5d6478';ctx.lineWidth=7;
   for(const x of [-235,-20]){ctx.beginPath();ctx.moveTo(x,-330);ctx.lineTo(x,1980);ctx.stroke();}
@@ -218,12 +234,14 @@ function drawLier(x,f,colName){// Ego lying on his back on the gold
   head(x+120,y-10,col,true,-1);
   ctx.strokeStyle=col[1];ctx.lineWidth=5;ctx.beginPath();ctx.arc(x+120,y-4,10,0.2,Math.PI-0.2);ctx.stroke();
 }
+let CURZ=1;
 function label(x,y,txt,colr,out,z){
+  const fs=CURZ<0.3?46:Math.max(46,40/CURZ);
   ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  ctx.font='800 46px '+MONO;ctx.letterSpacing='6px';
+  ctx.font='800 '+fs.toFixed(1)+'px '+MONO;ctx.letterSpacing='6px';
   ctx.lineWidth=8;ctx.strokeStyle='rgba(0,0,0,0.85)';ctx.strokeText(txt,x,y);
   ctx.fillStyle=colr;ctx.fillText(txt,x,y);
-  if(out){ctx.font='800 34px '+MONO;ctx.strokeText('OUT',x,y-44);ctx.fillStyle='#ff3b2f';ctx.fillText('OUT',x,y-44);}
+  if(out){ctx.font='800 '+(fs*0.8).toFixed(1)+'px '+MONO;ctx.strokeText('OUT',x,y-fs*0.98);ctx.fillStyle='#ff3b2f';ctx.fillText('OUT',x,y-fs*0.98);}
   ctx.restore();
 }
 function heart(x,y,s){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle='#ff3040';ctx.beginPath();ctx.moveTo(0,10);ctx.bezierCurveTo(-26,-8,-14,-30,0,-16);ctx.bezierCurveTo(14,-30,26,-8,0,10);ctx.fill();ctx.restore();}
@@ -266,7 +284,7 @@ function drawMiners(t,c,frozen){
 }
 
 // ---------- overlays ----------
-function sticker(x,y,txt,s,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s,s);ctx.font='800 38px '+MONO;ctx.letterSpacing='2px';const w=ctx.measureText(txt).width+50;
+function sticker(x,y,txt,s,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);const k=Math.max(1,36/(38*CURZ));ctx.scale(s*k,s*k);ctx.font='800 38px '+MONO;ctx.letterSpacing='2px';const w=ctx.measureText(txt).width+50;
   ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(-w/2+6,-36+6,w,72);ctx.fillStyle='#f4f4f4';ctx.fillRect(-w/2,-36,w,72);ctx.fillStyle='#111';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,0,2);ctx.restore();}
 function pop(t,a){const u=seg(t,a,a+0.18);if(u<=0)return 0;return u<1?easeOut(u)*1.08-0.08*Math.sin(u*Math.PI):1;}
 
@@ -312,7 +330,7 @@ function dictCard(t){
     ctx.fillStyle='rgba(4,5,9,0.9)';ctx.fillRect(0,0,W,H);
     if(t<13.8){const s=lerp(1.12,1,easeOut(seg(t,13.3,13.5)));ctx.save();ctx.translate(W/2,900);ctx.scale(s,s);glowText('obsessed',0,0,160,1);
     ctx.font='400 36px '+SERIF;ctx.fillStyle='#9a9daa';ctx.textAlign='center';ctx.fillText('[əbˈsɛst] adj. • English',0,110);ctx.restore();}
-    else{ctx.font='400 34px '+SERIF;ctx.fillStyle='#f0f0f0';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('obsession beats talent. every single time.',W/2,940);}
+    else{const u=easeOut(seg(t,13.8,13.95));glowText('obsession beats talent.',W/2,890,62,u);glowText('every single time.',W/2,980,62,u);}
   }
 }
 function wordCard(t){
@@ -345,16 +363,16 @@ function overlayText(t){
   ctx.setTransform(1,0,0,1,0,0);ctx.textAlign='center';ctx.textBaseline='middle';ctx.letterSpacing='5px';
   if(t>=23.5&&t<27.75){ctx.font='800 44px '+MONO;const a=easeOut(seg(t,24.0,24.15));ctx.globalAlpha=a;ctx.lineWidth=8;ctx.strokeStyle='rgba(0,0,0,0.8)';ctx.strokeText('THEY ALL STOPPED.',W/2,1320);ctx.fillStyle='#ffffff';ctx.fillText('THEY ALL STOPPED.',W/2,1320);
     if(t>=24.75){const b=easeOut(seg(t,24.75,24.9));ctx.globalAlpha=b;ctx.strokeText('HE KEPT DIGGING.',W/2,1384);ctx.fillStyle='#ff3b2f';ctx.fillText('HE KEPT DIGGING.',W/2,1384);}ctx.globalAlpha=1;}
-  if(t>=30.8){ctx.font='800 50px '+MONO;const a=easeOut(seg(t,30.8,31.2));ctx.globalAlpha=a;ctx.shadowColor='rgba(255,40,30,0.7)';ctx.shadowBlur=18;ctx.fillStyle='#ff3b2f';ctx.fillText('OBSESSION PAYS OFF.',W/2,1400);ctx.shadowBlur=0;ctx.globalAlpha=1;}
+  if(t>=30.8){ctx.font='800 56px '+MONO;const a=easeOut(seg(t,30.8,31.2));ctx.globalAlpha=a;ctx.shadowColor='rgba(255,40,30,0.7)';ctx.shadowBlur=18;ctx.lineWidth=10;ctx.strokeStyle='rgba(0,0,0,0.85)';ctx.strokeText('OBSESSION PAYS OFF.',W/2,1400);ctx.fillStyle='#ff3b2f';ctx.fillText('OBSESSION PAYS OFF.',W/2,1400);ctx.shadowBlur=0;ctx.globalAlpha=1;}
   ctx.letterSpacing='0px';
 }
 function digTitle(){// screen-fixed "DIG !" over the opening wide shot
   ctx.setTransform(1,0,0,1,0,0);ctx.font='800 84px '+MONO;ctx.letterSpacing='12px';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.lineWidth=10;ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.strokeText('DIG !',470,340);ctx.fillStyle='#f2f2f2';ctx.fillText('DIG !',470,340);ctx.letterSpacing='0px';}
 
-function scene(t,c,frozen){applyCam(c);drawWorld(t,c,frozen);const m=drawMiners(t,c,frozen);return m;}
+function scene(t,c,frozen){CURZ=c.z;applyCam(c);drawWorld(t,c,frozen);const m=drawMiners(t,c,frozen);return m;}
 
-function renderAt(t){
+function renderScene(t){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
   if(t>=11.2&&t<11.7){mangaCard(t);return;}
   if(t>=14.2&&t<15.3){wordCard(t);return;}
@@ -369,20 +387,29 @@ function renderAt(t){
     overlayText(t);return;
   }
   const tt=(t>=12.2&&t<14.2)?12.0:t; // world holds under the dictionary card
-  const c=camAt(tt);const m=scene(tt,c,false);
+  const c=camAt(tt);
+  if(t>=BREAK&&t<BREAK+0.45){const k=(1-seg(t,BREAK,BREAK+0.45))*22/c.z,r=rng(Math.floor(t*60));c.x+=(r()-0.5)*2*k;c.y+=(r()-0.5)*2*k;}
+  const m=scene(tt,c,false);
   // self-doubt stickers (world anchored to Obsession)
   if(t>=8.9&&t<11.2){ctx.save();applyCam(c);const ox=m.ox,f=FLOOR[2];
     const s1=pop(t,8.9),s2=pop(t,9.4),s3=pop(t,10.1);
-    if(s1)sticker(ox-200,f-150,"I CAN'T DO THIS",s1,-0.03);
-    if(s2)sticker(ox+290,f-130,"I'M NOT GOOD ENOUGH",s2,0.02);
+    if(s1)sticker(ox-270,f-150,"I CAN'T DO THIS",s1,-0.03);
+    if(s2)sticker(ox+350,f-120,"I'M NOT GOOD ENOUGH",s2,0.02);
     if(s3)sticker(ox+40,f-300,"I'M NOT BUILT FOR THIS",s3,-0.015);
     ctx.restore();}
   if(t<0.55)digTitle();
   if(t>=12.2&&t<14.2)dictCard(t);
   overlayText(t);
   // red flash on the transformation
+  if(t>=BREAK&&t<BREAK+0.35){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='rgba(255,240,200,'+(0.85*(1-seg(t,BREAK,BREAK+0.35)))+')';ctx.fillRect(0,0,W,H);}
   if(t>=10.8&&t<11.0){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='rgba(255,40,30,'+(0.3*(1-seg(t,10.8,11.0)))+')';ctx.fillRect(0,0,W,H);}
 }
-window.renderAt=renderAt;window.DUR=DUR;
+// V2 retime: [out start, scene start, scene end, rate]. Drops the dictionary card and the long inset hold.
+const SEGS=[[0,3.5,1],[3.5,8.9,1.15],[8.9,12.2,1],[13.3,16.07,1],[16.07,18.0,1.5],[18.0,18.5,1],[18.5,22.8,1.3],[22.8,25.0,1],[26.6,28.0,1],[28.0,30.4,1.3],[30.4,33.1,1]];
+let o=0;const MAP=SEGS.map(([a,b,r])=>{const m={o0:o,a,b,r};o+=(b-a)/r;return m;});
+const OUT_DUR=o;
+function o2s(t){for(const m of MAP){const len=(m.b-m.a)/m.r;if(t<m.o0+len)return m.a+(t-m.o0)*m.r;}return 33.09;}
+function renderAt(t){renderScene(o2s(t));}
+window.renderAt=renderAt;window.DUR=OUT_DUR;window.MAP=MAP;
 document.fonts.load('800 40px "JetBrains Mono"').then(()=>{window.READY=true;renderAt(0);});
 </script></body></html>
