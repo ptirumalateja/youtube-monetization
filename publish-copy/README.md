@@ -15,7 +15,7 @@ Videos are not in git. "Upload file" paths point to the project files folder.
 | [What If Time Froze? (near-miss body reel)](what-if-time-froze.md) | v3 delivered 13 Nov 2026, Mark vs Jessica pick pending; 23.4 s | `final-reels/body-questions/what-if-time-froze_mark.mp4` (alt: `_jessica.mp4`) |
 | [Sorry Is 5 Letters (stickman)](sorry-is-5-letters.md) | Final (v4, no-border backdrop for FB), Teja: "solid" 13 Nov 2026; wordless 13.6 s | `final-reels/sorry-is-5-letters/sorry-is-5-letters-v4.mp4` |
 | [Fast Love vs Slow Love (stickman)](fast-slow-love.md) | v7 (black, no hook, 1.25x) 18 Nov 2026; v4 posted on FB 17 Nov | `final-reels/fast-slow-love/fast-slow-love-v7.mp4` |
-| [We Build Our Own Walls (chalk sketch)](we-build-our-own-walls.md) | v1 delivered 19 Nov 2026, awaiting review; wordless 14.2 s | `final-reels/walls-sketch/walls-sketch-v1.mp4` |
+| [We Build Our Own Walls (chalk sketch)](we-build-our-own-walls.md) | v2 (ref camera angles) 19 Nov 2026, awaiting review; wordless 14.2 s | `final-reels/walls-sketch/walls-sketch-v2.mp4` |
 | [My Office Gives (Nagula Panchami stickman dub)](nagula-panchami-my-office-gives.md) | v1 delivered 13 Nov 2026 (film audio, claim risk) | `final-reels/nagula-panchami/nagula-panchami-v1.mp4` |
 | [The Lake Gives Back Its Dead (Roopkund Skeleton Lake)](skeleton-lake-roopkund.md) | Final (v5, Viraj VO), Teja: ready to post 6 Nov 2026; 32 s A/B cut in progress | `final-reels/skeleton-lake/skeleton-lake-v5.mp4` |
 | [Roopkund Telugu + Hindi 45 s](skeleton-lake-roopkund-te-hi.md) | Final (V5 picture + natural spoken VO, 44–45 s), delivered 6 Nov 2026 | `final-reels/skeleton-lake/skeleton-lake-v5-te-45s.mp4`, `-hi-45s.mp4` |

@@ -1,6 +1,6 @@
-# We Build Our Own Walls (v1, 14.2 s, 19 Nov 2026)
+# We Build Our Own Walls (v2, 14.2 s, 19 Nov 2026)
 
-Video: project files `final-reels/walls-sketch/walls-sketch-v1.mp4`
+Video: project files `final-reels/walls-sketch/walls-sketch-v2.mp4`
 Wordless chalk-sketch remake. No on-screen text.
 
 ## Caption (FB / IG)

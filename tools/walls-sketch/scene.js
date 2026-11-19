@@ -235,91 +235,116 @@ function drawHair(girl, lw) {
   ctx.restore();
   sk(H, lw * .7, { closed: true, j: 1.6, passes: 2 });
 }
-// ---------- wall ----------
-const BW = 1.0, BH = .5, WALL_X0 = -1.3, WALL_COLS = 2.6, SIDE = .7, ROWS = 21;
-function brickList() {
-  const b = [];
-  for (let r = 0; r < ROWS; r++) {
-    const off = r % 2 ? BW / 2 : 0;
-    for (let x = -off; x < WALL_COLS - 1e-6; x += BW) {
-      const x0 = Math.max(0, x), x1 = Math.min(WALL_COLS, x + BW);
-      if (x1 - x0 < .08) continue;
-      b.push({ r, x0: WALL_X0 + x0, x1: WALL_X0 + x1, y0: r * BH, y1: (r + 1) * BH, seed: b.length });
-    }
-  }
-  return b;
+// ---------- 3D camera (perspective, like the ref's 3/4 views) ----------
+const CAM = { pos: [0, 5, 20], r: [1, 0, 0], u: [0, 1, 0], f3: [0, 0, -1], f: 1500 };
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const nrm = a => { const l = Math.hypot(...a); return [a[0] / l, a[1] / l, a[2] / l]; };
+function cam3(pos, at, f) {
+  const fw = nrm(sub(at, pos)), r = nrm(crs(fw, [0, 1, 0])), u = crs(r, fw);
+  Object.assign(CAM, { pos, r, u, f3: fw, f });
 }
-const BRICKS = brickList();
-function brickShape(b, dx = 0, dy = 0, a = 0) {
-  const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, hw = (b.x1 - b.x0) / 2, hh = BH / 2;
-  return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(p => { const q = rot(p, [0, 0], a); return [cx + q[0] + dx, cy + q[1] + dy]; });
-}
-function drawBrick(pts, lw) {
-  fill(pts); hatch(pts, .8, 9, 2, .45); sk(pts, lw, { closed: true, j: 1.6 });
-}
-// rows: number of rows visible (float: last row pops in); crack: 0..1 ; fallK: 0..1 collapse
-function drawWall(rows, crack = 0, fall = -1, crackAt = [-1.3, 4.4]) {
-  const lw = LW() * .95;
-  const nR = Math.floor(rows), part = rows - nR;
-  // side face (3/4 depth) for full rows
-  const topY = Math.min(rows, ROWS) * BH;
-  if (fall < 0 && topY > 0) {
-    const side = [[WALL_X0 + WALL_COLS, 0], [WALL_X0 + WALL_COLS + SIDE, .35], [WALL_X0 + WALL_COLS + SIDE, topY + .35], [WALL_X0 + WALL_COLS, topY]];
-    fill(side); hatch(side, -1.0, 8, 2, .3);
-    for (let r = 1; r <= Math.min(nR, ROWS); r++) sk([[WALL_X0 + WALL_COLS, r * BH], [WALL_X0 + WALL_COLS + SIDE, r * BH + .35]], lw * .8, { j: 1.4, passes: 1 });
-    sk(side, lw, { closed: true });
-    const topf = [[WALL_X0, topY], [WALL_X0 + WALL_COLS, topY], [WALL_X0 + WALL_COLS + SIDE, topY + .35], [WALL_X0 + SIDE, topY + .35]];
-    fill(topf); sk(topf, lw, { closed: true });
-  }
-  for (const b of BRICKS) {
-    if (b.r > nR) continue;
-    let s = 1, dy = 0;
-    if (b.r === nR) { if (part <= 0) continue; s = part; dy = (1 - ease(part)) * .6; }
-    let pts = brickShape(b, 0, dy);
-    if (fall >= 0) {
-      const R = mulberry(b.seed * 7 + 3);
-      const delay = (ROWS - b.r) / ROWS * .35 + R() * .1;
-      const k = clamp((fall - delay) / (1 - delay));
-      const tgt = PILE[b.seed];
-      const kk = k * k;
-      const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
-      const x = lerp(cx, tgt[0], ease(k)), y = lerp(cy, tgt[1], kk) + Math.sin(k * Math.PI) * .3 * R();
-      const a = lerp(0, tgt[2], k);
-      pts = brickShape(b, x - cx, y - cy, a);
-      if (k > .02 && k < .98) for (let i = 0; i < 2; i++) { const d = [x + jit(.6), y + jit(.4)]; sk([d, [d[0] + jit(.05), d[1] + jit(.05)]], 3, { passes: 1, alpha: .6 }); }
-    }
-    if (s < 1) { ctx.save(); ctx.globalAlpha = clamp(s * 2); drawBrick(pts, lw); ctx.restore(); }
-    else drawBrick(pts, lw);
-  }
-  if (crack > 0 && fall < 0) {
-    const R = mulberry(77); let p = crackAt.slice(); const segs = [];
-    for (let i = 0; i < 18; i++) { const q = [p[0] + .15 + R() * .3, p[1] + (R() - .5) * .8]; segs.push([p, q]); if (R() < .35) segs.push([q, [q[0] + R() * .3, q[1] + (R() - .3) * .7]]); p = q; }
-    const n = Math.floor(segs.length * crack);
-    for (let i = 0; i < n; i++) sk(segs[i], LW() * .7, { col: '#ffffff', passes: 1 });
-    // flying chips
-    for (let i = 0; i < 6 * crack; i++) { const c = [crackAt[0] - .2 - R() * .8 * crack, crackAt[1] + (R() - .5) * 1.2]; fill(ell(c[0], c[1], .06, .05, 6), WHITE); }
-  }
-}
-// rubble pile targets
-const PILE = (() => {
-  const R = mulberry(9); const out = [];
-  const n = BRICKS.length;
-  for (let i = 0; i < n; i++) {
-    const layer = Math.floor(Math.pow(R(), .8) * 6);
-    const spread = 2.4 - layer * .36;
-    const x = .1 + (R() - .5) * 2 * spread;
-    const y = .22 + layer * .4 + R() * .08;
-    out[BRICKS[i].seed] = [x, Math.max(.2, y), (R() - .5) * 1.6];
-  }
-  return out;
-})();
-function drawRubble() { const lw = LW() * .95; const order = BRICKS.slice().sort((a, b) => PILE[a.seed][1] - PILE[b.seed][1]); for (const b of order) { const t = PILE[b.seed]; const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2; drawBrick(brickShape(b, t[0] - cx, t[1] - cy, t[2]), lw); } }
+function P3(p) { const d = sub(p, CAM.pos); const z = dot(d, CAM.f3); return [W / 2 + CAM.f * dot(d, CAM.r) / z, H / 2 - CAM.f * dot(d, CAM.u) / z, z]; }
+function screen() { SC = 1; ctx.setTransform(1, 0, 0, 1, 0, 0); }
+// stand a 2D character at ground point (x, 0, z), facing the camera
+function placeKid(x, z, ay = 5) { const [sx, sy, dz] = P3([x, ay, z]); const s = CAM.f / dz; SC = s; ctx.setTransform(s, 0, 0, -s, sx - x * s, sy + ay * s); }
+const lwAt = z => clamp(CAM.f / z * .05, 1.6, 12);
 
-// ---------- camera ----------
-function cam(cx, cy, sc) { SC = sc; ctx.setTransform(sc, 0, 0, -sc, W / 2 - cx * sc, H / 2 + cy * sc); }
+// ---------- wall: a long brick wall running away from the camera between them ----------
+const BL = 1.0, BH = .5, ROWS = 21, WX0 = -1.3, WX1 = 1.3, WZ0 = -1.2, WZ1 = 1.6, DEPTH = .5;
+// faces: E = near end (z = WZ1), L = boy side (x = WX0), R = girl side (x = WX1)
+function faceBricks(face) {
+  const len = face === 'E' ? WX1 - WX0 : WZ1 - WZ0, o = [];
+  for (let r = 0; r < ROWS; r++) {
+    const off = (r + (face === 'E' ? 1 : 0)) % 2 ? BL / 2 : 0;
+    for (let u = -off; u < len - 1e-6; u += BL) {
+      const u0 = Math.max(0, u), u1 = Math.min(len, u + BL);
+      if (u1 - u0 < .08) continue;
+      o.push({ face, r, u0, u1 });
+    }
+  }
+  return o;
+}
+// face coords (u along the face, y up) -> world
+function F3(face, u, y, inset = 0) {
+  if (face === 'E') return [WX0 + u, y, WZ1 - inset];
+  if (face === 'L') return [WX0 + inset, y, WZ1 - u];
+  return [WX1 - inset, y, WZ1 - u];
+}
+const FACES = { E: faceBricks('E'), L: faceBricks('L'), R: faceBricks('R') };
+const NORM = { E: [0, 0, 1], L: [-1, 0, 0], R: [1, 0, 0] };
+function faceVisible(face) { const c = F3(face, .5, 3); return dot(NORM[face], sub(CAM.pos, c)) > 0; }
+function quad(face, u0, u1, y0, y1) { return [F3(face, u0, y0), F3(face, u1, y0), F3(face, u1, y1), F3(face, u0, y1)].map(P3); }
+function drawQuad(q, lw, hat = .45) { const p = q.map(v => [v[0], v[1]]); fill(p); if (hat) hatch(p, .8, 9, 2, hat); sk(p, lw, { closed: true, j: 1.4 }); }
+// rows: visible rows (float, last one drops in); crack 0..1 at face-L point; fall 0..1 collapse
+function drawWall(rows, crack = 0, fall = -1, crackAt = [3.6, 4.4]) {
+  screen();
+  const nR = Math.floor(rows), part = rows - nR, topY = Math.min(rows, ROWS) * BH;
+  if (fall >= 0) { drawFalling(fall); return; }
+  for (const face of ['L', 'R', 'E']) {
+    if (!faceVisible(face)) continue;
+    for (const b of FACES[face]) {
+      if (b.r > nR) continue;
+      let dy = 0, al = 1;
+      if (b.r === nR) { if (part <= 0) continue; al = clamp(part * 2); dy = (1 - ease(part)) * .6; }
+      const q = quad(face, b.u0, b.u1, b.r * BH + dy, (b.r + 1) * BH + dy);
+      const z = q[0][2]; ctx.save(); ctx.globalAlpha = al; drawQuad(q, lwAt(z) * 1.1); ctx.restore();
+    }
+  }
+  // top of the wall when the camera is above it
+  if (CAM.pos[1] > topY && nR > 0) {
+    const top = [[WX0, topY, WZ1], [WX1, topY, WZ1], [WX1, topY, WZ0], [WX0, topY, WZ0]].map(P3);
+    const p = top.map(v => [v[0], v[1]]); fill(p); sk(p, lwAt(top[0][2]), { closed: true, j: 1.4 });
+  }
+  if (crack > 0) {
+    const R = mulberry(77); let p = crackAt.slice(); const segs = [];
+    for (let i = 0; i < 16; i++) { const q = [p[0] + (R() - .5) * .9, p[1] + (i % 2 ? .35 : -.35) + (R() - .5) * .5]; segs.push([p, q]); if (R() < .4) segs.push([q, [q[0] + (R() - .5) * .8, q[1] + (R() - .5) * .8]]); p = R() < .5 ? q : crackAt.map((v, k) => v + (R() - .5) * (k ? 1.4 : 1.2)); }
+    const n = Math.floor(segs.length * crack);
+    for (let i = 0; i < n; i++) { const a = P3(F3('L', segs[i][0][0], segs[i][0][1], -.01)), b = P3(F3('L', segs[i][1][0], segs[i][1][1], -.01)); sk([[a[0], a[1]], [b[0], b[1]]], lwAt(a[2]) * .9, { col: '#ffffff', passes: 1 }); }
+    for (let i = 0; i < 8 * crack; i++) { const c = P3(F3('L', crackAt[0] + (R() - .5) * 1.4, crackAt[1] + (R() - .5) * 1.4, -.3 - R() * crack)); fill(ell(c[0], c[1], 4 + R() * 4, 3 + R() * 3, 6), WHITE); }
+  }
+}
+// ---------- bricks as little 3D boxes (falling + rubble) ----------
+function drawBox(c, yaw, roll, pitch = 0) {
+  const hx = BL / 2, hy = BH / 2, hz = DEPTH / 2;
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cr = Math.cos(roll), sr = Math.sin(roll), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const T = ([x, y, z]) => { let a = [x * cr - y * sr, x * sr + y * cr, z]; a = [a[0], a[1] * cp - a[2] * sp, a[1] * sp + a[2] * cp]; return [a[0] * cy + a[2] * sy, a[1], -a[0] * sy + a[2] * cy]; };
+  const V = []; for (const x of [-hx, hx]) for (const y of [-hy, hy]) for (const z of [-hz, hz]) { const q = T([x, y, z]); V.push([c[0] + q[0], c[1] + q[1], c[2] + q[2]]); }
+  const F = [[0, 1, 3, 2, [-1, 0, 0]], [4, 6, 7, 5, [1, 0, 0]], [0, 4, 5, 1, [0, -1, 0]], [2, 3, 7, 6, [0, 1, 0]], [0, 2, 6, 4, [0, 0, -1]], [1, 5, 7, 3, [0, 0, 1]]];
+  const lw = lwAt(dot(sub(c, CAM.pos), CAM.f3));
+  for (const f of F) {
+    const n = T(f[4]); const fc = [0, 1, 2, 3].map(i => V[f[i]]);
+    const mid = fc.reduce((a, v) => [a[0] + v[0] / 4, a[1] + v[1] / 4, a[2] + v[2] / 4], [0, 0, 0]);
+    if (dot(n, sub(CAM.pos, mid)) <= 0) continue;
+    const p = fc.map(v => { const q = P3(v); return [q[0], q[1]]; });
+    fill(p); if (Math.abs(n[1]) < .5) hatch(p, .8, 8, 1.8, .35); sk(p, lw, { closed: true, j: 1.2, passes: 1 });
+  }
+}
+// falling bricks come from the faces the boy sees (L and E)
+const FALLERS = [...FACES.L, ...FACES.E].map((b, i) => {
+  const R = mulberry(i * 13 + 5);
+  const c = F3(b.face, (b.u0 + b.u1) / 2, (b.r + .5) * BH, DEPTH / 2);
+  const layer = Math.floor(Math.pow(R(), .7) * 5), spread = 1 - layer * .17;
+  const ang = R() * Math.PI * 2, rad = Math.sqrt(R()) * spread;
+  const tgt = [.6 + Math.cos(ang) * rad * 4.2, .25 + layer * .42 + R() * .05, .2 + Math.sin(ang) * rad * 2.6];
+  return { b, c, yaw0: b.face === 'E' ? 0 : Math.PI / 2, tgt, yaw1: (R() - .5) * 3, roll1: (R() - .5) * .9, pitch1: (R() - .5) * .5, delay: (ROWS - b.r) / ROWS * .3 + R() * .12, spin: R() };
+});
+function fallState(f, k) {
+  const kk = ease(k), x = lerp(f.c[0], f.tgt[0], kk), z = lerp(f.c[2], f.tgt[2], kk), y = lerp(f.c[1], f.tgt[1], k * k) + Math.sin(k * Math.PI) * .5 * f.spin;
+  return [[x, y, z], lerp(f.yaw0, f.yaw0 + f.yaw1, k), f.roll1 * k + Math.sin(k * Math.PI) * f.spin * 1.2, f.pitch1 * k];
+}
+function drawFalling(fall) {
+  screen();
+  const st = FALLERS.map(f => fallState(f, clamp((fall - f.delay) / (1 - f.delay))));
+  st.sort((a, b) => dot(sub(b[0], CAM.pos), CAM.f3) - dot(sub(a[0], CAM.pos), CAM.f3));
+  for (const s of st) drawBox(...s);
+  const R = mulberry(Math.floor(fall * 40));
+  for (let i = 0; i < 26 * (1 - fall); i++) { const c = P3([WX0 - .2 - R() * 1.5, R() * 9, WZ1 - R() * 7]); fill(ell(c[0], c[1], 2 + R() * 4, 2 + R() * 3, 6), WHITE); }
+}
+function drawRubble() { drawFalling(1); }
 
 // ---------- poses ----------
-const BOY_X = -3.4, GIRL_X = 3.3;
+const BOY_X = -3.6, GIRL_X = 3.6;
 const yellArm = [.95, -.35];
 function boyWide(t) {
   const beat = Math.floor(t / .5), ph = (t % .5) / .5;
@@ -337,46 +362,58 @@ function girlWide(t) {
 export function render(t) {
   rand = mulberry(Math.floor(t * 12) * 131 + 7); // line boil at 12 fps
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = BLACK; ctx.fillRect(0, 0, W, H);
-  if (t < 3.0) { // S1 wide: wall rises between them
-    const k = t / 3.0; cam(0, 4.6, lerp(92, 104, k));
+  if (t < 3.0) { // S1 wide, slightly high: the wall rises between them
+    const k = t / 3.0;
+    cam3([-1.6, 7.5, lerp(27, 24, k)], [0, 5.6, 0], 1900);
     const rows = 1 + 19.5 * Math.pow(clamp(t / 2.85), .9);
-    drawKid(boyWide(t), false); drawKid(girlWide(t), true);
     drawWall(rows);
-  } else if (t < 5.5) { // S2 girl beside the wall, starts to cry
-    const k = (t - 3) / 2.5; cam(3.05, 4.3, lerp(196, 212, k));
+    placeKid(BOY_X, 0); drawKid(boyWide(t), false);
+    placeKid(GIRL_X, 0); drawKid(girlWide(t), true);
+  } else if (t < 5.5) { // S2 her side: the wall fills the left of frame, she leans on it and cries
+    const k = (t - 3) / 2.5;
+    cam3([lerp(5.6, 5.3, k), 5.0, lerp(8.8, 8.2, k)], [2.0, 3.7, -.3], 1300);
     drawWall(ROWS);
-    const cry = sm(3.9, 4.3, t);
-    drawKid({ x: GIRL_X, lean: -.03, tilt: lerp(.05, -.12, cry), down: cry, armL: [.15, .1], armR: [.15, .1],
-      face: { turn: -.35, look: cry > .5 ? [-.2, -1] : [-1, -.2], brows: 'sad', mouth: cry > .5 ? 'quiver' : 'sad', eyes: cry > .7 ? 'half' : 'open', tear: cry > 0 ? clamp((t - 4.1) / 1.3) : 0 } }, true);
-  } else if (t < 7.5) { // S3 boy beside the wall, still yelling, then sulks
-    const k = (t - 5.5) / 2; cam(-3.15, 4.3, lerp(196, 210, k));
+    const cry = sm(3.9, 4.3, t), gx = 2.65;
+    placeKid(gx, -.3);
+    drawKid({ x: gx, lean: lerp(0, -.08, cry), tilt: lerp(0, -.26, cry), down: cry, armL: [.12, .1], armR: [.12, .1],
+      face: { turn: -.15, look: cry > .5 ? [-.2, -1] : [-.8, -.1], brows: 'sad', mouth: cry > .5 ? 'quiver' : 'sad', eyes: cry > .7 ? 'half' : 'open', tear: cry > 0 ? clamp((t - 4.1) / 1.3) : 0 } }, true);
+  } else if (t < 7.5) { // S3 his side: wall on the right, he shouts at it
+    const k = (t - 5.5) / 2;
+    cam3([lerp(-6.2, -5.9, k), 5.4, lerp(9.8, 9.2, k)], [-2.1, 3.7, -.3], 1500);
     drawWall(ROWS);
     const yell = t < 6.4;
-    drawKid({ x: BOY_X, lean: yell ? .08 : 0, tilt: yell ? -.04 : .03, armL: yell ? [.3, .2] : [.12, .1], armR: yell ? [.6, .4] : [.12, .1],
-      face: { turn: .5, look: [1, yell ? .2 : -.1], brows: 'angry', mouth: yell && Math.sin(t * 9) > -.4 ? 'yell' : 'frown' } }, false);
-  } else if (t < 9.0) { // S4 close-up: anger turns into doubt
-    const k = (t - 7.5) / 1.5; cam(-2.95, 6.75, lerp(380, 400, k));
+    placeKid(-2.9, -.3);
+    drawKid({ x: -2.9, lean: yell ? .06 : 0, tilt: yell ? .05 : .03, armL: yell ? [.3, .2] : [.12, .1], armR: yell ? [.35, .25] : [.12, .1],
+      face: { turn: .45, look: [1, yell ? .5 : .2], brows: 'angry', mouth: yell && Math.sin(t * 9) > -.4 ? 'yell' : 'frown' } }, false);
+  } else if (t < 9.0) { // S4 close-up: head fills the frame, wall at the right edge
+    const k = (t - 7.5) / 1.5;
+    cam3([lerp(-3.7, -3.6, k), 7.0, lerp(2.9, 2.6, k)], [-2.2, 6.3, -.3], 1100);
     drawWall(ROWS);
     const soft = sm(8.1, 8.6, t);
-    drawKid({ x: BOY_X, tilt: lerp(.02, .06, soft), armL: [.12, .1], armR: [.12, .1],
-      face: { turn: .45, look: soft > .5 ? [.8, -.5] : [1, 0], brows: soft > .5 ? 'sad' : 'angry', mouth: soft > .5 ? 'sad' : 'frown', eyes: soft > .5 ? 'open' : 'half' } }, false);
+    placeKid(-2.5, -.3, 7);
+    drawKid({ x: -2.5, tilt: lerp(.03, .07, soft), armL: [.12, .1], armR: [.12, .1],
+      face: { turn: .35, look: soft > .5 ? [.8, -.5] : [1, .1], brows: soft > .5 ? 'sad' : 'angry', mouth: soft > .5 ? 'sad' : 'frown', eyes: soft > .5 ? 'open' : 'half' } }, false);
   } else if (t < 10.75) { // S5/S6 he pushes; the wall cracks and falls
-    cam(-2.25, 4.4, 196);
+    cam3([-6.4, 5.4, 10.4], [-1.9, 3.7, -.3], 1450);
     const crack = sm(9.35, 9.95, t), fall = t >= 10.0 ? clamp((t - 10.0) / .75) : -1;
-    const step = sm(9.0, 9.35, t);
-    const P = { x: lerp(BOY_X, -2.55, step), lean: .1 * step, armL: [.15, .1], armR: [lerp(.2, 1.55, step), lerp(.1, -.05, step)],
-      face: { turn: .5, look: [1, -.2], brows: 'worried', mouth: fall >= 0 ? 'o' : 'quiver' } };
-    drawWall(ROWS, crack, fall, [-1.3, 4.45]);
-    drawKid(P, false);
-  } else if (t < 12.0) { // S7 close-up: he looks at the rubble
-    const k = (t - 10.75) / 1.25; cam(-2.65, 6.75, lerp(380, 405, k));
-    drawKid({ x: -2.55, tilt: .1, down: .3, armL: [.12, .1], armR: [.12, .1],
-      face: { turn: .5, look: [.6, -1], brows: 'sad', mouth: 'sad', tear: t > 11.2 ? clamp((t - 11.2) / 1.2) * .6 : 0 } }, false);
-  } else { // S8 wide: alone by the rubble, sinks to his knees
-    const k = (t - 12) / 2.2; cam(-.4, 3.9, lerp(118, 132, k));
+    const step = sm(9.0, 9.35, t), bx = lerp(-2.9, -2.2, step);
+    drawWall(ROWS, crack, fall, [1.9, 5.0]);
+    placeKid(bx, -.3);
+    drawKid({ x: bx, lean: .1 * step, armL: [.15, .1], armR: [lerp(.2, 1.5, step), lerp(.1, -.05, step)],
+      face: { turn: .45, look: [1, -.2], brows: 'worried', mouth: fall >= 0 ? 'o' : 'quiver' } }, false);
+  } else if (t < 12.0) { // S7 close-up: the wall is gone, he looks down at it
+    const k = (t - 10.75) / 1.25;
+    cam3([-2.9, 6.9, lerp(3.0, 2.7, k)], [-2.4, 6.2, -.3], 1100);
+    placeKid(-2.2, -.3, 7);
+    drawKid({ x: -2.2, tilt: .1, down: .3, armL: [.12, .1], armR: [.12, .1],
+      face: { turn: .35, look: [.6, -1], brows: 'sad', mouth: 'sad', tear: t > 11.2 ? clamp((t - 11.2) / 1.2) * .6 : 0 } }, false);
+  } else { // S8 far wide: alone by the rubble, sinks to his knees
+    const k = (t - 12) / 2.2;
+    cam3([-1.5, 6.5, lerp(20, 18.5, k)], [-.5, 4.3, 0], 1050);
     drawRubble();
-    const kn = sm(12.5, 13.3, t);
-    drawKid({ x: -2.2, kneel: kn, lean: .25 * kn, tilt: .15 * kn, down: kn, armL: [lerp(.12, .6, kn), lerp(.1, .5, kn)], armR: [lerp(.12, .7, kn), lerp(.1, .4, kn)],
+    const kn = sm(12.5, 13.3, t), bx = -4.4;
+    placeKid(bx, .4);
+    drawKid({ x: bx, kneel: kn, lean: .25 * kn, tilt: .15 * kn, down: kn, armL: [lerp(.12, .6, kn), lerp(.1, .5, kn)], armR: [lerp(.12, .7, kn), lerp(.1, .4, kn)],
       face: { turn: .4, look: [.5, -1], brows: 'sad', mouth: 'sad', eyes: kn > .6 ? 'closed' : 'open' } }, false);
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
