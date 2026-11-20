@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v2 (ref-style painted night look) delivered 20 Nov 2026, awaiting review |
-| Upload file | `final-reels/born-rich-climb/born-rich-climb-v2.mp4` (16.6 s); `_silent.mp4` for adding a song in-app |
+| Status | v3 (shot-for-shot ref replica, 2 themes) delivered 20 Nov 2026, awaiting review |
+| Upload file | `final-reels/born-rich-climb/born-rich-climb-v3A-painted.mp4` or `-v3B-slowlight.mp4` (15.2 s); `_silent.mp4` for adding a song in-app |
 | Voice | None (label-only) |
 | Source | Remake of the V-Visuals ladder reel, ref-style painted night look; built in `tools/born-rich-climb` |
 
