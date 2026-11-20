@@ -11,12 +11,11 @@ FONT = os.path.join(HERE, "fonts/NotoSansTelugu-800.ttf")
 YEL = (255, 222, 60)
 XF = 0.2  # dissolve length (s)
 # image k starts on (line, phrase)
-ANCH = [(0, 0), (0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 2), (3, 0), (3, 2), (3, 3), (4, 0), (4, 2), (5, 0), (6, 0), (7, 0)]
+ANCH = [(0, 0), (0, 1), (1, 0), (1, 2), (2, 0), (2, 1), (2, 2), (3, 0), (3, 2), (3, 3), (4, 0), (4, 1), (4, 2), (4, 3), (5, 0), (5, 0, 0.5), (6, 0), (6, 1), (7, 0), (7, 1)]
 # small top labels like the ref's "19 నవంబర్ 1977" tag (image index -> lines)
 TAGS = {0: [("ఒక్క బుల్లెట్ కూడా", 92, (255, 255, 255)), ("పేలలేదు!", 120, YEL)],
         2: [("15 జూన్ 2020", 64, (255, 255, 255)), ("గల్వాన్ లోయ, లద్దాఖ్", 46, YEL)],
-        6: [("కల్నల్ బి. సంతోష్ బాబు", 62, (255, 255, 255)), ("సూర్యాపేట, తెలంగాణ · 16 బిహార్ CO", 44, YEL)],
-        13: [("మహావీర్ చక్ర", 64, (255, 255, 255)), ("మరణానంతరం, 2021", 44, YEL)]}
+        6: [("కల్నల్ బి. సంతోష్ బాబు", 62, (255, 255, 255)), ("సూర్యాపేట, తెలంగాణ · 16 బిహార్ CO", 44, YEL)]}
 
 
 def load(path, cover=1.16):
@@ -147,9 +146,18 @@ def main():
     imgdir, timing, vo, music, whoosh, out = sys.argv[1:7]
     T = json.load(open(timing))
     imgs = sorted(glob.glob(os.path.join(imgdir, "[0-9][0-9].*")))
-    assert len(imgs) == 15, imgs
+    assert len(imgs) == len(ANCH), imgs
     ph = T["phrases"]
-    starts = [0.0] + [ph[l][p] - 0.06 for l, p in ANCH[1:]]
+    flat = [x for p in ph for x in p] + [T["total"]]
+
+    def at(a):
+        l, p = a[0], a[1]
+        t = ph[l][p]
+        if len(a) > 2:
+            i = flat.index(t)
+            t = t + (flat[i + 1] - t) * a[2]
+        return t - 0.06
+    starts = [0.0] + [at(a) for a in ANCH[1:]]
     total = T["total"]
     ts = [i / FPS for i in range(int(total * FPS))]
     pic = out + ".pic.mp4"
