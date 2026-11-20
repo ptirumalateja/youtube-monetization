@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v3 (shot-for-shot ref replica, 2 themes) delivered 20 Nov 2026, awaiting review |
-| Upload file | `final-reels/born-rich-climb/born-rich-climb-v3A-painted.mp4` or `-v3B-slowlight.mp4` (15.2 s); `_silent.mp4` for adding a song in-app |
+| Status | v4 Slow Light (hook, helicopter impact, longer aftermath) delivered 20 Nov 2026, awaiting review |
+| Upload file | `final-reels/born-rich-climb/born-rich-climb-v4-slowlight.mp4` (17.6 s); `_silent.mp4` for adding a song in-app |
 | Voice | None (label-only) |
 | Source | Remake of the V-Visuals ladder reel, ref-style painted night look; built in `tools/born-rich-climb` |
 
@@ -25,7 +25,7 @@ Perfectionists lose time but keep what they build. Action takers gain height but
 
 #shorts #perfectionist #actiontaker #mindset #motivation
 
-**Pinned comment:** Which one are you: 1 Perfectionist, 2 Action Taker or 3 Born Rich? 👇
+**Pinned comment:** Was it ever a fair race? Which one are you: 1 Perfectionist, 2 Action Taker or 3 Born Rich? 👇
 
 ## Sound
 Action-synced SFX only (ElevenLabs sound effects; no music, add a trending song in the app). No credits needed.

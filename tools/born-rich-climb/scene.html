@@ -7,7 +7,7 @@
 // v3: shot-for-shot replica of the V-Visuals "Perfectionist vs Action Taker" reel.
 // Locked camera, ref layout measured from the ref frames (720x1280 x1.5), ref beat timings.
 // ?theme=A painted night (ref look)  |  ?theme=B Slow Light (navy/charcoal, gold, teal, cream, red chips)
-const W = 1080, H = 1920, DUR = 15.2;
+const W = 1080, H = 1920, DUR = 17.6;
 const THEME = (new URLSearchParams(location.search).get('theme')||'A').toUpperCase();
 const SL = THEME==='B';
 const cv = document.getElementById('c');
@@ -26,7 +26,7 @@ function pw(keys,t,ease){if(t<=keys[0][0])return keys[0].slice(1);for(let i=1;i<
 // ---------------- palette ----------------
 const C = SL ? {
   wood:'#d9a24a', woodD:'#94601f', woodL:'#f6cf80', woodOut:'#3b2410', rope:'#e6be62',
-  skin:'#efe4cf', skinSh:'#b9ab92', skinHi:'#fffaf0', out:'#1d1b1d', ink:'#1d1b1d',
+  skin:'#f7eedc', skinSh:'#c9b99c', skinHi:'#ffffff', out:'#1d1b1d', ink:'#1d1b1d',
   gold:'#ffc23d', red:'#e0353a', cream:'#f3ead8', glow:'rgba(255,196,90,0.45)'
 } : {
   wood:'#dc9c43', woodD:'#9a6224', woodL:'#f4c574', woodOut:'#4a2c12', rope:'#e0b45a',
@@ -202,7 +202,7 @@ function drawFig(f){
   ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(f.rot||0); ctx.scale(f.s||1,(f.s||1)*(f.sy||1));
   const rich=f.acc==='rich';
   const pal = rich? {skin:'#f6f3ec',sh:'#bdb6a9',hi:'#ffffff',out:C.out} : {skin:C.skin,sh:C.skinSh,hi:C.skinHi,out:C.out};
-  if(SL && !rich){ ctx.shadowColor=C.glow; ctx.shadowBlur=18; }
+  if(SL && !rich){ ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=26; }
   const lean=f.lean||0;
   const nk=[Math.sin(lean)*TORSO, -Math.cos(lean)*TORSO];
   const sh=[[nk[0]-14*Math.cos(lean), nk[1]+8-14*Math.sin(lean)],[nk[0]+14*Math.cos(lean), nk[1]+8+14*Math.sin(lean)]];
@@ -531,12 +531,55 @@ function drawLabels(t){
     ctx.restore(); };
   lab('PERFECTIONIST',292,1814,34,SL?C.cream:'#f1ece4');
   lab('ACTION TAKER',821,1814,34,SL?C.cream:'#f1ece4');
-  if(t>LABEL_BR){ const u=seg(t,LABEL_BR,LABEL_BR+0.12), y=lerp(365,432,smooth(seg(t,10.0,10.25))); ctx.save(); ctx.globalAlpha=u; lab('BORN RICH',236,y,36,SL?C.cream:'#f1ece4',SL); ctx.restore(); }
+  if(t>LABEL_BR){ const u=seg(t,LABEL_BR,LABEL_BR+0.12), y=lerp(365,432,smooth(seg(t,10.0,10.25))); const pop=1+0.9*(1-easeOut(seg(t,LABEL_BR,LABEL_BR+0.22))); ctx.save(); ctx.globalAlpha=u; ctx.translate(236,y); ctx.scale(pop,pop); ctx.translate(-236,-y); lab('BORN RICH',236,y,40,SL?C.cream:'#f1ece4',SL); ctx.restore(); }
+  drawHook(t);
 }
 
 // ---------------- frame ----------------
+
+// ---------------- v4: camera punch, shake, flash, hook/end text ----------------
+function camAt(t){
+  let z=1, cx=540, cy=960;
+  if(t<1.4){ const u=easeOut(seg(t,0,1.4)); z=lerp(1.25,1,u); cy=lerp(1152,960,u); }
+  // helicopter interruption: punch toward the summit, then hold steady for the fall
+  const pin=smooth(seg(t,9.35,9.85)), pout=smooth(seg(t,10.25,10.9));
+  const pk=pin*(1-pout); z*=1+0.07*pk; cx=lerp(cx,800,pk*0.5); cy=lerp(cy,700,pk*0.5);
+  let amp=0;
+  for(const [t0,a,d] of [[9.45,7,1.6],[10.12,22,0.7],[10.8,12,0.45],[11.55,10,0.4]]){ if(t>=t0) amp+=a*Math.exp(-(t-t0)/d*3)*(t-t0<d*2?1:0); }
+  const sx=amp*(Math.sin(t*73)+0.5*Math.sin(t*131)), sy=amp*(Math.cos(t*67)+0.5*Math.sin(t*119));
+  z=Math.max(z, 1+(Math.abs(sx)+2)/540, 1+(Math.abs(sy)+2)/960);
+  const hx=(540+Math.abs(sx))/z, hy=(960+Math.abs(sy))/z;
+  cx=clamp(cx,hx,1080-hx); cy=clamp(cy,hy,1920-hy);
+  return {z,cx,cy,sx,sy};
+}
+function bigText(lines,y0,size,alpha,scale,gap){
+  ctx.save(); ctx.globalAlpha=alpha; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=`800 ${size}px ${FONT}`; ctx.letterSpacing=`${Math.round(size*0.04)}px`;
+  lines.forEach((ln,i)=>{ const y=y0+i*(gap||size*1.15); const [txt,col,lu]=ln; if(lu<=0) return;
+    const sc=scale*(1+0.35*(1-easeOut(clamp(lu,0,1))));
+    ctx.save(); ctx.translate(540,y); ctx.scale(sc,sc); ctx.globalAlpha=alpha*clamp(lu*3,0,1);
+    ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=24; ctx.shadowOffsetY=4; ctx.lineJoin='round';
+    ctx.strokeStyle='rgba(8,10,16,0.85)'; ctx.lineWidth=size*0.14; ctx.strokeText(txt,0,0);
+    shadowOff(); ctx.fillStyle=col; ctx.fillText(txt,0,0); ctx.restore(); });
+  ctx.restore();
+}
+function drawHook(t){
+  const gold=SL?C.gold:'#ffd27a', cream=SL?C.cream:'#f4efe6', red=SL?'#ff4a4f':'#ff6a5a';
+  if(t<2.0){ const out=1-seg(t,1.85,2.0);
+    // dark plate so the words read over the glow
+    const pg=ctx.createLinearGradient(0,240,0,520); pg.addColorStop(0,'rgba(5,8,14,0)'); pg.addColorStop(0.5,`rgba(5,8,14,${0.55*out})`); pg.addColorStop(1,'rgba(5,8,14,0)'); ctx.fillStyle=pg; ctx.fillRect(0,240,W,280);
+    bigText([['SAME GOAL.',cream,1],['DIFFERENT START.',gold,seg(t,0.42,0.6)]],330,92,out,1,108); }
+  else if(t<3.1){ const out=1-seg(t,2.95,3.1);
+    const pg=ctx.createLinearGradient(0,260,0,460); pg.addColorStop(0,'rgba(5,8,14,0)'); pg.addColorStop(0.5,`rgba(5,8,14,${0.5*out})`); pg.addColorStop(1,'rgba(5,8,14,0)'); ctx.fillStyle=pg; ctx.fillRect(0,260,W,200);
+    bigText([['WHO WINS?',cream,seg(t,2.0,2.15)]],360,112,out,1); }
+  if(t>END_T){ const a=seg(t,END_T,END_T+0.2);
+    const pg=ctx.createLinearGradient(0,620,0,940); pg.addColorStop(0,'rgba(5,8,14,0)'); pg.addColorStop(0.5,`rgba(5,8,14,${0.5*a})`); pg.addColorStop(1,'rgba(5,8,14,0)'); ctx.fillStyle=pg; ctx.fillRect(0,620,W,320);
+    bigText([['WAS IT EVER',cream,seg(t,END_T,END_T+0.18)],['A FAIR RACE?',red,seg(t,END_T+0.45,END_T+0.63)]],735,96,1,1,112); }
+}
+const END_T = 13.7;
 function renderAt(t){
   ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; shadowOff(); ctx.globalCompositeOperation='source-over';
+  const cam=camAt(t); ctx.translate(540+cam.sx,960+cam.sy); ctx.scale(cam.z,cam.z); ctx.translate(-cam.cx,-cam.cy);
   ctx.drawImage(BG,0,0);
   for(let i=0;i<STARS.length;i+=9){ const [x,y,r,a,p]=STARS[i]; const tw=0.5+0.5*Math.sin(t*2.6+p*5); if(tw<0.82) continue; ctx.globalAlpha=(tw-0.82)*5*a*clamp((1300-y)/400,0,1); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,r*1.5,0,7); ctx.fill(); }
   ctx.globalAlpha=1;
@@ -560,6 +603,7 @@ function renderAt(t){
   if(t>=AT_FALL[1]){ ropeCoil(690,G+52,1.0); }
   drawDust(t);
   ctx.setTransform(1,0,0,1,0,0);
+  { const f=Math.max(0.42*Math.exp(-Math.max(0,t-BREAK)*9)*(t>=BREAK?1:0), 0.18*Math.exp(-Math.max(0,t-AT_FALL[1])*10)*(t>=AT_FALL[1]?1:0)); if(f>0.01){ ctx.fillStyle=`rgba(255,236,190,${f})`; ctx.fillRect(0,0,W,H);} }
   if(SL){ ctx.globalCompositeOperation='soft-light'; ctx.fillStyle='rgba(20,90,100,0.28)'; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation='source-over'; }
   ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.22; ctx.drawImage(GRAIN,0,0,W,H);
   ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;

@@ -3,7 +3,7 @@ Usage: python3 sfx.py out.wav   Times mirror the timeline constants in scene.htm
 import subprocess, sys
 import numpy as np
 
-SR = 48000; DUR = 15.2
+SR = 48000; DUR = 17.6; END_T = 13.7
 AT_C, AT_T0 = 17, 1.55; AT_P = (8.45 - AT_T0) / (AT_C - 1); AT_TOP = 9.2
 P_FIRST, P_P = 3.3, 0.6; PF_HIT, PF_LAND = 10.15, 11.55
 BREAK = 10.12; AT_FALL = (10.12, 10.8); HELI_IN = 7.75; STARS_T = 11.85; RICH = (11.95, 12.9)
@@ -63,6 +63,12 @@ put('thud', AT_FALL[1], 0.95, 0.35); put('thud', PF_LAND, 0.9, -0.35)
 put('dizzy', STARS_T, 0.3, 0.0, fade_out=0.8)
 for k in range(3): put(('step1', 'step2')[k % 2], RICH[0] + 0.1 + k * 0.39, 0.4, 0.15)
 put('dizzy', 13.4, 0.16, 0.0, fade_in=0.3, fade_out=0.8, length=1.6)
+# v4 beats: hook hits, a heavier helicopter impact, the end question, rotor idling through the hold
+put('thud', 0.0, 0.55, 0.0); put('thud', 0.42, 0.65, 0.0); put('level_ding', 2.0, 0.5, 0.0)
+put('thud', BREAK, 1.0, 0.0); put('heli_land', 9.2, 0.5, 0.0, fade_in=0.2, length=1.4, fade_out=0.6)
+put('thud', END_T, 0.55, 0.0); put('thud', END_T + 0.45, 0.7, 0.0)
+put('heli_far', 12.0, 0.3, 0.3, fade_in=1.0, fade_out=1.5)
+put('dizzy', 15.2, 0.14, 0.0, fade_in=0.3, fade_out=1.0, length=2.2)
 out = out[:int(SR * DUR)]
 out /= max(1e-6, np.abs(out).max()) / 0.8
 out.astype('<f4').tofile('/tmp/_bed.f32')
