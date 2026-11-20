@@ -95,7 +95,9 @@ def kb_frame(src, u, k):
 G = {}
 
 
-def init(imgs, starts, total, caps):
+def init(imgs, starts, total, caps, tags=None):
+    if tags is not None:
+        tags = dict(tags); TAGS.clear(); TAGS.update(tags)
     G["src"] = [load(p) for p in imgs]
     G["starts"], G["total"] = starts, total
     G["caps"] = caps
@@ -145,6 +147,12 @@ def frame(t):
 def main():
     imgdir, timing, vo, music, whoosh, out = sys.argv[1:7]
     T = json.load(open(timing))
+    global ANCH, TAGS
+    if "anch" in T:
+        ANCH = [tuple(a) for a in T["anch"]]
+    if "tags" in T:
+        TAGS.clear()
+        TAGS.update({int(k): [(t, sz, tuple(c)) for t, sz, c in v] for k, v in T["tags"].items()})
     imgs = sorted(glob.glob(os.path.join(imgdir, "[0-9][0-9].*")))
     assert len(imgs) == len(ANCH), imgs
     ph = T["phrases"]
@@ -163,7 +171,7 @@ def main():
     pic = out + ".pic.mp4"
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                            "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", pic], stdin=subprocess.PIPE)
-    with Pool(4, initializer=init, initargs=(imgs, starts, total, T["caps"])) as p:
+    with Pool(4, initializer=init, initargs=(imgs, starts, total, T["caps"], TAGS)) as p:
         for i, buf in enumerate(p.imap(frame, ts, chunksize=8)):
             ff.stdin.write(buf)
             if i % 150 == 0:
@@ -172,7 +180,7 @@ def main():
     # audio: VO + ducked music + soft whooshes on cuts after the hook (none in hook / CTA)
     ins = ["-i", pic, "-i", vo, "-i", music]
     fl = []
-    cuts = [s for s in starts[1:] if 3.0 < s < 27.5]
+    cuts = [s for s in starts[1:] if 3.0 < s < total - 4.2]
     for j, s in enumerate(cuts):
         ins += ["-i", whoosh]
         fl.append(f"[{j+3}:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.18,adelay={int((s-0.12)*1000)}|{int((s-0.12)*1000)}[w{j}]")

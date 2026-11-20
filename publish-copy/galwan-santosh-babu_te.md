@@ -1,4 +1,4 @@
-# Galwan: Col. Santosh Babu (Telugu reel) — publish copy
+# Galwan: Col. Santosh Babu (Telugu reel v3) — publish copy
 
 ## YouTube Shorts
 **Title:** బుల్లెట్ పేలని యుద్ధం 🇮🇳 సూర్యాపేట వీరుడు కల్నల్ సంతోష్ బాబు | Galwan
@@ -10,7 +10,7 @@
 
 ## Facebook / Instagram caption
 తుపాకీ పేల్చకూడదనే ఒప్పందం ఉన్న చోట, రాళ్ల వర్షం మధ్య ముందుండి నిలబడిన మన సూర్యాపేట బిడ్డ. 16 బిహార్ కమాండింగ్ ఆఫీసర్‌గా ఆయన చేసిన త్యాగానికి దేశం మహావీర్ చక్రతో గౌరవించింది. 🇮🇳
-ఆయన పేరు మీ ఊర్లో ఎంత మందికి తెలుసు? కామెంట్‌లో "జై హింద్" అని చెప్పండి.
+ఇలాంటి మరిన్ని విషయాల కోసం "విషయం ఏంటంటే" ని సబ్‌స్క్రైబ్ చేయండి.
 #Galwan #ColSantoshBabu #IndianArmy #Suryapet #JaiHind #TeluguReels
 
 ## Pinned comment
