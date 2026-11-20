@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 20 Nov 2026, awaiting Teja's review |
-| Upload file | `final-reels/born-rich-climb/born-rich-climb-v1.mp4` (16.6 s); `_silent.mp4` for adding a song in-app |
+| Status | v2 (ref-style painted night look) delivered 20 Nov 2026, awaiting review |
+| Upload file | `final-reels/born-rich-climb/born-rich-climb-v2.mp4` (16.6 s); `_silent.mp4` for adding a song in-app |
 | Voice | None (label-only) |
-| Source | Remake of the V-Visuals ladder reel in our cut-paper golden-hour look; built in `tools/born-rich-climb` |
+| Source | Remake of the V-Visuals ladder reel, ref-style painted night look; built in `tools/born-rich-climb` |
 
 ## Publish copy
 
