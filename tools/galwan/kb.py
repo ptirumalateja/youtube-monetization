@@ -180,7 +180,7 @@ def main():
     # audio: VO + ducked music + soft whooshes on cuts after the hook (none in hook / CTA)
     ins = ["-i", pic, "-i", vo, "-i", music]
     fl = []
-    cuts = [s for s in starts[1:] if 3.0 < s < total - 4.2]
+    cuts = []  # Teja 21 Nov: no whooshes between cuts
     for j, s in enumerate(cuts):
         ins += ["-i", whoosh]
         fl.append(f"[{j+3}:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.18,adelay={int((s-0.12)*1000)}|{int((s-0.12)*1000)}[w{j}]")
