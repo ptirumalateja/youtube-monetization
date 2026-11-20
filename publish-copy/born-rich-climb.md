@@ -21,7 +21,7 @@ You can't pick where you start. You can pick how you climb. 🪜
 **Title:** Who Reaches the Top First? 🪜 #shorts
 
 **Description:**
-Two people race to the same door. One builds perfect stairs, one builds a ladder while climbing it. Then someone who never climbed lands right at the top. Stairs survive the storm, ladders don't, and life was never a fair race.
+Perfectionists lose time but keep what they build. Action takers gain height but stand on shaky ground. And a head start can beat both, which is why comparing your climb to someone who was dropped at the top only makes you quit. Your stairs are still standing.
 
 #shorts #perfectionist #actiontaker #mindset #motivation
 
