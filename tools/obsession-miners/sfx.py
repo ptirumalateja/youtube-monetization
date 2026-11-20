@@ -1,12 +1,33 @@
 """Action-synced SFX bed for the obsession miners reel (no music: Teja adds a trending song).
-Usage: python3 sfx.py out.wav
+Usage: python3 sfx.py out.wav [A|B]   (A = with the cards, B = stays in the mine)
 Hit times mirror the swing() phase maths in scene.html."""
 import subprocess, sys
 import numpy as np
 
 SR = 48000
-SEGS = [(0, 3.5, 1), (3.5, 8.9, 1.15), (8.9, 12.2, 1), (13.3, 16.07, 1), (16.07, 18.0, 1.5), (18.0, 18.5, 1), (18.5, 22.8, 1.3),
-        (22.8, 25.0, 1), (26.6, 28.0, 1), (28.0, 30.4, 1.3), (30.4, 33.1, 1)]  # must match scene.html
+VARIANT = (sys.argv[2] if len(sys.argv) > 2 else 'A').upper()
+MID = [(8.9, 12.1, 1)] if VARIANT == 'B' else [(8.9, 12.2, 1), (13.3, 16.07, 1)]
+SEGS = [(0, 3.5, 1), (3.5, 8.9, 1.15), *MID, (16.07, 18.0, 1.5), (18.0, 18.5, 1), (18.5, 22.8, 1.3),
+        (22.8, 25.0, 1), (26.6, 28.0, 1), (28.0, 28.8, 1.3), (28.8, 33.1, 1)]  # must match scene.html
+RED_T = 11.8 if VARIANT == 'B' else 10.8
+SLUMP_B = (10.4, 11.8); TIRED, PAUSE, WIND, BREAK = 28.8, 29.4, 29.85, 30.4
+
+
+def smooth(u):
+    return u * u * (3 - 2 * u)
+
+
+def obs_phase(T):  # mirrors obsPhase() in scene.html; None = not swinging
+    if VARIANT == 'B' and SLUMP_B[0] <= T < SLUMP_B[1]: return None
+    if T < RED_T: return 2.5 * T
+    p1 = 2.5 * RED_T + 4.4 * (TIRED - RED_T)
+    if T < TIRED: return 2.5 * RED_T + 4.4 * (T - RED_T)
+    if T < PAUSE: return p1 + 2.0 * (T - TIRED)
+    if T < WIND: return None
+    if T < BREAK:
+        u = (T - WIND) / (BREAK - WIND)
+        return int(p1) + 1 + (0.62 * smooth(u / 0.8) if u < 0.8 else 0.62 + 0.16 * (u - 0.8) / 0.2)
+    return None
 
 
 def s2o(t):
@@ -35,9 +56,12 @@ def load(name, a=0.0, b=None):
 
 def put(x, t, g=1.0, pan=0.0):
     """t is scene time; dropped if that moment is cut from the V2 edit"""
-    t = s2o(t)
-    if t is None:
+    if WIND <= t < BREAK - 0.01:
         return
+    t0 = s2o(t)
+    if t0 is None:
+        return
+    t = t0
     if x.ndim == 1:
         x = np.stack([x * (1 - max(pan, 0)), x * (1 + min(pan, 0))], 1)
     i = int(t * SR)
@@ -110,13 +134,20 @@ accent = load('869757__mikiko850__dark-suspense-accent.wav', 0.0, 0.48)
 spark = load('849772__mikiko850__electric-sparks.wav', 0.0, 0.25)
 
 # --- digging clinks (scene time intervals where the dig is on screen) ---
-vis = [(0, 11.2), (11.7, 12.2), (16.07, 23.2), (28.0, 33.1)]
+vis = [(0, 12.2), (16.07, 23.2), (28.0, 33.1)] if VARIANT == 'B' else [(0, 11.2), (11.7, 12.2), (16.07, 23.2), (28.0, 33.1)]
 def vis_g(t):
     return 1.0 if any(a <= t < b for a, b in vis) else (0.25 if 23.2 <= t < 28 else 0)
-for t in hits(2.5, 0, 0.0, 10.8) + hits(4.4, 0, 10.8, 33.1):
+obs_hits = []; prev = None
+for T in np.arange(0, 33.1, 0.002):
+    ph = obs_phase(T)
+    if ph is not None and prev is not None and np.floor(ph - 0.78) > np.floor(prev - 0.78): obs_hits.append(T)
+    prev = ph
+for t in obs_hits:
     g = vis_g(t)
-    if g: put(clink(rng.uniform(0.95, 1.08)), t, 0.55 * g, 0.1)
-    if g and t >= 10.8 and t < 23.2 or t >= 28: put(spark, t, 0.25 * g)
+    if abs(t - BREAK) < 0.05: continue  # the final strike gets its own sound
+    tired = 0.6 if TIRED <= t < BREAK else 1.0
+    if g: put(clink(rng.uniform(0.95, 1.08) * (0.9 if tired < 1 else 1)), t, 0.55 * g * tired, 0.1)
+    if g and t >= RED_T and (t < 23.2 or t >= 28): put(spark, t, 0.25 * g * tired)
 for rate, off, a, b, pan in [(2.3, 0.1, 0, 3.5, -0.4), (2.4, 0.3, 0, 4.4, -0.2), (2.2, 0.55, 0, 18.6, 0.3), (1.2, 0.55, 18.6, 20.9, 0.3)]:
     for t in hits(rate, off, a, b):
         g = vis_g(t)
@@ -130,9 +161,15 @@ put(bonk(), 6.0, 0.9)
 put(whoosh, 6.45 - 1.0, 0.55); put(whoosh[::-1].copy(), 7.5 - 1.2, 0.45)
 for t in (8.9, 9.4, 10.1): put(pop(), t, 0.9)
 put(whoosh, 10.7 - 1.0, 0.5)
-put(braam, 10.8 - 0.15, 0.55); put(boom(45, 1.2, 0.8), 10.8)
-put(riser, 11.2 - 0.5, 0.7)
-put(boom(60, 0.6, 0.7), 11.7)
+if VARIANT == 'B':
+    hb = np.concatenate([boom(42, 0.25, 0.5), np.zeros(int(0.12 * SR), np.float32), boom(40, 0.3, 0.35)])
+    for t in (10.45, 11.05): put(hb, t, 0.8)          # heartbeat while he slumps
+    put(sparkle(0.9, 10, 1500, 0.45), 10.8)            # light leaks through the rock
+    put(riser[:int(0.5 * SR)], 11.8 - 0.5, 0.6)
+put(braam, RED_T - 0.15, 0.55); put(boom(45, 1.2, 0.8), RED_T)
+if VARIANT == 'A':
+    put(riser, 11.2 - 0.5, 0.7)
+    put(boom(60, 0.6, 0.7), 11.7)
 put(accent, 13.3, 0.8)
 put(boom(48, 0.8, 0.7), 13.3)
 for t in (14.2, 14.5, 14.8, 15.0): put(boom(52, 0.5, 0.85), t)
@@ -149,10 +186,13 @@ put(whoosh, 23.2 - 1.0, 0.6)
 put(pop(1200, 0.06), 24.0, 0.6); put(boom(55, 0.6, 0.7), 24.75)
 put(boom(60, 0.6, 0.7), 28.0)
 # breakthrough: crack creaks, then shatter + boom + light shimmer
-for k in range(5): put(clink(0.55 + 0.05 * k, 0.12), 29.6 + k * 0.15, 0.35)
-shat = rng.standard_normal(int(0.7 * SR)).astype(np.float32) * env(int(0.7 * SR), 0.002, 0.18).astype(np.float32) * 0.8
-put(shat, 30.4, 0.8); put(boom(38, 1.6, 1.2), 30.4); put(braam, 30.4 - 0.15, 0.4)
-for k in range(16): put(clink(rng.uniform(0.6, 1.0), 0.12), 30.45 + rng.uniform(0, 0.6), 0.25)
+# pause: exhausted heartbeat + rock creaking as light leaks; then silence 29.85-30.4 before the strike
+hb = np.concatenate([boom(42, 0.25, 0.5), np.zeros(int(0.12 * SR), np.float32), boom(40, 0.3, 0.35)])
+put(hb, 29.42, 0.8)
+for k in range(3): put(clink(0.55 + 0.05 * k, 0.12), 29.5 + k * 0.12, 0.3)
+shat = rng.standard_normal(int(0.9 * SR)).astype(np.float32) * env(int(0.9 * SR), 0.002, 0.22).astype(np.float32) * 0.9
+put(shat, 30.4, 1.0); put(boom(34, 2.0, 1.5), 30.4); put(braam, 30.4, 0.45)
+for k in range(24): put(clink(rng.uniform(0.6, 1.0), 0.12), 30.45 + rng.uniform(0, 0.6), 0.25)
 put(sparkle(2.4, 30, 2200, 0.8), 30.5)
 
 # limiter-ish normalise

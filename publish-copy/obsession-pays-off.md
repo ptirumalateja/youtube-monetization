@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | v2 (tightened, 27.5 s) delivered 19 Nov 2026, awaiting review |
-| Upload file | `final-reels/obsession-miners/obsession-pays-off-v2.mp4` (SFX only; `_silent.mp4` for adding a song in-app) |
-| Length | 27.5 s |
+| Status | v3 delivered 20 Nov 2026 in two versions, awaiting Teja's pick |
+| Upload file | `final-reels/obsession-miners/obsession-pays-off-v3A-with-cards.mp4` (27.9 s) or `...-v3B-no-cards.mp4` (25.0 s); `_silent.mp4` copies for adding a song in-app |
+| Length | 27.9 s (A) / 25.0 s (B) |
 | Voice | None (wordless, label-only) |
 | Source | Faithful remake of ref #1 in `concepts/viral-ref-five-breakdown.md`; built in `tools/obsession-miners` |
 

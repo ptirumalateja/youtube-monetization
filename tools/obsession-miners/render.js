@@ -6,7 +6,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-const SCENE = 'file://' + path.join(__dirname, 'scene.html');
+const SCENE = 'file://' + path.join(__dirname, 'scene.html') + '?v=' + (process.env.V || 'A');
 
 async function openPage(browser) {
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
