@@ -30,6 +30,8 @@ Four miners start the same dig toward the same diamonds. Motivation quits when t
 
 #shorts #obsession #discipline #mindset #motivation #selfimprovement
 
+**Tags:** obsession, obsession pays off, obsession vs talent, obsession beats talent, discipline, discipline vs motivation, motivation vs discipline, never give up, keep digging, dont quit, self improvement, mindset, success mindset, hard work, consistency, motivational shorts, motivation animation, stickman animation, miners animation, digging for diamonds, ego vs obsession, talent vs hard work, growth mindset, shorts
+
 **Pinned comment:** Be honest: which miner quit in your last big goal? 👇
 
 ## Sound
