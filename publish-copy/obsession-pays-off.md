@@ -8,25 +8,29 @@
 | Voice | None (wordless, label-only) |
 | Source | Faithful remake of ref #1 in `concepts/viral-ref-five-breakdown.md`; built in `tools/obsession-miners` |
 
-## Publish copy
+## Publish copy (v3, same for A and B)
 
 ### Instagram / Facebook
-Motivation quits when the feeling fades. Talent quits at the first reward. Ego quits when it's comfortable.
-Obsession doesn't need a reason to swing again. That's the whole difference. ⛏️
+Motivation runs on feelings, so it stops when the feeling fades.
+Talent stops at the first reward, because it was never tested.
+Ego stops at "good enough" and calls it success.
+Obsession has no exit condition. Doubt shows up, the arms get tired, and it still takes one more swing.
 
-Which miner are you right now? 👇
+Most people quit one swing before the wall breaks. ⛏️💎
 
-#obsession #discipline #selfimprovement #mindset #motivation #success #hardwork #consistency #stickman
+Which one are you right now: Motivation, Talent, Ego or Obsession? 👇
+
+#obsession #discipline #mindset #selfimprovement #consistency #hardwork #motivation #success #growthmindset #stickman
 
 ### YouTube Shorts
-**Title:** They All Stopped. He Kept Digging. #shorts
+**Title:** Why Only One Miner Reached the Diamonds #shorts
 
 **Description:**
-Four miners start the same dig. The ones who need a feeling, a reward or comfort all stop somewhere along the way. The one who just keeps swinging is the only one who reaches the bottom.
+Four miners start the same dig toward the same diamonds. Motivation quits when the feeling fades, Talent stops at the first nugget, and Ego settles for the gold. Only Obsession keeps swinging through the doubt and the exhaustion, and the wall breaks on the swing everyone else never took.
 
-#shorts #obsession #discipline #mindset #motivation
+#shorts #obsession #discipline #mindset #motivation #selfimprovement
 
-**Pinned comment:** Be honest: which one stopped in your last goal? Motivation, Talent or Ego?
+**Pinned comment:** Be honest: which miner quit in your last big goal? 👇
 
 ## Sound
 Action-synced SFX only (no music; add a trending song in the app). Credit required (CC BY 4.0, add to the YouTube description):
