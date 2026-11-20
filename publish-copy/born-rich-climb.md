@@ -25,6 +25,8 @@ Perfectionists lose time but keep what they build. Action takers gain height but
 
 #shorts #perfectionist #actiontaker #mindset #motivation
 
+**Tags:** perfectionist vs action taker, born rich, unfair advantage, life is not fair, privilege, hard work vs privilege, hard work vs head start, rich kid, rich vs poor, perfectionism, action taker, take action, overthinking, success mindset, motivation, motivational animation, mindset shorts, self improvement, hustle, discipline, reality of life, which one are you, short animation, animated story, slow light
+
 **Pinned comment:** Was it ever a fair race? Which one are you: 1 Perfectionist, 2 Action Taker or 3 Born Rich? 👇
 
 ## Sound
