@@ -5,8 +5,8 @@ window.REEL={
   header:'GTA 6  •  BY THE NUMBERS',
   scenes:[
     {type:'title',dur:2.0,big:'GTA 6',lines:['JUST BROKE','THE INTERNET'],small:'6 numbers that prove it'},
-    {type:'stat',dur:3.2,tag:'#1  PRE-ORDERS',col:'#3ff0ff',from:8,to:15.88,fmt:M2,
-     cap:['COPIES PRE-ORDERED','BEFORE THE GAME CAME OUT'],chip:'Most pre-ordered game ever'},
+    {type:'stat',dur:3.2,tag:'#1  PRE-ORDERS',col:'#3ff0ff',from:20,to:32.5,fmt:v=>v.toFixed(1)+'M',
+     cap:['COPIES SOLD BEFORE','THE GAME EVEN LAUNCHED'],chip:'New all-time record (Rockstar)'},
     {type:'vs',dur:3.8,tag:'#2  LAUNCH DAY',col:'#ffd23f',title:'DAY ONE: GTA 5 vs GTA 6',fmt:B,
      a:{label:'GTA 5 (2013)',v:0.8,sub:'first-day sales'},
      b:{label:'GTA 6 (2026)',v:3.79,sub:'first-day sales'},chip:'Nearly 5x bigger'},
