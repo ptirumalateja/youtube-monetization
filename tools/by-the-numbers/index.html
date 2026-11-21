@@ -1,6 +1,7 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
-<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<style>@font-face{font-family:NotoTe;src:url(fonts/NotoSansTelugu-Black.ttf);font-weight:800 900}@font-face{font-family:NotoTe;src:url(fonts/NotoSansTelugu-Bold.ttf);font-weight:400 700}
+html,body{margin:0;background:#000}canvas{display:block}</style>
 </head><body>
 <canvas id="c" width="1080" height="1920"></canvas>
 <script>
@@ -24,6 +25,7 @@ function drawCity(city,speed,t,baseY,col,winCols,scale){
     if(winCols){for(const [i,j,c] of bd.win){const wx=x+8+i*26,wy=baseY-h+14+j*34*scale;if(wy>baseY-10)continue;X.fillStyle=winCols[c];X.fillRect(wx,wy,12,16*scale)}}}
 }
 function palm(x,by,h,s,col,lean,sway){
+  if(window.REEL&&REEL.theme&&REEL.theme.tree==='round')return tree(x,by,h,s,col,lean,sway);
   X.save();X.translate(x,by);X.scale(s,s);X.fillStyle=col;X.strokeStyle=col;
   // trunk
   X.beginPath();X.moveTo(-14,0);X.quadraticCurveTo(lean*.5,-h*.5,lean-6,-h);X.lineTo(lean+6,-h);X.quadraticCurveTo(lean*.5+14,-h*.5,14,0);X.fill();
@@ -33,7 +35,37 @@ function palm(x,by,h,s,col,lean,sway){
     X.beginPath();X.moveTo(0,0);X.quadraticCurveTo(ex*.5,ey*.5-70,ex,ey);X.quadraticCurveTo(ex*.55,ey*.5-40,0,8);X.fill();}
   X.restore();
 }
+function tree(x,by,h,s,col,lean,sway){
+  X.save();X.translate(x,by);X.scale(s,s);X.fillStyle=col;
+  X.beginPath();X.moveTo(-16,0);X.lineTo(lean*.3-9,-h*.55);X.lineTo(lean*.3+9,-h*.55);X.lineTo(16,0);X.fill();
+  const r=rng(Math.floor(Math.abs(x*7+h))|0);const cy=-h*.62;
+  for(let k=0;k<9;k++){const a=k/9*6.283;const R=h*.2+r()*h*.06;X.beginPath();X.arc(lean*.3+Math.cos(a)*h*.17,cy+Math.sin(a)*h*.11+Math.sin(sway+k)*2,R,0,7);X.fill();}
+  X.restore();
+}
+function charminar(cx,by,s,col,acc){ // our own silhouette of the 1591 monument
+  X.save();X.translate(cx,by);X.scale(s,s);X.fillStyle=col;
+  X.fillRect(-150,-300,300,300); // main block
+  X.fillStyle=acc;X.beginPath();X.moveTo(-70,0);X.lineTo(-70,-170);X.quadraticCurveTo(0,-250,70,-170);X.lineTo(70,0);X.fill(); // big arch glow
+  X.fillStyle=col;X.fillRect(-150,-330,300,30);
+  for(let i=-2;i<=2;i++){X.fillStyle=acc;X.fillRect(i*48-14,-292,28,40);} // gallery
+  X.fillStyle=col;X.beginPath();X.arc(0,-330,46,Math.PI,0);X.fill();
+  for(const mx of[-160,160]){X.fillStyle=col;X.fillRect(mx-22,-560,44,560);
+    for(const y of[-330,-430,-520]){X.fillRect(mx-34,y,68,12);}
+    X.beginPath();X.arc(mx,-560,30,Math.PI,0);X.fill();X.fillRect(mx-3,-630,6,40);}
+  X.restore();
+}
+function auto(x,y,t){ // auto-rickshaw
+  X.save();X.translate(x,y);
+  const g=X.createRadialGradient(0,40,10,0,40,240);g.addColorStop(0,'rgba(255,220,90,.5)');g.addColorStop(1,'rgba(255,220,90,0)');X.fillStyle=g;X.fillRect(-260,-20,520,140);
+  X.fillStyle='#1f7a3a';X.beginPath();X.moveTo(-150,30);X.lineTo(-150,-60);X.quadraticCurveTo(-140,-130,-40,-135);X.lineTo(90,-135);X.quadraticCurveTo(140,-130,150,-70);X.lineTo(165,30);X.closePath();X.fill();
+  X.fillStyle='#ffd21f';X.fillRect(-150,-20,315,40);X.fillStyle='#1a0a30';X.fillRect(-120,-110,110,80);
+  X.fillStyle='#7ff3ff';X.fillRect(30,-118,100,70);X.fillStyle='#ffe066';X.fillRect(150,-10,18,14);
+  for(const wx of[-100,125]){X.fillStyle='#160a2c';X.beginPath();X.arc(wx,32,26,0,7);X.fill();X.strokeStyle='#ffe066';X.lineWidth=4;X.beginPath();X.arc(wx,32,13,0,7);X.stroke();
+    const a=t*40;X.beginPath();X.moveTo(wx+Math.cos(a)*13,32+Math.sin(a)*13);X.lineTo(wx-Math.cos(a)*13,32-Math.sin(a)*13);X.stroke();}
+  X.restore();
+}
 function car(x,y,t){
+  if(window.REEL&&REEL.theme&&REEL.theme.vehicle==='auto')return auto(x,y,t);
   X.save();X.translate(x,y);
   // glow under
   const g=X.createRadialGradient(0,40,10,0,40,260);g.addColorStop(0,'rgba(255,90,170,.55)');g.addColorStop(1,'rgba(255,90,170,0)');X.fillStyle=g;X.fillRect(-280,-20,560,140);
@@ -75,14 +107,14 @@ function flyObj(kind,p,side,seed,spread){ // p 0..1: far -> past the camera
   X.save();X.globalAlpha=a;X.translate(540+side*spread*s,820);X.scale(s,s);
   if(kind==='palm'){palm(0,330,520,1,'#2b0f4d',side*-60,seed);}
   else if(kind==='sign'){X.translate(0,120);X.fillStyle='#2b0f4d';X.fillRect(-12,-40,24,440);X.shadowColor='#3ff0ff';X.shadowBlur=30;X.strokeStyle='#3ff0ff';X.lineWidth=10;X.strokeRect(-180,-200,360,160);
-    X.fillStyle='#ff5fc0';X.font='900 italic 74px Inter';X.textAlign='center';X.textBaseline='middle';X.fillText(seed>1?'24 / 7':'OPEN',0,-120);X.shadowBlur=0;}
+    X.fillStyle='#ff5fc0';X.font='900 italic 74px Inter, NotoTe';X.textAlign='center';X.textBaseline='middle';X.fillText(seed>1?'24 / 7':'OPEN',0,-120);X.shadowBlur=0;}
   else if(kind==='bill'){X.translate(0,90);X.fillStyle='#2b0f4d';X.fillRect(-14,0,28,420);X.fillStyle='#fff1c9';X.fillRect(-230,-190,460,200);X.fillStyle='#d94fb0';X.fillRect(-230,-190,460,30);
-    X.fillStyle='#4a1b7a';X.font='900 italic 64px Inter';X.textAlign='center';X.textBaseline='middle';X.fillText('SLOW LIGHT',0,-70);X.font='700 30px Inter';X.fillText('BY THE NUMBERS',0,-20);}
+    X.fillStyle='#4a1b7a';X.font='900 italic 64px Inter, NotoTe';X.textAlign='center';X.textBaseline='middle';X.fillText('SLOW LIGHT',0,-70);X.font='700 30px Inter, NotoTe';X.fillText('BY THE NUMBERS',0,-20);}
   X.restore();
 }
 function wipePalm(p,dir,seed){ // foreground palm whipping across the lens at a scene change
   if(p<=0||p>=1)return;const x=dir>0?lerp(-900,1980,p):lerp(1980,-900,p);
-  X.save();X.translate(x,0);X.rotate(dir*-0.12);palm(0,2300,880,2.2,'#24093f',dir*120,seed);X.restore();
+  X.save();X.translate(x,0);X.rotate(dir*-0.12);if(REEL.theme&&REEL.theme.tree==='round'){X.translate(0,0);tree(0,2100,700,1.35,'#24093f',dir*80,seed);}else palm(0,2300,880,2.2,'#24093f',dir*120,seed);X.restore();
 }
 // ---------- sparks ----------
 function sparks(t0,t,x,y,col,seed){const p=t-t0;if(p<0||p>.9)return;const r=rng(seed);X.save();X.lineCap='round';
@@ -94,8 +126,8 @@ function txt(s,x,y,font,fill,opt={}){X.save();X.font=font;X.textAlign=opt.align|
   if(opt.stroke){X.lineJoin='round';X.lineWidth=opt.sw||14;X.strokeStyle=opt.stroke;X.strokeText(s,x,y)}
   if(opt.glow){X.shadowColor=opt.glow;X.shadowBlur=opt.gb||36}X.fillStyle=fill;X.fillText(s,x,y);
   if(opt.glow){X.shadowBlur=(opt.gb||36)/3;X.fillText(s,x,y)}X.restore();}
-function fitFont(s,weight,max,maxW){X.font=`${weight} ${max}px Inter`;let sz=max;while(X.measureText(s).width>maxW&&sz>20){sz-=4;X.font=`${weight} ${sz}px Inter`}return sz}
-function pill(s,cx,cy,bg,fg,sz=34){X.save();X.font=`800 ${sz}px Inter`;const w=X.measureText(s).width+56,h=sz+30;X.fillStyle=bg;X.beginPath();X.roundRect(cx-w/2,cy-h/2,w,h,h/2);X.fill();
+function fitFont(s,weight,max,maxW){X.font=`${weight} ${max}px Inter, NotoTe`;let sz=max;while(X.measureText(s).width>maxW&&sz>20){sz-=4;X.font=`${weight} ${sz}px Inter, NotoTe`}return sz}
+function pill(s,cx,cy,bg,fg,sz=34){X.save();X.font=`800 ${sz}px Inter, NotoTe`;const w=X.measureText(s).width+56,h=sz+30;X.fillStyle=bg;X.beginPath();X.roundRect(cx-w/2,cy-h/2,w,h,h/2);X.fill();
   X.fillStyle=fg;X.textAlign='center';X.textBaseline='middle';X.fillText(s,cx,cy+2);X.restore();}
 function panel(y0,y1,a){X.save();X.globalAlpha=a;X.fillStyle='rgba(46,14,86,.72)';X.beginPath();X.roundRect(96,y0,888,y1-y0,40);X.fill();
   X.strokeStyle='rgba(255,140,220,.8)';X.lineWidth=4;X.stroke();X.restore();}
@@ -114,13 +146,13 @@ function statScene(s,t,i,total){ // t local seconds
   const str=s.fmt(cu>=0.999?s.to:v);
   X.save();X.globalAlpha=A;X.translate(540,620);X.scale(bump*(1+out*.25),bump*(1+out*.25));
   const sz=fitFont(s.fmt(s.to),'900 italic',230,740);
-  txt(str,0,0,`900 italic ${sz}px Inter`,'#ffffff',{stroke:'#3b0d6b',sw:18,glow:s.col,gb:50});X.restore();
+  txt(str,0,0,`900 italic ${sz}px Inter, NotoTe`,'#ffffff',{stroke:'#3b0d6b',sw:18,glow:s.col,gb:50});X.restore();
   sparks(landT,t,540,620,s.col,i*17+3);
   // underline sweep
   const us=s.instant?1:eo((t-landT+.1)/.35);X.save();X.globalAlpha=A;X.fillStyle=s.col;X.fillRect(540-260*us,752,520*us,10);X.restore();
   // caption lines
   s.cap.forEach((ln,k)=>{const ap=s.instant?1:eo((t-landT-0.05-k*0.12)/.25);X.save();X.globalAlpha=A*ap;X.translate(0,(1-ap)*30);
-    const fs=fitFont(ln,'800',56,800);txt(ln,540,822+k*68,`800 ${fs}px Inter`,'#ffffff',{stroke:'#2a0a50',sw:10});X.restore();});
+    const fs=fitFont(ln,'800',56,800);txt(ln,540,822+k*68,`800 ${fs}px Inter, NotoTe`,'#ffffff',{stroke:'#2a0a50',sw:10});X.restore();});
   // chip (extra punch)
   if(s.chip){const cp=back((t-landT-0.75)/.3);if(cp>0){X.save();X.globalAlpha=A*cl(cp);X.translate(540,1150);X.scale(cp,cp);pill(s.chip,0,0,'#ffe066','#3b0d6b',40);X.restore();}}
 }
@@ -128,24 +160,24 @@ function versusScene(s,t){
   const D=s.dur,out=cl((t-(D-0.16))/0.16),A=eo(t/.14)*(1-out);
   panel(390,1250,A*.95);
   X.save();X.globalAlpha=A;pill(s.tag,540,450,s.col,'#24083f',34);X.restore();
-  X.save();X.globalAlpha=A;const fs=fitFont(s.title,'900 italic',84,820);txt(s.title,540,560,`900 italic ${fs}px Inter`,'#fff',{stroke:'#3b0d6b',sw:14,glow:s.col,gb:30});X.restore();
+  X.save();X.globalAlpha=A;const fs=fitFont(s.title,'900 italic',84,820);txt(s.title,540,560,`900 italic ${fs}px Inter, NotoTe`,'#fff',{stroke:'#3b0d6b',sw:14,glow:s.col,gb:30});X.restore();
   const maxV=s.b.v*1.04,x0=150,BW=780;
   [[s.a,700,0.35,'#9aa7ff'],[s.b,960,1.1,s.col]].forEach(([r,y,t0,col],k)=>{
     const g=eo((t-t0)/(k?0.9:0.7));X.save();X.globalAlpha=A;
-    const lf=fitFont(r.label,'800',44,780);txt(r.label,x0,y-56,`800 ${lf}px Inter`,'#fff',{align:'left',stroke:'#2a0a50',sw:8});
+    const lf=fitFont(r.label,'800',44,780);txt(r.label,x0,y-56,`800 ${lf}px Inter, NotoTe`,'#fff',{align:'left',stroke:'#2a0a50',sw:8});
     X.fillStyle='rgba(255,255,255,.15)';X.beginPath();X.roundRect(x0,y-30,BW,90,22);X.fill();
     const w=BW*(r.v/maxV)*g;X.fillStyle=col;X.shadowColor=col;X.shadowBlur=k?40:10;X.beginPath();X.roundRect(x0,y-30,Math.max(w,1),90,22);X.fill();X.shadowBlur=0;
-    const val=s.fmt(r.v*g);if(g>0.08)txt(val,x0+Math.max(w,170)-20,y+16,'900 italic 58px Inter','#2a0a50',{align:'right'});
-    txt(r.sub,x0,y+100,'700 36px Inter','#ffe9f6',{align:'left',stroke:'#2a0a50',sw:7});
+    const val=s.fmt(r.v*g);if(g>0.08)txt(val,x0+Math.max(w,170)-20,y+16,'900 italic 58px Inter, NotoTe','#2a0a50',{align:'right'});
+    txt(r.sub,x0,y+100,'700 36px Inter, NotoTe','#ffe9f6',{align:'left',stroke:'#2a0a50',sw:7});
     X.restore();});
   sparks(2.0,t,150+780*(s.b.v/maxV),976,s.col,99);
   const pp=back((t-2.3)/.3);if(pp>0){X.save();X.globalAlpha=A*cl(pp);X.translate(540,1170);X.scale(pp,pp);pill(s.chip,0,0,'#ffe066','#3b0d6b',42);X.restore();}
 }
 function ctaScene(s,t){
   const A=eo(t/.14);X.save();X.globalAlpha=A;panel(470,1250,.95);
-  s.lines.forEach((ln,k)=>{const p=back((t-k*.12)/.35);X.save();X.translate(540,600+k*120);X.scale(p,p);
-    txt(ln,0,0,'900 italic 108px Inter','#fff',{stroke:'#3b0d6b',sw:18,glow:'#ff5fc0',gb:40});X.restore();});
-  const p2=eo((t-.6)/.3);X.globalAlpha=A*p2;txt(s.sub,540,980,'800 50px Inter','#ffe066',{stroke:'#2a0a50',sw:9});
+  s.lines.forEach((ln,k)=>{const p=back((t-k*.12)/.35);X.save();X.translate(540,600+k*120);X.scale(p,p);const cs=fitFont(ln,'900 italic',108,800);
+    txt(ln,0,0,`900 italic ${cs}px Inter, NotoTe`,'#fff',{stroke:'#3b0d6b',sw:18,glow:'#ff5fc0',gb:40});X.restore();});
+  const p2=eo((t-.6)/.3);X.globalAlpha=A*p2;const ss=fitFont(s.sub,'800',50,800);txt(s.sub,540,980,`800 ${ss}px Inter, NotoTe`,'#ffe066',{stroke:'#2a0a50',sw:9});
   const p3=back((t-.9)/.3);if(p3>0){X.translate(540,1120);X.scale(p3,p3);const pulse=1+0.04*Math.sin(t*8);X.scale(pulse,pulse);pill(s.btn,0,0,'#ff4fa0','#fff',44);}
   X.restore();
 }
@@ -154,7 +186,7 @@ function ctaScene(s,t){
 let TL=null;
 function build(){let t=0;TL=window.REEL.scenes.map(s=>{const o={...s,t0:t};t+=s.dur;return o});window.DUR=t;}
 function header(t,idx,n){ // series header + progress (open loop)
-  txt(window.REEL.header,540,312,'800 34px Inter','#ffffff',{stroke:'#3b0d6b',sw:8});
+  txt(window.REEL.header,540,312,'800 34px Inter, NotoTe','#ffffff',{stroke:'#3b0d6b',sw:8});
   const segW=600/n;for(let i=0;i<n;i++){const x=240+i*segW;X.fillStyle='rgba(255,255,255,.35)';X.fillRect(x+4,348,segW-8,8);
     let f=i<idx?1:(i===idx?cl(t):0);X.fillStyle='#ffe066';X.fillRect(x+4,348,(segW-8)*f,8);}
 }
@@ -167,9 +199,10 @@ window.renderAt=function(t){
   X.save();X.translate(540,1300);X.scale(zoom,zoom);X.translate(-540,-1300);
   sky();sun(t);
   drawCity(FAR,40,t,HZ,'#9b4fc4',null,1);
-  drawCity(MID,120,t,HZ,'#5e2b8f',['#ffe38a','#7ff3ff'],1);
+  if(REEL.theme&&REEL.theme.landmark==='charminar')charminar(540,HZ,0.82,'#6a3399','#ffcf6e');
+  drawCity(MID,120,t,HZ,'#5e2b8f',['#ffe38a','#7ff3ff'],REEL.theme&&REEL.theme.landmark?0.7:1);
   // mid palms
-  const po=(t*260)%1400;for(let k=-1;k<4;k++){palm(k*700-po+300,HZ+40,560,1,'#3a1468',-70,t*2+k);palm(k*700-po+560,HZ+40,420,.9,'#3a1468',50,t*2+k*2)}
+  const rt=REEL.theme&&REEL.theme.tree==='round',th=rt?.5:1;const po=(t*260)%1400;for(let k=-1;k<4;k++){palm(k*700-po+300,HZ+40,560*th,1,'#3a1468',-70,t*2+k);palm(k*700-po+560,HZ+40,420*th,.9,'#3a1468',50,t*2+k*2)}
   road(t);X.save();X.translate(540,1740);X.scale(1.35,1.35);car(0,0,t);X.restore();
   X.restore();
   // fly-through foreground objects: opener + each transition
@@ -182,10 +215,10 @@ window.renderAt=function(t){
   header(si<0?1:lt/s.dur,si<0?stats.length:si,stats.length);
   if(s.type==='stat')statScene(s,lt,idx,TL.length);else if(s.type==='vs')versusScene(s,lt);else ctaScene(s,lt);
   // hook line above everything on the first scene
-  if(idx===0&&window.REEL.hookTop){X.save();txt(window.REEL.hookTop,540,1260,'900 italic 64px Inter','#fff',{stroke:'#3b0d6b',sw:14,glow:'#ff4fa0',gb:30});X.restore();}
+  if(idx===0&&window.REEL.hookTop){X.save();txt(window.REEL.hookTop,540,1260,'900 italic 64px Inter, NotoTe','#fff',{stroke:'#3b0d6b',sw:14,glow:'#ff4fa0',gb:30});X.restore();}
   return C.toDataURL('image/jpeg',0.92);
 };
 </script>
-<script src="reel.js"></script>
-<script>document.fonts.load('900 italic 100px Inter').then(()=>document.fonts.load('800 50px Inter')).then(()=>{build();window.ready=true});</script>
+<script>document.write('<script src="'+(new URLSearchParams(location.search).get('reel')||'reel.js')+'"><\/script>')</script>
+<script>document.fonts.load('900 100px NotoTe').then(()=>document.fonts.load('700 50px NotoTe')).then(()=>document.fonts.load('900 italic 100px Inter, NotoTe')).then(()=>document.fonts.load('800 50px Inter, NotoTe')).then(()=>{build();window.ready=true});</script>
 </body></html>
