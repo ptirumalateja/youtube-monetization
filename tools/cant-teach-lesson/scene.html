@@ -1,0 +1,658 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#f3e6d0}canvas{display:block}</style>
+</head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// "Locked From the Inside" - remake of the "can't teach a lesson / can't inspire change" glass-people ref.
+// Riso-pop look on cream paper: glass people fill each other with red; one jar never opens.
+// Hook = payoff first (pouring onto a shut lid), open loop = TRY counter + "why won't it open?",
+// answer = x-ray shows the jar holding its own lid shut from inside.
+const W = 1080, H = 1920;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const PI = Math.PI;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ss = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
+const ramp = (t, a, b) => ss((t - a) / (b - a));
+const lin = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const pulse = (t, a, b) => { const k = lin(t, a, b); return k > 0 && k < 1 ? Math.sin(k * PI) : 0; };
+const easeOutBack = k => { k = clamp(k, 0, 1); const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+const mix = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
+const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+const INK = [34, 40, 66], PAPER = [244, 233, 214], RED = [228, 50, 60], RED_D = [170, 26, 44], RED_L = [255, 128, 120];
+const PALE = [214, 221, 228], TEAL = [30, 92, 108], TEAL_D = [18, 60, 74], MUSTARD = [238, 176, 46], PINK = [247, 178, 170];
+const FONT = '"Inter Display", "Inter", sans-serif';
+
+// ---------------- characters ----------------
+const D = 430;
+const TYPES = {
+  wine:    { H: 300, stem: 70, prof: u => 128 * Math.pow(Math.sin(Math.min(1, u * 1.55) * PI / 2), 0.75) * (1 - 0.18 * u * u) },
+  goblet:  { H: 260, stem: 62, prof: u => 140 * Math.pow(Math.sin(Math.min(1, 0.12 + u * 1.25) * PI / 2), 0.7) * (1 - 0.1 * u * u) },
+  tumbler: { H: 270, stem: 18, prof: u => 98 + 26 * u },
+  mug:     { H: 250, stem: 18, prof: u => 112, handle: true },
+  flute:   { H: 320, stem: 74, prof: u => 92 * Math.pow(Math.sin(Math.min(1, u * 1.9) * PI / 2), 0.8) * (1 + 0.05 * u) },
+  jar:     { H: 270, stem: 10, prof: u => u < 0.86 ? 124 : 124 - 22 * ss((u - 0.86) / 0.14) },
+};
+const chars = [];
+const cyc = ['goblet', 'wine', 'tumbler', 'flute', 'mug', 'wine', 'goblet', 'tumbler'];
+for (let i = -7; i <= 13; i++) {
+  const c = { i, x: i * D, type: cyc[(i + 16) % 8], jar: false };
+  if (i === 0) c.type = 'goblet';
+  if (i === 1) c.type = 'tumbler';
+  if (i === 2) c.type = 'flute';
+  if (i === 3) c.type = 'wine';                       // hero, 938
+  if (i === 4) { c.type = 'jar'; c.jar = true; }
+  if (i === 5) c.type = 'mug';                        // 939
+  if (i === 6) c.type = 'goblet';
+  c.num = i <= 3 ? 935 + i : (i >= 5 ? 934 + i : null);
+  chars.push(c);
+}
+const C = i => chars[i + 7];
+const HERO = C(3), JAR = C(4);
+
+// ---------------- timeline (seconds) ----------------
+const REW = 1.12;                 // end of flash-forward hook; rewind whip
+const SLAM = 4.22;
+const XRAY = 10.0;
+const DURATION = 19.6;
+// pours: from, to, tilt-in a, stream s0..s1, tilt-out end b, tilt, arc, flags
+const pours = [
+  { f: 3, to: 4, a: -1, s0: -0.6, s1: 1.0, b: 1.12, tilt: 1.08, arc: 50, refused: true, pre: true, w: 1.0 },
+  { f: 0, to: 1, a: 1.22, s0: 1.36, s1: 1.80, b: 2.0, tilt: 1.08, arc: 40 },
+  { f: 1, to: 2, a: 1.84, s0: 1.98, s1: 2.42, b: 2.62, tilt: 1.08, arc: 40 },
+  { f: 2, to: 3, a: 2.46, s0: 2.60, s1: 3.04, b: 3.25, tilt: 1.08, arc: 40 },
+  // TRY 1: pour onto the lid
+  { f: 3, to: 4, a: 4.40, s0: 4.56, s1: 5.18, b: 5.42, tilt: 1.05, arc: 50, refused: true, w: 0.9 },
+  // TRY 6: flood
+  { f: 3, to: 4, a: 8.70, s0: 8.86, s1: 9.86, b: 10.05, tilt: 1.42, arc: 110, refused: true, w: 1.9, flood: true },
+  // pour OVER the jar into 939
+  { f: 3, to: 5, a: 12.30, s0: 12.50, s1: 13.05, b: 13.30, tilt: 1.25, arc: 360, w: 1.0 },
+  { f: 5, to: 6, a: 13.22, s0: 13.34, s1: 13.74, b: 13.92, tilt: 1.08, arc: 40 },
+  { f: 6, to: 7, a: 13.78, s0: 13.90, s1: 14.30, b: 14.48, tilt: 1.08, arc: 40 },
+  { f: 7, to: 8, a: 14.34, s0: 14.46, s1: 14.86, b: 15.04, tilt: 1.08, arc: 40 },
+  { f: 8, to: 9, a: 14.90, s0: 15.02, s1: 15.40, b: 15.58, tilt: 1.08, arc: 40 },
+  { f: 9, to: 10, a: 15.40, s0: 15.52, s1: 15.90, b: 16.08, tilt: 1.08, arc: 40 },
+  { f: 10, to: 11, a: 15.90, s0: 16.02, s1: 16.40, b: 16.58, tilt: 1.08, arc: 40 },
+  { f: 11, to: 12, a: 16.40, s0: 16.52, s1: 16.90, b: 17.08, tilt: 1.08, arc: 40 },
+  { f: 12, to: 13, a: 16.90, s0: 17.02, s1: 17.40, b: 17.58, tilt: 1.08, arc: 40 },
+];
+const TR = 0.13;
+for (const c of chars) c.litAt = c.i <= 0 ? -Infinity : Infinity;
+for (const p of pours) if (!p.refused) { C(p.to).litAt = p.s1 + TR + 0.02; p.fillEnd = p.s1 + TR; }
+
+// tries (open loop counter)
+const TRIES = [
+  { t: 4.56, n: 1, word: 'POUR.' },
+  { t: 5.45, n: 2, word: 'KNOCK.' },
+  { t: 6.02, n: 3, word: 'TWIST.' },
+  { t: 6.70, n: 4, word: 'BEG.' },
+  { t: 7.30, n: 5, word: 'SHAKE.' },
+  { t: 8.70, n: 6, word: 'FLOOD.' },
+];
+
+function pourOf(i, t) { for (const p of pours) if (p.f === i && t >= p.a && t <= p.b) { if (p.pre && t >= REW) continue; return p; } return null; }
+function isFuture(t) { return t < REW; }
+function litAmt(c, t) {
+  if (c.jar) return 0;
+  if (c.litAt === -Infinity) return 1;
+  if (isFuture(t) && c.i >= 1 && c.i <= 3) return 1;
+  if (!isFinite(c.litAt)) return 0;
+  let L = ramp(t, c.litAt - 0.05, c.litAt + 0.12);
+  if (c === HERO) L *= 1 - 0.55 * ramp(t, 9.0, 9.9) * (1 - ramp(t, 11.9, 12.5)); // he drains himself in the flood
+  return L;
+}
+function fillLevel(c, t) {
+  if (c.jar) return 0;
+  if (c.litAt === -Infinity) return 0.78;
+  if (isFuture(t) && c.i >= 1 && c.i <= 3) return c === HERO ? 0.6 : 0.78;
+  let lvl = 0;
+  for (const p of pours) if (p.to === c.i && !p.refused) lvl = Math.max(lvl, 0.78 * lin(t, p.s0 + TR, p.fillEnd));
+  for (const p of pours) if (p.f === c.i && !p.pre) {
+    if (p.flood) lvl -= 0.62 * ramp(t, p.s0, p.s1) * (1 - ramp(t, 11.9, 12.5));
+    else lvl -= (p.refused ? 0.14 : 0.22) * ramp(t, p.s0, p.s1) * (1 - ramp(t, p.s1 + 0.15, p.s1 + 0.9));
+  }
+  return Math.max(0.03, lvl);
+}
+
+// lid: 0 = shut. returns {lift, rot, jitter}
+function lidState(t) {
+  if (t < REW) return { lift: 0, rot: 0, jit: Math.sin(t * 90) * 2.5 };
+  if (t < SLAM - 0.08) { const k = ramp(t, 1.3, 1.7); return { lift: 70 * k + Math.sin(t * 5) * 6, rot: -0.35 * k, jit: 0 }; }
+  const k = lin(t, SLAM - 0.08, SLAM);
+  if (k < 1) return { lift: 70 * (1 - k * k), rot: -0.35 * (1 - k * k), jit: 0 };
+  let jit = 0;
+  if (t > 6.02 && t < 6.7) jit = Math.sin(t * 70) * 4;             // twist
+  if (t > 7.9 && t < 8.7) jit = Math.sin(t * 55) * 3 * pulse(t, 7.9, 8.7); // straining from inside
+  return { lift: 0, rot: 0, jit };
+}
+
+// ---------------- poses ----------------
+function pose(c, t) {
+  const P = { tilt: 0, lean: 0, dx: 0, dy: 0, eyeX: 0, eyeY: 0, blink: 0, mood: 'happy', hR: null, hL: null, sq: 0, walk: 0, wob: 0, face: 1 };
+  const i = c.i;
+  P.dy = Math.sin(t * 4.2 + i * 1.3) * 3;
+  const p = pourOf(i, t);
+  if (p) {
+    const k = ramp(t, p.a, p.a + 0.16) * (1 - ramp(t, p.s1 + 0.02, p.b));
+    P.tilt = p.tilt * k; P.lean = (p.flood ? 0.12 : 0.06) * k;
+    P.hR = [lerp(80, 150, k), lerp(-200, p.flood ? -560 : -470, k)];
+    P.eyeX = 8 * k;
+  }
+  for (const q of pours) if (q.to === i && !q.refused) {
+    const k = ramp(t, q.a, q.s0) * (1 - ramp(t, q.fillEnd + 0.2, q.fillEnd + 0.6));
+    P.eyeY -= 7 * k; P.eyeX -= 8 * k;
+    P.hL = P.hL || [lerp(-100, -150, k), lerp(-190, -330, k)];
+  }
+  const L = litAmt(c, t);
+  P.mood = L > 0.5 ? 'happy' : 'sleep';
+  if (isFinite(c.litAt) && c.litAt > -1e9) { const k = lin(t, c.litAt, c.litAt + 0.4); P.sq = k > 0 && k < 1 ? Math.sin(k * PI) * (1 - k) * 0.4 : 0; }
+  if (c === HERO) heroPose(P, t);
+  if (c.jar) jarPose(P, t);
+  if (c.i === 5) { // mug 939 raises its hand before being filled
+    const k = ramp(t, 11.95, 12.25) * (1 - ramp(t, 12.4, 12.6));
+    if (k > 0) { P.hR = [lerp(80, 140, k), lerp(-200, -520, k)]; P.mood = 'hope'; }
+    P.eyeX = t > 11.9 && t < 12.5 ? -8 : P.eyeX;
+  }
+  const bl = (t * 0.37 + hash(i) * 7) % 3.1; P.blink = bl < 0.1 ? 1 : 0;
+  return P;
+}
+function heroPose(P, t) {
+  if (t >= REW) {
+    // celebrate when lit, then turn to the jar
+    const cel = pulse(t, 3.2, 3.85);
+    if (cel > 0) { P.hR = [150, -420 - 60 * cel]; P.hL = [-150, -420 - 60 * cel]; P.dy -= 26 * Math.abs(Math.sin((t - 3.2) * 10)) * cel; P.mood = 'joy'; }
+    if (t > 3.85 && t < 4.4) { P.hR = [lerp(80, 170, ramp(t, 3.85, 4.1)), -260]; P.eyeX = 10; }
+    if (t > SLAM && t < 4.5) { P.mood = 'shock'; P.dy -= 10 * pulse(t, SLAM, 4.4); }
+    // TRY 2 knock
+    if (t >= 5.42 && t < 6.02) { P.eyeX = 10; const kn = Math.max(pulse(t, 5.55, 5.7), pulse(t, 5.75, 5.9)); P.hR = [lerp(240, 300, kn), lerp(-560, -600, kn)]; P.lean = 0.05; }
+    // TRY 3 twist (both hands on lid)
+    if (t >= 6.02 && t < 6.7) { const s = Math.sin(t * 60) * 6; P.hR = [330 + s, -585]; P.hL = [250 - s, -590]; P.lean = 0.12; P.dx = 50; P.mood = 'strain'; P.dy += Math.sin(t * 60) * 2; }
+    // TRY 4 beg
+    if (t >= 6.7 && t < 7.3) { const k = ramp(t, 6.7, 6.85) * (1 - ramp(t, 7.15, 7.3)); P.dy += 60 * k; P.hR = [30, -330]; P.hL = [-10, -330]; P.mood = 'sad'; P.lean = -0.05 * k; P.eyeY = -6; }
+    // TRY 5 shake the jar
+    if (t >= 7.3 && t < 7.9) { const s = Math.sin(t * 46) * 18; P.hR = [300 + s, -300]; P.hL = [150 + s, -330]; P.dx = 60; P.lean = 0.1; P.mood = 'strain'; }
+    // rehook: stares
+    if (t >= 7.9 && t < 8.7) { P.mood = 'sad'; P.eyeX = 10; P.hR = [120, -220]; }
+    if (t >= 8.7 && t < 10.05) P.mood = 'strain';
+    // x-ray: sees it
+    if (t >= 10.05 && t < 11.9) { P.mood = t < 10.6 ? 'shock' : 'sad'; P.eyeX = 10; }
+    // lets go: nods, refills, turns away
+    if (t >= 11.6 && t < 12.3) { P.mood = 'calm'; P.dy += 10 * pulse(t, 11.7, 11.95); P.eyeX = lerp(10, 10, 0); }
+    if (t >= 12.3 && t < 13.3) P.mood = 'happy';
+  }
+}
+function jarPose(P, t) {
+  P.mood = 'grump';
+  if (t >= REW && t < SLAM - 0.1) { P.mood = 'peek'; P.eyeX = -8; }
+  if (t >= SLAM && t < SLAM + 0.3) P.dy += 8 * pulse(t, SLAM, SLAM + 0.3);
+  if (t >= 7.3 && t < 7.9) P.wob = Math.sin(t * 46) * 0.09 * pulse(t, 7.3, 7.9);
+  if (t >= 6.02 && t < 6.7) P.mood = 'squeeze';
+  if (t >= 7.9 && t < 8.7) { P.mood = 'squeeze'; }
+  if (t >= 10.0 && t < 11.9) P.mood = 'squeeze';
+  if (t >= 11.9) P.mood = 'grump';
+}
+
+// head frame: world origin of bowl bottom, rotation
+function headFrame(c, t, P) {
+  const T = TYPES[c.type];
+  const bx = c.x + P.dx, by = P.dy;
+  const neckY = -250 + P.dy;
+  return { ox: bx + Math.sin(P.lean) * 250, oy: neckY - T.stem, rot: P.tilt + P.wob, T };
+}
+function lipWorld(c, t) {
+  const P = pose(c, t), F = headFrame(c, t, P), T = F.T;
+  const lx = T.prof(1) + 4, ly = -T.H;
+  return [F.ox + lx * Math.cos(F.rot) - ly * Math.sin(F.rot), F.oy + lx * Math.sin(F.rot) + ly * Math.cos(F.rot)];
+}
+function mouthTarget(c) { const T = TYPES[c.type]; return [c.x, -250 - T.stem - T.H * (c.jar ? 1.06 : 0.35)]; }
+
+// ---------------- drawing ----------------
+function bowlPath(T) {
+  ctx.beginPath();
+  const N = 36;
+  for (let k = 0; k <= N; k++) { const u = k / N; ctx.lineTo(-T.prof(u), -u * T.H); }
+  for (let k = N; k >= 0; k--) { const u = k / N; ctx.lineTo(T.prof(u), -u * T.H); }
+  ctx.closePath();
+}
+function limb(x0, y0, x1, y1, bend) {
+  const mx = (x0 + x1) / 2 + bend, my = (y0 + y1) / 2 + Math.abs(bend) * 0.3;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x1, y1, 15, 0, 2 * PI); ctx.fill(); ctx.stroke();
+}
+function drawChar(c, t, xray) {
+  const P = pose(c, t), T = TYPES[c.type], L = litAmt(c, t);
+  const F = headFrame(c, t, P);
+  const body = c.jar ? TEAL : mix(PALE, RED, L);
+  ctx.save();
+  ctx.translate(c.x + P.dx, 0);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // shadow
+  ctx.fillStyle = 'rgba(120,70,60,0.16)'; ctx.beginPath(); ctx.ellipse(0, 4, 120, 18, 0, 0, 2 * PI); ctx.fill();
+  // legs
+  ctx.strokeStyle = rgb(INK); ctx.lineWidth = 13;
+  const sq = P.sq;
+  const hipY = -110 + P.dy * 0.6;
+  ctx.beginPath(); ctx.moveTo(-32, hipY); ctx.lineTo(-38, 0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(32, hipY); ctx.lineTo(38, 0); ctx.stroke();
+  ctx.fillStyle = rgb(INK);
+  ctx.beginPath(); ctx.ellipse(-46, -4, 24, 9, 0, 0, 2 * PI); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(46, -4, 24, 9, 0, 0, 2 * PI); ctx.fill();
+  // torso
+  ctx.save();
+  ctx.translate(0, hipY); ctx.rotate(P.lean * 0.5 + P.wob); ctx.scale(1 + sq * 0.3, 1 - sq * 0.25);
+  const tw = 74, th = 150;
+  ctx.fillStyle = rgb(body); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.roundRect(-tw, -th, tw * 2, th + 6, 38); ctx.fill(); ctx.stroke();
+  // halftone shading on torso
+  ctx.save(); ctx.clip();
+  ctx.fillStyle = rgb(c.jar ? TEAL_D : mix([180, 190, 200], RED_D, L), 0.55);
+  for (let yy = -th; yy < 10; yy += 14) for (let xx = -tw; xx < tw; xx += 14) {
+    const r = clamp((xx + tw * 0.2) / (tw * 1.4), 0, 1) * 5.5; if (r > 0.6) { ctx.beginPath(); ctx.arc(xx + ((yy / 14) % 2) * 7, yy, r, 0, 2 * PI); ctx.fill(); }
+  }
+  ctx.restore();
+  ctx.beginPath(); ctx.roundRect(-tw, -th, tw * 2, th + 6, 38); ctx.stroke();
+  // number
+  if (c.num && L > 0.02) {
+    const k = easeOutBack(lin(t, isFinite(c.litAt) ? c.litAt : -9, (isFinite(c.litAt) ? c.litAt : -9) + 0.3));
+    const s = (c.litAt === -Infinity || (isFuture(t) && c.i <= 3)) ? 1 : k;
+    ctx.save(); ctx.translate(0, -th * 0.48); ctx.scale(s, s);
+    ctx.font = `900 74px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = rgb([255, 246, 236], clamp(L * 1.5, 0, 1)); ctx.fillText(String(c.num), 0, 4);
+    ctx.restore();
+  }
+  ctx.restore();
+  // arms
+  const shY = hipY - th + 24;
+  const hR = P.hR || [92, hipY - 50 + Math.sin(t * 3 + c.i) * 4], hL = P.hL || [-92, hipY - 50 + Math.sin(t * 3 + c.i + 1) * 4];
+  ctx.strokeStyle = rgb(INK); ctx.lineWidth = 12; ctx.fillStyle = rgb(c.jar ? TEAL : mix(PALE, RED, L));
+  if (!c.jar || xray < 0.5) {
+    if (!c.jar) { limb(66, shY, hR[0], hR[1], 26); limb(-66, shY, hL[0], hL[1], -26); }
+  }
+  ctx.restore();
+  // stem
+  ctx.save();
+  ctx.lineCap = 'round';
+  const neckX = c.x + P.dx, neckY = -250 + P.dy;
+  ctx.strokeStyle = rgb(INK); ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.moveTo(neckX, neckY + 6); ctx.lineTo(F.ox, F.oy + 4); ctx.stroke();
+  ctx.fillStyle = 'rgba(225,240,246,0.9)'; ctx.lineWidth = 7;
+  if (T.stem > 30) { ctx.beginPath(); ctx.ellipse(neckX, neckY + 2, 46, 11, 0, 0, 2 * PI); ctx.fill(); ctx.stroke(); }
+  // head
+  ctx.translate(F.ox, F.oy); ctx.rotate(F.rot);
+  if (c.jar) drawJarHead(c, t, P, T, xray); else drawGlassHead(c, t, P, T, L, F);
+  ctx.restore();
+}
+function drawGlassHead(c, t, P, T, L, F) {
+  const s = 1 + P.sq * 0.2;
+  ctx.scale(s, 1 / s);
+  // glass body
+  bowlPath(T);
+  ctx.fillStyle = 'rgba(228,242,248,0.78)'; ctx.fill();
+  // liquid (world-horizontal surface)
+  const lvl = fillLevel(c, t);
+  ctx.save(); bowlPath(T); ctx.clip();
+  const up = [-Math.sin(F.rot), -Math.cos(F.rot)];
+  const lip = [T.prof(1), -T.H];
+  let h = lvl * T.H * Math.cos(F.rot) * 1.0;
+  if (pourOf(c.i, t) && F.rot > 0.4) h = Math.max(h, lip[0] * up[0] + lip[1] * up[1] + 6);
+  const d = [-up[1], up[0]];
+  const p0 = [up[0] * h, up[1] * h];
+  ctx.beginPath();
+  for (let k = -24; k <= 24; k++) {
+    const w = Math.sin(k * 0.55 + t * 9 + c.i) * 4 * (1 + (pourOf(c.i, t) ? 1 : 0));
+    ctx.lineTo(p0[0] + d[0] * k * 20 + up[0] * w, p0[1] + d[1] * k * 20 + up[1] * w);
+  }
+  ctx.lineTo(p0[0] + d[0] * 480 - up[0] * 900, p0[1] + d[1] * 480 - up[1] * 900);
+  ctx.lineTo(p0[0] - d[0] * 480 - up[0] * 900, p0[1] - d[1] * 480 - up[1] * 900);
+  ctx.closePath();
+  const liq = mix(PALE, RED, Math.max(L, lvl > 0.05 ? 1 : 0));
+  ctx.fillStyle = rgb(liq); ctx.fill();
+  // halftone on liquid
+  ctx.save(); ctx.clip();
+  ctx.fillStyle = rgb(RED_D, 0.5);
+  for (let yy = -T.H; yy < 0; yy += 13) for (let xx = -T.prof(1) - 20; xx < 180; xx += 13) {
+    const r = clamp((xx + 40) / 200, 0, 1) * 5; if (r > 0.7) { ctx.beginPath(); ctx.arc(xx + ((Math.round(yy / 13)) % 2) * 6.5, yy, r, 0, 2 * PI); ctx.fill(); }
+  }
+  ctx.restore();
+  ctx.restore();
+  // shine
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-T.prof(0.8) + 24, -T.H * 0.82); ctx.lineTo(-T.prof(0.5) + 22, -T.H * 0.52); ctx.stroke();
+  // outline
+  bowlPath(T); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 8; ctx.stroke();
+  if (T.handle) { ctx.beginPath(); ctx.arc(T.prof(0.5) + 12, -T.H * 0.5, 50, -PI / 2, PI / 2); ctx.lineWidth = 12; ctx.stroke(); }
+  // rim ellipse
+  ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(0, -T.H, T.prof(1), 12, 0, 0, 2 * PI); ctx.stroke();
+  // face
+  ctx.save(); ctx.rotate(-F.rot * 0.15);
+  drawFace(P, -T.H * 0.5, Math.min(1, T.prof(0.5) / 110), L > 0.4 || lvl > 0.3);
+  ctx.restore();
+}
+function drawFace(P, fy, sc, onRed) {
+  const ex = 34 * sc, ew = 22 * sc, eh = 28 * sc;
+  ctx.save(); ctx.translate(P.eyeX * 0.5, fy + P.eyeY * 0.4);
+  ctx.lineWidth = 6; ctx.strokeStyle = rgb(INK); ctx.lineCap = 'round';
+  const m = P.mood;
+  for (const sx of [-1, 1]) {
+    const x = sx * ex;
+    if (m === 'sleep' || P.blink) {
+      ctx.beginPath(); ctx.arc(x, -2, ew * 0.8, 0.15 * PI, 0.85 * PI); ctx.stroke();
+      continue;
+    }
+    let hgt = eh;
+    if (m === 'grump' || m === 'peek') hgt = eh * 0.55;
+    if (m === 'squeeze') { ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(x + sx * ew, -14); ctx.lineTo(x - sx * ew * 0.8, 0); ctx.lineTo(x + sx * ew, 14); ctx.stroke(); ctx.lineWidth = 6; continue; }
+    if (m === 'calm') { ctx.beginPath(); ctx.arc(x, 4, ew * 0.8, 1.15 * PI, 1.85 * PI); ctx.stroke(); continue; }
+    if (m === 'joy') { ctx.beginPath(); ctx.arc(x, 6, ew * 0.85, 1.1 * PI, 1.9 * PI); ctx.lineWidth = 8; ctx.stroke(); ctx.lineWidth = 6; continue; }
+    if (m === 'shock') hgt = eh * 1.25;
+    ctx.fillStyle = '#fffaf2';
+    ctx.beginPath(); ctx.ellipse(x, 0, ew, hgt, 0, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = rgb(INK);
+    const px = x + clamp(P.eyeX, -10, 10) * 0.8 * sc, py = clamp(P.eyeY, -10, 10) * 0.6;
+    ctx.beginPath(); ctx.ellipse(px, py + (m === 'grump' || m === 'peek' ? 3 : 0), ew * 0.48, Math.min(hgt * 0.55, ew * 0.6), 0, 0, 2 * PI); ctx.fill();
+    // lids/brows
+    if (m === 'grump' || m === 'peek') { ctx.fillStyle = rgb(TEAL_D); ctx.beginPath(); ctx.rect(x - ew - 4, -hgt - 6, ew * 2 + 8, hgt * 0.75); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - ew - 4, -hgt * 0.25 + (sx > 0 ? -6 : 6) * (m === 'grump' ? 1 : 0)); ctx.lineTo(x + ew + 4, -hgt * 0.25 + (sx > 0 ? 6 : -6) * (m === 'grump' ? 1 : 0)); ctx.lineWidth = 7; ctx.stroke(); ctx.lineWidth = 6; }
+    if (m === 'sad') { ctx.beginPath(); ctx.moveTo(x - ew, -hgt - 8 + (sx > 0 ? 10 : -6)); ctx.lineTo(x + ew, -hgt - 8 + (sx > 0 ? -6 : 10)); ctx.stroke(); }
+    if (m === 'strain') { ctx.beginPath(); ctx.moveTo(x - ew, -hgt - 4 + (sx > 0 ? -8 : 8)); ctx.lineTo(x + ew, -hgt - 4 + (sx > 0 ? 8 : -8)); ctx.lineWidth = 7; ctx.stroke(); ctx.lineWidth = 6; }
+  }
+  // mouth
+  ctx.beginPath();
+  if (m === 'happy' || m === 'joy' || m === 'hope') ctx.arc(0, 26 * sc, 16 * sc, 0.15 * PI, 0.85 * PI);
+  else if (m === 'shock') ctx.ellipse(0, 36 * sc, 9 * sc, 13 * sc, 0, 0, 2 * PI);
+  else if (m === 'sad' || m === 'grump' || m === 'squeeze') ctx.arc(0, 46 * sc, 14 * sc, 1.2 * PI, 1.8 * PI);
+  else if (m === 'strain') { ctx.moveTo(-14 * sc, 34 * sc); ctx.lineTo(-5 * sc, 30 * sc); ctx.lineTo(5 * sc, 36 * sc); ctx.lineTo(14 * sc, 30 * sc); }
+  else if (m === 'calm') { ctx.moveTo(-12 * sc, 34 * sc); ctx.quadraticCurveTo(0, 40 * sc, 12 * sc, 34 * sc); }
+  else if (m !== 'sleep') { ctx.moveTo(-10 * sc, 34 * sc); ctx.lineTo(10 * sc, 34 * sc); }
+  ctx.stroke();
+  ctx.restore();
+}
+function drawJarHead(c, t, P, T, xray) {
+  // body (opaque teal glass); x-ray makes it see-through
+  bowlPath(T);
+  ctx.fillStyle = rgb(mix(TEAL, [170, 220, 228], xray * 0.75), 1); ctx.fill();
+  ctx.save(); bowlPath(T); ctx.clip();
+  // halftone
+  ctx.fillStyle = rgb(TEAL_D, 0.55 * (1 - xray));
+  for (let yy = -T.H; yy < 0; yy += 13) for (let xx = -140; xx < 140; xx += 13) {
+    const r = clamp((xx + 30) / 170, 0, 1) * 5.5; if (r > 0.7) { ctx.beginPath(); ctx.arc(xx + ((Math.round(yy / 13)) % 2) * 6.5, yy, r, 0, 2 * PI); ctx.fill(); }
+  }
+  // x-ray scan line + inner arms
+  if (xray > 0) {
+    ctx.strokeStyle = rgb(INK, 0.25 * xray); ctx.lineWidth = 2;
+    for (let yy = -T.H; yy < 0; yy += 10) { ctx.beginPath(); ctx.moveTo(-140, yy); ctx.lineTo(140, yy); ctx.stroke(); }
+    // two arms reaching up, gripping the lid from inside
+    ctx.globalAlpha = xray;
+    ctx.strokeStyle = rgb(INK); ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.fillStyle = rgb(MUSTARD);
+    const g = Math.sin(t * 50) * 3;
+    for (const sx of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(sx * 70, -30); ctx.quadraticCurveTo(sx * 118, -T.H * 0.55, sx * 62 + g, -T.H * 0.93); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sx * 62 + g, -T.H * 0.93, 24, 0, 2 * PI); ctx.fill(); ctx.stroke();
+      // fingers hooked over
+      ctx.lineWidth = 7;
+      for (let f = -1; f <= 1; f++) { ctx.beginPath(); ctx.moveTo(sx * 62 + g + f * 9, -T.H * 0.93 - 12); ctx.lineTo(sx * 62 + g + f * 10, -T.H - 2); ctx.stroke(); }
+      ctx.lineWidth = 13;
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  bowlPath(T); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 8; ctx.stroke();
+  // shine
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-90, -T.H * 0.8); ctx.lineTo(-92, -T.H * 0.45); ctx.stroke();
+  // face
+  drawFace(P, -T.H * 0.45, 1.05, false);
+  // lid
+  const Ls = lidState(t);
+  ctx.save();
+  ctx.translate(Ls.jit, -T.H - Ls.lift); ctx.rotate(Ls.rot);
+  ctx.fillStyle = rgb(MUSTARD); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.roundRect(-112, -46, 224, 52, 12); ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 4;
+  for (let x = -92; x <= 92; x += 20) { ctx.beginPath(); ctx.moveTo(x, -40); ctx.lineTo(x, 0); ctx.stroke(); }
+  ctx.restore();
+}
+
+// streams
+function streamCurve(p, t) {
+  const L = lipWorld(C(p.f), t);
+  const tgt = p.refused ? [JAR.x + (p.flood ? -20 : -10), -250 - TYPES.jar.stem - TYPES.jar.H - 50] : mouthTarget(C(p.to));
+  return u => [lerp(L[0], tgt[0], u), lerp(L[1], tgt[1], u) - p.arc * 4 * u * (1 - u) + 30 * u * u];
+}
+function drawStreams(t) {
+  for (const p of pours) {
+    if (p.pre && t >= REW) continue;
+    if (t < p.s0 || t > p.s1 + TR + 0.05) continue;
+    const head = lin(t, p.s0, p.s0 + TR), tail = lin(t, p.s1, p.s1 + TR);
+    if (head <= tail) continue;
+    const f = streamCurve(p, t);
+    const wv = (p.w || 1) * (1 - 0.6 * tail);
+    ctx.lineCap = 'round';
+    for (const [col, lw] of [[INK, 30 * wv], [RED, 22 * wv], [RED_L, 6 * wv]]) {
+      ctx.strokeStyle = rgb(col); ctx.lineWidth = lw;
+      ctx.beginPath();
+      for (let k = 0; k <= 30; k++) { const u = lerp(tail, head, k / 30); const q = f(u); ctx.lineTo(q[0] + (col === RED_L ? -4 : 0), q[1]); }
+      ctx.stroke();
+    }
+  }
+}
+// splashes on the lid
+function drawSplash(t) {
+  const impact = [JAR.x - 10, -250 - TYPES.jar.stem - TYPES.jar.H - 50];
+  for (const p of pours) {
+    if (!p.refused) continue;
+    if (p.pre && t >= REW) continue;
+    const n = p.flood ? 140 : 60;
+    for (let k = 0; k < n; k++) {
+      const sp = lerp(p.s0 + TR, p.s1 + TR, hash(k * 3.1 + p.s0));
+      const age = t - sp; if (age < 0 || age > 0.75) continue;
+      const ang = -PI / 2 + (hash(k * 7.7 + p.s0) - 0.5) * 2.6;
+      const sp0 = (p.flood ? 900 : 620) * (0.5 + hash(k * 1.3));
+      const x = impact[0] + Math.cos(ang) * sp0 * age, y = impact[1] + Math.sin(ang) * sp0 * age + 2200 * age * age;
+      if (y > 0) continue;
+      const r = (6 + 9 * hash(k * 5.3)) * (p.flood ? 1.3 : 1) * (1 - age * 0.6);
+      ctx.fillStyle = rgb(INK); ctx.beginPath(); ctx.arc(x, y, r + 3, 0, 2 * PI); ctx.fill();
+      ctx.fillStyle = rgb(RED); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * PI); ctx.fill();
+    }
+  }
+}
+// puddle grows with every refused pour
+function puddleAmt(t) {
+  if (t < REW) return 0.45;
+  let a = 0;
+  for (const p of pours) if (p.refused && !p.pre) a += (p.flood ? 1.0 : 0.35) * lin(t, p.s0 + TR, p.s1 + TR + 0.4);
+  return a;
+}
+function drawPuddle(t) {
+  const a = puddleAmt(t); if (a <= 0.01) return;
+  ctx.fillStyle = rgb(RED); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 6;
+  ctx.beginPath();
+  const rx = 120 + 330 * a, ry = 16 + 30 * a;
+  for (let k = 0; k <= 40; k++) { const th = k / 40 * 2 * PI; const w = 1 + 0.12 * Math.sin(th * 5 + 1.3); ctx.lineTo(JAR.x + Math.cos(th) * rx * w, 8 + Math.sin(th) * ry * w); }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+}
+
+// ---------------- background ----------------
+const bg = document.createElement('canvas'); bg.width = 3000; bg.height = 1920;
+(function () {
+  const b = bg.getContext('2d');
+  const g = b.createLinearGradient(0, 0, 0, 1920); g.addColorStop(0, '#f7ecd8'); g.addColorStop(1, '#f1dcc0');
+  b.fillStyle = g; b.fillRect(0, 0, 3000, 1920);
+  // big riso shapes
+  const blobs = [[300, 520, 260, [247, 170, 160]], [1250, 380, 330, [158, 212, 214]], [2100, 600, 280, [247, 170, 160]], [2700, 350, 220, [252, 214, 120]], [800, 900, 200, [252, 214, 120]], [1750, 1000, 240, [247, 170, 160]]];
+  for (const [x, y, r, c] of blobs) {
+    b.fillStyle = rgb(c, 0.55); b.beginPath(); b.arc(x, y, r, 0, 2 * PI); b.fill();
+    b.fillStyle = rgb(mix(c, INK, 0.25), 0.35);
+    for (let yy = y - r; yy < y + r; yy += 18) for (let xx = x - r; xx < x + r; xx += 18) {
+      const dd = Math.hypot(xx - x, yy - y) / r; if (dd < 1) { const rr = (1 - dd) * 5; b.beginPath(); b.arc(xx, yy, rr, 0, 2 * PI); b.fill(); }
+    }
+  }
+  // paper grain
+  const id = b.getImageData(0, 0, 3000, 1920); const D2 = id.data;
+  for (let k = 0; k < D2.length; k += 4) { const n = (Math.random() - 0.5) * 16; D2[k] += n; D2[k + 1] += n; D2[k + 2] += n; }
+  b.putImageData(id, 0, 0);
+})();
+const grain = document.createElement('canvas'); grain.width = 540; grain.height = 960;
+(function () { const g = grain.getContext('2d'); const id = g.createImageData(540, 960); for (let k = 0; k < id.data.length; k += 4) { const v = Math.random() * 255; id.data[k] = id.data[k + 1] = id.data[k + 2] = v; id.data[k + 3] = 18; } g.putImageData(id, 0, 0); })();
+
+// ---------------- camera ----------------
+const CAM = [
+  // t, x, y, z
+  [0.00, 3.5 * D, -470, 1.32],
+  [0.95, 3.5 * D, -470, 1.36],
+  [1.12, 2.6 * D, -440, 1.20],
+  [1.30, 0.5 * D, -420, 1.12],
+  [3.10, 2.8 * D, -420, 1.12],
+  [3.60, 3.5 * D, -440, 1.22],
+  [4.40, 3.5 * D, -450, 1.24],
+  [7.85, 3.55 * D, -460, 1.28],
+  [8.10, 4.0 * D, -440, 1.85],
+  [8.62, 4.0 * D, -440, 1.95],
+  [8.80, 3.5 * D, -470, 1.22],
+  [9.95, 3.5 * D, -470, 1.26],
+  [10.25, 4.0 * D, -500, 1.62],
+  [11.70, 4.0 * D, -500, 1.70],
+  [12.15, 4.0 * D, -430, 0.86],
+  [13.10, 4.6 * D, -430, 0.98],
+  [14.80, 6.0 * D, -400, 0.72],
+  [16.40, 5.2 * D, -900, 0.38],
+  [DURATION, 5.0 * D, -880, 0.35],
+];
+function camAt(t) {
+  let k = 0; while (k < CAM.length - 2 && t > CAM[k + 1][0]) k++;
+  const a = CAM[k], b = CAM[k + 1]; const u = ss((t - a[0]) / (b[0] - a[0]));
+  const c = { x: lerp(a[1], b[1], u), y: lerp(a[2], b[2], u), z: lerp(a[3], b[3], u) };
+  // impact punches + shakes
+  const hits = [[0.30, 0.05, 14], [SLAM, 0.07, 22], [5.6, 0.0, 5], [5.8, 0.0, 5], [8.86, 0.04, 16], [XRAY, 0.06, 10]];
+  let sx = 0, sy = 0;
+  for (const [ht, zp, sh] of hits) { const d = t - ht; if (d >= 0 && d < 0.35) { const e = Math.exp(-d * 12); c.z *= 1 + zp * e; sx += Math.sin(d * 90) * sh * e; sy += Math.cos(d * 77) * sh * e * 0.6; } }
+  if (t > 8.86 && t < 9.86) { sx += Math.sin(t * 61) * 4; sy += Math.cos(t * 53) * 3; }
+  c.sx = sx; c.sy = sy;
+  return c;
+}
+
+// ---------------- text ----------------
+function textBlock(t, t0, t1, lines, y0, opts = {}) {
+  if (t < t0 || t > t1) return;
+  const kin = lin(t, t0, t0 + 0.16), kout = 1 - lin(t, t1 - 0.12, t1);
+  const s = lerp(1.18, 1, easeOutBack(kin));
+  const a = Math.min(kin * 2, kout);
+  ctx.save(); ctx.globalAlpha = clamp(a, 0, 1);
+  let y = y0;
+  for (const ln of lines) {
+    const size = ln.size;
+    ctx.save(); ctx.translate(540, y + size / 2); ctx.scale(s, s);
+    ctx.font = `900 ${size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // sticker plate
+    if (ln.plate) {
+      const w = ctx.measureText(ln.s).width + 54;
+      ctx.fillStyle = rgb(ln.plate); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.roundRect(-w / 2, -size * 0.66, w, size * 1.32, 18); ctx.fill(); ctx.stroke();
+    }
+    ctx.lineJoin = 'round';
+    if (!ln.plate) { ctx.strokeStyle = rgb(PAPER); ctx.lineWidth = size * 0.16; ctx.strokeText(ln.s, 0, 0); }
+    ctx.fillStyle = rgb(ln.col || INK); ctx.fillText(ln.s, 0, 0);
+    ctx.restore();
+    y += size * (ln.gap || 1.18);
+  }
+  ctx.restore();
+}
+function pill(t) {
+  // open-loop counter, always on screen until the reveal
+  let label = null, col = RED, born = 0;
+  if (t < REW) { label = 'TRIES: 6'; col = INK; }
+  else if (t < 4.56) { const n = 935 + [2.0, 2.62, 3.2].filter(x => t > x).length; label = 'FILLED: ' + n; col = RED; born = [1.12, 2.0, 2.62, 3.2].filter(x => t > x).pop(); }
+  else if (t < XRAY + 0.2) { const tr = TRIES.filter(x => t >= x.t).pop(); label = 'TRY ' + tr.n; col = INK; born = tr.t; }
+  if (!label) return;
+  const k = easeOutBack(lin(t, born, born + 0.22));
+  ctx.save(); ctx.translate(540, 652); ctx.scale(lerp(1.35, 1, k), lerp(1.35, 1, k));
+  ctx.font = `900 56px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(label).width + 70;
+  ctx.fillStyle = rgb(col); ctx.strokeStyle = rgb(PAPER); ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.roundRect(-w / 2, -44, w, 88, 44); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = rgb(PAPER); ctx.fillText(label, 0, 3);
+  ctx.restore();
+}
+function drawTexts(t) {
+  // HOOK (payoff first)
+  textBlock(t, -0.5, REW, [{ s: 'EVERYONE FILLED UP.', size: 84 }, { s: 'EXCEPT HIM.', size: 132, col: RED }], 318);
+  // chain
+  textBlock(t, 1.30, 3.30, [{ s: 'One glass', size: 96 }, { s: 'fills the next…', size: 96, col: RED }], 330);
+  textBlock(t, 3.30, 4.50, [{ s: '…until', size: 96 }, { s: 'this one.', size: 120, col: TEAL }], 318);
+  // tries: action words punch in
+  for (let k = 0; k < TRIES.length; k++) {
+    const tr = TRIES[k], end = k < TRIES.length - 1 ? TRIES[k + 1].t : XRAY;
+    if (tr.n === 5) { textBlock(t, tr.t, 7.9, [{ s: tr.word, size: 150, col: RED }], 340); continue; }
+    if (tr.n === 6) { textBlock(t, tr.t, XRAY, [{ s: tr.word, size: 150, col: RED }, { s: 'He emptied himself.', size: 66 }], 330); continue; }
+    textBlock(t, tr.t, end, [{ s: tr.word, size: 150, col: RED }], 340);
+  }
+  // rehook
+  textBlock(t, 7.9, 8.7, [{ s: 'WHY WON’T', size: 116 }, { s: 'IT OPEN?', size: 140, col: RED }], 318);
+  // reveal
+  textBlock(t, XRAY + 0.12, 11.95, [{ s: 'IT WAS LOCKED', size: 104 }, { s: 'FROM THE INSIDE.', size: 104, col: RED }], 318);
+  // turn
+  textBlock(t, 11.95, 14.6, [{ s: 'So he poured', size: 92 }, { s: 'where it was wanted.', size: 80, col: RED }], 330);
+  // moral (ref title) + CTA
+  textBlock(t, 14.6, DURATION + 1, [{ s: 'You can’t teach someone', size: 66 }, { s: 'a lesson they’ve decided', size: 66 }, { s: 'not to learn.', size: 98, col: RED }], 318);
+  textBlock(t, 16.9, DURATION + 1, [{ s: 'Who are you still pouring for? 👇', size: 52, plate: [255, 250, 240] }], 680);
+}
+
+// ---------------- frame ----------------
+function drawWorld(t, cam) {
+  // wall
+  const px = -((cam.x * 0.25) % 1500) - 600;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(bg, px - 200 + cam.sx * 0.3, 0);
+  const tx = 540 - cam.x * cam.z + cam.sx, ty = 1000 - cam.y * cam.z + cam.sy;
+  ctx.setTransform(cam.z, 0, 0, cam.z, tx, ty);
+  // floor band
+  ctx.fillStyle = '#e9c49f'; ctx.fillRect(cam.x - 8000, 0, 16000, 4000);
+  ctx.strokeStyle = rgb(INK); ctx.lineWidth = 7 / Math.min(1, cam.z); ctx.beginPath(); ctx.moveTo(cam.x - 8000, 0); ctx.lineTo(cam.x + 8000, 0); ctx.stroke();
+  ctx.fillStyle = 'rgba(200,120,90,0.25)';
+  for (let x = Math.floor((cam.x - 4000) / 60) * 60; x < cam.x + 4000; x += 60) for (let y = 40; y < 1400; y += 60) { ctx.beginPath(); ctx.arc(x + (y / 60 % 2) * 30, y, 6, 0, 2 * PI); ctx.fill(); }
+  drawPuddle(t);
+  const xray = ramp(t, XRAY, XRAY + 0.35) * (1 - ramp(t, 11.8, 12.1));
+  const vis = chars.filter(c => Math.abs(c.x - cam.x) < 600 / cam.z + 500);
+  for (const c of vis) if (c !== HERO) drawChar(c, t, c.jar ? xray : 0);
+  drawChar(HERO, t, 0);
+  drawStreams(t);
+  drawSplash(t);
+  // x-ray scan bar
+  if (t > XRAY && t < XRAY + 0.45) {
+    const k = lin(t, XRAY, XRAY + 0.45), T = TYPES.jar;
+    const top = -250 - T.stem - T.H - 60, y = lerp(top, 0, k);
+    ctx.fillStyle = 'rgba(120,255,240,0.55)'; ctx.fillRect(JAR.x - 200, y - 8, 400, 16);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+window.renderFrame = function (t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  const cam = camAt(t);
+  // rewind whip: motion smear
+  if (t > REW - 0.06 && t < 1.32) {
+    const k = pulse(t, REW - 0.06, 1.32);
+    drawWorld(t, cam);
+    for (let s = 1; s <= 4; s++) { ctx.globalAlpha = 0.22; const c2 = Object.assign({}, cam, { x: cam.x + s * 90 * k }); drawWorld(t, c2); }
+    ctx.globalAlpha = 1;
+    // rewind tint stripes
+    ctx.fillStyle = `rgba(34,40,66,${0.08 * k})`; for (let y = 0; y < H; y += 24) ctx.fillRect(0, y, W, 6);
+    ctx.save(); ctx.globalAlpha = k; ctx.fillStyle = rgb(INK);
+    ctx.translate(540, 860);
+    for (const o of [-40, 40]) { ctx.beginPath(); ctx.moveTo(o + 40, -50); ctx.lineTo(o - 40, 0); ctx.lineTo(o + 40, 50); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+  } else drawWorld(t, cam);
+  // flash on reveal
+  const fl = Math.exp(-Math.max(0, t - XRAY) * 10) * (t >= XRAY ? 1 : 0);
+  if (fl > 0.01) { ctx.fillStyle = `rgba(255,255,255,${0.6 * fl})`; ctx.fillRect(0, 0, W, H); }
+  drawTexts(t);
+  pill(t);
+  ctx.drawImage(grain, 0, 0, W, H);
+};
+window.DURATION = DURATION;
+document.fonts.load(`900 80px "Inter Display"`).then(() => { window.READY = true; });
+</script>
+</body></html>
