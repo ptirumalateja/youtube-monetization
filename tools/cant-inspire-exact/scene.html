@@ -1,0 +1,615 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// Exact remake of the "You Can't Inspire Change In People Who Don't Want To Change" ref (38 s),
+// same beats, look and layout, plus a Hulk-style growth every time a creature gets the red liquid.
+const W = 1080, H = 1920;
+const BAND_Y = 600, BAND_H = 720;              // scene band (ref: 720x480 at y 400 of 720x1280)
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const PI = Math.PI;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ss = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
+const ramp = (t, a, b) => ss((t - a) / (b - a));
+const lin = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const pulse = (t, a, b) => { const k = lin(t, a, b); return k > 0 && k < 1 ? Math.sin(k * PI) : 0; };
+function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+const mix = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
+const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+const RED = [196, 14, 42], RED_D = [140, 6, 30], RED_L = [232, 60, 80];
+const JAR = [104, 14, 34], JAR_D = [70, 6, 22];
+const GREY = [150, 150, 148], GREY_D = [112, 112, 110], GLASS = [214, 216, 212];
+const INK = [34, 12, 16], SIL = [14, 14, 14];
+const LIME = [74, 92, 60];
+const DURATION = 38.4;
+const T_COLOR = 6.0;
+
+// ---------------- head shapes (bottom at y=0, up is negative) ----------------
+const HEADS = {
+  wine:    { H: 330, r: u => 148 * Math.pow(Math.sin(Math.min(1, u * 1.45 + 0.12) * PI / 2), 0.8) * (1 - 0.16 * u * u) },
+  tumbler: { H: 340, r: u => 104 + 24 * u },
+  tall:    { H: 380, r: u => 96 + 30 * u },
+  jar:     { H: 290, r: u => u < 0.86 ? 130 : 130 - 16 * ss((u - 0.86) / 0.06) },
+  lime:    { H: 220, r: u => 136 * Math.pow(Math.sin(Math.min(1, u * 1.3 + 0.1) * PI / 2), 0.6) },
+  ice:     { H: 240, r: u => 112 + 12 * u },
+  mug:     { H: 250, r: u => 116, handle: true },
+  square:  { H: 300, r: u => 150 },
+  round:   { H: 300, r: u => 150 * Math.pow(Math.sin(Math.min(1, u * 1.2 + 0.2) * PI / 2), 0.5) * (1 - 0.1 * u) },
+  cup:     { H: 260, r: u => 120 + 30 * u, straw: true },
+};
+
+// ---------------- cast ----------------
+// world: neck base of a full-size creature at y=0, feet at y=900.
+const S = {}; // silhouette intro cast
+const Ccast = {}; // colour cast
+function mk(o) { return Object.assign({ s0: o.sil ? 0.56 : 0.68, s1: 1.0, grow: Infinity, fillS: Infinity, fillE: Infinity, pre: false, num: null, sil: false, m1: 1 }, o); }
+// silhouette line (0-6 s)
+S.a = mk({ x: -340, head: 'round', pre: true, sil: true, m1: 0.5 });
+S.b = mk({ x: 40, m1: 0.5, head: 'square', pre: true, sil: true });
+S.c = mk({ m1: 0.6, x: 420, head: 'cup', sil: true, fillS: 1.05, fillE: 1.85, grow: 1.85 });
+S.d = mk({ m1: 0.6, x: 800, head: 'round', sil: true, fillS: 3.05, fillE: 3.85, grow: 3.85 });
+S.e = mk({ m1: 0.6, x: 1180, head: 'square', sil: true, fillS: 4.65, fillE: 5.45, grow: 5.45 });
+S.f = mk({ x: 1480, head: 'cup', sil: true });
+S.g = mk({ x: 1760, head: 'square', sil: true });
+// colour chain
+Ccast.n935 = mk({ x: 0, head: 'wine', pre: true, num: 935 });
+Ccast.n936 = mk({ x: 360, head: 'tumbler', num: 936, fillS: 5.75, fillE: 6.55, grow: 6.62 });
+Ccast.n937 = mk({ x: 720, head: 'wine', num: 937, fillS: 8.15, fillE: 9.0, grow: 9.05 });
+Ccast.n938 = mk({ x: 1060, head: 'tall', num: 938, fillS: 10.6, fillE: 11.45, grow: 11.5 });
+Ccast.jar  = mk({ x: 1400, head: 'jar', num: 939, s0: 0.82, jar: true });
+Ccast.n940 = mk({ x: 1900, head: 'lime', num: 940, fillS: 28.35, fillE: 29.55, grow: 29.65 });
+Ccast.n941 = mk({ x: 2250, head: 'ice', num: 941, fillS: 34.0, fillE: 35.3, grow: 35.4 });
+Ccast.n942 = mk({ x: 2580, head: 'mug' });
+const N938X = t => lerp(1060, 1580, ramp(t, 25.2, 26.3));
+
+const TR = 0.14;
+function fillLvl(c, t) {
+  if (c.jar) return 0.86;
+  if (c.pre) return 0.86;
+  return 0.86 * lin(t, c.fillS + TR, c.fillE + TR);
+}
+function redAmt(c, t) { if (c.pre) return 1; return ramp(t, c.fillE - 0.1, c.fillE + 0.35); }
+// hulk growth: scale and muscle
+function gdur(c) { return c.sil ? 0.75 : 1.1; }
+function growK(c, t) { if (c.pre) return 1; return lin(t, c.grow, c.grow + gdur(c)); }
+// three hulk 'heaves': each step jumps up with overshoot
+function stepG(k) { if (k <= 0) return 0; if (k >= 1) return 1; const q = k * 3, i = Math.floor(q), f = q - i; const e = f < 0.45 ? (1 + 2.7 * Math.pow(f / 0.45 - 1, 3) + 1.7 * Math.pow(f / 0.45 - 1, 2)) : 1; return Math.min(1.08, (i + e) / 3); }
+function heave(c, t) { const k = growK(c, t); if (k <= 0 || k >= 1) return 0; const f = (k * 3) % 1; return f < 0.45 ? Math.sin(f / 0.45 * PI) : 0; }
+function scaleOf(c, t) {
+  if (c.pre) return c.s1;
+  const k = growK(c, t);
+  return lerp(c.s0, c.s1, stepG(k)) * (1 + 0.03 * heave(c, t));
+}
+function muscle(c, t) {
+  if (c.jar) return 0.15;
+  if (c.pre) return c.m1;
+  const k = growK(c, t);
+  return c.m1 * (k <= 0 ? 0 : stepG(k) * (1 + 0.35 * heave(c, t)) + (k > 0.85 && k < 1 ? 0.25 * pulse(k, 0.85, 1) : 0));
+}
+
+// ---------------- poses ----------------
+function basePose(t, c) {
+  return { lean: 0, tilt: 0, hR: null, hL: null, eyeX: 0, eyeY: 0, mood: 'neutral', blink: 0, dy: Math.sin(t * 2.4 + c.x * 0.01) * 3, flex: 0, walk: 0 };
+}
+// pour helper: pourer bends toward receiver
+function pourPose(P, t, a, s0, s1, b, amt = 1, dir = 1) {
+  const k = ramp(t, a, a + 0.35) * (1 - ramp(t, s1 + 0.05, b));
+  if (k <= 0) return 0;
+  // solve the head angle so the rim lands over the receiver's opening
+  const pr = POUR_OF[P._id + '@' + s0];
+  let th = 1.2;
+  if (pr) {
+    const T = HEADS[pr.f.head], sP = scaleOf(pr.f, t), lean = 0.1;
+    const px = pr.f.id === 'n938' ? N938X(t) : pr.f.x;
+    const sR = scaleOf(pr.to, t), TR2 = HEADS[pr.to.head];
+    const dx = (pr.to.x - px) / sP - 20;
+    let lo = 0.3, hi = 2.3;
+    for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; const x = 510 * Math.sin(lean) + T.r(1) * Math.cos(m) + (T.H + 10) * Math.sin(m); if (x > dx) hi = m; else lo = m; }
+    th = (lo + hi) / 2;
+    P.lean = lean * k; P.tilt = (th - lean) * k;
+  } else { P.lean = 0.1 * k; P.tilt = 1.1 * k; }
+  P.hR = [lerp(150, 110, k), lerp(330, 210, k)]; P.hL = [-130, 330];
+  P.eyeX = 10 * dir * k; P.eyeY = 8 * k; P.mood = 'smile';
+  return k;
+}
+function flexPose(P, c, t) {
+  const k = growK(c, t);
+  if (c.pre || k <= 0.02 || k >= 1.0) return;
+  const f = Math.max(0.35, pulse(k, 0.02, 1.0)) * (k > 0.6 ? 1 : 0.6 + 0.4 * heave(c, t));
+  P.flex = f;
+  P.hR = [lerp(150, 230, f), lerp(330, -60, f)]; P.hL = [lerp(-150, -230, f), lerp(330, -60, f)];
+  P.mood = 'grin';
+}
+function poseOf(c, t) {
+  const P = basePose(t, c); P._id = c.id;
+  const id = c.id;
+  // silhouettes
+  if (id === 'b') pourPose(P, t, 0.7, 1.05, 1.85, 2.2);
+  if (id === 'c') { pourPose(P, t, 2.7, 3.05, 3.85, 4.2); flexPose(P, c, t); }
+  if (id === 'd') { pourPose(P, t, 4.3, 4.65, 5.45, 5.8); flexPose(P, c, t); }
+  if (id === 'e') flexPose(P, c, t);
+  if (c.sil && !c.pre && t < c.fillS) { P.eyeY = -6; P.eyeX = -8; }
+  // colour chain
+  if (id === 'n935') { pourPose(P, t, 5.2, 5.75, 6.55, 6.95); if (t > 7.0) { P.mood = 'smile'; P.eyeX = 8; } }
+  if (id === 'n936') {
+    if (t < 6.6) { P.mood = 'squeeze'; P.eyeY = -8; P.lean = -0.08; }
+    flexPose(P, c, t);
+    if (t > 7.45 && t < 7.8) P.mood = 'grin';
+    pourPose(P, t, 7.75, 8.15, 9.0, 9.35);
+    if (t > 9.4) { P.mood = 'smile'; P.eyeX = 10; }
+  }
+  if (id === 'n937') {
+    if (t < 8.15) { P.eyeX = -10; P.eyeY = -8; P.mood = 'hope'; }
+    if (t >= 8.15 && t < 9.05) { P.mood = 'squeeze'; P.eyeY = -8; }
+    flexPose(P, c, t);
+    pourPose(P, t, 10.2, 10.6, 11.45, 11.8);
+    // 13-17: leans in with 938, eyeing the jar
+    const lk = ramp(t, 12.6, 13.2) * (1 - ramp(t, 17.2, 17.6));
+    if (lk > 0) { P.lean = 0.22 * lk; P.tilt = 0.2 * lk; P.eyeX = 10 * lk; P.mood = 'flat'; }
+    if (t > 22.4 && t < 25.2) { P.eyeX = 10; P.mood = 'frown'; }
+  }
+  if (id === 'n938') {
+    if (t < 10.6) { P.eyeX = -10; P.eyeY = -8; P.mood = 'hope'; }
+    if (t >= 10.6 && t < 11.5) { P.mood = 'squeeze'; P.eyeY = -8; }
+    flexPose(P, c, t);
+    if (t > 12.3 && t < 12.7) { P.mood = 'smile'; P.eyeX = 10; }
+    const lk = ramp(t, 12.6, 13.2) * (1 - ramp(t, 17.2, 17.6));
+    if (lk > 0) { P.lean = 0.12 * lk; P.tilt = 0.08 * lk; P.eyeX = 10; P.mood = 'flat'; }
+    if (t > 17.6 && t < 20.6) { P.eyeX = 10; P.mood = t < 19.4 ? 'neutral' : 'frown'; }
+    // taps the lid
+    if (t >= 20.6 && t < 22.5) {
+      const k = ramp(t, 20.6, 20.9) * (1 - ramp(t, 22.2, 22.5));
+      const tap = Math.max(pulse(t, 21.05, 21.3), pulse(t, 21.45, 21.7), pulse(t, 21.85, 22.1));
+      P.hR = [lerp(150, 330, k), lerp(330, 50 + 30 * tap, k)]; P.eyeX = 10; P.eyeY = 6; P.mood = 'frown'; P.lean = 0.1 * k;
+    }
+    if (t >= 22.5 && t < 24.6) { P.eyeX = -10; P.mood = 'frown'; P.hL = [-90, 120]; }  // looks back at 937, hand on chin
+    if (t >= 24.6 && t < 25.2) { P.eyeX = 10; P.mood = 'neutral'; }
+    if (t >= 25.2 && t < 26.3) { P.walk = 1; P.eyeX = 10; P.mood = 'neutral'; }
+    if (t >= 26.3 && t < 27.9) { P.eyeX = 10; P.eyeY = 6; P.mood = t > 26.8 ? 'smile' : 'neutral'; }
+    pourPose(P, t, 27.85, 28.35, 29.55, 30.0);
+    if (t > 30.0) { P.eyeX = 10; P.mood = 'smile'; }
+    if (t > 32.0) { P.eyeX = 10; P.mood = 'smile'; }
+  }
+  if (id === 'jar') {
+    P.mood = 'flat';
+    if (t > 12.6 && t < 17.0) { P.eyeX = -10; }
+    // lid: arms up, pull it down, screw it on
+    if (t >= 17.0 && t < 19.6) {
+      const up = ramp(t, 17.0, 17.5) * (1 - ramp(t, 19.1, 19.6));
+      const down = ramp(t, 17.7, 18.3);
+      const sc = Math.sin(t * 34) * 14 * pulse(t, 18.3, 19.0);
+      P.hR = [lerp(150, 70 + sc, up), lerp(330, lerp(-540, -330, down), up)];
+      P.hL = [lerp(-150, -70 + sc, up), lerp(330, lerp(-540, -330, down), up)];
+      P.eyeY = -8 * up; P.eyeX = 0;
+      if (t > 18.3 && t < 19.3) P.mood = 'squeeze';
+    }
+    if (t >= 19.6) P.eyeX = t < 22.5 ? -6 : 0;
+  }
+  if (id === 'n940') {
+    if (t < 26.3) P.eyeX = -6;
+    if (t >= 26.3 && t < 28.35) { P.eyeX = -10; P.eyeY = -8; P.mood = 'hope'; }
+    if (t >= 28.35 && t < 29.65) { P.mood = 'squeeze'; P.eyeY = -8; }
+    flexPose(P, c, t);
+    if (t > 30.8 && t < 33.3) { P.mood = 'grin'; P.hR = [180, 260]; P.hL = [-180, 260]; P.eyeX = -6; } // hands on hips
+    pourPose(P, t, 33.6, 34.0, 35.3, 35.7);
+    if (t > 35.8) { P.mood = 'smile'; P.eyeX = 10; }
+  }
+  if (id === 'n941') {
+    if (t < 34.0) { P.eyeX = -10; P.eyeY = -8; P.mood = 'hope'; }
+    if (t >= 34.0 && t < 35.4) { P.mood = 'squeeze'; P.eyeY = -8; }
+    flexPose(P, c, t);
+    if (t > 36.2) { P.mood = 'grin'; P.eyeX = -8; }
+  }
+  if (id === 'n942') { P.eyeX = -8; P.mood = 'neutral'; }
+  const bl = (t * 0.41 + hash(c.x) * 9) % 3.3; if (bl < 0.09 && P.mood !== 'squeeze') P.blink = 1;
+  return P;
+}
+for (const k in S) S[k].id = k;
+for (const k in Ccast) Ccast[k].id = k;
+
+// ---------------- drawing ----------------
+function headPath(h) {
+  const T = HEADS[h]; ctx.beginPath(); const N = 32;
+  for (let k = 0; k <= N; k++) { const u = k / N; ctx.lineTo(-T.r(u), -u * T.H); }
+  for (let k = N; k >= 0; k--) { const u = k / N; ctx.lineTo(T.r(u), -u * T.H); }
+  ctx.closePath();
+}
+function thickLimb(pts, w, col, outline) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const path = () => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); ctx.quadraticCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1]); };
+  path(); ctx.strokeStyle = rgb(outline); ctx.lineWidth = w + 10; ctx.stroke();
+  path(); ctx.strokeStyle = rgb(col); ctx.lineWidth = w; ctx.stroke();
+}
+// local transform for a creature: returns function to map local neck-space point to world
+function charXform(c, t, P) {
+  const s = scaleOf(c, t);
+  const x = c.id === 'n938' ? N938X(t) : c.x;
+  return { x, s, lean: P.lean, walkBob: P.walk ? Math.abs(Math.sin(t * 12)) * 16 : 0 };
+}
+function lipOf(c, t) {
+  const P = poseOf(c, t), X = charXform(c, t, P), T = HEADS[c.head];
+  // neck (0,0) -> rotate lean about hip (0,500) -> head tilt about neck
+  const tl = P.lean + P.tilt, dir = Math.sign(tl || 1);
+  let lx = T.r(1) * dir, ly = -T.H - 10;
+  let hx = lx * Math.cos(tl) - ly * Math.sin(tl), hy = lx * Math.sin(tl) + ly * Math.cos(tl);
+  hy += -10;
+  // lean about hip
+  let nx = 0, ny = -10 + P.dy - X.walkBob;
+  const lx2 = (nx - 0) * Math.cos(P.lean) - (ny - 500) * Math.sin(P.lean), ly2 = (nx - 0) * Math.sin(P.lean) + (ny - 500) * Math.cos(P.lean) + 500;
+  const wx = lx2 + hx, wy = ly2 + hy;
+  return [X.x + wx * X.s, 900 + (wy - 900) * X.s];
+}
+function mouthOf(c, t) {
+  const X = charXform(c, t, poseOf(c, t)), T = HEADS[c.head];
+  return [X.x - 10 * X.s, 900 + (-10 - T.H * 0.98 - 900) * X.s];
+}
+function drawCreature(c, t) {
+  const P = poseOf(c, t), X = charXform(c, t, P), T = HEADS[c.head];
+  const sil = c.sil, m = muscle(c, t), R = redAmt(c, t);
+  const body = sil ? SIL : c.jar ? JAR : mix(GREY, RED, R);
+  const bodyD = sil ? SIL : c.jar ? JAR_D : mix(GREY_D, RED_D, R);
+  const ink = sil ? SIL : mix([60, 60, 60], INK, c.jar ? 1 : R);
+  ctx.save();
+  ctx.translate(X.x, 900); ctx.scale(X.s, X.s); ctx.translate(0, -900 - X.walkBob);
+  // legs (only seen in the silhouette wide)
+  if (sil) {
+    ctx.fillStyle = rgb(SIL);
+    const st = P.walk ? Math.sin(t * 12) * 30 : 0;
+    ctx.beginPath(); ctx.roundRect(-70 - m * 10 + st, 560, 48 + m * 12, 340, 20); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(22 - st, 560, 48 + m * 12, 340, 20); ctx.fill();
+  }
+  ctx.translate(0, 500); ctx.rotate(P.lean); ctx.translate(0, -500);
+  ctx.translate(0, P.dy);
+  // torso: hulk shoulders
+  const nw = 40 + 16 * m, Wd = 112 + 92 * m, sh = 120 - 20 * m;
+  const torso = () => {
+    ctx.beginPath();
+    ctx.moveTo(-nw, -10);
+    ctx.bezierCurveTo(-nw - 20 * m, 50, -Wd - 10, sh - 50, -Wd, sh + 30);
+    ctx.bezierCurveTo(-Wd + 10, 320, -Wd + 30 - 20 * m, 520, -Wd + 20, 720);
+    ctx.lineTo(Wd - 20, 720);
+    ctx.bezierCurveTo(Wd - 30 + 20 * m, 520, Wd - 10, 320, Wd, sh + 30);
+    ctx.bezierCurveTo(Wd + 10, sh - 50, nw + 20 * m, 50, nw, -10);
+    ctx.closePath();
+  };
+  torso(); ctx.fillStyle = rgb(body); ctx.fill();
+  if (!sil) {
+    ctx.save(); torso(); ctx.clip();
+    ctx.fillStyle = rgb(bodyD, 0.9);
+    ctx.beginPath(); ctx.ellipse(Wd * 0.9, 380, Wd * 0.45, 420, 0, 0, 2 * PI); ctx.fill();
+    // hulk definition: traps, pecs, abs
+    if (m > 0.05) {
+      ctx.strokeStyle = rgb(ink, clamp(m, 0, 1) * 0.8); ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-Wd * 0.62, 190); ctx.quadraticCurveTo(-Wd * 0.3, 270 + 20 * m, -6, 215); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(Wd * 0.62, 190); ctx.quadraticCurveTo(Wd * 0.3, 270 + 20 * m, 6, 215); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 230); ctx.lineTo(0, 300); ctx.stroke();
+      for (const yy of [330, 400]) { ctx.beginPath(); ctx.moveTo(-40, yy); ctx.quadraticCurveTo(-20, yy + 14, -6, yy); ctx.moveTo(40, yy); ctx.quadraticCurveTo(20, yy + 14, 6, yy); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(-nw - 4, 20); ctx.quadraticCurveTo(-Wd * 0.6, 60, -Wd * 0.85, 120); ctx.moveTo(nw + 4, 20); ctx.quadraticCurveTo(Wd * 0.6, 60, Wd * 0.85, 120); ctx.stroke();
+    }
+    ctx.restore();
+    torso(); ctx.strokeStyle = rgb(ink); ctx.lineWidth = 6; ctx.stroke();
+    // number on the chest (white, hand-drawn feel)
+    if (c.num && (R > 0.05 || c.jar)) {
+      ctx.save(); ctx.translate(0, 215 + 20 * m); ctx.rotate(-0.06);
+      const k = c.jar || c.pre ? 1 : ramp(t, c.fillE, c.fillE + 0.3);
+      ctx.scale(1 + m * 0.25, 1 + m * 0.15);
+      ctx.font = `italic 800 ${118}px "Inter Display", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = `rgba(250,244,240,${(c.jar ? 0.85 : 1) * k})`; ctx.fillText(String(c.num), 0, 0);
+      ctx.restore();
+    }
+  }
+  // arms
+  const shL = [-Wd + 14, sh + 40], shR = [Wd - 14, sh + 40];
+  const hR = P.hR || [Wd + 30, 360 + Math.sin(t * 2 + c.x) * 6], hL = P.hL || [-Wd - 30, 360 + Math.sin(t * 2 + c.x + 1) * 6];
+  const aw = 34 + 34 * m;
+  for (const [s0, h, sx] of [[shL, hL, -1], [shR, hR, 1]]) {
+    const mid = [(s0[0] + h[0]) / 2 + sx * (30 + 30 * m), (s0[1] + h[1]) / 2 + 10];
+    thickLimb([s0, mid, h], aw, body, ink);
+    // biceps bulge
+    if (m > 0.05 && !sil) {
+      const bx = lerp(s0[0], mid[0], 0.6), by = lerp(s0[1], mid[1], 0.6) - 10 * P.flex;
+      ctx.fillStyle = rgb(body); ctx.strokeStyle = rgb(ink); ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.ellipse(bx, by, (18 + 26 * m) * (1 + 0.35 * P.flex), (14 + 18 * m) * (1 + 0.35 * P.flex), Math.atan2(mid[1] - s0[1], mid[0] - s0[0]), 0, 2 * PI); ctx.fill(); ctx.stroke();
+    } else if (sil && m > 0.05) {
+      ctx.fillStyle = rgb(SIL); const bx = lerp(s0[0], mid[0], 0.6), by = lerp(s0[1], mid[1], 0.6);
+      ctx.beginPath(); ctx.ellipse(bx, by, 22 + 26 * m, 16 + 18 * m, 0, 0, 2 * PI); ctx.fill();
+    }
+    // mitten hand
+    ctx.fillStyle = rgb(body); ctx.strokeStyle = rgb(ink); ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.ellipse(h[0], h[1], 26 + 10 * m, 30 + 10 * m, 0, 0, 2 * PI); ctx.fill(); if (!sil) ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(h[0] - sx * 22, h[1] - 14, 10 + 3 * m, 16 + 4 * m, sx * 0.6, 0, 2 * PI); ctx.fill(); if (!sil) ctx.stroke();
+  }
+  // neck + head
+  ctx.save();
+  ctx.translate(0, -10); ctx.rotate(P.tilt);
+  drawHead(c, t, P, T, sil, R, ink, P.lean + P.tilt);
+  ctx.restore();
+  ctx.restore();
+}
+function drawHead(c, t, P, T, sil, R, ink, rotTotal) {
+  if (sil) {
+    headPath(c.head); ctx.fillStyle = rgb(SIL); ctx.fill();
+    if (T.straw) { ctx.strokeStyle = rgb(SIL); ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(30, -T.H + 40); ctx.lineTo(60, -T.H - 110); ctx.lineTo(120, -T.H - 130); ctx.stroke(); }
+    // eyes: white dots
+    if (!P.blink) {
+      ctx.fillStyle = '#fff';
+      for (const sx of [-1, 1]) { ctx.beginPath(); ctx.ellipse(sx * 34 + P.eyeX * 0.8, -T.H * 0.5 + P.eyeY * 0.5, 7, 13, 0, 0, 2 * PI); ctx.fill(); }
+    }
+    return;
+  }
+  // glass
+  headPath(c.head);
+  ctx.fillStyle = rgb(GLASS, c.jar ? 1 : 0.85); ctx.fill();
+  const lvl = fillLvl(c, t);
+  if (lvl > 0.005) {
+    ctx.save(); headPath(c.head); ctx.clip();
+    const up = [-Math.sin(rotTotal), -Math.cos(rotTotal)];
+    let h = lvl * T.H * Math.cos(clamp(rotTotal, -1.2, 1.2));
+    const dir = Math.sign(rotTotal || 1);
+    const lip = [T.r(1) * dir, -T.H];
+    if (Math.abs(rotTotal) > 0.5 && lvl > 0.05) h = Math.max(h, lip[0] * up[0] + lip[1] * up[1] + 8);
+    const d = [-up[1], up[0]], p0 = [up[0] * h, up[1] * h];
+    const liq = c.jar ? JAR : RED, liqD = c.jar ? JAR_D : RED_D;
+    ctx.beginPath();
+    for (let k = -20; k <= 20; k++) { const w = Math.sin(k * 0.6 + t * 8 + c.x) * 3; ctx.lineTo(p0[0] + d[0] * k * 24 + up[0] * w, p0[1] + d[1] * k * 24 + up[1] * w); }
+    ctx.lineTo(p0[0] + d[0] * 480 - up[0] * 900, p0[1] + d[1] * 480 - up[1] * 900);
+    ctx.lineTo(p0[0] - d[0] * 480 - up[0] * 900, p0[1] - d[1] * 480 - up[1] * 900);
+    ctx.closePath(); ctx.fillStyle = rgb(liq); ctx.fill();
+    ctx.save(); ctx.clip();
+    ctx.fillStyle = rgb(liqD, 0.85); ctx.beginPath(); ctx.ellipse(T.r(0.5) * 0.95, -T.H * 0.45, T.r(0.5) * 0.4, T.H * 0.7, 0, 0, 2 * PI); ctx.fill();
+    ctx.restore();
+    // surface rim line
+    ctx.strokeStyle = rgb(mix(liq, [255, 255, 255], 0.25)); ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(p0[0] - d[0] * 300, p0[1] - d[1] * 300); ctx.lineTo(p0[0] + d[0] * 300, p0[1] + d[1] * 300); ctx.stroke();
+    ctx.restore();
+  }
+  // ice cubes / lime
+  if (c.head === 'ice') {
+    ctx.strokeStyle = rgb([90, 90, 90]); ctx.lineWidth = 4; ctx.fillStyle = 'rgba(240,240,236,0.6)';
+    for (const [x, y, r] of [[-40, -70, 0.3], [30, -110, -0.2], [-10, -160, 0.1]]) { ctx.save(); ctx.translate(x, y); ctx.rotate(r); ctx.beginPath(); ctx.rect(-36, -30, 72, 60); ctx.fill(); ctx.stroke(); ctx.restore(); }
+  }
+  // outline
+  headPath(c.head); ctx.strokeStyle = rgb(ink); ctx.lineWidth = 6; ctx.stroke();
+  // rim
+  ctx.strokeStyle = rgb(ink, 0.8); ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.ellipse(0, -T.H, T.r(1), 14, 0, PI, 2 * PI); ctx.stroke();
+  // glass shine
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-T.r(0.8) + 26, -T.H * 0.86); ctx.lineTo(-T.r(0.6) + 22, -T.H * 0.64); ctx.stroke();
+  if (T.handle) { ctx.strokeStyle = rgb(ink); ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(T.r(0.5) + 10, -T.H * 0.5, 54, -PI / 2, PI / 2); ctx.stroke(); }
+  if (c.head === 'lime') {
+    ctx.save(); ctx.translate(T.r(1) - 20, -T.H - 10); ctx.rotate(0.5);
+    ctx.fillStyle = rgb(LIME); ctx.strokeStyle = rgb([30, 40, 26]); ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(0, 0, 64, PI, 2 * PI); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,220,170,0.7)'; ctx.lineWidth = 3;
+    for (let a = 1.15; a < 2; a += 0.17) { ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(Math.cos(a * PI) * 54, Math.sin(a * PI) * 54); ctx.stroke(); }
+    ctx.restore();
+  }
+  // jar threads + lid
+  if (c.jar) {
+    ctx.strokeStyle = rgb(ink, 0.6); ctx.lineWidth = 3;
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(-T.r(1), -T.H + 8 + k * 10); ctx.lineTo(T.r(1), -T.H + 2 + k * 10); ctx.stroke(); }
+  }
+  // face (counter-rotate a little so it reads)
+  drawFace(P, T, c);
+  if (c.jar) drawLid(c, t, P, T);
+}
+function drawFace(P, T, c) {
+  const m = P.mood, fy = -T.H * (c.head === 'lime' || c.head === 'ice' ? 0.5 : 0.56);
+  const ex = (c.head === 'tall' ? 30 : 36), ew = 17, eh = 30;
+  ctx.save(); ctx.translate(P.eyeX * 0.9, fy + P.eyeY * 0.6);
+  ctx.lineCap = 'round';
+  for (const sx of [-1, 1]) {
+    const x = sx * ex;
+    if (P.blink || m === 'squeeze') {
+      ctx.strokeStyle = 'rgba(255,240,240,0.95)'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(x - ew, sx * 4 - 6); ctx.quadraticCurveTo(x, 6, x + ew, -sx * 4 - 6); ctx.stroke();
+      continue;
+    }
+    let hh = eh; if (m === 'flat') hh = eh * 0.5; if (m === 'frown') hh = eh * 0.75;
+    ctx.fillStyle = '#fbf6f2'; ctx.strokeStyle = 'rgba(30,10,14,0.6)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(x, 0, ew, eh, 0, 0, 2 * PI); ctx.fill();
+    // pupil sliver
+    ctx.fillStyle = 'rgba(30,8,12,0.85)';
+    ctx.beginPath(); ctx.ellipse(x + clamp(P.eyeX, -10, 10) * 0.7, clamp(P.eyeY, -10, 10) * 0.6 + (m === 'flat' ? 8 : 0), 6, 10, 0, 0, 2 * PI); ctx.fill();
+    // lids
+    if (m === 'flat' || m === 'frown') {
+      const lidc = c.jar ? JAR : RED;
+      ctx.fillStyle = rgb(lidc);
+      ctx.save(); ctx.beginPath(); ctx.ellipse(x, 0, ew + 2, eh + 2, 0, 0, 2 * PI); ctx.clip();
+      const slope = m === 'frown' ? sx * -0.35 : 0;
+      ctx.translate(x, -eh + (eh - hh) * 2 - 6); ctx.rotate(slope); ctx.fillRect(-40, -60, 80, 60);
+      ctx.restore();
+      ctx.strokeStyle = rgb(INK); ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(x - ew - 2, -eh + (eh - hh) * 2 - 6 - slope * ew); ctx.lineTo(x + ew + 2, -eh + (eh - hh) * 2 - 6 + slope * ew); ctx.stroke();
+    }
+  }
+  // mouth
+  ctx.strokeStyle = 'rgba(40,10,16,0.85)'; ctx.lineWidth = 5;
+  ctx.beginPath();
+  if (m === 'smile' || m === 'hope') ctx.arc(0, 40, 26, 0.2 * PI, 0.8 * PI);
+  else if (m === 'grin') { ctx.fillStyle = '#fbf6f2'; ctx.moveTo(-34, 46); ctx.quadraticCurveTo(0, 80, 34, 46); ctx.closePath(); ctx.fill(); }
+  else if (m === 'frown') { ctx.moveTo(-18, 66); ctx.quadraticCurveTo(0, 56, 18, 66); }
+  else if (m === 'flat') { ctx.moveTo(-18, 62); ctx.quadraticCurveTo(0, 56, 18, 62); }
+  else if (m === 'squeeze') { ctx.moveTo(-16, 58); ctx.lineTo(16, 58); }
+  else { ctx.moveTo(-12, 60); ctx.lineTo(12, 60); }
+  ctx.stroke();
+  ctx.restore();
+}
+function lidOn(t) { return t >= 18.3; }
+function drawLid(c, t, P, T) {
+  // before 17.7 the lid is not visible; 17.7-18.3 it is in the jar's hands above the head; then screwed on
+  if (t < 17.55) return;
+  let y = -T.H - 18, rot = 0, a = 1;
+  if (t < 18.3) { const k = ramp(t, 17.7, 18.3); y = lerp(-T.H - 230, -T.H - 18, k); a = ramp(t, 17.55, 17.7); }
+  if (t >= 18.3 && t < 19.0) rot = Math.sin(t * 34) * 0.05;
+  ctx.save(); ctx.globalAlpha = a; ctx.translate(0, y); ctx.rotate(rot);
+  ctx.fillStyle = 'rgb(128,128,126)'; ctx.strokeStyle = 'rgb(40,40,40)'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.roundRect(-T.r(1) - 10, -34, (T.r(1) + 10) * 2, 44, 10); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(-T.r(1) - 4, -28, (T.r(1) + 4) * 2, 10);
+  ctx.strokeStyle = 'rgba(40,40,40,0.5)'; ctx.lineWidth = 2;
+  for (let x = -T.r(1); x <= T.r(1); x += 12) { ctx.beginPath(); ctx.moveTo(x, -20); ctx.lineTo(x, 8); ctx.stroke(); }
+  ctx.restore();
+}
+
+// ---------------- pours ----------------
+const POURS = [
+  { f: S.b, to: S.c, s0: 1.05, s1: 1.85, sil: true },
+  { f: S.c, to: S.d, s0: 3.05, s1: 3.85, sil: true },
+  { f: S.d, to: S.e, s0: 4.65, s1: 5.45, sil: true },
+  { f: Ccast.n935, to: Ccast.n936, s0: 5.75, s1: 6.55 },
+  { f: Ccast.n936, to: Ccast.n937, s0: 8.15, s1: 9.0 },
+  { f: Ccast.n937, to: Ccast.n938, s0: 10.6, s1: 11.45 },
+  { f: Ccast.n938, to: Ccast.n940, s0: 28.35, s1: 29.55, arc: 120 },
+  { f: Ccast.n940, to: Ccast.n941, s0: 34.0, s1: 35.3 },
+];
+const POUR_OF = {};
+for (const p of POURS) POUR_OF[p.f.id + '@' + p.s0] = p;
+function drawStreams(t, sil) {
+  for (const p of POURS) {
+    if (!!p.sil !== sil) continue;
+    if (t < p.s0 || t > p.s1 + TR + 0.05) continue;
+    const head = lin(t, p.s0, p.s0 + TR), tail = lin(t, p.s1, p.s1 + TR);
+    if (head <= tail) continue;
+    const L = lipOf(p.f, t), M = mouthOf(p.to, t);
+    const f = u => [lerp(L[0], M[0], u) + 18 * Math.sin(u * PI), lerp(L[1], M[1], u) - (p.arc || 20) * 4 * u * (1 - u)];
+    const s = scaleOf(p.f, t);
+    ctx.lineCap = 'round';
+    const layers = sil ? [[SIL, 22]] : [[INK, 26], [RED, 18], [RED_L, 4]];
+    for (const [col, lw] of layers) {
+      ctx.strokeStyle = rgb(col); ctx.lineWidth = lw * s * (1 - tail * 0.5);
+      ctx.beginPath(); for (let k = 0; k <= 24; k++) { const q = f(lerp(tail, head, k / 24)); ctx.lineTo(q[0] + (col === RED_L ? -4 : 0), q[1]); } ctx.stroke();
+    }
+    // drops
+    for (let k = 0; k < 10; k++) {
+      const u = (hash(k + p.s0) + t * 1.7) % 1; if (u < tail || u > head) continue;
+      const q = f(u); ctx.fillStyle = rgb(sil ? SIL : RED);
+      ctx.beginPath(); ctx.arc(q[0] + (hash(k * 3) - 0.5) * 40, q[1] + (hash(k * 7) - 0.5) * 30, 6 * s, 0, 2 * PI); ctx.fill();
+    }
+  }
+}
+// hulk burst: speed lines + ring when a creature grows
+function drawBursts(t, cast) {
+  for (const c of cast) {
+    if (c.pre || !isFinite(c.grow)) continue;
+    const kk = growK(c, t); if (kk <= 0 || kk >= 1) continue;
+    const k = (kk * 3) % 1;
+    const X = charXform(c, t, poseOf(c, t));
+    const cx = X.x, cy = 900 + (200 - 900) * X.s;
+    ctx.save(); ctx.globalAlpha = (1 - k) * 0.9;
+    ctx.strokeStyle = c.sil ? 'rgba(20,20,20,1)' : 'rgba(250,240,235,1)'; ctx.lineWidth = 8;
+    for (let a = 0; a < 14; a++) {
+      const th = a / 14 * 2 * PI + 0.2, r0 = 260 + 380 * k, r1 = r0 + 90;
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(th) * r0, cy + Math.sin(th) * r0 * 0.8); ctx.lineTo(cx + Math.cos(th) * r1, cy + Math.sin(th) * r1 * 0.8); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+// ---------------- background ----------------
+const wall = document.createElement('canvas'); wall.width = 2600; wall.height = 900;
+(function () {
+  const b = wall.getContext('2d');
+  b.fillStyle = 'rgb(176,176,172)'; b.fillRect(0, 0, 2600, 900);
+  // concrete blotches and stains
+  for (let k = 0; k < 900; k++) {
+    const x = hash(k) * 2600, y = hash(k + 99) * 900, r = 20 + hash(k + 7) * 160, v = hash(k + 3) > 0.5 ? 255 : 60;
+    const g = b.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${v},${v},${v - 4},${0.05 + hash(k + 5) * 0.06})`); g.addColorStop(1, `rgba(${v},${v},${v},0)`);
+    b.fillStyle = g; b.fillRect(x - r, y - r, 2 * r, 2 * r);
+  }
+  // cracks
+  b.strokeStyle = 'rgba(70,70,68,0.35)'; b.lineWidth = 1.5;
+  for (let k = 0; k < 18; k++) { let x = hash(k * 11) * 2600, y = hash(k * 13) * 900; b.beginPath(); b.moveTo(x, y); for (let s = 0; s < 14; s++) { x += (hash(k * 17 + s) - 0.5) * 40; y += 10 + hash(k * 19 + s) * 20; b.lineTo(x, y); } b.stroke(); }
+  // pits
+  b.fillStyle = 'rgba(40,40,40,0.35)';
+  for (let k = 0; k < 500; k++) { b.beginPath(); b.arc(hash(k * 5.1) * 2600, hash(k * 9.3) * 900, 0.6 + hash(k * 2.2) * 2, 0, 2 * PI); b.fill(); }
+  const id = b.getImageData(0, 0, 2600, 900), d = id.data;
+  for (let k = 0; k < d.length; k += 4) { const n = (Math.random() - 0.5) * 22; d[k] += n; d[k + 1] += n; d[k + 2] += n; }
+  b.putImageData(id, 0, 0);
+})();
+const grain = document.createElement('canvas'); grain.width = 540; grain.height = 360;
+const gctx = grain.getContext('2d');
+function regrain(seed) { const id = gctx.createImageData(540, 360); let s = seed * 9973; for (let k = 0; k < id.data.length; k += 4) { s = (s * 16807) % 2147483647; const v = s % 255; id.data[k] = id.data[k + 1] = id.data[k + 2] = v; id.data[k + 3] = 16; } gctx.putImageData(id, 0, 0); }
+
+// ---------------- camera ----------------
+const CAM_S = [[0, 520, 0.5], [6.0, 1000, 0.5]];
+const CAM_C = [
+  [6.0, 230, 0.871], [7.5, 330, 0.871], [8.0, 520, 0.871], [9.9, 560, 0.871], [10.3, 860, 0.871], [12.3, 920, 0.871],
+  [12.8, 1170, 0.896], [16.8, 1170, 0.896], [17.2, 1290, 0.979], [19.8, 1290, 0.979], [20.3, 1200, 0.913], [24.8, 1200, 0.913],
+  [26.3, 1520, 0.880], [28.0, 1650, 0.880], [30.0, 1760, 0.880], [33.3, 1820, 0.880], [33.8, 2060, 0.880], [DURATION, 2110, 0.880],
+];
+function camAt(keys, t) {
+  let k = 0; while (k < keys.length - 2 && t > keys[k + 1][0]) k++;
+  const a = keys[k], b = keys[k + 1]; const u = ss((t - a[0]) / (b[0] - a[0]));
+  return { x: lerp(a[1], b[1], u), z: lerp(a[2], b[2], u) };
+}
+
+// ---------------- frame ----------------
+const castS = Object.values(S), castC = Object.values(Ccast);
+function shakeAt(t, cast) {
+  let sx = 0, sy = 0;
+  for (const c of cast) { if (c.pre || !isFinite(c.grow)) continue; const d = (t - c.grow) % (gdur(c) / 3); if (t > c.grow && t < c.grow + gdur(c) && d < 0.3) { const e = Math.exp(-d * 10); sx += Math.sin(d * 80) * 8 * e; sy += Math.cos(d * 70) * 6 * e; } }
+  return [sx, sy];
+}
+window.renderFrame = function (t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, BAND_Y, W, BAND_H); ctx.clip();
+  const sil = t < T_COLOR;
+  const cast = sil ? castS : castC;
+  const cam = sil ? camAt(CAM_S, t) : camAt(CAM_C, t);
+  const [sx, sy] = shakeAt(t, cast);
+  if (sil) {
+    const g = ctx.createLinearGradient(0, BAND_Y, W, BAND_Y + BAND_H);
+    g.addColorStop(0, '#c4c6c3'); g.addColorStop(0.6, '#aeb0ad'); g.addColorStop(1, '#8b8d8a');
+    ctx.fillStyle = g; ctx.fillRect(0, BAND_Y, W, BAND_H);
+  } else {
+    const px = -((cam.x * 0.35) % 1200) - 300;
+    ctx.drawImage(wall, px + sx * 0.4, BAND_Y - 90 + sy * 0.4, 2600, 900);
+  }
+  // world transform: sil frames feet at band bottom; colour frames chest-up
+  const cy = sil ? 210 : 20;
+  ctx.setTransform(cam.z, 0, 0, cam.z, 540 - cam.x * cam.z + sx, BAND_Y + BAND_H / 2 - cy * cam.z + sy);
+  // draw order: receivers behind pourers; 938 walks behind the jar
+  let order = cast.slice();
+  if (!sil) {
+    order = [Ccast.n942, Ccast.n941, Ccast.n940, Ccast.n935, Ccast.n936, Ccast.n937, Ccast.jar, Ccast.n938];
+    if (t > 25.2 && t < 26.4) order = [Ccast.n942, Ccast.n941, Ccast.n940, Ccast.n935, Ccast.n936, Ccast.n937, Ccast.n938, Ccast.jar];
+    if (t > 33.0) order = [Ccast.n942, Ccast.n941, Ccast.n935, Ccast.n936, Ccast.n937, Ccast.jar, Ccast.n938, Ccast.n940];
+    if (t < 8.0) order = [Ccast.n942, Ccast.n941, Ccast.n940, Ccast.jar, Ccast.n938, Ccast.n937, Ccast.n936, Ccast.n935];
+    else if (t < 10.4) order = [Ccast.n942, Ccast.n941, Ccast.n940, Ccast.jar, Ccast.n938, Ccast.n935, Ccast.n937, Ccast.n936];
+  } else order = [S.g, S.f, S.e, S.d, S.c, S.b, S.a];
+  const vis = order.filter(c => Math.abs((c.id === 'n938' ? N938X(t) : c.x) - cam.x) < 540 / cam.z + 450);
+  for (const c of vis) drawCreature(c, t);
+  drawStreams(t, sil);
+  drawBursts(t, cast);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (!sil) {
+    // heavy vignette like the ref
+    const vg = ctx.createRadialGradient(540, BAND_Y + BAND_H * 0.45, 200, 540, BAND_Y + BAND_H / 2, 760);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.6, 'rgba(0,0,0,0.12)'); vg.addColorStop(1, 'rgba(0,0,0,0.7)');
+    ctx.fillStyle = vg; ctx.fillRect(0, BAND_Y, W, BAND_H);
+    regrain(Math.floor(t * 12) + 1);
+    ctx.drawImage(grain, 0, BAND_Y, W, BAND_H);
+  }
+  ctx.restore();
+  // title (ref: white with yellow highlights, top band)
+  ctx.font = `700 56px "Inter Display", sans-serif`; ctx.textBaseline = 'middle';
+  const line = (parts, y) => {
+    const wsum = parts.reduce((s, p) => s + ctx.measureText(p[0]).width, 0); let x = 540 - wsum / 2;
+    for (const [s, col] of parts) { ctx.fillStyle = col; ctx.fillText(s, x, y); x += ctx.measureText(s).width; }
+  };
+  ctx.textAlign = 'left';
+  line([["You Can’t Inspire ", '#ffffff'], ['Change', '#eef56a'], [' In', '#ffffff']], 480);
+  line([['People Who ', '#ffffff'], ['Don’t Want To Change', '#eef56a']], 542);
+};
+window.DURATION = DURATION;
+document.fonts.load(`700 56px "Inter Display"`).then(() => document.fonts.load(`italic 800 100px "Inter Display"`)).then(() => { window.READY = true; });
+</script>
+</body></html>
