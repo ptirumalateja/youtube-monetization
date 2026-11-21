@@ -7,7 +7,7 @@
 // "They Laughed": ref remake (crowd mocks a climber on the SUCCESS pillar, then claps; he answers with a boulder)
 // in the Born Rich v4 Slow Light look (navy sky, painted rock, gold-glow cream mannequins, red chips, teal grade).
 // World = 1080x1920 wide frame; shots are camera framings of that world (ref cuts/zooms).
-const W = 1080, H = 1920, DUR = 17.5;
+const W = 1080, H = 1920, DUR = 16.0;
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 const FONT = '"Inter Display", "Inter", "DejaVu Sans", sans-serif';
@@ -33,15 +33,17 @@ const ROCK0 = {x:965, y:PIL.top-74, r:78};       // the boulder resting on the s
 const LABELS = [['SUCCESS',null,626],['BUILD AN','EMPIRE',762],['START A','BUSINESS',902],['DREAM',null,1040],['WORK',null,1172]];
 
 // ---------------- timeline ----------------
-const FF = 0.8;                      // flash-forward hook ends
+const FF = 0;
+// v4: shot list, framing and cut times copied from the ref (15.7 s) + a short hold for the end question
 const SHOTS = [ // [start, name]
-  [0,'crowd0'],[FF,'wide1'],[2.6,'climb'],[4.0,'detail'],[5.0,'climb'],[5.98,'crowd1'],[6.6,'climb'],[7.4,'summit1'],[9.4,'wide2'],[10.9,'crowd2'],[11.9,'summit2'],[13.2,'crowd3'],[14.7,'wide3']];
-const SLIP = 5.75;
-const EDGE_T = 7.7, PULL = [8.05,8.65], STAND = [8.75,9.25];
-const CLAP_T = 10.15, LOOKUP_T = 13.35;
-const WALK = [11.95,12.25], LIFT=[12.3,12.85], THROW=[12.95,13.15];
-const IMPACT = 14.0;
-const NOW_T = 9.9, END_T = 15.0;
+  [0,'wideA'],[2.2,'two1'],[3.9,'climb'],[5.8,'pullback'],[7.3,'summitM'],[9.6,'wideE'],[12.2,'two2'],[12.75,'crowdF']];
+const SLIP = 99;                                   // the ref has no slip
+const EDGE_T = 7.6, PULL = [8.0,8.6], STAND = [9.0,9.6];
+const CLAP_T = 10.4, LOOKUP_T = 99;
+const WALK = [99,99], LIFT=[99,99], THROW=[99,99];
+const END = 'pee', PEE = true, IMPACT = 99;
+const PEE_T0 = 12.85, PEE_HIT = 13.15, EDGE_X = PIL.x0+22;
+const NOW_T = 10.4, END_T = 13.6;
 function shotAt(t){ let s=SHOTS[0]; for(const x of SHOTS) if(t>=x[0]) s=x; return s; }
 
 // ---------------- noise ----------------
@@ -182,6 +184,9 @@ function drawFig(f){
     } else if(e==='smile'){
       ctx.beginPath(); ctx.ellipse(ex-10,ey-1,3.4,4.4,0,0,7); ctx.ellipse(ex+10,ey-1,3.4,4.4,0,0,7); ctx.fill();
       ctx.lineWidth=2.8; ctx.beginPath(); ctx.moveTo(ex-9,ey+11); ctx.quadraticCurveTo(ex,ey+20,ex+9,ey+11); ctx.stroke();
+    } else if(e==='eww'){
+      ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(ex-15,ey-5); ctx.lineTo(ex-5,ey); ctx.lineTo(ex-15,ey+3); ctx.moveTo(ex+15,ey-5); ctx.lineTo(ex+5,ey); ctx.lineTo(ex+15,ey+3); ctx.stroke();
+      ctx.lineWidth=2.8; ctx.beginPath(); ctx.moveTo(ex-11,ey+14); for(let k=1;k<=6;k++) ctx.lineTo(ex-11+k*3.7, ey+14+(k%2?-3:3)); ctx.stroke();
     } else if(e==='strain'){
       ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(ex-15,ey-3); ctx.lineTo(ex-5,ey+1); ctx.lineTo(ex-15,ey+4); ctx.moveTo(ex+15,ey-3); ctx.lineTo(ex+5,ey+1); ctx.lineTo(ex+15,ey+4); ctx.stroke();
       ctx.fillStyle=C.ink; rr(ex-9,ey+10,18,7,3); ctx.fill(); ctx.fillStyle='#fff'; ctx.fillRect(ex-7,ey+12.5,14,2);
@@ -203,27 +208,41 @@ function drawFig(f){
   ctx.restore();
 }
 function drawProfile(f){
-  ctx.save(); ctx.translate(f.x,f.y); ctx.scale(f.s||1,f.s||1);
-  const near={skin:C.skin,sh:C.skinSh,hi:C.skinHi,out:C.out}, far={skin:mixHex(C.skin,'#3a4650',0.45),sh:mixHex(C.skinSh,'#3a4650',0.45),hi:mixHex(C.skinHi,'#3a4650',0.45),out:C.out};
+  ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(f.rot||0); ctx.scale((f.s||1)*(f.flip||1),f.s||1);
+  const dim=f.dim||0, BGC='#3a4650';
+  const pal=(d)=>({skin:mixHex(C.skin,BGC,d),sh:mixHex(C.skinSh,BGC,d),hi:mixHex(C.skinHi,BGC,d),out:C.out});
+  const near=pal(dim*0.75), far=pal(Math.min(0.9,dim*0.75+0.4));
+  const glow=f.glow!==false && dim<0.2;
   const lean=f.lean||0;
   const nk=[Math.sin(lean)*TORSO, -Math.cos(lean)*TORSO];
   const shp=[nk[0]-Math.sin(lean)*6, nk[1]+Math.cos(lean)*6];
-  const leg=(i,pal)=>{ const [k,ft]=ik(0,0,f.feet[i][0],f.feet[i][1],50,50,-1); paintLimb([[0,0],k,ft],LIMB+0.5,pal);
-    ctx.fillStyle=pal.sh; ctx.strokeStyle=pal.out; ctx.lineWidth=2.2; ctx.beginPath(); ctx.ellipse(ft[0]+4,ft[1]+2,9,4.5,0,0,7); ctx.fill(); ctx.stroke(); };
-  const arm=(i,pal)=>{ const [e,h]=ik(shp[0],shp[1],f.hands[i][0],f.hands[i][1],48,48,1); paintLimb([shp,e,h],LIMB-1.5,pal);
-    ctx.fillStyle=pal.skin; ctx.strokeStyle=pal.out; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(h[0],h[1],6.2,0,7); ctx.fill(); ctx.stroke(); };
+  // knees always bend forward (+x, the way he faces), elbows always bend down/back
+  const leg=(i,p)=>{ const [k,ft]=ik(0,0,f.feet[i][0],f.feet[i][1],50,50,-1); paintLimb([[0,0],k,ft],LIMB+0.5,p);
+    ctx.fillStyle=p.sh; ctx.strokeStyle=p.out; ctx.lineWidth=2.2; ctx.beginPath(); ctx.ellipse(ft[0]+5,ft[1]+2,9,4.5,0,0,7); ctx.fill(); ctx.stroke(); };
+  const arm=(i,p)=>{ const [e,h]=ik(shp[0],shp[1],f.hands[i][0],f.hands[i][1],f.armL||46,f.armL||46,(f.elbow||[1,1])[i]); paintLimb([shp,e,h],LIMB-1.5,p);
+    ctx.fillStyle=p.skin; ctx.strokeStyle=p.out; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(h[0],h[1],6.2,0,7); ctx.fill(); ctx.stroke(); };
   arm(1,far); leg(1,far);
-  ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=24;
+  if(glow){ ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=24; }
   { const mid=[nk[0]*0.5-Math.cos(lean)*4, nk[1]*0.5-Math.sin(lean)*4]; paintLimb([[0,-2],mid,nk],LIMB+9,near); }
-  const ht=(f.headBack!=null?f.headBack:0.5); const hc=[nk[0]+Math.sin(lean-ht)*(HEADR+3), nk[1]-Math.cos(lean-ht)*(HEADR+3)];
+  const ht=(f.headBack!=null?f.headBack:0.25); const hc=[nk[0]+Math.sin(lean-ht)*(HEADR+3), nk[1]-Math.cos(lean-ht)*(HEADR+3)];
   ctx.fillStyle=C.out; ctx.beginPath(); ctx.arc(hc[0],hc[1],HEADR+2.6,0,7); ctx.fill(); shadowOff();
-  const hg=ctx.createRadialGradient(hc[0]-HEADR*0.38,hc[1]-HEADR*0.42,2,hc[0],hc[1],HEADR*1.05); hg.addColorStop(0,C.skinHi); hg.addColorStop(0.55,C.skin); hg.addColorStop(1,C.skinSh);
+  const hg=ctx.createRadialGradient(hc[0]-HEADR*0.38,hc[1]-HEADR*0.42,2,hc[0],hc[1],HEADR*1.05); hg.addColorStop(0,near.hi); hg.addColorStop(0.55,near.skin); hg.addColorStop(1,near.sh);
   ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hc[0],hc[1],HEADR,0,7); ctx.fill();
-  // profile face: one eye and a brow toward the wall, looking up
-  ctx.fillStyle=C.ink; ctx.beginPath(); ctx.ellipse(hc[0]+17,hc[1]-6+(f.look||0)*4,3.4,4.4,0,0,7); ctx.fill();
-  ctx.strokeStyle=C.ink; ctx.lineWidth=3; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(hc[0]+9,hc[1]-16); ctx.lineTo(hc[0]+23,hc[1]-13); ctx.stroke();
-  ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(hc[0]+12,hc[1]+12); ctx.lineTo(hc[0]+22,hc[1]+10); ctx.stroke();
-  ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=20; leg(0,near); arm(0,near); shadowOff();
+  // profile face toward +x; headTilt > 0 looks down, < 0 looks up
+  ctx.save(); ctx.translate(hc[0],hc[1]); ctx.rotate(f.headTilt||0);
+  ctx.fillStyle=C.ink; ctx.strokeStyle=C.ink; ctx.lineCap='round'; const e=f.expr||'focus';
+  if(e==='laugh'){ const mo=f.mouth!=null?f.mouth:1;
+    ctx.lineWidth=3; ctx.beginPath(); ctx.arc(15,-6,5,Math.PI*1.1,Math.PI*1.9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10,8); ctx.lineTo(29,6); ctx.quadraticCurveTo(26,8+16*mo,12,10+10*mo); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#d9534f'; ctx.beginPath(); ctx.ellipse(19,10+8*mo,4,2.4*mo+0.5,0,0,7); ctx.fill(); }
+  else if(e==='smile'){ ctx.beginPath(); ctx.ellipse(16,-5,3.2,4.2,0,0,7); ctx.fill(); ctx.lineWidth=2.8; ctx.beginPath(); ctx.moveTo(12,10); ctx.quadraticCurveTo(20,17,27,8); ctx.stroke(); }
+  else if(e==='shock'){ ctx.beginPath(); ctx.ellipse(16,-6,4.4,5.4,0,0,7); ctx.fill(); ctx.beginPath(); ctx.ellipse(21,13,4.5,6,0,0,7); ctx.fill(); }
+  else if(e==='eww'){ ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(10,-10); ctx.lineTo(20,-5); ctx.lineTo(10,-1); ctx.stroke();
+    ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(9,13); for(let k=1;k<=5;k++) ctx.lineTo(9+k*3.6,13+(k%2?-3:3)); ctx.stroke(); }
+  else if(e==='calm'){ ctx.beginPath(); ctx.ellipse(16,-4,3.2,4.2,0,0,7); ctx.fill(); ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(9,-14); ctx.lineTo(23,-12); ctx.stroke(); ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(13,12); ctx.lineTo(23,11); ctx.stroke(); }
+  else { ctx.beginPath(); ctx.ellipse(17,-6+(f.look||0)*4,3.4,4.4,0,0,7); ctx.fill(); ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(9,-16); ctx.lineTo(23,-13); ctx.stroke(); ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(12,12); ctx.lineTo(22,10); ctx.stroke(); }
+  ctx.restore();
+  if(glow){ ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=20; } leg(0,near); arm(0,near); shadowOff();
   ctx.restore();
 }
 function drawStar(x,y,r,col){ctx.fillStyle=col; ctx.beginPath(); for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5, rr2=k%2?r*0.45:r; ctx.lineTo(x+Math.cos(a)*rr2,y+Math.sin(a)*rr2);} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#7a5a10'; ctx.lineWidth=1; ctx.stroke();}
@@ -231,13 +250,8 @@ function drawStar(x,y,r,col){ctx.fillStyle=col; ctx.beginPath(); for(let k=0;k<1
 // ---------------- climber ----------------
 // hip height on the wall over time (with the slip rehook)
 function climbHip(t){
-  const Y0=1150, Y1=700;
-  if(t>=EDGE_T) return Y1;
-  const pause = t<SLIP?0 : t<SLIP+0.45? (t-SLIP) : 0.45;
-  const tt=Math.max(0,t-FF-pause), T=(EDGE_T-FF-0.45);
-  let y=lerp(Y0,Y1,tt/T);
-  if(t>SLIP){ const d= t<SLIP+0.12? 34*easeIn(seg(t,SLIP,SLIP+0.12)) : 34*(1-smooth(seg(t,SLIP+0.45,SLIP+0.9))); y+=d; }
-  return y;
+  const Y0=1000, Y1=700;
+  return t>=EDGE_T? Y1 : lerp(Y0,Y1,t/EDGE_T);
 }
 // rock projections along the pillar's left edge (the ref's scalloped edge): every 40 px a lump he can use,
 // hands take alternate lumps, feet the others; small decorative lumps in between
@@ -275,10 +289,10 @@ function climberState(t){
       if(i===0 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.55)*Math.PI); wx=lerp(wx,x-30,u); wy=lerp(wy,hip+92,u); }
       feet.push([wx-x, wy-hip]);
     }
-    return {profile:true, x, y:hip, s:1, lean:-0.08+Math.sin(t*4.2)*0.03, feet, hands, look:-0.6};
+    return {profile:true, x, y:hip, s:1, lean:-0.08+Math.sin(t*4.2)*0.03, feet, hands, look:-0.6, headBack:0.5, elbow:[-1,-1], armL:48};
   }
   // mantle over the lip (ref): chest over, near knee up, crouch, stand
-  const K=[[EDGE_T,PIL.x0-34,700,-0.12],[PULL[0],PIL.x0-32,708,-0.12],[PULL[0]+0.3,PIL.x0-24,640,-0.02],[PULL[1],PIL.x0+2,604,0.95],[STAND[0],PIL.x0+34,566,0.45],[STAND[1],PIL.x0+60,PIL.top-80,0.02]];
+  const K=[[EDGE_T,PIL.x0-34,700,-0.12],[PULL[0],PIL.x0-32,708,-0.12],[PULL[0]+0.3,PIL.x0-24,640,-0.02],[PULL[1],PIL.x0+2,604,0.95],[STAND[0],PIL.x0+34,566,0.45],[STAND[1],EDGE_X,PIL.top-80,0.02]];
   if(t<STAND[1]){
     const [x,y,lean]=pw(K,t,true);
     let hands=[[PIL.x0+2-x, PIL.top-2-y],[PIL.x0+14-x, PIL.top-2-y]];
@@ -288,9 +302,13 @@ function climberState(t){
     if(t<PULL[0]+0.3) feet=[[24,56],[20,94]];
     else if(t<PULL[1]){ const v=smooth(seg(t,PULL[0]+0.3,PULL[1])); feet=[[lerp(24,PIL.x0+16-x,v),lerp(56,PIL.top-y,v)-Math.sin(v*Math.PI)*30],[lerp(20,-6,v),lerp(94,84,v)]]; }
     else { const v=smooth(seg(t,PULL[1],STAND[0]+0.1)); feet=[[PIL.x0+28-x, PIL.top-y],[lerp(PIL.x0-8-x,PIL.x0+46-x,v), lerp(PIL.top+70-y,PIL.top-y,v)]]; }
-    return {profile:true, x,y,s:1,lean,feet,hands, look:-0.3};
+    return {profile:true, x,y,s:1,lean,feet,hands, look:-0.3, headBack:0.4, elbow:[-1,-1], armL:48};
   }
-  return heroState(t);
+  // standing at the lip, side-on facing the crowd (left), like the ref
+  const turned = t>STAND[1]+0.35;
+  const f={profile:true, flip: turned?-1:1, x:EDGE_X, y:PIL.top-80, s:1, lean:0.04, feet:[[-8,80],[12,80]], hands:[[4,-12],[-6,-14]], expr:'calm', headTilt: t>CLAP_T? 0.25:0.1};
+  if(t>PEE_T0-0.3){ f.hands=[[22,-6],[14,-4]]; f.lean=-0.06; f.headTilt=0.35; }
+  return f;
 }
 // hero on the summit: stands, looks down at the crowd, walks to the boulder, lifts, throws, dusts hands
 function heroState(t){
@@ -299,6 +317,15 @@ function heroState(t){
   const base={x, y:hipY, s:1, feet:[[-14,80],[16,80]], hands:[[-26,-18],[24,-16]], face:'front', expr:'calm', look:-0.7, lookY:0.6, lean:0};
   if(t<WALK[0]){ if(t>CLAP_T){ base.expr='calm'; } return base; }
   if(t<WALK[1]){ const u=seg(t,WALK[0],WALK[1]); const ph=u*Math.PI*2; base.feet=[[-12+Math.sin(ph)*16,80-Math.max(0,Math.sin(ph))*12],[14-Math.sin(ph)*16,80-Math.max(0,-Math.sin(ph))*12]]; base.look=0.6; base.lookY=0; return base; }
+  if(PEE){
+    const wx=lerp(PIL.x0+60, EDGE_X, smooth(seg(t,11.95,12.45)));
+    base.x=wx; base.look=-0.8; base.lookY=0.7;
+    if(t<12.45){ const ph=seg(t,11.95,12.45)*Math.PI*2; base.feet=[[-12+Math.sin(ph)*14,80-Math.max(0,Math.sin(ph))*10],[14-Math.sin(ph)*14,80-Math.max(0,-Math.sin(ph))*10]]; return base; }
+    if(t<12.7) return base;                                  // a beat, looking down at them
+    base.face='back'; base.hands=[[-6,-8],[8,-8]]; base.elbowOut=[1,-1]; base.feet=[[-18,80],[18,80]];
+    base.y=hipY+Math.sin(Math.max(0,t-PEE_T0)*3)*1.5; base.headTilt=0.08*Math.sin(t*1.3);
+    return base;
+  }
   const r=rockState(t);
   if(t<LIFT[1]+0.1 || t<THROW[0]){
     const u=seg(t,LIFT[0],LIFT[1]);
@@ -329,6 +356,7 @@ function WXs(t){ return t<WALK[0]? PIL.x0+60 : lerp(PIL.x0+60, ROCK0.x-96, smoot
 // ---------------- boulder ----------------
 const FLY={x0:0,y0:0,x1:200,y1:CLF.top-70,T:0.85,vy:-330};
 function rockState(t){
+  if(PEE) return {x:ROCK0.x,y:ROCK0.y,r:ROCK0.r,rot:0};
   const r=ROCK0.r;
   if(t<LIFT[0]+0.12) return {x:ROCK0.x,y:ROCK0.y,r,rot:0};
   const hx=WXs(t);
@@ -374,7 +402,15 @@ function crowdState(c,t){
     if(t>IMPACT+0.5+dl*0.3){ o.stars=t*4.5*dir+R()*6; o.starsAge=t-(IMPACT+0.5+dl*0.3); }
     return o;
   }
-  if(t>=LOOKUP_T){ // shadow over them: look up, shock, arms up over heads
+  if(PEE && t>=PEE_HIT-0.05){ // the stream lands: stop clapping, cower, cover heads, 'eww'
+    const d=t-PEE_HIT-0.12*R(); const u=smooth(seg(d,0,0.25));
+    f.expr= d>0.3? 'eww':'shock'; f.look=0.4; f.lookY=-0.6; f.headTilt=0.25*u;
+    const sh=Math.sin(t*38+ph)*4*u;
+    f.hands=[[lerp(-8,-30,u)+sh,lerp(-72,-128,u)],[lerp(14,26,u)-sh,lerp(-74,-132,u)]]; f.elbowOut=[1,-1];
+    f.feet=[[-24,80],[20,80]]; f.lean=0.18*u; f.y=hipY+10*u; f.x=c.x-14*u*(1-c.d);
+    return f;
+  }
+  if(t>=LOOKUP_T && !PEE){ // shadow over them: look up, shock, arms up over heads
     const u=smooth(seg(t,LOOKUP_T+0.15*R(),LOOKUP_T+0.3+0.15*R()));
     f.expr='shock'; f.look=0.5; f.lookY=-1; f.headTilt=-0.15;
     const sh=Math.sin(t*40+ph)*3*u;
@@ -401,8 +437,30 @@ function crowdState(c,t){
   if(c.d===0){ f.hands=[[-14,-20+bob*6],[72,-130-bob*6]]; f.elbowOut=[1,1]; }
   return f;
 }
+function crowdProfile(c,t){
+  const R=rng(100+c.k), ph=R()*6.28, sp=5.5+R()*2.5;
+  const hipY=CLF.top-80;
+  const f={profile:true, x:c.x, y:hipY, s:1, dim:c.d, glow:c.d===0, feet:[[-10,80],[14,80]], hands:[[8,-14],[-4,-16]], lean:0.02, expr:'smile', headTilt:-0.2};
+  if(t>=PEE_HIT-0.05){ // the stream lands: hunch, both hands over the head, 'eww'
+    const d=t-PEE_HIT-0.12*R(), u=smooth(seg(d,0,0.25)); const sh=Math.sin(t*38+ph)*3*u;
+    f.expr=d>0.25?'eww':'shock'; f.lean=0.32*u; f.y=hipY+12*u; f.feet=[[-14,80-12*u],[16,80-12*u]];
+    f.hands=[[lerp(30,26,u)+sh,lerp(-70,-132,u)],[lerp(24,8,u)-sh,lerp(-72,-136,u)]]; f.elbow=[1,1]; f.headTilt=0.35*u; f.x=c.x-16*u*(1-c.d*0.5);
+    return f; }
+  if(t>=CLAP_T-0.8){ // quiet, then clap
+    if(t<CLAP_T){ f.expr='shock'; f.headTilt=-0.35; f.hands=[[10,-14],[-2,-12]]; return f; }
+    const cl=Math.abs(Math.sin((t-CLAP_T)*sp*1.3+ph)); f.expr='smile'; f.headTilt=-0.25;
+    f.hands=[[40+8*cl,-74],[40-8*cl,-76]]; f.elbow=[1,1]; f.y=hipY-Math.max(0,Math.sin((t-CLAP_T)*3+ph))*3; return f; }
+  // laughing at him: bob, point up at the pillar, hold bellies
+  const bob=Math.abs(Math.sin(t*sp+ph));
+  f.expr='laugh'; f.mouth=0.6+0.4*bob; f.headTilt=-0.25-0.15*bob; f.y=hipY+bob*5; f.lean=-0.08*bob;
+  const style=c.k%3;
+  if(style===0||c.d===0){ f.hands=[[64,-132-bob*8],[14,-30+bob*4]]; f.elbow=[1,1]; }
+  else if(style===1){ f.hands=[[22,-26+bob*6],[18,-22+bob*6]]; f.lean=0.22*bob; f.headTilt=0.1; }
+  else { f.hands=[[50,-120+bob*10],[-30,-110-bob*14]]; f.elbow=[1,-1]; }
+  return f;
+}
 function drawCrowd(t){
-  for(let i=0;i<CROWD.length;i++){ drawFig(crowdState(CROWD[i],t)); }
+  for(let i=0;i<CROWD.length;i++){ drawProfile(crowdProfile(CROWD[i],t)); }
   shadowOff();
 }
 
@@ -502,6 +560,36 @@ function drawDust(t){
   }
   if(false){ for(const p of PEB){ const tt=t-SLIP-p.d; if(tt<0) continue; const x=PIL.x0-6+p.dx+p.vx*tt, y=climbHip(SLIP)+70+0.5*2400*tt*tt; ctx.fillStyle='#6b7074'; ctx.strokeStyle=C.out; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(x,y,p.s,0,7); ctx.fill(); ctx.stroke(); } }
 }
+// the ref's punchline: a golden stream arcs down from the summit onto the crowd (from behind, stylised)
+function streamPts(t){
+  const S=[EDGE_X-18, PIL.top-74], sweep=Math.sin((t-PEE_HIT)*1.6)*50;
+  const T=[262+sweep, CLF.top-150+Math.abs(sweep)*0.3];
+  const C1=[S[0]-150, S[1]-140];
+  const pts=[]; for(let i=0;i<=60;i++){ const u=i/60; const x=(1-u)*(1-u)*S[0]+2*(1-u)*u*C1[0]+u*u*T[0], y=(1-u)*(1-u)*S[1]+2*(1-u)*u*C1[1]+u*u*T[1];
+    const w=Math.sin(u*14-t*22)*5*u; pts.push([x+w,y]); }
+  return pts;
+}
+function drawStream(t){
+  if(!PEE || t<PEE_T0) return;
+  const pts=streamPts(t), grow=clamp((t-PEE_T0)/(PEE_HIT-PEE_T0),0,1), n=Math.max(2,Math.round(grow*60));
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  const path=()=>{ ctx.beginPath(); for(let i=0;i<n;i++){ const [x,y]=pts[i]; i?ctx.lineTo(x,y):ctx.moveTo(x,y);} };
+  ctx.shadowColor='rgba(255,200,60,0.7)'; ctx.shadowBlur=14;
+  ctx.setLineDash([22,7,9,6]); ctx.lineDashOffset=-t*420;           // beaded, moving stream like the ref
+  path(); ctx.strokeStyle='rgba(200,145,25,0.9)'; ctx.lineWidth=10; ctx.stroke(); shadowOff();
+  path(); ctx.strokeStyle='rgba(255,222,100,0.95)'; ctx.lineWidth=6; ctx.stroke();
+  path(); ctx.strokeStyle='rgba(255,250,210,0.85)'; ctx.lineWidth=2; ctx.stroke();
+  ctx.setLineDash([]);
+  // droplets peeling off the arc
+  const R=rng(Math.floor(t*30)); ctx.fillStyle='rgba(255,220,100,0.9)';
+  for(let k=0;k<14;k++){ const i=Math.floor(R()*n); const [x,y]=pts[i]; ctx.beginPath(); ctx.arc(x+(R()-0.5)*14,y+(R()-0.5)*10,1.2+R()*2.4,0,7); ctx.fill(); }
+  // splash on the crowd
+  if(t>PEE_HIT){ const [tx,ty]=pts[60];
+    for(let k=0;k<22;k++){ const a=-Math.PI*(0.1+R()*0.8), sp=60+R()*160, life=0.35, tt=((t*1.7+R())%1)*life;
+      const x=tx+Math.cos(a)*sp*tt, y=ty+Math.sin(a)*sp*tt+0.5*900*tt*tt; ctx.globalAlpha=1-tt/life; ctx.beginPath(); ctx.arc(x,y,1.4+R()*2.2,0,7); ctx.fill(); }
+    ctx.globalAlpha=1; }
+  ctx.restore();
+}
 function drawRockShadow(t){ // the boulder's shadow growing over the crowd
   if(t<THROW[1]||t>IMPACT+0.05) return;
   const u=seg(t,THROW[1],IMPACT);
@@ -515,19 +603,16 @@ function drawRockShadow(t){ // the boulder's shadow growing over the crowd
 function camAt(t){
   const [t0,name]=shotAt(t); const u=t-t0;
   let z=1,cx=540,cy=960;
-  if(name==='crowd0'){ z=lerp(2.9,2.6,easeOut(u/FF)); cx=lerp(200,170,u/FF); cy=1110; }
-  else if(name==='detail'){ z=2.4; cx=770; cy=climbHip(t)+10; }
-  else if(name==='wide1'){ z=lerp(1.15,1.2,(t-FF)/(2.6-FF)); cx=530; cy=lerp(1000,1020,(t-FF)/1.8); }
-  else if(name==='crowd1'){ z=lerp(2.55,2.75,u/1.6); cx=lerp(150,170,u/1.6); cy=1100; }
-  else if(name==='climb'){ z=2.05; cx=775; cy=climbHip(t)-110; }
-  else if(name==='summit1'){ z=lerp(1.9,1.8,u/2); cx=lerp(790,810,u/2); cy=lerp(560,520,smooth(u/2)); }
-  else if(name==='wide2'){ z=lerp(1.15,1.19,u/1.5); cx=530; cy=1000; }
-  else if(name==='crowd2'){ z=lerp(2.6,2.75,u); cx=160; cy=1100; }
-  else if(name==='summit2'){ z=1.75; cx=lerp(830,850,u/1.3); cy=lerp(480,460,u/1.3); }
-  else if(name==='crowd3'){ z=lerp(2.3,2.45,seg(t,t0,IMPACT)); cx=lerp(190,200,u); cy=lerp(1060,1080,u); }
-  else if(name==='wide3'){ z=lerp(1.12,1.18,smooth(u/2.8)); cx=lerp(510,500,u/2.8); cy=lerp(1000,1010,u/2.8); }
+  if(name==='wideA'){ z=lerp(1.12,1.2,u/2.2); cx=530; cy=lerp(990,1000,u/2.2); }            // crowd left, pillar right, climber mid-face
+  else if(name==='two1'){ z=lerp(1.55,1.62,u/1.7); cx=lerp(470,480,u/1.7); cy=1030; }          // crowd big + climber on the pillar
+  else if(name==='climb'){ z=2.05; cx=775; cy=climbHip(t)-110; }                              // climber close, labels passing
+  else if(name==='pullback'){ const v=smooth(u/1.5); z=lerp(2.05,1.35,v); cx=lerp(775,640,v); cy=lerp(climbHip(t)-110,880,v); }
+  else if(name==='summitM'){ z=lerp(1.55,1.5,u/2.3); cx=lerp(820,800,u/2.3); cy=lerp(720,700,u/2.3); } // mantle over the lip
+  else if(name==='wideE'){ z=lerp(1.12,1.18,u/2.6); cx=530; cy=980; }                         // hero on top, crowd claps
+  else if(name==='two2'){ z=1.6; cx=470; cy=960; }                                           // crowd big, hero tiny on the lip
+  else if(name==='crowdF'){ z=lerp(2.3,2.42,u/3.2); cx=lerp(190,200,u/3.2); cy=1080; }       // the stream lands
   let amp=0;
-  for(const [ta,a,d] of [[SLIP,14,0.35],[IMPACT,30,0.8]]){ if(t>=ta) amp+=a*Math.exp(-(t-ta)/d*3)*(t-ta<d*2?1:0); }
+  for(const [ta,a,d] of [[PEE_HIT,6,0.3]]){ if(t>=ta) amp+=a*Math.exp(-(t-ta)/d*3)*(t-ta<d*2?1:0); }
   const sx=amp*(Math.sin(t*73)+0.5*Math.sin(t*131)), sy=amp*(Math.cos(t*67)+0.5*Math.sin(t*119));
   return {z,cx,cy,sx,sy,name};
 }
@@ -550,10 +635,10 @@ function bigText(lines,y0,size,alpha,gap){
 function plate(y0,h,a){ const pg=ctx.createLinearGradient(0,y0,0,y0+h); pg.addColorStop(0,'rgba(5,8,14,0)'); pg.addColorStop(0.5,`rgba(5,8,14,${a})`); pg.addColorStop(1,'rgba(5,8,14,0)'); ctx.fillStyle=pg; ctx.fillRect(0,y0,W,h); }
 function drawText(t){
   const red='#ff4a4f';
-  if(t<2.6){ const out=1-seg(t,2.45,2.6);
+  if(t<2.2){ const out=1-seg(t,2.08,2.2);
     plate(230,300,0.55*out);
     bigText([['THEY LAUGHED',C.cream,seg(t,0,0.01)+1],['AT HIS DREAM.',C.gold,seg(t,0.4,0.58)]],340,96,out,110); }
-  if(t>NOW_T && t<11.9){ const a=seg(t,NOW_T,NOW_T+0.12)*(1-seg(t,11.75,11.9));
+  if(t>NOW_T && t<12.2){ const a=seg(t,NOW_T,NOW_T+0.12)*(1-seg(t,12.08,12.2));
     plate(250,220,0.5*a); bigText([['NOW',C.cream,seg(t,NOW_T,NOW_T+0.18)],['THEY CLAP.',C.gold,seg(t,NOW_T+0.2,NOW_T+0.38)]],340,104,a,116); }
   if(t>END_T){ const a=seg(t,END_T,END_T+0.2);
     plate(230,420,0.5*a);
@@ -586,9 +671,10 @@ function renderAt(t){
   const r=rockState(st);
   const heroFirst = !(st>=LIFT[0] && st<THROW[1]+0.05) ;
   const dh=f=>f.profile?drawProfile(f):drawFig(f);
-  if(heroFirst){ dh(hero); drawBoulder(st); } else { drawBoulder(st); dh(hero); }
+  dh(hero);
   shadowOff();
   drawGrit(st);
+  drawStream(st);
   drawDust(st);
   ctx.restore();
   // impact + cut flashes
