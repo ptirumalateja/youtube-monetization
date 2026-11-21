@@ -1,8 +1,8 @@
 # GTA 6 by the Numbers
 
 - Status: v5 (official 32.5M pre-release; opening card, Teja's order: pre-orders, GTA 5 vs 6, streams, India leave, iShowSpeed, Kalshi) delivered 21 Nov 2026, awaiting Teja's review
-- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v5.mp4` (no-music: `_silent.mp4`)
-- Length: 25.2 s, 1080x1920, original synth music, no VO
+- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v6-sfx-only.mp4` (no-music: `_silent.mp4`)
+- Length: 25.2 s, 1080x1920, no music, transition SFX only (whoosh + landing hit), no VO
 - Facts and sources: `tools/by-the-numbers/SOURCES.md`
 - Post fast: the launch (19 Nov 2026) is the hook, and the interest fades within days.
 

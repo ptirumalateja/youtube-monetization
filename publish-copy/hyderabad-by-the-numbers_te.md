@@ -1,8 +1,8 @@
 # Hyderabad by the Numbers (Telugu)
 
 - Status: v3 (dark neon night look) delivered 21 Nov 2026, awaiting Teja's review
-- Upload file: `final-reels/hyderabad-by-the-numbers/hyderabad-by-the-numbers-te-v3.mp4` (no-music: `_silent.mp4`)
-- Length: 25.0 s, 1080x1920, on-screen Telugu text, original synth music, no VO
+- Upload file: `final-reels/hyderabad-by-the-numbers/hyderabad-by-the-numbers-te-v4-sfx-only.mp4` (no-music: `_silent.mp4`)
+- Length: 25.0 s, 1080x1920, on-screen Telugu text, no music, transition SFX only, no VO
 - Facts and sources: `tools/by-the-numbers/SOURCES-hyd.md`
 
 ## YouTube Shorts

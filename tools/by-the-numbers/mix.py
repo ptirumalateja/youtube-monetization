@@ -1,6 +1,6 @@
 # Original synthwave bed + count-up ticks + landing stabs + whooshes for "by the numbers" reels.
 # usage: python3 mix.py <timeline.json> <out.wav>
-import json, sys, subprocess, numpy as np
+import json, sys, subprocess, os, numpy as np
 SR = 48000
 tl = json.load(open(sys.argv[1])); T = tl['dur'] + 0.2; N = int(SR * T)
 LIB = __file__.rsplit('/', 1)[0] + '/../sfxlib/'
@@ -73,7 +73,7 @@ for s in tl['scenes']:
         n = int(0.8 * SR); tt = np.arange(n) / SR  # bright landing stab
         st = sum(np.sin(2 * np.pi * note(m) * tt) for m in (76, 81, 88)) * env(n, 0.002, 0.25)
         add(st * 0.22, land)
-        if s.get('chip'):
+        if s.get('chip') and not os.environ.get('NO_BED') == '1':
             n = int(0.25 * SR); tt = np.arange(n) / SR
             add(np.sin(2 * np.pi * note(84) * tt) * env(n, 0.002, 0.08) * 0.15, land + 0.75)
     if s['type'] == 'vs':
@@ -81,7 +81,9 @@ for s in tl['scenes']:
         add(np.sin(2 * np.pi * (300 + 500 * tt) * tt) * np.minimum(1, tt / 0.2) * np.exp(-np.maximum(0, tt - 0.8) * 20) * 0.08, t0 + 1.1)
         n = int(0.8 * SR); tt = np.arange(n) / SR
         add(sum(np.sin(2 * np.pi * note(m) * tt) for m in (72, 79, 84)) * env(n, 0.002, 0.3) * 0.22, t0 + 2.0)
-mix = bed * 0.8 + out
+import os
+NO_BED = os.environ.get('NO_BED') == '1'  # Teja 21 Nov: no music, transition SFX only
+mix = out if NO_BED else bed * 0.8 + out
 fi = int(0.004 * SR); mix[:fi] *= np.linspace(0, 1, fi)[:, None]
 fo = int(0.6 * SR); mix[-fo:] *= np.linspace(1, 0, fo)[:, None]
 mix = np.tanh(mix * 1.4) / np.tanh(1.4)
