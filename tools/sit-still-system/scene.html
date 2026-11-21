@@ -1,0 +1,398 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}#wrap{position:relative;width:1080px;height:1920px}canvas{position:absolute;left:0;top:0}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><div id="wrap"><canvas id="gl" width="1080" height="1920"></canvas><canvas id="ov" width="1080" height="1920"></canvas></div>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+const W=1080,H=1920;
+const P=1.6;            // conveyor pitch
+const T=2.1, S=1.65;    // cycle length, stop length
+const A_HIT=1.10;       // smash + cap-place moment inside the stop
+const T0 = A_HIT - 0.30; // t=0 sits 0.30 s before the first hit
+const XS=-0.62;         // smash station (head x)
+const XC=XS+P;          // cap station
+const HEADX=0.47, HEADY=1.60; // head centre relative to figure origin
+
+// ---------- seeded random ----------
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;}}
+
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('gl'),antialias:true,preserveDrawingBuffer:true});
+renderer.setSize(W,H,false);renderer.setPixelRatio(1);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x17170f);
+scene.fog=new THREE.Fog(0x1a1a12,9,16);
+
+const cam=new THREE.PerspectiveCamera(24,W/H,0.1,60);
+const CAMX=(XS+XC)/2+0.05, CAMY=2.35;
+cam.position.set(CAMX,CAMY+0.55,13.2);cam.lookAt(CAMX,CAMY,0);
+
+// ---------- textures ----------
+function wallTex(){const c=document.createElement('canvas');c.width=1024;c.height=2048;const g=c.getContext('2d');
+  const r=rng(7);g.fillStyle='#8f8b6c';g.fillRect(0,0,1024,2048);
+  for(let i=0;i<9000;i++){const x=r()*1024,y=r()*2048,s=r()*40+4;const v=r();g.fillStyle=`rgba(${v<.5?20:120},${v<.5?20:115},${v<.5?10:90},${r()*0.06})`;g.beginPath();g.arc(x,y,s,0,7);g.fill();}
+  // drips / stains
+  for(let i=0;i<70;i++){const x=r()*1024,y=r()*600,l=r()*900+200;const gr=g.createLinearGradient(0,y,0,y+l);gr.addColorStop(0,'rgba(15,15,5,0.22)');gr.addColorStop(1,'rgba(15,15,5,0)');g.fillStyle=gr;g.fillRect(x,y,r()*14+3,l);}
+  // horizontal grime bands
+  for(let i=0;i<14;i++){const y=r()*2048;g.fillStyle=`rgba(0,0,0,${r()*0.08})`;g.fillRect(0,y,1024,r()*60+10);}
+  // pits
+  for(let i=0;i<260;i++){g.fillStyle=`rgba(10,10,5,${0.3+r()*0.4})`;g.beginPath();g.arc(r()*1024,r()*2048,r()*3+1,0,7);g.fill();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+function grainTex(seed,base){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');const r=rng(seed);
+  g.fillStyle=base;g.fillRect(0,0,256,256);for(let i=0;i<3000;i++){g.fillStyle=`rgba(0,0,0,${r()*0.15})`;g.fillRect(r()*256,r()*256,r()*30+2,1+r()*2);}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+
+// ---------- environment ----------
+const wall=new THREE.Mesh(new THREE.PlaneGeometry(14,9),new THREE.MeshStandardMaterial({map:wallTex(),roughness:0.95}));
+wall.position.set(CAMX,3.4,-0.75);wall.receiveShadow=true;scene.add(wall);
+// floor slab + conveyor belt
+const floorM=new THREE.MeshStandardMaterial({color:0x26251b,roughness:0.9});
+const floor=new THREE.Mesh(new THREE.BoxGeometry(14,0.5,3),floorM);floor.position.set(CAMX,-0.33,0.6);floor.receiveShadow=true;scene.add(floor);
+const beltT=grainTex(3,'#2b2a22');beltT.repeat.set(10,1);
+const belt=new THREE.Mesh(new THREE.BoxGeometry(14,0.12,1.3),new THREE.MeshStandardMaterial({map:beltT,roughness:0.8,color:0xb0ae9c}));
+belt.position.set(CAMX,-0.06,0.05);belt.receiveShadow=true;scene.add(belt);
+const rollers=new THREE.Group();scene.add(rollers);
+const rollM=new THREE.MeshStandardMaterial({color:0x4a473a,metalness:0.6,roughness:0.45});
+for(let i=-14;i<14;i++){const rl=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,1.34,16),rollM);rl.rotation.x=Math.PI/2;rl.position.set(i*0.4,-0.12,0.05);rollers.add(rl);}
+// belt edge rail (front)
+const rail=new THREE.Mesh(new THREE.BoxGeometry(14,0.16,0.06),new THREE.MeshStandardMaterial({color:0x3a382c,metalness:0.5,roughness:0.5}));rail.position.set(CAMX,-0.05,0.74);scene.add(rail);
+// rivets on rail
+const rivM=new THREE.MeshStandardMaterial({color:0x6b6750,metalness:0.7,roughness:0.4});
+const rivets=new THREE.Group();scene.add(rivets);
+for(let i=-30;i<30;i++){const rv=new THREE.Mesh(new THREE.SphereGeometry(0.018,8,6),rivM);rv.position.set(i*0.2,-0.05,0.775);rivets.add(rv);}
+
+// ceiling rail + pipes
+const metal=new THREE.MeshStandardMaterial({color:0x8d8a76,metalness:0.55,roughness:0.42});
+const darkMetal=new THREE.MeshStandardMaterial({color:0x3b3a2e,metalness:0.6,roughness:0.5});
+const ceilRail=new THREE.Mesh(new THREE.BoxGeometry(14,0.14,0.22),darkMetal);ceilRail.position.set(CAMX,5.35,0);ceilRail.castShadow=true;scene.add(ceilRail);
+for(const [y,z,r] of [[5.62,-0.45,0.09],[4.95,-0.6,0.05]]){const p=new THREE.Mesh(new THREE.CylinderGeometry(r,r,14,16),darkMetal);p.rotation.z=Math.PI/2;p.position.set(CAMX,y,z);p.castShadow=true;scene.add(p);}
+
+// ---------- lights ----------
+scene.add(new THREE.HemisphereLight(0xd8d3b4,0x2c2a1e,1.3));
+const key=new THREE.DirectionalLight(0xf0e8c8,3.6);key.position.set(-2.2,6.5,11);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-5,right:5,top:6,bottom:-1.5,near:1,far:25});key.shadow.bias=-0.0006;key.shadow.radius=4;
+scene.add(key);scene.add(key.target);key.target.position.set(CAMX,1.5,0);
+const rim=new THREE.DirectionalLight(0x9fa48a,0.7);rim.position.set(4,3,-2);scene.add(rim);
+const bulbLights=[];for(let i=0;i<3;i++){const l=new THREE.PointLight(0xffb060,0,3.2,1.6);scene.add(l);bulbLights.push(l);}
+
+// ---------- materials ----------
+const bone=new THREE.MeshStandardMaterial({color:0xd9d2bc,roughness:0.62,metalness:0.0});
+const boneDark=new THREE.MeshStandardMaterial({color:0x9c9480,roughness:0.7});
+const socketM=new THREE.MeshStandardMaterial({color:0x080806,roughness:0.6});
+const wood=new THREE.MeshStandardMaterial({map:grainTex(11,'#5a4a36'),color:0xd0bea4,roughness:0.75});
+const paper=new THREE.MeshStandardMaterial({color:0xd8d4c4,roughness:0.85});
+const capM=new THREE.MeshStandardMaterial({color:0x0d0d0c,roughness:0.55});
+const brass=new THREE.MeshStandardMaterial({color:0xa58d55,metalness:0.8,roughness:0.35});
+
+function tube(points,r,mat,seg=24){const c=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));
+  const g=new THREE.TubeGeometry(c,seg,r,10,false);const m=new THREE.Mesh(g,mat);m.castShadow=true;m.receiveShadow=true;return m;}
+function ball(p,r,mat=bone,sx=1,sy=1,sz=1){const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),mat);m.position.set(...p);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;return m;}
+function box(p,s,mat,rot=[0,0,0]){const m=new THREE.Mesh(new THREE.BoxGeometry(...s),mat);m.position.set(...p);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;return m;}
+function bone2(a,b,r){ // long bone with knobbly ends
+  const g=new THREE.Group();g.add(tube([a,[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],b],r,bone,8));g.add(ball(a,r*1.55));g.add(ball(b,r*1.55));return g;}
+
+// ---------- one seated figure ----------
+function makeFigure(seed){
+  const r=rng(seed);const g=new THREE.Group();
+  // chair
+  const chair=new THREE.Group();g.add(chair);
+  chair.add(box([-0.02,0.74,0],[0.52,0.05,0.46],wood));
+  for(const [x,z] of [[-0.24,-0.19],[0.2,-0.19],[-0.24,0.19],[0.2,0.19]]) chair.add(box([x,0.37,z],[0.035,0.74,0.035],wood));
+  chair.add(box([-0.29,1.12,0],[0.06,0.78,0.42],wood,[0,0,-0.06]));  // tall back
+  // fold-out desk on the chair back (for the next student behind)
+  chair.add(box([-0.52,1.02,0.02],[0.42,0.035,0.38],wood,[0,0,0.12]));
+  chair.add(box([-0.36,0.95,0.02],[0.12,0.04,0.04],darkMetal));
+  chair.add(box([-0.55,1.075,0.04],[0.26,0.07,0.3],paper,[0,0.08,0.12]));  // closed book
+  chair.add(box([-0.55,1.115,0.04],[0.25,0.012,0.28],new THREE.MeshStandardMaterial({color:0x6b6352}),[0,0.08,0.12]));
+
+  const body=new THREE.Group();g.add(body);
+  // pelvis
+  body.add(ball([-0.08,0.84,0],0.11,bone,1.1,0.7,1.25));
+  // spine: hunched curve from pelvis to neck base, vertebra beads
+  const spinePts=[[-0.12,0.86,-0.02],[-0.17,1.05,-0.03],[-0.14,1.25,-0.02],[-0.02,1.38,0],[0.12,1.45,0]];
+  const spine=new THREE.CatmullRomCurve3(spinePts.map(p=>new THREE.Vector3(...p)));
+  for(let i=0;i<=16;i++){const p=spine.getPoint(i/16);body.add(ball([p.x,p.y,p.z],0.032,bone,1,0.75,1));}
+  // ribcage: hanging ribs around upper spine
+  for(let i=0;i<7;i++){const t=0.45+i*0.075;const p=spine.getPoint(Math.min(t,0.98));
+    const rr=0.13-Math.abs(i-2.5)*0.012;
+    const rib=new THREE.Mesh(new THREE.TorusGeometry(rr,0.014,6,20,Math.PI*1.25),bone);
+    rib.position.set(p.x+0.08,p.y-0.04,0);rib.rotation.set(Math.PI/2+0.05,0.0,-0.35-i*0.05);rib.scale.set(1.1,1.35,1);
+    rib.rotation.order='YXZ';rib.rotation.y=Math.PI*0.02;rib.castShadow=true;body.add(rib);}
+  body.add(ball([0.0,1.2,0],0.085,boneDark,1.0,1.4,0.9));
+  // shoulders / clavicle
+  body.add(tube([[-0.02,1.37,-0.16],[0.04,1.40,0],[-0.02,1.37,0.16]],0.022,bone,10));
+  // arms hanging limp, slightly forward
+  for(const z of [-0.15,0.15]){
+    body.add(bone2([-0.01,1.36,z],[0.04,1.02,z*1.08],0.026));
+    body.add(bone2([0.04,1.02,z*1.08],[0.16,0.76,z*1.1],0.021));
+    // hand: few finger bones curling down
+    for(let f=0;f<4;f++){const fz=z*1.1+(f-1.5)*0.018;body.add(tube([[0.16,0.76,fz],[0.2,0.7,fz],[0.21,0.64,fz]],0.008,bone,6));}
+  }
+  // legs: thigh along seat, shin down, long-toed feet on belt
+  for(const z of [-0.09,0.09]){
+    body.add(bone2([-0.02,0.82,z],[0.44,0.80,z],0.034));
+    body.add(bone2([0.44,0.80,z],[0.36,0.08,z],0.027));
+    for(let f=0;f<4;f++){const fz=z+(f-1.5)*0.022;body.add(tube([[0.36,0.07,fz],[0.46,0.035,fz*1.05],[0.55,0.015,fz*1.12]],0.009,bone,6));}
+    body.add(ball([0.36,0.06,z],0.035,bone,1.2,0.8,1));
+  }
+  // neck: long, jutting forward-up
+  const neck=new THREE.Group();body.add(neck);
+  neck.add(tube([[0.12,1.45,0],[0.25,1.5,0],[0.38,1.56,0]],0.034,bone,12));
+  for(let i=0;i<6;i++){const t=i/5;neck.add(ball([0.12+t*0.26,1.45+t*0.11+Math.sin(t*3)*0.01,0],0.042,bone,1,0.8,1));}
+  // head (pivots at top of neck)
+  const head=new THREE.Group();head.position.set(HEADX-0.07,HEADY-0.03,0);body.add(head);
+  const skull=new THREE.Group();head.add(skull);
+  skull.add(ball([0.03,0.07,0],0.11,bone,1.12,0.95,0.86));          // cranium
+  skull.add(ball([0.12,0.02,0],0.075,bone,0.8,0.95,1.05));          // face / maxilla
+  skull.add(ball([0.1,0.0,0.06],0.03,bone,1.2,0.8,0.8));skull.add(ball([0.1,0.0,-0.06],0.03,bone,1.2,0.8,0.8)); // cheekbones
+  for(const z of [0.042,-0.042]) skull.add(ball([0.165,0.045,z],0.034,socketM,0.55,0.9,0.85)); // eye sockets
+  skull.add(ball([0.188,0.0,0],0.016,socketM,0.6,1.3,0.8));         // nose hole
+  skull.add(box([0.17,-0.05,0],[0.04,0.028,0.085],bone));            // upper teeth
+  for(let i=0;i<6;i++) skull.add(box([0.191,-0.05,-0.033+i*0.013],[0.004,0.026,0.003],boneDark));
+  skull.add(box([0.13,-0.085,0],[0.11,0.03,0.09],bone,[0,0,-0.18])); // mandible
+  // bulb
+  const bulb=new THREE.Group();bulb.position.set(0.05,0.17,0);skull.add(bulb);
+  const sock=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.03,0.07,16),brass);sock.position.y=0.02;sock.castShadow=true;bulb.add(sock);
+  for(let i=0;i<3;i++){const th=new THREE.Mesh(new THREE.TorusGeometry(0.037,0.006,6,16),brass);th.rotation.x=Math.PI/2;th.position.y=0.0+i*0.022;bulb.add(th);}
+  const glassMat=new THREE.MeshStandardMaterial({color:0xfff2d0,emissive:0xffb24a,emissiveIntensity:2.6,transparent:true,opacity:0.95,roughness:0.15});
+  const glass=new THREE.Mesh(new THREE.SphereGeometry(0.075,24,16),glassMat);glass.position.y=0.13;glass.scale.set(1,1.12,1);bulb.add(glass);
+  const neckG=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.034,0.05,16),glassMat);neckG.position.y=0.075;bulb.add(neckG);
+  // broken remains (shown after smash)
+  const shardsLeft=new THREE.Group();shardsLeft.position.set(0,0.06,0);bulb.add(shardsLeft);
+  const shardM=new THREE.MeshStandardMaterial({color:0xcfd0c4,roughness:0.2,transparent:true,opacity:0.7,side:THREE.DoubleSide});
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2;const sh=new THREE.Mesh(new THREE.ConeGeometry(0.012,0.05+r()*0.04,3),shardM);sh.position.set(Math.cos(a)*0.03,0.03,Math.sin(a)*0.03);sh.rotation.set(Math.sin(a)*0.3,0,-Math.cos(a)*0.3);shardsLeft.add(sh);}
+  const fil=tube([[-0.01,0.04,0],[-0.01,0.09,0],[0.01,0.1,0],[0.012,0.05,0]],0.004,new THREE.MeshStandardMaterial({color:0x222018}),8);shardsLeft.add(fil);
+  // mortarboard cap
+  const cap=new THREE.Group();cap.position.set(0.04,0.13,0);skull.add(cap);
+  const capBase=new THREE.Mesh(new THREE.CylinderGeometry(0.115,0.12,0.09,20),capM);capBase.castShadow=true;cap.add(capBase);
+  const board=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.018,0.36),capM);board.position.y=0.05;board.rotation.y=Math.PI/4;board.castShadow=true;cap.add(board);
+  cap.add(ball([0,0.062,0],0.014,capM));
+  const tassel=tube([[0,0.062,0],[0.12,0.065,0.07],[0.17,0.05,0.1],[0.175,-0.04,0.1]],0.006,brass,10);cap.add(tassel);
+  cap.add(ball([0.175,-0.06,0.1],0.016,brass,0.8,1.6,0.8));
+  g.userData={body,head,bulb,glass,neckG,sock,shardsLeft,cap,glassMat,neck};
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  return g;
+}
+
+// figure pool: index i, head x = XS + (i + n(t))*P - (ks)*... we use i relative to smash station
+const NFIG=8, IMIN=-4; // i from -4..3 relative
+const figs=[];
+for(let k=0;k<NFIG;k++){const f=makeFigure(100+k*17);scene.add(f);figs.push(f);}
+
+// ---------- arms ----------
+// smasher: column from rail, elbow pivot, forearm + mallet
+const smasher=new THREE.Group();scene.add(smasher);
+const BX=XS+0.03, BY=1.93; const SPx=XS+0.78, SPy=2.38; // pivot (world, head x at XS)
+const col=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,1,14),metal);col.castShadow=true;smasher.add(col);
+const colCollar=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,0.12,14),darkMetal);smasher.add(colCollar);
+const elbow=new THREE.Group();smasher.add(elbow);
+elbow.add(ball([0,0,0],0.075,darkMetal));
+const fore=new THREE.Group();elbow.add(fore);
+const FL=0.6;
+const foreRod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,FL,12),metal);foreRod.rotation.z=Math.PI/2;foreRod.position.x=-FL/2;foreRod.castShadow=true;fore.add(foreRod);
+// piston sleeve
+const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.25,12),darkMetal);sleeve.rotation.z=Math.PI/2;sleeve.position.x=-0.15;fore.add(sleeve);
+// mallet head: cylinder perpendicular to arm, rubber-ish face
+const mallet=new THREE.Group();mallet.position.x=-FL;mallet.rotation.z=Math.PI/2;fore.add(mallet);
+const mh=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,0.22,18),darkMetal);mh.castShadow=true;mallet.add(mh);
+const mf=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.05,18),new THREE.MeshStandardMaterial({color:0x2a2620,roughness:0.9}));mf.position.y=-0.12;mallet.add(mf);
+mallet.add(ball([0,0.12,0],0.05,metal));
+// capper: telescoping rod with S-hook
+const capper=new THREE.Group();scene.add(capper);
+const cRod=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,1,12),metal);cRod.castShadow=true;capper.add(cRod);
+const cSleeve=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1,12),darkMetal);cSleeve.castShadow=true;capper.add(cSleeve);
+const hook=new THREE.Group();capper.add(hook);
+{const t1=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.012,8,20,Math.PI*1.2),metal);t1.position.set(0,-0.05,0);t1.rotation.z=Math.PI*0.4;hook.add(t1);
+ const t2=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.012,8,20,Math.PI*1.2),metal);t2.position.set(0,-0.15,0);t2.rotation.z=-Math.PI*0.6;hook.add(t2);
+ // clamp claws
+ for(const s of [-1,1]){const cl=tube([[0,-0.2,0],[s*0.09,-0.24,0],[s*0.13,-0.3,0]],0.012,metal,8);hook.add(cl);}}
+// carried cap (separate mesh group cloned look)
+function makeCap(){const cap=new THREE.Group();
+  const capBase=new THREE.Mesh(new THREE.CylinderGeometry(0.115,0.12,0.09,20),capM);cap.add(capBase);
+  const board=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.018,0.36),capM);board.position.y=0.05;board.rotation.y=Math.PI/4;cap.add(board);
+  cap.add(ball([0,0.062,0],0.014,capM));cap.add(tube([[0,0.062,0],[0.12,0.065,0.07],[0.17,0.05,0.1],[0.175,-0.04,0.1]],0.006,brass,10));cap.add(ball([0.175,-0.06,0.1],0.016,brass,0.8,1.6,0.8));
+  cap.traverse(o=>{if(o.isMesh)o.castShadow=true;});return cap;}
+const carried=makeCap();scene.add(carried);
+// left idle arm (bulb-checker lamp), partly in frame like the ref's corner arm
+const lamp=new THREE.Group();scene.add(lamp);
+const lcol=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.6,12),metal);lcol.position.y=-0.8;lamp.add(lcol);
+const lfore=new THREE.Group();lfore.position.y=-1.6;lamp.add(lfore);
+const lrod=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.028,0.55,12),metal);lrod.rotation.z=Math.PI/2;lrod.position.x=-0.27;lfore.add(lrod);
+const dish=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.05,0.08,24,1,true),new THREE.MeshStandardMaterial({color:0x7d7a66,metalness:0.6,roughness:0.4,side:THREE.DoubleSide}));dish.position.set(-0.55,-0.04,0);lfore.add(dish);
+lamp.position.set(XS-P+0.35,5.3,0.05);
+
+// ---------- particles (deterministic per smash) ----------
+const shardGeo=new THREE.ConeGeometry(0.014,0.05,3);
+const shardMat=new THREE.MeshStandardMaterial({color:0xeae6d6,emissive:0x664422,emissiveIntensity:0.4,roughness:0.15,transparent:true,opacity:0.9,side:THREE.DoubleSide});
+const NSH=34;const shardMesh=new THREE.InstancedMesh(shardGeo,shardMat,NSH);shardMesh.frustumCulled=false;scene.add(shardMesh);
+const sparkMat=new THREE.MeshBasicMaterial({color:0xffc070});
+const NSP=26;const sparkMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(0.008,6,4),sparkMat,NSP);sparkMesh.frustumCulled=false;scene.add(sparkMesh);
+function puffTex(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'rgba(235,228,205,0.9)');gr.addColorStop(0.5,'rgba(210,200,175,0.35)');gr.addColorStop(1,'rgba(200,190,160,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);}
+const puffT=puffTex();const puffs=[];
+for(let i=0;i<7;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:puffT,transparent:true,depthWrite:false,opacity:0}));scene.add(s);puffs.push(s);}
+const flashT=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'rgba(255,230,170,1)');gr.addColorStop(0.3,'rgba(255,170,80,0.45)');gr.addColorStop(1,'rgba(255,140,40,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);})();
+const flash=new THREE.Sprite(new THREE.SpriteMaterial({map:flashT,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0}));scene.add(flash);
+// bulb halos for lit bulbs (soft additive glow)
+const halos=[];for(let i=0;i<NFIG;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:flashT,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0}));scene.add(s);halos.push(s);}
+
+// ---------- post ----------
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,cam));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),0.55,0.6,0.82);composer.addPass(bloom);
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uFlick:{value:1}},
+ vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D tDiffuse;uniform float uT;uniform float uFlick;varying vec2 vUv;
+ float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+ void main(){vec4 c=texture2D(tDiffuse,vUv);
+  float l=dot(c.rgb,vec3(0.3,0.59,0.11));
+  vec3 sep=vec3(l)*vec3(1.0,0.98,0.82);           // olive-sepia base
+  float warm=clamp((c.r-c.b)*2.2-0.25,0.,1.);       // keep the bulb glow warm
+  vec3 col=mix(sep,c.rgb,0.28+0.6*warm);
+  col*=uFlick;
+  float g=h(vUv*vec2(1080.,1920.)+fract(uT*7.3)*100.)-0.5;col+=g*0.055;
+  vec2 d=vUv-0.5;col*=1.0-dot(d*vec2(0.9,0.5),d*vec2(0.9,0.5))*0.9;   // gentle vignette (no black frame)
+  gl_FragColor=vec4(col,1.);}`});
+composer.addPass(grade);composer.addPass(new OutputPass());
+
+// ---------- timeline helpers ----------
+const ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
+const easeIn=x=>x<0?0:x>1?1:x*x*x;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function nAt(ta){const k=Math.floor(ta/T);const s=ta-k*T;return k+(s<S?0:ease((s-S)/(T-S)));}
+// figure with id j (integer) sits at smash station during stop k=j (n=j) -> head x = XS + (n - j)*P
+// so figure j: x = XS + (n-j)*P ; smashed at j*T+A_HIT ; capped at (j+1)*T+A_HIT
+
+const ov=document.getElementById('ov').getContext('2d');
+function drawTitle(){ov.clearRect(0,0,W,H);
+  ov.textAlign='center';ov.textBaseline='alphabetic';
+  const lines=[[['How ','#ffffff'],['Valued Members','#f4e04d']],[['Of ','#ffffff'],['Society','#f4e04d'],[' Are Made','#ffffff']]];
+  ov.font='800 78px "Inter Display"';
+  let y=392;
+  for(const ln of lines){let tw=0;for(const [s] of ln)tw+=ov.measureText(s).width;let x=W/2-tw/2;
+    for(const [s,c] of ln){ov.textAlign='left';ov.lineJoin='round';ov.lineWidth=12;ov.strokeStyle='rgba(8,8,4,0.85)';ov.strokeText(s,x,y);
+      ov.shadowColor='rgba(0,0,0,0.6)';ov.shadowBlur=18;ov.fillStyle=c;ov.fillText(s,x,y);ov.shadowBlur=0;x+=ov.measureText(s).width;}
+    y+=96;}
+}
+
+window.renderAt=function(t){
+  const ta=t+T0;
+  const n=nAt(ta);
+  const kNow=Math.floor(ta/T), sNow=ta-kNow*T;
+  // belt texture + rollers move with n
+  const shift=n*P;
+  beltT.offset.x=-(shift/14)*10;
+  rollers.children.forEach((rl,i)=>{rl.rotation.y=0;rl.rotation.x=Math.PI/2;rl.rotation.y=-shift/0.075;});
+  rollers.position.x=((shift)%0.4);
+  rivets.position.x=(shift%0.2);
+  // figures: j from kNow-4 .. kNow+3
+  let lit=[];
+  for(let q=0;q<NFIG;q++){
+    const j=kNow-5+q;const f=figs[q];
+    const x=XS+(n-j)*P-HEADX;
+    f.position.set(x,0,0);
+    const U=f.userData;
+    const tSmash=j*T+A_HIT, tCap=(j+1)*T+A_HIT;
+    const smashed=ta>=tSmash, capped=ta>=tCap;
+    // bulb visibility
+    U.glass.visible=!smashed;U.neckG.visible=!smashed;U.shardsLeft.visible=smashed&&!capped;U.sock.visible=!capped;
+    U.cap.visible=capped;
+    // lit glow with gentle flicker; dying flicker just after smash
+    let glow=smashed?0:1;
+    const fl=0.88+0.12*Math.sin(ta*23+j*1.7)*Math.sin(ta*7.1+j);
+    U.glassMat.emissiveIntensity=2.6*fl;
+    // head recoil on hit + slump after cap
+    let rec=0;if(smashed){const dt=ta-tSmash;rec=dt<0.6?Math.sin(clamp(dt/0.6,0,1)*Math.PI)*Math.exp(-dt*3)*1.0:0;}
+    let slump=smashed?0.05:0; if(capped){const dt=ta-tCap;slump=0.05+0.1*ease(dt/0.5);}
+    // cap landing squash
+    let bob=0;if(capped){const dt=ta-tCap;bob=dt<0.35?-Math.sin(dt/0.35*Math.PI)*0.025:0;}
+    U.head.rotation.z=-0.35*rec-slump*1.3;
+    U.head.position.y=HEADY-0.03-slump*0.25+bob;
+    // idle breathing / sway
+    U.body.rotation.z=Math.sin(ta*1.3+j)*0.006;
+    if(!smashed){const wp=new THREE.Vector3();U.glass.getWorldPosition(wp);lit.push([wp,fl,q]);}
+    halos[q].visible=!smashed;
+    if(!smashed){const wp=new THREE.Vector3();f.updateMatrixWorld(true);U.glass.getWorldPosition(wp);halos[q].position.copy(wp);halos[q].position.z+=0.12;const s=0.62*fl;halos[q].scale.set(s,s,1);halos[q].material.opacity=0.55;}
+  }
+  // assign point lights to lit bulbs nearest the station
+  lit.sort((a,b)=>Math.abs(a[0].x-XS)-Math.abs(b[0].x-XS));
+  bulbLights.forEach((l,i)=>{if(lit[i]){l.position.copy(lit[i][0]);l.intensity=2.2*lit[i][1];}else l.intensity=0;});
+
+  // ---- smasher animation (relative to current stop) ----
+  // angle: rest raised, windup raise further, snap down to hit at A_HIT, hold, recover
+  const s=sNow;
+  const aHit=Math.atan2(BY-SPy+0.04, BX-SPx); // angle pointing from pivot to bulb
+  const aRest=aHit-0.55, aWind=aHit-1.15;
+  let ang;
+  if(s<0.45) ang=aRest;
+  else if(s<A_HIT-0.09) ang=aRest+(aWind-aRest)*ease((s-0.45)/(A_HIT-0.09-0.45));
+  else if(s<A_HIT) ang=aWind+(aHit-aWind)*easeIn((s-(A_HIT-0.09))/0.09);
+  else if(s<A_HIT+0.16) ang=aHit+0.04*Math.sin((s-A_HIT)/0.16*Math.PI)*Math.exp(-(s-A_HIT)*8);
+  else ang=aHit+(aRest-aHit)*ease((s-A_HIT-0.16)/0.55);
+  // small drop of the whole column on strike
+  const drop=(s>A_HIT-0.12&&s<A_HIT+0.3)?0.05*Math.sin(clamp((s-A_HIT+0.12)/0.42,0,1)*Math.PI):0;
+  const pivY=SPy-drop;
+  const colTop=5.35, colLen=colTop-pivY;
+  col.scale.y=colLen;col.position.set(SPx,pivY+colLen/2,0);
+  colCollar.position.set(SPx,pivY+0.35,0);
+  elbow.position.set(SPx,pivY,0);
+  // fore group points along -x at rotation 0; we want direction angle ang -> rotation = ang - PI
+  fore.rotation.z=ang-Math.PI;
+
+  // ---- capper animation ----
+  // descend s 0.15..A_HIT, place at A_HIT, release, rise till T (through move)
+  const capTopY=HEADY+0.17+0.15-0.0; // cap rest height on head (approx world)
+  const hookLow=HEADY+0.4; // hook bottom y when placing
+  let hy;
+  const sc=sNow;
+  if(sc<0.15) hy=6.4;
+  else if(sc<A_HIT) hy=6.4+(hookLow-6.4)*ease((sc-0.15)/(A_HIT-0.15));
+  else if(sc<A_HIT+0.15) hy=hookLow;
+  else hy=hookLow+(6.4-hookLow)*easeIn((sc-A_HIT-0.15)/(T-A_HIT-0.15));
+  // the rod tip x follows cap station (static)
+  const cx=XC-0.03;
+  hook.position.set(cx,hy,0);
+  const rodLen=Math.max(0.05,5.35-hy);cRod.scale.y=rodLen;cRod.position.set(cx,hy+rodLen/2,0);
+  const slLen=Math.min(1.4,rodLen*0.5);cSleeve.scale.y=slLen;cSleeve.position.set(cx,5.35-slLen/2,0);
+  carried.visible=sc>=0.15&&sc<A_HIT;
+  carried.position.set(cx,hy-0.33,0);carried.rotation.z=-0.08;
+  // capped figure's cap is attached to skull (visible from tCap)
+
+  // left idle arm swing
+  lfore.rotation.z=Math.sin(ta*1.1)*0.25-0.2;lamp.rotation.z=Math.sin(ta*0.7)*0.05;
+
+  // ---- smash particles (current or previous smash) ----
+  const jS=kNow; let dt=ta-(jS*T+A_HIT); if(dt<0){dt=ta-((jS-1)*T+A_HIT);}
+  const hitPos=new THREE.Vector3(BX,BY,0.0);
+  // smashed figure has moved since if dt > S-A_HIT; particles are world-space so fine
+  const r=rng(9000+Math.floor((ta-dt)/T));
+  const m4=new THREE.Matrix4(),q4=new THREE.Quaternion(),v=new THREE.Vector3(),sc3=new THREE.Vector3();
+  for(let i=0;i<NSH;i++){const vx=(r()-0.35)*2.6,vy=r()*2.2+0.4,vz=(r()-0.5)*1.6,spin=r()*20;const sz=0.6+r()*1.2;
+    if(dt<1.6){const yy=hitPos.y+vy*dt-4.9*dt*dt;let px=hitPos.x+vx*dt,py=Math.max(yy,0.02),pz=hitPos.z+vz*dt;
+      v.set(px,py,pz);q4.setFromEuler(new THREE.Euler(spin*dt,spin*dt*0.7,spin*dt*1.3));sc3.setScalar(dt<1.4?sz:sz*(1-(dt-1.4)/0.2));}
+    else{v.set(0,-50,0);sc3.setScalar(0.001);}
+    m4.compose(v,q4,sc3);shardMesh.setMatrixAt(i,m4);}
+  shardMesh.instanceMatrix.needsUpdate=true;
+  for(let i=0;i<NSP;i++){const vx=(r()-0.5)*3,vy=r()*2.5,vz=(r()-0.5)*2;
+    if(dt<0.5){v.set(hitPos.x+vx*dt,hitPos.y+vy*dt-4.9*dt*dt,hitPos.z+vz*dt);sc3.setScalar(1.4*(1-dt/0.5));}else{v.set(0,-50,0);sc3.setScalar(0.001);}
+    m4.compose(v,new THREE.Quaternion(),sc3);sparkMesh.setMatrixAt(i,m4);}
+  sparkMesh.instanceMatrix.needsUpdate=true;
+  puffs.forEach((p,i)=>{const a=i/puffs.length*Math.PI*2;const d=dt;if(d<1.3){const rr=0.08+d*0.45;p.position.set(hitPos.x+Math.cos(a)*rr*0.6-0.05,hitPos.y+Math.sin(a)*rr*0.35+d*0.12,0.1+i*0.01);const s=0.25+d*0.55;p.scale.set(s,s,1);p.material.opacity=0.55*(1-d/1.3)*(d<0.05?d/0.05:1);}else p.material.opacity=0;});
+  flash.position.copy(hitPos);flash.position.z+=0.2;
+  flash.material.opacity=dt<0.25?(1-dt/0.25):0;const fs=0.9+dt*2;flash.scale.set(fs,fs,1);
+
+  grade.uniforms.uT.value=t;
+  grade.uniforms.uFlick.value=1.0+0.012*Math.sin(t*37)+(dt<0.08?0.25*(1-dt/0.08):0);
+  composer.render();
+  drawTitle();
+  return true;
+};
+window.ready=true;
+</script></body></html>
