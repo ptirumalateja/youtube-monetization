@@ -99,28 +99,38 @@ def pad(freqs, d):
 
 
 TR = 0.14
-# ---------- music bed: plucked minor waltz-ish loop, warmer at the end ----------
-def pluck(f, d=0.6, b=0.5):
-    t = tt(d); y = np.zeros(len(t))
-    for h, a in [(1, 1), (2, .45 * b), (3, .2 * b), (4, .1 * b)]: y += a * np.sin(2 * np.pi * f * h * t) * np.exp(-t * (5 + 3 * h))
-    return y * np.minimum(1, t / 0.004)
+# ---------- horror bed: heartbeat, detuned music box, sub booms, flicker buzz ----------
 def nt(n): return 440 * 2 ** ((n - 69) / 12)
-beat = 60 / 104
-prog_min = [(57, [57, 60, 64]), (53, [53, 57, 60]), (55, [55, 59, 62]), (52, [52, 55, 59])]   # Am F G Em
-prog_maj = [(48, [48, 52, 55]), (55, [55, 59, 62]), (57, [57, 60, 64]), (53, [53, 57, 60])]   # C G Am F
-mel = [76, 74, 72, 74, 76, 79, 76, 74, 72, 71, 72, 74, 72, 71, 69, 67]
-b = 0.0; i = 0
-while b < DUR - 0.5:
-    sad = 17.0 <= b < 26.0
-    prog = prog_maj if b >= 26.0 else prog_min
-    root, ch = prog[(i // 4) % 4]
-    place(pluck(nt(root - 12), 0.9, 0.3), b, 0.30 if not sad else 0.22)
-    for k, n in enumerate(ch):
-        if i % 2 == 1 or not sad: place(pluck(nt(n), 0.5, 0.4), b + 0.02 * k, 0.07, pan=(k - 1) * 0.4)
-    if not sad or i % 2 == 0:
-        mn = mel[i % 16] + (0 if b < 26.0 else 0)
-        place(pluck(nt(mn), 0.5, 0.8), b + beat * 0.5, 0.11 if not sad else 0.07, pan=0.2)
-    b += beat; i += 1
+def mbox(f, d=1.6):
+    t = tt(d); vib = 1 + 0.004 * np.sin(2 * np.pi * 5.5 * t)
+    y = np.sin(2 * np.pi * np.cumsum(f * vib) / SR) + 0.5 * np.sin(2 * np.pi * np.cumsum(f * 1.012 * vib) / SR) + 0.25 * np.sin(2 * np.pi * f * 4.1 * t) * np.exp(-t * 9)
+    return y * np.exp(-t * 2.2) * np.minimum(1, t / 0.003)
+def beat_hb():
+    t = tt(0.25)
+    return np.sin(2 * np.pi * (48 + 40 * np.exp(-t * 30)) * t) * np.exp(-t / 0.07)
+def boom(d=2.5):
+    t = tt(d)
+    return np.sin(2 * np.pi * (32 + 30 * np.exp(-t * 4)) * t) * np.exp(-t / 0.7) + 0.2 * bandnoise(len(t), 30, 300) * np.exp(-t / 0.4)
+def buzz(d=0.25):
+    t = tt(d); y = np.sign(np.sin(2 * np.pi * 100 * t)) * 0.3 + 0.4 * bandnoise(len(t), 2000, 8000) * (np.random.default_rng(3).random(len(t)) > 0.7)
+    return y * np.sin(np.pi * t / d)
+# heartbeat
+tb = 0.2
+while tb < DUR - 0.4:
+    fast = 12.5 <= tb < 26.0
+    place(beat_hb(), tb, 0.5); place(beat_hb() * 0.7, tb + 0.24, 0.4)
+    tb += 0.72 if fast else 0.95
+# detuned music box, minor, sparse
+mel = [(0.6, 76), (1.5, 75), (2.4, 72), (3.6, 71), (4.5, 72), (6.4, 76), (7.3, 79), (8.2, 77), (9.4, 76), (10.6, 75), (11.8, 72),
+       (13.4, 69), (14.9, 68), (16.4, 69), (19.8, 64), (21.6, 63), (23.4, 64), (26.6, 76), (27.5, 75), (28.4, 72), (30.9, 76), (31.8, 79),
+       (32.7, 77), (34.2, 76), (35.1, 75), (36.6, 72), (37.5, 71)]
+for t0, n in mel: place(mbox(nt(n)), t0, 0.12, pan=0.3); place(mbox(nt(n - 12)) * 0.5, t0 + 0.01, 0.08, pan=-0.3)
+for t0 in [0.02, 6.0, 18.95, 23.1, 30.75, 36.5]: place(boom(), t0, 0.7)
+for t0 in [0.35, 2.9, 7.6, 12.95, 16.2, 19.9, 24.6, 27.3, 32.7, 37.0]: place(buzz(), t0, 0.22)
+# whisper swells
+for t0 in [3.0, 13.0, 20.5, 26.5, 33.0]:
+    t = tt(2.5); n = bandnoise(len(t), 1500, 5000) * (0.5 + 0.5 * np.sin(2 * np.pi * 3.1 * t)) * np.sin(np.pi * t / 2.5) ** 2
+    place(n, t0, 0.07, pan=np.random.default_rng(int(t0)).uniform(-0.7, 0.7))
 # ---------- pours ----------
 for s0, s1, sil in [(1.05, 1.85, 1), (3.05, 3.85, 1), (4.65, 5.45, 1), (5.75, 6.55, 0), (8.15, 9.0, 0), (10.6, 11.45, 0), (28.35, 29.55, 0), (34.0, 35.3, 0)]:
     place(pour(s1 - s0 + TR, 0.9), s0, 0.28 if sil else 0.36, pan=0.1)
@@ -139,8 +149,8 @@ for g, d, sil in [(1.85, .75, 1), (3.85, .75, 1), (5.45, .75, 1), (6.62, 1.1, 0)
     for k in range(3):
         place(heave(55 - 6 * k), g + k * d / 3, 0.75 if not sil else 0.55)
         place(stretch(d / 3 * 0.8), g + k * d / 3, 0.10)
-    place(roar(0.6 if sil else 0.8), g + d * 0.7, 0.35 if not sil else 0.22)
-    place(chime(784.0 if not sil else 659.3, 1.2), g + d, 0.18)
+    place(roar(0.7 if sil else 1.0), g + d * 0.6, 0.55 if not sil else 0.35)
+    for k in range(5): place(clink(3800 + 900 * k) * 0.5, g + d * 0.33 * (k % 3) + 0.02 * k, 0.12)
 # cut to colour
 place(whoosh(0.35, 300, 5000), 5.8, 0.3)
 # ---------- jar ----------

@@ -8,7 +8,7 @@ const path = require('path');
   const [mode, out, ...rest] = process.argv.slice(2);
   const browser = await chromium.launch({ args: ['--disable-gpu-vsync'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
-  await page.goto('file://' + path.join(__dirname, 'scene.html'));
+  await page.goto('file://' + path.join(__dirname, process.env.SCENE || 'scene.html'));
   await page.waitForFunction(() => window.READY === true);
   page.on('console', m => console.log('page:', m.text()));
   const grab = async t => {
@@ -22,9 +22,10 @@ const path = require('path');
     const fps = Number(rest[0] || 30);
     const dur = await page.evaluate(() => window.DURATION);
     const n = Math.round(dur * fps);
+    const f0 = Number(process.env.F0 || 0), f1 = Math.min(n, Number(process.env.F1 || n));
     const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
       '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
-    for (let f = 0; f < n; f++) {
+    for (let f = f0; f < f1; f++) {
       const buf = await grab(f / fps);
       if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
       if (f % 60 === 0) console.log(`frame ${f}/${n}`);
