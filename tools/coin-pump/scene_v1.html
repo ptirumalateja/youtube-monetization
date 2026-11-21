@@ -1,0 +1,166 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// "9-5 Job" coin-pump remake: employee pumps, boss's stack grows, crumbs trickle down.
+const W=1080,H=1920,cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,k)=>a+(b-a)*k;
+const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
+const FLOOR=1290, PERIOD=0.54, PUMP_END=3.8;
+const EX=250, MX=545, BX=830;
+function seg(a,b,lw,col){ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineWidth=lw;ctx.strokeStyle=col;ctx.lineCap='round';ctx.stroke();}
+function pl(pts,lw,col){ctx.beginPath();ctx.moveTo(...pts[0]);for(let i=1;i<pts.length;i++)ctx.lineTo(...pts[i]);ctx.lineWidth=lw;ctx.strokeStyle=col;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();}
+function circ(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);}
+function ell(x,y,rx,ry){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);}
+function mixc(a,b,k){const p=s=>[1,3,5].map(i=>parseInt(s.substr(i,2),16));const A=p(a),B=p(b);return `rgb(${A.map((v,i)=>Math.round(lerp(v,B[i],k))).join(',')})`;}
+const GOLD='#e6b422';
+
+// ---------- coins ----------
+function goldGrad(x,r){const g=ctx.createLinearGradient(x-r,0,x+r,0);g.addColorStop(0,'#5a3f0a');g.addColorStop(0.25,'#c99418');g.addColorStop(0.5,'#f5d36a');g.addColorStop(0.75,'#b8860f');g.addColorStop(1,'#4a3308');return g;}
+function stack(x,n,r){
+  const th=32, ry=r*0.28;const full=Math.floor(n), frac=n-full;
+  const top=FLOOR-n*th;
+  // body
+  ctx.fillStyle=goldGrad(x,r);ctx.fillRect(x-r,top,2*r,n*th);
+  ell(x,FLOOR,r,ry);ctx.fill();
+  // ridges between coins
+  for(let i=1;i<=full;i++){const y=FLOOR-i*th;ctx.beginPath();ctx.ellipse(x,y,r,ry,0,0,Math.PI);ctx.lineWidth=2.5;ctx.strokeStyle='rgba(60,40,5,0.75)';ctx.stroke();
+    ctx.beginPath();ctx.ellipse(x,y+3,r,ry,0,0.2,Math.PI-0.2);ctx.lineWidth=1.5;ctx.strokeStyle='rgba(255,230,150,0.35)';ctx.stroke();}
+  // milled edge lines
+  ctx.save();ctx.beginPath();ctx.rect(x-r,top,2*r,n*th);ctx.clip();ctx.strokeStyle='rgba(70,45,5,0.25)';ctx.lineWidth=2;for(let k=-r+8;k<r;k+=10){ctx.beginPath();ctx.moveTo(x+k,top);ctx.lineTo(x+k,FLOOR);ctx.stroke();}ctx.restore();
+  // top face
+  const tg=ctx.createRadialGradient(x-r*0.3,top-ry*0.3,4,x,top,r);tg.addColorStop(0,'#fff0b0');tg.addColorStop(0.5,'#e2ac26');tg.addColorStop(1,'#8a6210');
+  ell(x,top,r,ry);ctx.fillStyle=tg;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#6b4a0b';ctx.stroke();
+  ell(x,top,r*0.82,ry*0.82);ctx.lineWidth=2;ctx.strokeStyle='rgba(110,75,10,0.6)';ctx.stroke();
+  return top;
+}
+function coin(x,y,r=26,face=true,rot=0){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  const g=ctx.createRadialGradient(-r*0.3,-r*0.3,2,0,0,r);g.addColorStop(0,'#fff0b0');g.addColorStop(0.55,'#d9a321');g.addColorStop(1,'#7a560c');
+  circ(0,0,r);ctx.fillStyle=g;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#5c400a';ctx.stroke();
+  circ(0,0,r*0.78);ctx.lineWidth=2;ctx.stroke();
+  if(face){ctx.fillStyle='#fff6d0';ctx.font=`bold ${r*1.1}px Inter`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('₹',0,2);}
+  ctx.restore();
+}
+function lyingCoin(x,y,r=30){ // coin lying flat on a stack top
+  ell(x,y+6,r,r*0.32);ctx.fillStyle='#6b4a0b';ctx.fill();
+  const g=ctx.createRadialGradient(x-8,y-4,2,x,y,r);g.addColorStop(0,'#fff0b0');g.addColorStop(1,'#b8860f');ell(x,y,r,r*0.32);ctx.fillStyle=g;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#5c400a';ctx.stroke();
+}
+// ---------- figures ----------
+function limb(pts,lw,col){pl(pts,lw+6,'rgba(0,0,0,0.55)');pl(pts,lw,col);}
+function bossFig(x,fy,t,toss){
+  const leg='#e6b422';
+  limb([[x-14,fy-200],[x-16,fy]],22,leg);limb([[x+14,fy-200],[x+16,fy]],22,leg);
+  ell(x-20,fy+2,20,8);ctx.fillStyle='#ccc';ctx.fill();ell(x+20,fy+2,20,8);ctx.fill();
+  // torso: white shirt with black waistcoat + yellow coat
+  ctx.fillStyle='#e6b422';ctx.beginPath();ctx.roundRect(x-34,fy-345,68,150,14);ctx.fill();
+  ctx.fillStyle='#f4f4f4';ctx.beginPath();ctx.moveTo(x-16,fy-345);ctx.lineTo(x+16,fy-345);ctx.lineTo(x+10,fy-205);ctx.lineTo(x-10,fy-205);ctx.fill();
+  ctx.fillStyle='#111';ctx.beginPath();ctx.moveTo(x-6,fy-340);ctx.lineTo(x+6,fy-340);ctx.lineTo(x+10,fy-270);ctx.lineTo(x,fy-255);ctx.lineTo(x-10,fy-270);ctx.fill();
+  // arms crossed or tossing
+  if(toss>0){limb([[x+30,fy-325],[x+90,fy-300-60*toss],[x+70+70*toss,fy-360-60*toss]],18,'#e6b422');limb([[x-30,fy-325],[x-8,fy-268],[x+30,fy-275]],18,'#e6b422');}
+  else{limb([[x-30,fy-325],[x-10,fy-275],[x+34,fy-285]],18,'#e6b422');limb([[x+30,fy-325],[x+10,fy-262],[x-34,fy-272]],18,'#d4a01c');}
+  // head + sunglasses
+  circ(x,fy-395,44);ctx.fillStyle='#f6f6f6';ctx.fill();
+  ctx.fillStyle='#0b0b0b';ctx.beginPath();ctx.roundRect(x-36,fy-408,32,20,8);ctx.fill();ctx.beginPath();ctx.roundRect(x+4,fy-408,32,20,8);ctx.fill();seg([x-6,fy-400],[x+6,fy-400],4,'#0b0b0b');
+  ctx.beginPath();ctx.arc(x,fy-372,12,0.2,Math.PI-0.2);ctx.lineWidth=4;ctx.strokeStyle='#333';ctx.stroke();
+}
+function managerFig(x,fy,t,point,toss){
+  limb([[x-14,fy-190],[x-18,fy]],22,'#3a3a3a');limb([[x+14,fy-190],[x+18,fy]],22,'#454545');
+  ctx.fillStyle='#f2f2f2';ctx.beginPath();ctx.roundRect(x-30,fy-330,60,150,12);ctx.fill();
+  ctx.fillStyle=GOLD;ctx.beginPath();ctx.moveTo(x-5,fy-322);ctx.lineTo(x+5,fy-322);ctx.lineTo(x+9,fy-230);ctx.lineTo(x,fy-215);ctx.lineTo(x-9,fy-230);ctx.fill();
+  // right arm (down), left arm points / tosses toward the employee
+  limb([[x+28,fy-312],[x+36,fy-245],[x+34,fy-180]],16,'#e6b422');
+  if(toss>0){limb([[x-28,fy-312],[x-80,fy-290+30*toss],[x-130,fy-300+60*toss]],16,'#e6b422');}
+  else if(point>0){limb([[x-28,fy-312],[x-28-60*point,fy-300],[x-28-120*point,fy-305]],16,'#e6b422');}
+  else limb([[x-28,fy-312],[x-36,fy-245],[x-34,fy-180]],16,'#e6b422');
+  circ(x,fy-378,42);ctx.fillStyle='#f6f6f6';ctx.fill();
+  circ(x-14,fy-384,4);ctx.fillStyle='#222';ctx.fill();circ(x+12,fy-384,4);ctx.fill();
+  seg([x-10,fy-358],[x+10,fy-358],4,'#333');
+}
+function employeeFig(x,fy,t,col,pump,pick){
+  // bent over pump: hips back, torso leaning, arms down to handle
+  const by=pump*46; // handle travel
+  const hip=[x-8,fy-170], sh=[x+30,fy-300+by*0.5];
+  limb([hip,[x-4,fy-85],[x-14,fy]],22,col);limb([hip,[x+18,fy-90+by*0.2],[x+16,fy]],22,col);
+  pl([hip,sh],52,'rgba(0,0,0,0.55)');pl([hip,sh],46,col);
+  const hy=fy-200+by;
+  const hands=pick>0?[x+40,fy-20]:[x+82,hy];
+  limb([sh,[x+58,sh[1]+50],hands],15,col);
+  circ(sh[0]+18,sh[1]-58,40);ctx.fillStyle=col;ctx.fill();
+  // tired eye
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(sh[0]+26,sh[1]-62,14,4);
+}
+function pump(x,fy,p){
+  // cylinder + T-handle on a rod
+  const hy=fy-200+p*46;
+  ctx.fillStyle='#2b2b2b';ctx.fillRect(x-8,fy-12,60,12);
+  const g=ctx.createLinearGradient(x+10,0,x+34,0);g.addColorStop(0,'#7a5a10');g.addColorStop(0.5,'#f0c64a');g.addColorStop(1,'#7a5a10');
+  ctx.fillStyle=g;ctx.fillRect(x+10,fy-150,24,140);
+  seg([x+22,fy-150],[x+22,hy],7,'#bbb');
+  seg([x-4,hy],[x+48,hy],12,'#222');
+}
+function hose(x0,t){
+  ctx.save();ctx.strokeStyle='rgba(220,220,220,0.75)';ctx.lineWidth=3;ctx.beginPath();
+  ctx.moveTo(x0+50,FLOOR-6);ctx.bezierCurveTo(x0+130,FLOOR+40,MX-140,FLOOR+44,MX-40,FLOOR+18);
+  ctx.bezierCurveTo(MX+80,FLOOR+50,BX-180,FLOOR+48,BX-50,FLOOR+20);ctx.stroke();
+  // air pulses travelling along
+  ctx.restore();
+}
+function label(txt,x){ctx.fillStyle='#e9e9e9';ctx.font='500 46px Inter';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,FLOOR+110);}
+
+// ---------- timeline ----------
+function pumpPhase(t){if(t>PUMP_END)return 0;const p=(t%PERIOD)/PERIOD;return p<0.5?ease(p*2):1-ease((p-0.5)*2);}
+function grow(t){ // 0..1 during pumping, stepped on each down-stroke
+  const strokes=PUMP_END/PERIOD;const s=Math.min(t,PUMP_END)/PERIOD;const k=Math.floor(s)+ease(((s%1)-0.25)/0.25);
+  return clamp(k/strokes,0,1);
+}
+function arc(x0,y0,x1,y1,h,k){return [lerp(x0,x1,k),lerp(y0,y1,k)-h*4*k*(1-k)];}
+function draw(t){
+  ctx.setTransform(1,0,0,1,0,0);
+  const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#2f2f31');bg.addColorStop(0.62,'#252527');bg.addColorStop(1,'#111112');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // floor
+  const fg=ctx.createLinearGradient(0,FLOOR,0,H);fg.addColorStop(0,'#1d1d1f');fg.addColorStop(1,'#0c0c0d');ctx.fillStyle=fg;ctx.fillRect(0,FLOOR,W,H-FLOOR);
+  seg([0,FLOOR],[W,FLOOR],2,'#3c3c3e');
+  ctx.fillStyle='#d8d8d8';ctx.font='300 64px Inter';ctx.textAlign='center';ctx.fillText('9-5 Job',540,400);
+  const g=grow(t);
+  const deflate=ease((t-7.0)/0.55);
+  const bn=lerp(lerp(2,15,g),2,deflate), mn=lerp(lerp(1,4,g),1,deflate);
+  hose(EX+60,t);
+  const mTop=stack(MX,mn,78), bTop=stack(BX,bn,92);
+  // coins tossed boss -> manager (3), manager -> employee (1)
+  const tossB=[4.0,4.12,4.24];
+  const landed=[];
+  tossB.forEach((t0,i)=>{const k=(t-t0)/0.6;const tx=MX-26+i*26,ty=mTop-8;
+    if(k>0&&k<1){const [x,y]=arc(BX-40,bTop-380,tx,ty-20,180,k);coin(x,y,24,true,k*8);}
+    if(k>=1&&deflate<0.5)landed.push([tx,ty]);});
+  // manager picks the middle one and throws it at 5.05
+  let mCoins=landed;
+  const tm=5.05;
+  if(t>tm)mCoins=landed.filter((_,i)=>i!=1);
+  mCoins.forEach(([x,y])=>lyingCoin(x,y,26));
+  const ke=(t-tm)/0.55;
+  let empCoin=null;
+  if(ke>0&&ke<1){const [x,y]=arc(MX-110,mTop-290,EX+40,FLOOR-14,160,ke);coin(x,y,22,true,-ke*10);}
+  else if(ke>=1&&t<5.85)empCoin=[EX+40,FLOOR-14];
+  // figures
+  const p=pumpPhase(t);
+  pump(EX+70,FLOOR,p);
+  const drain=t<PUMP_END?ease(t/PUMP_END):(t<5.9?1:1-ease((t-5.9)/0.25));
+  const ecol=mixc('#e6b422','#3b3b3d',drain*0.92);
+  const pick=(t>5.55&&t<6.1)?1:0;
+  employeeFig(EX,FLOOR,t,ecol,p,pick);
+  if(empCoin)coin(empCoin[0],empCoin[1],22,true,0);
+  if(t>5.85&&t<6.1){coin(EX+40,FLOOR-30-(t-5.85)*200,22,true,0);}
+  const point=(t>0.4&&t<1.3)?ease((t-0.4)/0.2)*(1-ease((t-1.1)/0.2)):0;
+  const mtoss=(t>4.85&&t<5.4)?Math.sin(Math.PI*(t-4.85)/0.55):0;
+  managerFig(MX,mTop,t,point,mtoss);
+  const btoss=(t>3.85&&t<4.45)?Math.sin(Math.PI*(t-3.85)/0.6):0;
+  bossFig(BX,bTop,t,btoss);
+  // sparkle when employee gets the coin
+  if(t>5.9&&t<6.4){const k=(t-5.9)/0.5;ctx.save();ctx.globalAlpha=1-k;ctx.strokeStyle='#ffe38a';ctx.lineWidth=4;for(let i=0;i<8;i++){const a=i/8*Math.PI*2;ctx.beginPath();ctx.moveTo(EX+40+Math.cos(a)*60*k+Math.cos(a)*20,FLOOR-330+Math.sin(a)*60*k);ctx.lineTo(EX+40+Math.cos(a)*(60*k+40),FLOOR-330+Math.sin(a)*(60*k+40));ctx.stroke();}ctx.restore();}
+  label('Employee',EX+40);label('Manager',MX);label('Boss',BX);
+}
+window.draw=draw;
+window.ready=document.fonts.load('500 46px Inter').then(()=>true);
+</script></body></html>
