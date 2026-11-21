@@ -4,19 +4,19 @@
 <script>
 // Vehicle-upgrade "by the numbers" reel: retro top-down world drawn at 360x640, scaled 3x.
 // Same driver (red cap + shades) in every vehicle; vehicle and landscape upgrade on every number.
-const VS=1.25,W=1080,H=1920,S=3,LW=360,LH=640,VX=180,VY=453;
-let X0=null;const C=document.getElementById('c'),X=C.getContext('2d');
+const VS=1.25,W=1080,H=1920,S=3,LW=360,LH=640,VX=180,VY=400;
+let X0=null;const BL=document.createElement('canvas');BL.width=360;BL.height=640;const BG=BL.getContext('2d');const C=document.getElementById('c'),X=C.getContext('2d');
 const L=document.createElement('canvas');L.width=LW;L.height=LH;const G=L.getContext('2d');
 const B=v=>'$'+v.toFixed(2).replace(/0$/,'')+'B',M=v=>Math.round(v)+'M',P=v=>'+'+Math.round(v)+'%';
 const SC=[
- {type:'title',dur:2.0,veh:'car',bio:'town',v0:40,v1:220,kmh:[0,90]},
- {type:'stat',dur:3.2,veh:'car',bio:'pine',v0:220,v1:320,kmh:[90,160],tag:'#1 PRE-ORDERS',col:'#3ff0ff',from:20,to:32.5,fmt:v=>v.toFixed(1)+'M',cap:['COPIES SOLD BEFORE','THE GAME LAUNCHED']},
- {type:'vs',dur:3.8,veh:'car',bio:'desert',v0:330,v1:380,kmh:[160,210],tag:'#2 LAUNCH DAY',col:'#ffd23f',a:{l:'GTA 5',v:0.8},b:{l:'GTA 6',v:3.79},cap:['FIRST-DAY SALES','NEARLY 5X BIGGER']},
- {type:'stat',dur:3.4,veh:'amb',bio:'neon',v0:400,v1:430,kmh:[210,240],tag:'#3 STREAMS',col:'#ff5fc0',from:60,to:125,fmt:M,cap:['HOURS OF STREAMS','WATCHED IN 24 HOURS'],chip:'7.9M WATCHING AT ONCE'},
- {type:'stat',dur:3.0,veh:'tank',bio:'office',v0:330,v1:330,kmh:[240,260],tag:'#4 INDIA',col:'#9dff5a',from:10,to:60,fmt:P,cap:['MORE INDIANS TOOK','LEAVE ON LAUNCH DAY'],chip:'NOBODY WENT TO WORK'},
- {type:'stat',dur:3.2,veh:'bike',bio:'coast',v0:600,v1:700,kmh:[260,320],tag:'#5 ISHOWSPEED',col:'#3ff0ff',from:2,to:4.47,fmt:v=>v.toFixed(2)+'M',cap:['HOURS OF HIS STREAM','WATCHED. MOST OF ANYONE.']},
- {type:'stat',dur:3.2,veh:'heli',bio:'beach',v0:760,v1:820,kmh:[320,380],tag:'#6 DREAM JOB',col:'#ff9a3c',from:90000,to:120000,fmt:v=>'$'+Math.round(v).toLocaleString('en-US'),cap:['KALSHI PAID ONE PERSON','TO PLAY GTA 6 FOR A YEAR']},
- {type:'cta',dur:3.4,veh:'heli',bio:'sunset',v0:500,v1:260,kmh:[380,380],lines:['WHICH NUMBER','SHOCKED YOU?'],sub:'DROP IT IN THE COMMENTS',btn:'FOLLOW FOR MORE'}];
+ {type:'title',dur:2.0,veh:'car',bio:'town',v0:64,v1:352,kmh:[0,90]},
+ {type:'stat',dur:3.2,veh:'car',bio:'pine',v0:352,v1:512,kmh:[90,160],tag:'#1 PRE-ORDERS',col:'#3ff0ff',from:20,to:32.5,fmt:v=>v.toFixed(1)+'M',cap:['COPIES SOLD BEFORE','THE GAME LAUNCHED']},
+ {type:'vs',dur:3.8,veh:'car',bio:'desert',v0:528,v1:608,kmh:[160,210],tag:'#2 LAUNCH DAY',col:'#ffd23f',a:{l:'GTA 5',v:0.8},b:{l:'GTA 6',v:3.79},cap:['FIRST-DAY SALES','NEARLY 5X BIGGER']},
+ {type:'stat',dur:3.4,veh:'amb',bio:'neon',v0:640,v1:688,kmh:[210,240],tag:'#3 STREAMS',col:'#ff5fc0',from:60,to:125,fmt:M,cap:['HOURS OF STREAMS','WATCHED IN 24 HOURS'],chip:'7.9M WATCHING AT ONCE'},
+ {type:'stat',dur:3.0,veh:'tank',bio:'office',v0:528,v1:528,kmh:[240,260],tag:'#4 INDIA',col:'#9dff5a',from:10,to:60,fmt:P,cap:['MORE INDIANS TOOK','LEAVE ON LAUNCH DAY'],chip:'NOBODY WENT TO WORK'},
+ {type:'stat',dur:3.2,veh:'bike',bio:'coast',v0:960,v1:1120,kmh:[260,320],tag:'#5 ISHOWSPEED',col:'#3ff0ff',from:2,to:4.47,fmt:v=>v.toFixed(2)+'M',cap:['HOURS OF HIS STREAM','WATCHED. MOST OF ANYONE.']},
+ {type:'stat',dur:3.2,veh:'heli',bio:'beach',v0:1216,v1:1312,kmh:[320,380],tag:'#6 DREAM JOB',col:'#ff9a3c',from:90000,to:120000,fmt:v=>'$'+Math.round(v).toLocaleString('en-US'),cap:['KALSHI PAID ONE PERSON','TO PLAY GTA 6 FOR A YEAR']},
+ {type:'cta',dur:3.4,veh:'heli',bio:'sunset',v0:800,v1:416,kmh:[380,380],lines:['WHICH NUMBER','SHOCKED YOU?'],sub:'DROP IT IN THE COMMENTS',btn:'FOLLOW FOR MORE'}];
 let t0=0;for(const s of SC){s.t0=t0;t0+=s.dur;}const DUR=t0;window.DUR=DUR;
 // ---- simulation ----
 const DT=1/240,N=Math.ceil(DUR/DT)+2,SY=new Float64Array(N);
@@ -55,9 +55,11 @@ function drawWorld(t,camY,z,camX){
     R(-200,y,LW+400,T+1,(r>>2)&1?b.g:b.g2);
     if(b.sea){const sx=rx-95+8*Math.sin(wy*0.02);R(-200,y,sx+200,T+1,b.sea);R(sx,y,6,T+1,'#e6f6ff');if(hash(r*7)>.7)R(sx-40-hash(r)*60,y,10,1,'#9fe0ff');}
     const hw=(b.rw||60)/2;R(rx-hw,y,2*hw,T+1,b.road);R(rx-hw-4,y,4,T+1,b.side);R(rx+hw,y,4,T+1,b.side);
+    if((r&3)===0){R(rx-hw-9,y,2,3,'#fff');R(rx+hw+7,y,2,3,'#ff3030');}
     if(b.rw){R(rx-1,y,1,T+1,'#ffd23f');R(rx+1,y,1,T+1,'#ffd23f');if(((r%6)+6)%6<3){R(rx-hw/2,y,2,T+1,b.line);R(rx+hw/2,y,2,T+1,b.line);}continue;}
     if(bioAt(wy)==='neon'){R(rx-36,y,2,T+1,'#3ff0ff');R(rx+34,y,2,T+1,'#ff5fc0');}
-    if(((r%6)+6)%6<3)R(rx-1,y,2,T+1,b.line);}
+    if(((r%6)+6)%6<3)R(rx-1,y,2,T+1,b.line);
+    if((r&3)===0){R(rx-hw-9,y,2,3,'#fff');R(rx+hw+7,y,2,3,'#ff3030');}}
   // decorations per 32px cell row
   const D=32;for(let r=Math.floor(top/D);r<=Math.ceil(bot/D);r++){const wy=r*D,bio=bioAt(wy),rx=roadX(wy),y=sy(wy);
     for(const side of [-1,1]){const h=hash(r*31+(side>0?17:3)),h2=hash(r*57+(side>0?5:11));const off=(BIO[bio].rw?74:44)+h*46,x=rx+side*off;
@@ -131,25 +133,30 @@ function speedo(t){const s=SC[sceneAt(t)],u=Math.min(1,(t-s.t0)/s.dur),k=Math.ro
   X.font='26px PX';X.textAlign='left';X.textBaseline='middle';X.fillStyle='#000';X.fillText(k+' KM/H',123,1453);X.fillStyle='#fff';X.fillText(k+' KM/H',120,1450);}
 // ---- frame ----
 function renderAt(t){const si=sceneAt(t),s=SC[si],lt=t-s.t0,v=vehState(t);
+  if(si===0)return sideOpen(t);
   // heli altitude: zoom out
   const ZB=2.3;let z=ZB;if(s.veh==='heli'){z=si===6?ZB*(1-0.35*eo(lt/1.2)):ZB*0.65;}
   const shake=(lt<.2&&si>0)?(1-lt/.2)*3:0;
   G.setTransform(1,0,0,1,0,0);G.clearRect(0,0,LW,LH);
   const camX=roadX(v.y);drawWorld(t,v.y+Math.sin(t*90)*shake,z,camX);
-  // speed streaks
-  const sp=speed(t);if(sp>380){G.fillStyle='rgba(255,255,255,'+Math.min(.5,(sp-380)/600)+')';for(let k=0;k<14;k++){const hx=hash(k*91+Math.floor(t*20)),hy=hash(k*13+Math.floor(t*20));R(hx*LW,hy*LH,1,30+sp/20,G.fillStyle);}}
+  // motion blur: smear the ground along travel direction
+  const sp=speed(t),blur=Math.min(26,sp*z/30*0.7);if(blur>2){BG.clearRect(0,0,LW,LH);BG.drawImage(L,0,0);G.save();G.setTransform(1,0,0,1,0,0);for(let k=1;k<=5;k++){G.globalAlpha=0.22;G.drawImage(BL,0,-blur*k/5);}G.restore();G.globalAlpha=1;}
+  // speed lines
+  if(sp>150){const n=Math.min(40,(sp-150)/18|0);for(let k=0;k<n;k++){const hx=hash(k*91+Math.floor(t*30)),hy=hash(k*13+Math.floor(t*30));G.fillStyle='rgba(255,255,255,'+(0.25+0.4*hash(k*5))+')';G.fillRect(Math.round(hx*LW),Math.round(hy*LH),1,Math.round(20+sp/12));}}
   if(s.type==='vs'){const back=Math.max(0,lt-0.6)*90;G.save();G.translate(VX+(roadX(v.y+back)-26-camX)*z,VY+back*z);G.rotate(v.a*0.5);G.scale(z,z);
     vehicle('old',t,VS*0.9);G.restore();
     if(lt>0.3&&lt<2.6){X0=[VX+(roadX(v.y+back)-26-camX)*z,VY+back*z];}}
   // police chase
-  const nc=s.type==='title'?1:s.veh==='heli'?0:3;for(let k=0;k<nc;k++){const gap=42+k*27+6*Math.sin(t*2.3+k*2),wy=v.y+gap,px=roadX(wy)+(k%2?-14:16)+7*Math.sin(t*3.1+k);
+  const nc=s.type==='title'?1:s.veh==='heli'?0:3;for(let k=0;k<nc;k++){const gap=70+k*30+6*Math.sin(t*2.3+k*2),wy=v.y+gap,px=roadX(wy)+(k%2?-14:16)+7*Math.sin(t*3.1+k);
     if(s.veh==='tank'&&k==2)continue;const sx=VX+(px-camX)*z,sy=VY+gap*z;G.save();G.translate(sx,sy);G.rotate(v.a*.7+0.12*Math.sin(t*3+k));const on=(Math.floor(t*12)+k)%2;
     G.globalAlpha=.28;circ(-4,-2,22*z/2.3*1.6,on?'#ff2030':'#2060ff');G.globalAlpha=1;vehicle('cop',t+k*.04,z*VS*0.95);G.restore();}
   if(s.veh==='heli'){const sx=VX+(-40+10*Math.sin(t*1.7))*z/ZB*1.6,sy=VY+70*z/ZB*1.6;G.save();G.translate(sx,sy);G.rotate(v.a);vehicle('cheli',t,z*0.62);G.restore();}
   // heli shadow
   if(s.veh==='heli'){G.save();G.translate(VX+30,VY+70);G.rotate(v.a);G.fillStyle='rgba(0,0,0,.3)';G.beginPath();G.ellipse(0,0,14,24,0,0,7);G.fill();G.restore();}
   // vehicle
-  const xs=VX+(v.x-camX)*z;G.save();G.translate(xs,VY);G.rotate(v.a);
+  const xs=VX+(v.x-camX)*z;
+  if(s.veh!=='heli'&&sp>250){for(let k=3;k>=1;k--){G.save();G.globalAlpha=0.12*(4-k);G.translate(xs,VY+k*sp/45);G.rotate(v.a);vehicle(s.veh,t,z*VS);G.restore();}G.globalAlpha=1;
+    for(let k=0;k<10;k++){const d=((t*sp*0.6+k*23)%90);G.fillStyle='rgba(235,225,210,'+Math.max(0,.45-d/200)+')';G.beginPath();G.arc(xs+(hash(k*3)-.5)*30,VY+40+d,3+d*.12,0,7);G.fill();}}G.save();G.translate(xs,VY);G.rotate(v.a);
   const pop=si>0&&lt<.3?1+0.5*(1-lt/.3):1;vehicle(s.veh,t,pop*z*VS*(s.veh==='heli'?0.8:1));G.restore();
   // swap burst
   if(si>0&&SC[si].veh!==SC[si-1].veh&&lt<.35){const r=20+lt*420;G.strokeStyle='rgba(255,255,255,'+(1-lt/.35)+')';G.lineWidth=4;G.beginPath();G.arc(xs,VY,r,0,7);G.stroke();for(let k=0;k<12;k++){const a=k*.52;R(xs+Math.cos(a)*r*.8,VY+Math.sin(a)*r*.8,3,3,'#ffd23f');}}
@@ -166,6 +173,55 @@ function renderAt(t){const si=sceneAt(t),s=SC[si],lt=t-s.t0,v=vehState(t);
   if(X0&&s.type==='vs'){X.font='22px PX';X.textAlign='center';X.fillStyle='#000';X.fillText('2013',X0[0]*S+3,X0[1]*S+3-70);X.fillStyle='#ddd';X.fillText('2013',X0[0]*S,X0[1]*S-70);}X0=null;
   hud(s,lt,t);speedo(t);
   return C.toDataURL('image/jpeg',0.92);}
+
+// ---- side-view opener: LA beach street at golden hour, motel behind ----
+function sideCar(x,y,cop,t){G.save();G.translate(x,y);G.scale(1.8,1.8);G.translate(-x,-y);
+  const body=cop?'#15171d':'#22c4d8',hi=cop?'#f0f0f0':'#8ff4ff',dk=cop?'#000':'#0e7f8f';
+  G.fillStyle='rgba(0,0,0,.35)';G.beginPath();G.ellipse(x,y+13,40,4,0,0,7);G.fill();
+  R(x-37,y-6,74,14,body);R(x-37,y-6,74,2,hi);R(x-37,y+6,74,2,dk);R(x-14,y-17,34,12,body);R(x-12,y-15,13,9,'#1a2a3a');R(x+3,y-15,15,9,'#1a2a3a');R(x+4,y-14,4,7,'#4a7aa0');
+  if(!cop){circ(x-6,y-10,3,'#e0a070');R(x-9,y-15,7,3,'#c8202a');R(x-2,y-14,5,1,'#c8202a');R(x-5,y-11,4,1,'#000');R(x-37,y,74,1,'#ffffff');}
+  else{R(x-36,y-4,30,9,'#f0f0f0');R(x+6,y-4,26,9,'#f0f0f0');const on=Math.floor(t*12)%2;R(x-6,y-20,8,3,on?'#ff2030':'#500');R(x+2,y-20,8,3,on?'#002':'#2060ff');G.globalAlpha=.35;circ(x+(on?-2:6),y-19,16,on?'#ff2030':'#2060ff');G.globalAlpha=1;}
+  R(x+35,y-4,3,4,'#fff6c0');R(x-38,y-3,2,4,'#ff3030');
+  for(const wx of [x-22,x+22]){circ(wx,y+8,7,'#111');circ(wx,y+8,4,'#888');const a=-t*40;R(wx+Math.cos(a)*3-1,y+8+Math.sin(a)*3-1,2,2,'#222');}
+  if(!cop){G.fillStyle='rgba(255,240,200,.18)';G.beginPath();G.moveTo(x+37,y-3);G.lineTo(x+120,y-14);G.lineTo(x+120,y+12);G.fill();}G.restore();}
+function sideOpen(t){G.setTransform(1,0,0,1,0,0);G.clearRect(0,0,LW,LH);
+  const d=t*260+30*t*t;// camera travel in px (accelerates)
+  // golden sky
+  const g=G.createLinearGradient(0,0,0,430);g.addColorStop(0,'#3a2a6a');g.addColorStop(.45,'#ff8a4a');g.addColorStop(1,'#ffd27a');G.fillStyle=g;G.fillRect(0,0,LW,430);
+  circ(250,300,34,'#fff0b0');G.globalAlpha=.25;circ(250,300,60,'#ffe0a0');G.globalAlpha=1;
+  // ocean strip (slow parallax) + sparkles
+  R(0,322,LW,26,'#2a6aa8');for(let k=0;k<30;k++){const x=((hash(k*7)*500-d*0.08)%400+400)%400-20;R(x,326+hash(k)*20,6,1,'#ffd890');}
+  // far city / hills
+  G.fillStyle='#7a4a6a';for(let k=0;k<12;k++){const x=((k*60-d*0.15)%720+720)%720-60;G.fillRect(Math.round(x),300-hash(k)*18,40,30);}
+  // building row (parallax 0.55): shops + MOTEL
+  const bx=-d*0.55;const items=[['shop',0],['palm',70],['motel',110],['palm',330],['shop',380],['palm',450],['shop',500],['palm',600],['shop',660],['palm',760],['shop',820]];
+  for(const [k,ox] of items){const x=Math.round(bx+ox+60);if(x<-260||x>LW+40)continue;
+    if(k==='shop'){R(x,350,60,90,'#d88a6a');R(x,350,60,6,'#a85a4a');R(x+6,400,18,40,'#3a2a3a');R(x+30,370,24,18,'#ffd890');R(x+30,394,24,4,'#ff5fc0');}
+    if(k==='palm'){R(x+2,250,4,190,'#4a2a2a');G.fillStyle='#2a3a2a';for(let a=0;a<7;a++){G.beginPath();G.ellipse(x+4+Math.cos(a*.9)*14,250+Math.sin(a*.9)*5,16,4,a*.9,0,7);G.fill();}}
+    if(k==='motel'){R(x,330,200,110,'#f2d6a8');R(x,330,200,8,'#c8806a');R(x,382,200,5,'#c8806a');
+      for(let i=0;i<7;i++){R(x+8+i*27,344,12,24,'#3a6a8a');R(x+8+i*27,394,12,26,'#3a6a8a');R(x+22+i*27,348,8,10,'#ffd890');R(x+22+i*27,398,8,10,(i%3?'#ffd890':'#5a4a3a'));}
+      R(x,378,200,2,'#ffffff');// railing
+      // pole sign
+      R(x+100,300,5,30,'#5a5a5a');R(x+51,262,98,40,'#1a2a4a');const on=Math.floor(t*6)%4!==0;
+      G.font='bold 22px monospace';G.textAlign='center';G.fillStyle=on?'#ff5fc0':'#6a2a4a';G.fillText('MOTEL',x+100,284);G.fillStyle=on?'#3ff0ff':'#2a5a6a';G.font='bold 11px monospace';G.fillText('VACANCY',x+100,298);
+      R(x+51,262,98,3,'#ff5fc0');R(x+51,299,98,3,'#ff5fc0');}}
+  // sidewalk + street + lane dashes (parallax 1)
+  R(0,440,LW,14,'#c8a888');R(0,452,LW,3,'#8a6a5a');R(0,455,LW,110,'#4a4450');R(0,565,LW,75,'#c8a888');
+  for(let k=0;k<12;k++){const x=((k*50-d)%600+600)%600-50;R(x,508,26,3,'#ffd890');}
+  // near palms foreground (parallax 1.5)
+  for(let k=0;k<4;k++){const x=((k*190-d*1.5)%760+760)%760-60;R(x,560,6,80,'#3a2020');G.fillStyle='#1f2a1f';for(let a=0;a<7;a++){G.beginPath();G.ellipse(x+3+Math.cos(a*.9)*20,560+Math.sin(a*.9)*6,22,5,a*.9,0,7);G.fill();}}
+  // motion blur on background
+  const blur=Math.min(14,(260+60*t)/30*0.5);BG.clearRect(0,0,LW,LH);BG.drawImage(L,0,0);for(let k=1;k<=5;k++){G.globalAlpha=0.2;G.drawImage(BL,blur*k/5,0);}G.globalAlpha=1;
+  // speed lines
+  for(let k=0;k<22;k++){const y=300+hash(k*9+Math.floor(t*30))*300,x=hash(k*5+Math.floor(t*30))*LW;G.fillStyle='rgba(255,255,255,.35)';G.fillRect(Math.round(x),Math.round(y),40+hash(k)*40,1);}
+  // cars: hero front, cops behind (gap), slight bounce
+  const hx=250+Math.sin(t*3)*4,cy=500;sideCar(hx,cy+Math.sin(t*25)*0.8,false,t);
+  sideCar(hx-190-10*Math.sin(t*2),cy+Math.sin(t*23)*0.8,true,t);sideCar(hx-380-12*Math.sin(t*1.6+1),cy+Math.sin(t*21)*0.8,true,t+.05);
+  // tyre smoke behind hero
+  for(let k=0;k<10;k++){const dd=((t*120+k*14)%120);G.fillStyle='rgba(240,235,225,'+Math.max(0,.5-dd/240)+')';G.beginPath();G.arc(hx-70-dd,cy+14-dd*.15,6+dd*.15,0,7);G.fill();}
+  G.fillStyle='rgba(255,170,60,.10)';G.fillRect(0,0,LW,LH);
+  X.imageSmoothingEnabled=false;X.clearRect(0,0,W,H);X.drawImage(L,0,0,W,H);X.fillStyle='rgba(0,0,0,.08)';for(let y=0;y<H;y+=6)X.fillRect(0,y,W,2);
+  hud(SC[0],t+0.6,t);return C.toDataURL('image/jpeg',0.92);}
 window.renderAt=renderAt;window.TL={dur:DUR,scenes:SC.map(s=>({t0:s.t0,type:s.type,veh:s.veh}))};
 document.fonts.load('40px PX').then(()=>{window.ready=true;});
 </script></body></html>
