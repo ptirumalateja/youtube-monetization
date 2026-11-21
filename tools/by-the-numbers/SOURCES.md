@@ -1,15 +1,14 @@
-# GTA 6 by the numbers: sources (checked 21 Nov 2026)
+# GTA 6 by the numbers: sources (v3, checked 21 Nov 2026, 11:30 IST)
 
 | On screen | Source |
 |---|---|
-| $3.79B in sales on day one; "biggest entertainment launch ever" | Take-Two, via Forbes, 20 Nov 2026 |
-| 32.5M copies on day one (Take-Two estimate through end of 19 Nov); ≈376 a second = 32.5M / 86,400 | Take-Two, via Forbes / GameSpot / TweakTown |
-| 7.8M people watching streams at once; old record 1.74M (VALORANT closed beta) | Streams Charts via win.gg (7.8M) and esports.gg (1,737,267) |
-| Spider-Man: Brand New Day $2.5B box office since summer vs GTA 6 $3.79B in a day | Forbes, 20 Nov 2026 |
-| Trailer 2: 475M views in 24 hours, "biggest video launch of all time" (Rockstar claim) | TechRadar / KitGuru / TweakTown |
-| 40B YouTube views on GTA 6 videos before launch (≈5 per person, 8.2B people) | YouTube blog / Open magazine / PPC Land |
-| $120,000 Kalshi salary to play GTA 6 for a year (≈₹1 crore) | The Blaze, Archyde, Lapaas Voice (some reports say up to $135K) |
+| $3.79B in sales on day one; "biggest entertainment launch ever" | Take-Two, via Forbes (20 Nov 2026) |
+| Metacritic 99 (PS5), ~150 critic reviews, all positive; ties the all-time record | Metacritic via Nacionale, EsportNow, The Next Web (18-19 Nov) |
+| GTA 5 first-day sales $800M (2013) vs GTA 6 $3.79B; "nearly 5x" = 4.7x | Guinness via EsportNow; Take-Two |
+| 7.91M peak concurrent stream viewers; old record ~1.74M (VALORANT) → 4.5x | Streams Charts via Andro-News (7,914,231), esports.gg |
+| +60% annual-leave bookings in India for 19 Nov; +32% worldwide | Beebom via DataRefs (20 Nov) |
+| 212 GB download (≈45 single-layer DVDs at 4.7 GB) | Andro-News, DataRefs |
+| ~$1.5B reported development cost, 13 years after GTA 5 (≈₹13,000 crore at ~₹88/$) | Variety via ANI / The Daily Guardian (21 Nov); analyst estimate, Take-Two does not disclose |
 
-Not used (could not verify or sources conflict): ref reel's "32.5M before launch" (it was day one), 125M hours watched in 24 h, iShowSpeed 4.47M hours (win.gg says 2.88M).
-
-No Rockstar art, logo, footage, fonts or characters are used. All visuals are drawn in code; music is synthesised in `mix.py`.
+v1/v2 used 32.5M copies, 475M trailer views, 40B YouTube views and the $120,000 Kalshi job; v3 swaps them out so the reel does not repeat the ref reel's numbers.
+No Rockstar art, logo, footage, fonts or characters. Visuals are drawn in code; music is synthesised in `mix.py`.
