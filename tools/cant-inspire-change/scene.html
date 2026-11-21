@@ -1,0 +1,834 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// "You Can't Inspire Change" - Slow Light restyle.
+// Glass people pour liquid LIGHT into the next empty glass; a lidded jar refuses.
+const W = 1080, H = 1920;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const PI = Math.PI;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const ss = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
+const ramp = (t, a, b) => ss((t - a) / (b - a));
+const lin = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const easeOutBack = k => { k = clamp(k, 0, 1); const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+function hash(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+function mix(c1, c2, k) { return c1.map((v, i) => lerp(v, c2[i], k)); }
+const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+const GOLD = [255, 196, 74], AMBER = [242, 140, 40], CREAM = [248, 230, 196], PALE = [255, 244, 210];
+const SLATE = [70, 82, 104], SLATE_D = [44, 52, 70];
+const JAR_BODY = [84, 74, 104], JAR_LIQ = [52, 40, 66];
+
+// ---------------- characters ----------------
+const D = 480;
+const TYPES = {
+  wine:    { H: 330, stem: 92, prof: u => 150 * Math.pow(Math.sin(Math.min(1, u * 1.55) * PI / 2), 0.75) * (1 - 0.2 * u * u) },
+  goblet:  { H: 290, stem: 80, prof: u => 168 * Math.pow(Math.sin(Math.min(1, 0.12 + u * 1.25) * PI / 2), 0.7) * (1 - 0.1 * u * u) },
+  tumbler: { H: 300, stem: 26, prof: u => 112 + 30 * u },
+  mug:     { H: 285, stem: 26, prof: u => 128, handle: true },
+  flute:   { H: 360, stem: 96, prof: u => 108 * Math.pow(Math.sin(Math.min(1, u * 1.9) * PI / 2), 0.8) * (1 + 0.05 * u) },
+  jar:     { H: 280, stem: 22, prof: u => u < 0.84 ? 132 : 132 - 24 * ss((u - 0.84) / 0.16), jar: true },
+};
+// index -> character. Story chars are 0..6; extras on both sides for the pull-back.
+const chars = [];
+const typeCycle = ['goblet', 'wine', 'tumbler', 'flute', 'mug', 'wine', 'goblet', 'tumbler'];
+for (let i = -7; i <= 13; i++) {
+  let type = typeCycle[(i + 16) % typeCycle.length];
+  const c = { i, x: i * D, type, num: null, litAt: Infinity, jar: false };
+  if (i === 0) c.type = 'wine';
+  if (i === 1) c.type = 'goblet';
+  if (i === 2) c.type = 'tumbler';
+  if (i === 3) c.type = 'wine';   // hero 938
+  if (i === 4) { c.type = 'jar'; c.jar = true; }
+  if (i === 5) c.type = 'mug';
+  if (i === 6) c.type = 'flute';
+  // numbering: 935 at index 0; the jar's slot (939) is skipped by nobody: next glass is 939
+  if (i <= 3) c.num = 935 + i; else if (i >= 5) c.num = 939 + (i - 5);
+  if (i <= 0) c.litAt = -Infinity;
+  chars.push(c);
+}
+const C = i => chars[i + 7];
+
+// ---------------- story timeline (tau) ----------------
+// pour events: from, to, tilt-in start, stream start, stream end, tilt-out end, tilt max, arc height
+const pours = [
+  { f: 0, to: 1, a: 0.00, s0: 0.22, s1: 0.95, b: 1.30, tilt: 1.05, arc: 40 },
+  { f: 1, to: 2, a: 1.15, s0: 1.36, s1: 2.00, b: 2.35, tilt: 1.05, arc: 40 },
+  { f: 2, to: 3, a: 2.20, s0: 2.40, s1: 3.00, b: 3.35, tilt: 1.05, arc: 40 },
+  // 938 -> jar (refused): stream hits the lid
+  { f: 3, to: 4, a: 3.45, s0: 3.68, s1: 4.45, b: 4.85, tilt: 1.0, arc: 60, refused: true, travel: 0.42 },
+  // trickle on the lid
+  { f: 3, to: 4, a: 7.25, s0: 7.50, s1: 8.05, b: 8.35, tilt: 0.78, arc: 30, refused: true, thin: true },
+  // 938 pours OVER the jar into 939
+  { f: 3, to: 5, a: 8.95, s0: 9.30, s1: 10.45, b: 10.85, tilt: 1.2, arc: 330, lean: 0.2 },
+  { f: 5, to: 6, a: 10.75, s0: 10.95, s1: 11.55, b: 11.9, tilt: 1.05, arc: 40 },
+  { f: 6, to: 7, a: 11.70, s0: 11.88, s1: 12.45, b: 12.8, tilt: 1.05, arc: 40 },
+  { f: 7, to: 8, a: 12.45, s0: 12.6, s1: 13.15, b: 13.5, tilt: 1.05, arc: 40 },
+  { f: 8, to: 9, a: 13.15, s0: 13.3, s1: 13.85, b: 14.2, tilt: 1.05, arc: 40 },
+  { f: 9, to: 10, a: 13.85, s0: 14.0, s1: 14.55, b: 14.9, tilt: 1.05, arc: 40 },
+  { f: 10, to: 11, a: 14.55, s0: 14.7, s1: 15.25, b: 15.6, tilt: 1.05, arc: 40 },
+  { f: 11, to: 12, a: 15.25, s0: 15.4, s1: 15.95, b: 16.3, tilt: 1.05, arc: 40 },
+];
+const TRAVEL = 0.16;
+// lit times derive from pours
+for (const p of pours) if (!p.refused) { const c = C(p.to); c.litAt = Math.min(c.litAt, p.s1 + TRAVEL + 0.02); p.fillEnd = p.s1 + TRAVEL; }
+const SLAM = 4.1;            // jar slams the lid shut
+const STORY_END = 15.8;
+
+function pourOf(i, tau) { // active pour where i is the pourer
+  for (const p of pours) if (p.f === i && tau >= p.a && tau <= p.b) return p;
+  return null;
+}
+function fillLevel(c, tau) {
+  if (c.jar) return 0.86;
+  if (c.litAt === -Infinity) return 0.8;
+  let lvl = 0;
+  for (const p of pours) if (p.to === c.i && !p.refused) lvl = Math.max(lvl, 0.8 * lin(tau, p.s0 + TRAVEL, p.fillEnd));
+  // pourer loses some while pouring, then the light refills (it never runs out)
+  for (const p of pours) if (p.f === c.i) {
+    const drop = (p.thin ? 0.05 : 0.2) * ramp(tau, p.s0, p.s1) * (1 - ramp(tau, p.s1 + 0.1, p.s1 + 1.1));
+    lvl -= drop * (lvl > 0 ? 1 : 0);
+  }
+  return lvl;
+}
+function litAmt(c, tau) {
+  if (c.jar) return 0;
+  if (c.litAt === -Infinity) return 1;
+  if (!isFinite(c.litAt)) return 0;
+  return ramp(tau, c.litAt - 0.05, c.litAt + 0.12);
+}
+
+// per-character pose
+function pose(c, tau) {
+  const P = { tilt: 0, lean: 0, eyeX: 0, eyeY: 0, blink: 0, mood: 'happy', handR: null, handL: null, shake: 0, headDip: 0, lid: null, sq: 0 };
+  const i = c.i;
+  // idle breathing
+  P.headDip = Math.sin(tau * 2.1 + i * 1.3) * 4;
+  const p = pourOf(i, tau);
+  if (p) {
+    const k = ramp(tau, p.a, p.a + 0.28) * (1 - ramp(tau, p.s1 + 0.02, p.b));
+    P.tilt = p.tilt * k;
+    P.lean = (p.lean || 0.06) * k;
+    P.handR = [lerp(135, 200, k), lerp(-230, -560, k)];
+    P.eyeX = 10 * k;
+  }
+  // receiver anticipation: looks up at incoming stream, opens on lit
+  for (const q of pours) if (q.to === i && !q.refused) {
+    const k = ramp(tau, q.a, q.s0) * (1 - ramp(tau, q.fillEnd + 0.3, q.fillEnd + 0.8));
+    P.eyeY -= 8 * k; P.eyeX -= 10 * k;
+  }
+  const L = litAmt(c, tau);
+  P.mood = L > 0.5 ? 'happy' : 'sleep';
+  // pop on lighting
+  if (c.litAt > -1e9 && isFinite(c.litAt)) {
+    const k = lin(tau, c.litAt, c.litAt + 0.45);
+    P.sq = k > 0 && k < 1 ? Math.sin(k * PI) * (1 - k) * 0.35 : 0;
+  }
+  // blink
+  const bt = (tau * 0.6 + hash(i) * 7) % 3.1; if (bt < 0.12 && L > 0.5) P.blink = Math.sin(bt / 0.12 * PI);
+
+  if (i === 3) { // hero 938
+    if (tau > 3.35 && tau < 3.75) P.eyeX = 14 * ramp(tau, 3.35, 3.55);
+    if (tau >= 4.1 && tau < 4.9) { P.mood = 'shock'; }
+    // knock knock
+    if (tau >= 4.85 && tau < 6.15) {
+      const k = ramp(tau, 4.85, 5.1) * (1 - ramp(tau, 5.95, 6.15));
+      const kn = Math.max(0, Math.sin((tau - 5.15) * PI / 0.36)) * (tau > 5.15 && tau < 5.87 ? 1 : 0);
+      P.handR = [lerp(135, 372, k), lerp(-230, -770 + 30 * kn, k)];
+      P.mood = 'hope'; P.eyeX = 16;
+    }
+    // try to twist the lid
+    if (tau >= 6.15 && tau < 7.3) {
+      const k = ramp(tau, 6.15, 6.35) * (1 - ramp(tau, 7.1, 7.3));
+      P.handR = [lerp(135, 400, k), lerp(-230, -735 + 6 * Math.sin(tau * 40), k)];
+      P.handL = [lerp(-135, 170, k), lerp(-230, -640, k)];
+      P.lean = 0.08 * k; P.shake = 3 * k; P.mood = 'strain'; P.eyeX = 16;
+    }
+    if (tau >= 7.25 && tau < 8.35) { P.mood = 'hope'; P.eyeX = 16; }
+    // sigh
+    if (tau >= 8.35 && tau < 8.95) {
+      const k = Math.sin(lin(tau, 8.35, 8.95) * PI);
+      P.headDip = 30 * k; P.mood = 'sad'; P.eyeX = 0; P.eyeY = 10 * k;
+      P.handL = [-175 - 30 * k, -300 - 40 * k]; P.handR = [175 + 30 * k, -300 - 40 * k];
+    }
+    if (tau >= 8.95 && tau < 10.9) { P.mood = 'calm'; }
+  }
+  if (c.jar) {
+    P.mood = 'grump';
+    // lid: askew before the slam, then slammed shut with both hands
+    const pre = 1 - ramp(tau, SLAM - 0.12, SLAM);
+    P.lid = { dx: 60 * pre, dy: -70 * pre, rot: 0.45 * pre, hands: ramp(tau, SLAM - 0.25, SLAM - 0.08) };
+    if (tau < SLAM - 0.25) P.mood = 'bored';
+    // hands stay clamped on the lid through knock + twist + trickle
+    const clampK = ramp(tau, SLAM - 0.25, SLAM - 0.08) * (1 - ramp(tau, 8.4, 8.8));
+    P.lid.hands = clampK;
+    if (tau > SLAM && tau < SLAM + 0.25) P.sq = Math.sin(lin(tau, SLAM, SLAM + 0.25) * PI) * 0.18;
+    // head shake on knocks
+    if (tau > 5.25 && tau < 6.05) P.headShake = Math.sin((tau - 5.25) * 22) * 0.07 * Math.sin(lin(tau, 5.25, 6.05) * PI);
+    if (tau > 6.25 && tau < 7.2) P.shake = 4;
+    if (tau > 7.4 && tau < 8.6) P.eyeX = -22 * ramp(tau, 7.4, 7.6) * (1 - ramp(tau, 8.4, 8.6));
+    // watches the light go over its head
+    if (tau > 9.2 && tau < 11.2) { P.eyeY = -16 * ramp(tau, 9.2, 9.5) * (1 - ramp(tau, 10.7, 11.2)); P.eyeX = 14 * ramp(tau, 9.6, 10.4); P.mood = 'grump'; }
+    if (tau > 10.9) { P.eyeX = -10; P.mood = 'bored'; }
+  }
+  // stature: empty glasses stand small, light makes them stand tall; jar is stubby
+  P.st = c.jar ? 0.86 : lerp(0.8, 1, L);
+  // neck stretch while pouring (reach over the next glass)
+  P.stretch = 0;
+  if (p) P.stretch = (p.thin ? 60 : 120) * ramp(tau, p.a, p.a + 0.3) * (1 - ramp(tau, p.s1 + 0.05, p.b));
+  return P;
+}
+function bodyScale(P) { const sq = P.sq || 0, st = P.st || 1; return [(1 + sq * 0.6) * st, (1 - sq * 0.5) * st]; }
+
+// ---------------- geometry ----------------
+function bowlPoly(type, n = 34) {
+  const T = TYPES[type], pts = [];
+  for (let k = n; k >= 0; k--) { const u = k / n; pts.push([-T.prof(u), -u * T.H]); }
+  for (let k = 0; k <= n; k++) { const u = k / n; pts.push([T.prof(u), -u * T.H]); }
+  return pts; // starts at left rim, ends at right rim
+}
+const POLY = {}; for (const t in TYPES) POLY[t] = bowlPoly(t);
+const NECK = -470; // y of collar (top of torso)
+
+function headXform(c, P) {
+  // returns function local(bowl-bottom origin) -> world, plus params for canvas
+  const T = TYPES[c.type];
+  const sh = P.shake ? Math.sin(performanceT * 60 + c.i) * P.shake : 0;
+  const lean = P.lean, tilt = P.tilt + (P.headShake || 0);
+  const dip = P.headDip;
+  const [bsx, bsy] = bodyScale(P);
+  const stem = T.stem + (P.stretch || 0);
+  return {
+    lean, tilt, stem, dip, sh, bsx, bsy,
+    f: (x, y) => {
+      // head frame
+      let hx = x, hy = y - stem;
+      let ct = Math.cos(tilt), st = Math.sin(tilt);
+      let rx = hx * ct - hy * st, ry = hx * st + hy * ct;
+      rx += sh; ry += NECK + dip;
+      const cl = Math.cos(lean), sl = Math.sin(lean);
+      return [c.x + bsx * (rx * cl - ry * sl), bsy * (rx * sl + ry * cl)];
+    }
+  };
+}
+function polyArea(p) { let a = 0; for (let k = 0; k < p.length; k++) { const q = p[k], r = p[(k + 1) % p.length]; a += q[0] * r[1] - r[0] * q[1]; } return Math.abs(a) / 2; }
+function clipBelow(p, s) { // keep y >= s
+  const out = [];
+  for (let k = 0; k < p.length; k++) {
+    const A = p[k], B = p[(k + 1) % p.length];
+    const ina = A[1] >= s, inb = B[1] >= s;
+    if (ina) out.push(A);
+    if (ina !== inb) { const t = (s - A[1]) / (B[1] - A[1]); out.push([A[0] + t * (B[0] - A[0]), s]); }
+  }
+  return out;
+}
+function surfaceY(wp, level) {
+  const total = polyArea(wp);
+  let lo = Math.min(...wp.map(p => p[1])), hi = Math.max(...wp.map(p => p[1]));
+  for (let k = 0; k < 22; k++) { const m = (lo + hi) / 2; const a = polyArea(clipBelow(wp, m)); if (a > level * total) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+
+// ---------------- background ----------------
+const noiseCv = document.createElement('canvas'); noiseCv.width = 512; noiseCv.height = 512;
+(function () {
+  const g = noiseCv.getContext('2d'); const img = g.createImageData(512, 512);
+  // cheap value noise, 3 octaves, tileable-ish
+  function vn(x, y, s) { const xi = Math.floor(x / s), yi = Math.floor(y / s), xf = x / s - xi, yf = y / s - yi; const m = 512 / s;
+    const h = (a, b) => hash(((a % m) + m) % m * 57.3 + (((b % m) + m) % m) * 113.1 + s);
+    const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    return lerp(lerp(h(xi, yi), h(xi + 1, yi), u), lerp(h(xi, yi + 1), h(xi + 1, yi + 1), u), v); }
+  for (let y = 0; y < 512; y++) for (let x = 0; x < 512; x++) {
+    const n = 0.55 * vn(x, y, 64) + 0.3 * vn(x, y, 16) + 0.15 * vn(x, y, 4);
+    const o = (y * 512 + x) * 4; const v = n * 255; img.data[o] = v; img.data[o + 1] = v; img.data[o + 2] = v; img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+})();
+
+let performanceT = 0;
+function camXf(cam) { return [cam.z, 0, 0, cam.z, W / 2 - cam.x * cam.z, H / 2 - cam.y * cam.z]; }
+function w2s(cam, x, y) { return [(x - cam.x) * cam.z + W / 2, (y - cam.y) * cam.z + H / 2]; }
+
+function drawBackground(cam, tau) {
+  // night wall gradient
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#16223a'); g.addColorStop(0.55, '#1d2b46'); g.addColorStop(1, '#2a2f44');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // plaster texture, parallax
+  ctx.save(); ctx.globalAlpha = 0.34; ctx.globalCompositeOperation = 'overlay';
+  const par = 0.6, sc = 1.6 * Math.max(cam.z, 0.6);
+  const ox = (-(cam.x * par) * cam.z) % (512 * sc), oy = 0;
+  ctx.setTransform(sc, 0, 0, sc, ox - 512 * sc, oy);
+  for (let ty = 0; ty < H / (512 * sc) + 1; ty++) for (let tx = 0; tx < W / (512 * sc) + 3; tx++) ctx.drawImage(noiseCv, tx * 512, ty * 512);
+  ctx.restore();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // warm glow on the wall from every lit glass
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  for (const c of chars) {
+    const L = litAmt(c, tau); if (L <= 0) continue;
+    const [sx, sy] = w2s(cam, c.x, -700);
+    const r = 900 * cam.z;
+    if (sx < -r || sx > W + r) continue;
+    const gg = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+    gg.addColorStop(0, `rgba(255,170,70,${0.30 * L})`); gg.addColorStop(0.5, `rgba(200,110,50,${0.10 * L})`); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg; ctx.fillRect(sx - r, sy - r, 2 * r, 2 * r);
+  }
+  ctx.restore();
+  // floor
+  const [, gy] = w2s(cam, 0, 0);
+  const fg = ctx.createLinearGradient(0, gy - 6, 0, H);
+  fg.addColorStop(0, '#3a3348'); fg.addColorStop(0.08, '#2b2838'); fg.addColorStop(1, '#3a3044');
+  ctx.fillStyle = fg; ctx.fillRect(0, gy - 4, W, H - gy + 4);
+  // floor boards: seams + grain so the bottom edge never reads as a flat band
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, gy, W, H - gy); ctx.clip();
+  ctx.globalAlpha = 0.5; ctx.globalCompositeOperation = 'overlay';
+  ctx.setTransform(2.2, 0, 0, 0.5, ((-cam.x * cam.z) % 1126) - 1126, gy);
+  for (let tx = 0; tx < 4; tx++) for (let ty = 0; ty < 6; ty++) ctx.drawImage(noiseCv, tx * 512, ty * 512);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = 'rgba(15,12,24,0.5)'; ctx.lineWidth = 2;
+  let yy = gy, step = 30;
+  while (yy < H) { yy += step; step *= 1.1; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+  const pw = 300 * cam.z, off = ((-cam.x * cam.z) % pw + pw) % pw;
+  for (let x = off - pw; x < W + pw; x += pw) { ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(W / 2 + (x - W / 2) * 2.4, H); ctx.stroke(); }
+  ctx.restore();
+  // string lights along the top of the wall (light reaches the top edge)
+  ctx.save();
+  const span = 420, par2 = 0.35, sx0 = ((-cam.x * cam.z * par2) % span + span) % span - span;
+  ctx.strokeStyle = 'rgba(20,18,30,0.8)'; ctx.lineWidth = 3;
+  for (let x0 = sx0 - span; x0 < W + span; x0 += span) {
+    ctx.beginPath();
+    for (let k = 0; k <= 20; k++) { const u = k / 20, x = x0 + u * span, y = 48 + 120 * u * (1 - u); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let x0 = sx0 - span; x0 < W + span; x0 += span) for (let k = 1; k < 7; k++) {
+    const u = k / 7, x = x0 + u * span, y = 48 + 120 * u * (1 - u) + 12;
+    const fl = 0.75 + 0.25 * Math.sin(tau * 3 + x0 * 0.01 + k * 1.7);
+    const gg = ctx.createRadialGradient(x, y, 0, x, y, 70);
+    gg.addColorStop(0, `rgba(255,200,120,${0.55 * fl})`); gg.addColorStop(0.15, `rgba(255,170,80,${0.25 * fl})`); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg; ctx.fillRect(x - 70, y - 70, 140, 140);
+    ctx.fillStyle = `rgba(255,236,190,${0.9 * fl})`; ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * PI); ctx.fill();
+  }
+  ctx.restore();
+  // floor edge highlight
+  ctx.fillStyle = 'rgba(255,200,140,0.10)'; ctx.fillRect(0, gy - 4, W, 3);
+  // light pools on the floor
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  for (const c of chars) {
+    const L = litAmt(c, tau); if (L <= 0) continue;
+    const [sx, sy] = w2s(cam, c.x, 0);
+    const rx = 520 * cam.z, ry = 120 * cam.z + 40;
+    ctx.save(); ctx.translate(sx, sy + 20 * cam.z); ctx.scale(1, ry / rx);
+    const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    gg.addColorStop(0, `rgba(255,180,80,${0.45 * L})`); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg; ctx.fillRect(-rx, -rx, 2 * rx, 2 * rx); ctx.restore();
+  }
+  ctx.restore();
+  // floating dust motes
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 40; k++) {
+    const x = ((hash(k) * W * 1.4 - cam.x * cam.z * 0.25 + tau * 12 * (hash(k + 9) - 0.5)) % W + W) % W;
+    const y = ((hash(k + 3) * H - tau * 18 * (0.4 + hash(k + 5))) % H + H) % H;
+    const a = 0.10 + 0.12 * Math.sin(tau * 2 + k);
+    ctx.fillStyle = `rgba(255,220,160,${a})`; ctx.beginPath(); ctx.arc(x, y, 1.5 + hash(k + 7) * 2.5, 0, 2 * PI); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------- character drawing ----------------
+function drawArm(sx, sy, hx, hy, col, w, bend) {
+  const mx = (sx + hx) / 2 + bend, my = (sy + hy) / 2 + Math.abs(bend) * 0.3;
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, hx, hy); ctx.stroke();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.arc(hx, hy, w * 0.72, 0, 2 * PI); ctx.fill();
+}
+
+function drawCharacter(cam, c, tau) {
+  const P = pose(c, tau);
+  const L = litAmt(c, tau);
+  const T = TYPES[c.type];
+  const bodyCol = c.jar ? JAR_BODY : mix(SLATE, CREAM, L);
+  const bodyShade = c.jar ? [52, 44, 66] : mix(SLATE_D, [214, 170, 120], L);
+  const hx = headXform(c, P);
+  ctx.save();
+  ctx.setTransform(...camXf(cam));
+  // squash & stretch around feet
+  const [bsx, bsy] = bodyScale(P);
+  ctx.translate(c.x, 0); ctx.scale(bsx, bsy); ctx.translate(-c.x, 0);
+  // ---- body (torso + legs), rotated by lean around feet
+  ctx.save();
+  ctx.translate(c.x, 0); ctx.rotate(P.lean);
+  // legs
+  ctx.fillStyle = rgb(bodyShade);
+  roundRect(-78, -160, 62, 165, 28); ctx.fill();
+  roundRect(16, -160, 62, 165, 28); ctx.fill();
+  // feet
+  ctx.beginPath(); ctx.ellipse(-50, -6, 48, 20, 0, 0, 2 * PI); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(50, -6, 48, 20, 0, 0, 2 * PI); ctx.fill();
+  // torso
+  const tg = ctx.createLinearGradient(-120, 0, 120, 0);
+  tg.addColorStop(0, rgb(bodyShade)); tg.addColorStop(0.45, rgb(bodyCol)); tg.addColorStop(1, rgb(bodyShade));
+  ctx.fillStyle = tg;
+  ctx.beginPath();
+  ctx.moveTo(-96, -150); ctx.bezierCurveTo(-112, -260, -132, -400, -116, -452);
+  ctx.quadraticCurveTo(-100, -478, 0, -478); ctx.quadraticCurveTo(100, -478, 116, -452);
+  ctx.bezierCurveTo(132, -400, 112, -260, 96, -150); ctx.quadraticCurveTo(0, -128, -96, -150); ctx.fill();
+  // number on chest
+  if (c.num && L > 0) {
+    const k = easeOutBack(lin(tau, c.litAt === -Infinity ? -9 : c.litAt, (c.litAt === -Infinity ? -9 : c.litAt) + 0.4));
+    ctx.save(); ctx.translate(0, -305); ctx.scale(k, k);
+    ctx.fillStyle = `rgba(120,64,20,${0.92 * L})`;
+    ctx.font = '900 96px "Inter Display", Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(c.num), 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+  // ---- arms (world space, shoulders follow lean)
+  const sh = (sx, sy) => { const cl = Math.cos(P.lean), sl = Math.sin(P.lean); return [c.x + sx * cl - sy * sl, sx * sl + sy * cl]; };
+  const hand = (hp, def) => { const h = hp || def; const cl = Math.cos(P.lean), sl = Math.sin(P.lean); return [c.x + h[0] * cl - h[1] * sl, h[0] * sl + h[1] * cl]; };
+  const armCol = rgb(mix(bodyShade, bodyCol, 0.55));
+  const sway = Math.sin(tau * 2.1 + c.i) * 6;
+  let defL = [-150, -235 + sway], defR = [150, -235 - sway];
+  let hL = hand(P.handL, defL), hR = hand(P.handR, defR);
+  // jar clamps its own lid: hands go to lid sides
+  let jarHands = 0;
+  if (c.jar && P.lid) jarHands = P.lid.hands;
+  // left arm behind head? draw arms after head if hands are up
+  const handsUp = (P.handR && P.handR[1] < -480) || jarHands > 0.3;
+  if (!handsUp) {
+    const [s1x, s1y] = sh(-110, -430), [s2x, s2y] = sh(110, -430);
+    drawArm(s1x, s1y, hL[0], hL[1], armCol, 34, -20);
+    drawArm(s2x, s2y, hR[0], hR[1], armCol, 34, 20);
+  }
+  ctx.restore();
+
+  drawHead(cam, c, P, L, hx, tau);
+
+  ctx.save(); ctx.setTransform(...camXf(cam));
+  ctx.translate(c.x, 0); ctx.scale(bsx, bsy); ctx.translate(-c.x, 0);
+  if (handsUp) {
+    const [s1x, s1y] = sh(-110, -430), [s2x, s2y] = sh(110, -430);
+    if (c.jar) {
+      // hands on the lid
+      const lw = hx.f(0, -T.H - 26); const lidTop = [c.x + (lw[0] - c.x) / bsx, lw[1] / bsy];
+      const lx = lerp(hL[0], lidTop[0] - 120, jarHands), ly = lerp(hL[1], lidTop[1] + 4, jarHands);
+      const rx = lerp(hR[0], lidTop[0] + 120, jarHands), ry = lerp(hR[1], lidTop[1] + 4, jarHands);
+      drawArm(s1x, s1y, lx, ly, armCol, 32, -90);
+      drawArm(s2x, s2y, rx, ry, armCol, 32, 90);
+    } else {
+      drawArm(s1x, s1y, hL[0], hL[1], armCol, 34, -30);
+      drawArm(s2x, s2y, hR[0], hR[1], armCol, 34, 50);
+    }
+  }
+  ctx.restore();
+  // glow halo
+  if (L > 0) {
+    const ctr = hx.f(0, -T.H * 0.45);
+    const [sx, sy] = w2s(cam, ctr[0], ctr[1]);
+    const r = 420 * cam.z * (1 + 0.6 * (P.sq || 0));
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter';
+    const gg = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+    const pop = c.litAt > -1e9 ? Math.max(0, 1 - lin(tau, c.litAt, c.litAt + 0.6)) * (tau >= c.litAt ? 1 : 0) : 0;
+    gg.addColorStop(0, `rgba(255,190,90,${0.22 * L + 0.5 * pop})`); gg.addColorStop(0.4, `rgba(255,150,60,${0.08 * L + 0.18 * pop})`); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg; ctx.fillRect(sx - r, sy - r, 2 * r, 2 * r); ctx.restore();
+  }
+}
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function headLocalTransform(cam, c, P, hx) {
+  // set ctx transform so that drawing in bowl-local coords lands in screen space
+  ctx.setTransform(...camXf(cam));
+  ctx.translate(c.x, 0); ctx.scale(hx.bsx, hx.bsy); ctx.translate(-c.x, 0);
+  ctx.translate(c.x, 0); ctx.rotate(hx.lean); ctx.translate(hx.sh, NECK + hx.dip); ctx.rotate(hx.tilt); ctx.translate(0, -hx.stem);
+}
+
+function drawHead(cam, c, P, L, hx, tau) {
+  const T = TYPES[c.type];
+  const poly = POLY[c.type];
+  ctx.save();
+  headLocalTransform(cam, c, P, hx);
+  // stem + foot (collar)
+  const glassLine = c.jar ? 'rgba(170,160,200,0.55)' : `rgba(${lerp(170, 255, L)},${lerp(190, 236, L)},${lerp(215, 200, L)},0.75)`;
+  if (T.stem > 40) {
+    ctx.fillStyle = c.jar ? 'rgba(120,110,150,0.6)' : `rgba(${lerp(150, 255, L)},${lerp(170, 215, L)},${lerp(200, 150, L)},0.85)`;
+    roundRect(-9, 0, 18, hx.stem, 8); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, hx.stem - 4, 70, 14, 0, 0, 2 * PI); ctx.fill();
+  } else {
+    ctx.fillStyle = c.jar ? 'rgba(90,80,110,0.8)' : `rgba(${lerp(150, 255, L)},${lerp(170, 215, L)},${lerp(200, 150, L)},0.7)`; roundRect(-34, 0, 68, hx.stem, 10); ctx.fill();
+  }
+  // empty glass body tint
+  ctx.beginPath(); poly.forEach((p, k) => k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  ctx.closePath();
+  ctx.fillStyle = c.jar ? 'rgba(40,34,56,0.85)' : 'rgba(200,215,240,0.08)';
+  ctx.fill();
+  ctx.save(); ctx.clip();
+  // liquid: compute world bowl polygon + surface
+  const level = fillLevel(c, tau);
+  if (level > 0.003) {
+    const wp = poly.map(p => hx.f(p[0], p[1]));
+    let s = surfaceY(wp, level);
+    // draw in world coords (clip persists)
+    ctx.setTransform(...camXf(cam));
+    const minx = Math.min(...wp.map(p => p[0])) - 40, maxx = Math.max(...wp.map(p => p[0])) + 40;
+    const maxy = Math.max(...wp.map(p => p[1])) + 40;
+    const slosh = (Math.abs(P.tilt) > 0.05 ? 7 : 4) + (P.sq || 0) * 30;
+    ctx.beginPath(); ctx.moveTo(minx, maxy);
+    for (let x = minx; x <= maxx; x += 12) ctx.lineTo(x, s + Math.sin(x * 0.03 + tau * 5 + c.i) * slosh * 0.5 + Math.sin(x * 0.011 - tau * 3) * slosh * 0.5);
+    ctx.lineTo(maxx, maxy); ctx.closePath();
+    let lg;
+    if (c.jar) {
+      lg = ctx.createLinearGradient(0, s, 0, maxy); lg.addColorStop(0, 'rgb(78,62,96)'); lg.addColorStop(1, 'rgb(36,28,48)');
+    } else {
+      const coldA = [120, 150, 190];
+      lg = ctx.createLinearGradient(0, s, 0, maxy);
+      lg.addColorStop(0, rgb(mix(coldA, PALE, Math.max(L, 0.65)))); lg.addColorStop(0.25, rgb(mix(coldA, GOLD, Math.max(L, 0.6)))); lg.addColorStop(1, rgb(mix(coldA, AMBER, Math.max(L, 0.6))));
+    }
+    ctx.fillStyle = lg; ctx.fill();
+    // surface bright line
+    if (!c.jar) {
+      ctx.strokeStyle = `rgba(255,250,225,${0.55 + 0.3 * L})`; ctx.lineWidth = 5;
+      ctx.beginPath();
+      for (let x = minx; x <= maxx; x += 12) { const y = s + Math.sin(x * 0.03 + tau * 5 + c.i) * slosh * 0.5 + Math.sin(x * 0.011 - tau * 3) * slosh * 0.5; x === minx ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      ctx.stroke();
+      // sparkles rising inside
+      ctx.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 14; k++) {
+        const bx = lerp(minx + 60, maxx - 60, hash(k + c.i * 31));
+        const ph = (tau * (0.25 + 0.3 * hash(k + 3)) + hash(k + c.i)) % 1;
+        const by = lerp(maxy - 40, s + 10, ph);
+        if (by < s + 6) continue;
+        ctx.fillStyle = `rgba(255,250,220,${0.5 * Math.sin(ph * PI) * Math.max(L, 0.4)})`;
+        ctx.beginPath(); ctx.arc(bx, by, 3 + 4 * hash(k + 11), 0, 2 * PI); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  ctx.restore(); // unclip
+  // glass outline + highlights (bowl-local)
+  headLocalTransform(cam, c, P, hx);
+  ctx.beginPath(); poly.forEach((p, k) => k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+  if (!c.jar) { ctx.strokeStyle = glassLine; ctx.lineWidth = 6; ctx.stroke(); }
+  else { ctx.closePath(); ctx.strokeStyle = 'rgba(150,140,180,0.7)'; ctx.lineWidth = 7; ctx.stroke(); }
+  // rim ellipse
+  const rimW = T.prof(1);
+  ctx.beginPath(); ctx.ellipse(0, -T.H, rimW, 16, 0, 0, 2 * PI); ctx.strokeStyle = c.jar ? 'rgba(150,140,180,0.6)' : glassLine; ctx.lineWidth = 5; ctx.stroke();
+  // highlight streak
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath(); const u0 = 0.35, u1 = 0.85;
+  for (let k = 0; k <= 10; k++) { const u = lerp(u0, u1, k / 10); const x = -T.prof(u) * 0.72, y = -u * T.H; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.stroke();
+  if (T.handle) { ctx.strokeStyle = glassLine; ctx.lineWidth = 16; ctx.beginPath(); ctx.arc(rimW + 30, -T.H * 0.5, 62, -PI / 2.2, PI / 2.2); ctx.stroke(); }
+  if (c.jar) {
+    // jar threads
+    ctx.strokeStyle = 'rgba(160,150,190,0.5)'; ctx.lineWidth = 4;
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(-rimW, -T.H + 14 + k * 12); ctx.lineTo(rimW, -T.H + 20 + k * 12); ctx.stroke(); }
+  }
+  // ---- face
+  drawFace(c, P, L, T, tau);
+  // ---- jar lid
+  if (c.jar && P.lid) {
+    ctx.save(); ctx.translate(P.lid.dx, -T.H - 4 + P.lid.dy); ctx.rotate(P.lid.rot);
+    const lg = ctx.createLinearGradient(0, -50, 0, 0); lg.addColorStop(0, '#8d8aa0'); lg.addColorStop(1, '#4b4860');
+    ctx.fillStyle = lg; roundRect(-rimW - 22, -52, 2 * rimW + 44, 52, 12); ctx.fill();
+    ctx.strokeStyle = 'rgba(30,26,40,0.6)'; ctx.lineWidth = 3;
+    for (let k = -rimW; k <= rimW; k += 22) { ctx.beginPath(); ctx.moveTo(k, -46); ctx.lineTo(k, -6); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; roundRect(-rimW - 10, -48, 2 * rimW + 20, 8, 4); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawFace(c, P, L, T, tau) {
+  const ey = -T.H * 0.5 + (P.eyeY || 0), ex = P.eyeX || 0, sp = c.type === 'flute' ? 42 : 52;
+  const mood = P.mood;
+  ctx.save();
+  if (c.jar) {
+    // half-lidded grumpy eyes
+    ctx.fillStyle = '#f2eef8';
+    for (const s of [-1, 1]) {
+      ctx.save(); ctx.translate(ex + s * 52, ey + 10);
+      ctx.beginPath(); ctx.ellipse(0, 0, 26, 30, 0, 0, 2 * PI); ctx.fill();
+      // lid
+      ctx.fillStyle = 'rgb(52,40,66)';
+      const tiltLid = mood === 'grump' ? s * 0.32 : 0;
+      ctx.rotate(tiltLid); ctx.fillRect(-40, -46, 80, 46 + (mood === 'grump' ? 2 : -4)); ctx.restore();
+      ctx.fillStyle = '#f2eef8';
+    }
+    // mouth
+    ctx.strokeStyle = 'rgba(20,14,30,0.9)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(ex - 26, ey + 78); ctx.quadraticCurveTo(ex, ey + (mood === 'grump' ? 66 : 76), ex + 26, ey + 78); ctx.stroke();
+    ctx.restore(); return;
+  }
+  if (L < 0.5) {
+    // sleeping: closed eyes
+    ctx.strokeStyle = 'rgba(190,205,230,0.75)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(ex + s * sp, ey, 20, 0.15 * PI, 0.85 * PI); ctx.stroke(); }
+    ctx.restore(); return;
+  }
+  const open = 1 - (P.blink || 0);
+  let ery = 36, erx = 21;
+  if (mood === 'shock') { ery = 44; erx = 26; }
+  if (mood === 'sad') ery = 30;
+  if (mood === 'strain') ery = 18;
+  ctx.fillStyle = '#fffaf0';
+  for (const s of [-1, 1]) {
+    ctx.beginPath(); ctx.ellipse(ex + s * sp, ey, erx, Math.max(2, ery * open), 0, 0, 2 * PI); ctx.fill();
+  }
+  // brows
+  ctx.strokeStyle = 'rgba(120,60,15,0.85)'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    let a = 0, dy = -52;
+    if (mood === 'shock') { dy = -66; a = 0; }
+    if (mood === 'hope') { a = -s * 0.25; dy = -54; }
+    if (mood === 'strain') { a = s * 0.35; dy = -36; }
+    if (mood === 'sad') { a = -s * 0.35; dy = -46; }
+    if (mood === 'happy' || mood === 'calm') continue;
+    ctx.save(); ctx.translate(ex + s * sp, ey + dy); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(22, 0); ctx.stroke(); ctx.restore();
+  }
+  // mouth
+  ctx.strokeStyle = 'rgba(120,60,15,0.85)'; ctx.lineWidth = 6;
+  ctx.beginPath();
+  if (mood === 'happy') { ctx.arc(ex, ey + 46, 22, 0.15 * PI, 0.85 * PI); }
+  else if (mood === 'shock') { ctx.ellipse(ex, ey + 64, 12, 16, 0, 0, 2 * PI); }
+  else if (mood === 'sad') { ctx.arc(ex, ey + 74, 18, 1.15 * PI, 1.85 * PI); }
+  else if (mood === 'strain') { ctx.moveTo(ex - 20, ey + 58); ctx.lineTo(ex + 20, ey + 58); }
+  else { ctx.arc(ex, ey + 50, 16, 0.2 * PI, 0.8 * PI); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ---------------- streams & splashes ----------------
+function streamPath(p, tau, cam) {
+  const from = C(p.f), to = C(p.to);
+  const Pf = pose(from, tau), Pt = pose(to, tau);
+  const hf = headXform(from, Pf), ht = headXform(to, Pt);
+  const Tf = TYPES[from.type], Tt = TYPES[to.type];
+  const lip = hf.f(Tf.prof(1), -Tf.H);
+  let tgt;
+  if (p.refused) { const Pj = pose(to, tau); tgt = ht.f(-30, -Tt.H - 50); }
+  else tgt = ht.f(0, -Tt.H * 0.72);
+  const ctl = [(lip[0] + tgt[0]) / 2, Math.min(lip[1], tgt[1]) - p.arc];
+  return { lip, tgt, ctl };
+}
+function bez(a, c, b, t) { const u = 1 - t; return [u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]]; }
+function drawStreams(cam, tau) {
+  ctx.save(); ctx.setTransform(...camXf(cam));
+  for (const p of pours) {
+    if (tau < p.s0 || tau > p.s1 + TRAVEL + 0.05) continue;
+    const { lip, tgt, ctl } = streamPath(p, tau, cam);
+    const TR = p.travel || TRAVEL; const head = lin(tau, p.s0, p.s0 + TR), tail = lin(tau, p.s1, p.s1 + TR);
+    // refused stream stops at lid: slammed at SLAM
+    const pts = [];
+    for (let k = 0; k <= 30; k++) { const t = lerp(tail, head, k / 30); pts.push(bez(lip, ctl, tgt, t)); }
+    const wobble = k => Math.sin(k * 0.7 + tau * 30) * 2;
+    const widths = p.thin ? [18, 8, 3] : [44, 20, 7];
+    const cols = ['rgba(255,170,60,0.28)', 'rgba(255,200,90,0.95)', 'rgba(255,250,225,0.95)'];
+    for (let w = 0; w < 3; w++) {
+      ctx.strokeStyle = cols[w]; ctx.lineWidth = widths[w]; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (w === 0) ctx.globalCompositeOperation = 'lighter'; else ctx.globalCompositeOperation = 'source-over';
+      ctx.beginPath(); pts.forEach((q, k) => k ? ctx.lineTo(q[0] + wobble(k), q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // splashes on the jar lid (refused pours)
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of pours) {
+    if (!p.refused) continue;
+    const st = p.s0 + (p.travel || TRAVEL);
+    if (tau < st || tau > p.s1 + 1.2) continue;
+    const { tgt } = streamPath(p, Math.min(tau, p.s1), cam);
+    const n = p.thin ? 18 : 46;
+    for (let k = 0; k < n; k++) {
+      const born = lerp(st, p.s1 + TRAVEL, hash(k * 3.1 + p.s0));
+      const age = tau - born; if (age < 0 || age > 0.75) continue;
+      const vx = (hash(k + 1.7) - 0.5) * (p.thin ? 260 : 900), vy = -(hash(k + 2.3) * (p.thin ? 200 : 620)) - 60;
+      const x = tgt[0] + vx * age, y = tgt[1] + 30 + vy * age + 1800 * age * age;
+      const a = 1 - age / 0.75;
+      ctx.fillStyle = `rgba(255,210,110,${0.9 * a})`;
+      ctx.beginPath(); ctx.arc(x, y, (p.thin ? 6 : 10) * (0.5 + hash(k + 5)), 0, 2 * PI); ctx.fill();
+    }
+    // drips rolling down the jar sides
+    for (let k = 0; k < (p.thin ? 6 : 4); k++) {
+      const born = lerp(st + 0.1, p.s1 + 0.2, hash(k + 40 + p.s0));
+      const age = tau - born; if (age < 0 || age > 1.3) continue;
+      const side = k % 2 ? 1 : -1;
+      const jx = C(4).x + side * (122 + 4 * age);
+      const y = -690 + 300 * age * age + 40 * age;
+      if (y > -430) continue;
+      ctx.fillStyle = `rgba(255,200,100,${0.8 * (1 - age / 1.3)})`;
+      ctx.beginPath(); ctx.ellipse(jx, y, 9, 14, 0, 0, 2 * PI); ctx.fill();
+    }
+  }
+  // fill splash on receivers when lit
+  for (const c of chars) {
+    if (!isFinite(c.litAt) || c.litAt < -1e9) continue;
+    const age = tau - c.litAt; if (age < 0 || age > 0.7) continue;
+    const P = pose(c, tau), hx = headXform(c, P), T = TYPES[c.type];
+    const top = hx.f(0, -T.H);
+    for (let k = 0; k < 22; k++) {
+      const ang = -PI / 2 + (hash(k + c.i * 7) - 0.5) * 2.4, sp = 300 + 500 * hash(k + 13);
+      const x = top[0] + Math.cos(ang) * sp * age, y = top[1] + Math.sin(ang) * sp * age + 900 * age * age;
+      ctx.fillStyle = `rgba(255,225,150,${0.85 * (1 - age / 0.7)})`;
+      ctx.beginPath(); ctx.arc(x, y, 5 + 6 * hash(k + 2), 0, 2 * PI); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ---------------- camera ----------------
+const camKeys = [
+  // tau, x, y, z
+  [0.0, 0.5 * D, -600, 1.16],
+  [1.1, 1.5 * D, -600, 1.16],
+  [2.2, 2.5 * D, -600, 1.16],
+  [3.4, 3.5 * D, -610, 1.24],
+  [4.6, 3.5 * D, -625, 1.32],
+  [8.6, 3.55 * D, -625, 1.32],
+  [9.3, 4.0 * D, -600, 1.02],
+  [10.6, 4.55 * D, -600, 1.02],
+  [11.5, 5.1 * D, -600, 0.98],
+  [14.0, 4.7 * D, -600, 0.42],
+  [15.8, 4.85 * D, -600, 0.40],
+];
+function storyCam(tau) {
+  if (tau <= camKeys[0][0]) return { x: camKeys[0][1], y: camKeys[0][2], z: camKeys[0][3] };
+  for (let k = 0; k < camKeys.length - 1; k++) {
+    const a = camKeys[k], b = camKeys[k + 1];
+    if (tau <= b[0]) { const e = ss((tau - a[0]) / (b[0] - a[0])); return { x: lerp(a[1], b[1], e), y: lerp(a[2], b[2], e), z: Math.exp(lerp(Math.log(a[3]), Math.log(b[3]), e)) }; }
+  }
+  const l = camKeys[camKeys.length - 1]; return { x: l[1], y: l[2], z: l[3] };
+}
+
+// ---------------- video timeline ----------------
+const HOOK_LEN = 1.55, REW_LEN = 0.4, HOOK_TAU0 = SLAM - 0.22;
+const STORY_START = HOOK_LEN + REW_LEN;
+// speed map: [tau start, tau end, speed]
+const SEGS = [[0, 3.5, 1.12], [3.5, 4.8, 1.0], [4.8, 8.95, 1.3], [8.95, 13.0, 1.12], [13.0, 99, 1.0]];
+function warp(v) { let tau = 0; for (const [a, b, sp] of SEGS) { const dv = (b - a) / sp; if (v <= dv) return a + v * sp; v -= dv; tau = b; } return tau; }
+function unwarp(tau) { let v = 0; for (const [a, b, sp] of SEGS) { if (tau <= b) return v + (tau - a) / sp; v += (b - a) / sp; } return v; }
+const DURATION = STORY_START + unwarp(STORY_END);
+function videoState(t) {
+  if (t < HOOK_LEN) {
+    const tau = HOOK_TAU0 + t;
+    const k = t / HOOK_LEN;
+    const shake = t > 0.24 && t < 0.5 ? Math.sin(t * 90) * 10 * (1 - lin(t, 0.24, 0.5)) : 0;
+    return { tau, cam: { x: 3.62 * D + shake, y: -612 + shake * 0.5, z: lerp(1.3, 1.38, ss(k)) }, phase: 'hook' };
+  }
+  if (t < STORY_START) {
+    const k = ss((t - HOOK_LEN) / REW_LEN);
+    const tau = lerp(HOOK_TAU0 + HOOK_LEN, 0, k);
+    const c0 = { x: 3.62 * D, y: -612, z: 1.38 }, c1 = storyCam(0);
+    return { tau, cam: { x: lerp(c0.x, c1.x, k), y: lerp(c0.y, c1.y, k), z: lerp(c0.z, c1.z, k) }, phase: 'rewind', k };
+  }
+  const tau = warp(t - STORY_START);
+  const cam = storyCam(tau);
+  // punch-ins on the knocks and the twist
+  let bump = 0;
+  for (const kt of [5.33, 5.69]) { const d = tau - kt; if (d > 0 && d < 0.25) bump += 0.05 * (1 - d / 0.25); }
+  if (tau > 6.2 && tau < 7.2) { cam.x += Math.sin(tau * 70) * 4; bump += 0.04 * Math.sin(lin(tau, 6.2, 7.2) * PI); }
+  cam.z *= 1 + bump;
+  return { tau, cam, phase: 'story' };
+}
+
+// ---------------- text ----------------
+function drawTitle(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const lines = [
+    [["You Can't Inspire ", 0], ['Change', 1]],
+    [['In People Who ', 0]],
+    [["Don't Want To Change", 1]],
+  ];
+  ctx.font = '800 74px "Inter Display", Inter, sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  const y0 = 372, lh = 88;
+  // backing glow for legibility
+  ctx.save();
+  const bg = ctx.createLinearGradient(0, 250, 0, 650);
+  bg.addColorStop(0, 'rgba(10,14,28,0)'); bg.addColorStop(0.35, 'rgba(10,14,28,0.35)'); bg.addColorStop(0.7, 'rgba(10,14,28,0.25)'); bg.addColorStop(1, 'rgba(10,14,28,0)');
+  ctx.fillStyle = bg; ctx.fillRect(0, 250, W, 400); ctx.restore();
+  lines.forEach((ln, li) => {
+    const full = ln.map(s => s[0]).join('');
+    const wdt = ctx.measureText(full).width;
+    let x = W / 2 - wdt / 2; const y = y0 + li * lh;
+    for (const [s, hl] of ln) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 3;
+      ctx.fillStyle = hl ? '#ffc44a' : '#fff8ea';
+      ctx.fillText(s, x, y);
+      ctx.restore();
+      x += ctx.measureText(s).width;
+    }
+  });
+}
+function drawCTA(tau) {
+  const k = ramp(tau, 13.0, 13.45);
+  if (k <= 0) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const y = 1330;
+  ctx.save(); ctx.globalAlpha = k;
+  const s = 0.9 + 0.1 * easeOutBack(lin(tau, 13.0, 13.5));
+  ctx.translate(W / 2, y); ctx.scale(s, s);
+  ctx.font = '800 66px "Inter Display", Inter, sans-serif'; ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 16;
+  ctx.fillStyle = '#fff8ea'; ctx.fillText('Who filled your glass?', 0, 0);
+  const k2 = ramp(tau, 13.7, 14.1);
+  ctx.globalAlpha = k * k2;
+  ctx.font = '700 50px "Inter Display", Inter, sans-serif'; ctx.fillStyle = '#ffc44a';
+  ctx.fillText('Tag them. Pour it forward \u{1F447}', 0, 78);
+  ctx.restore();
+}
+
+function drawRewindFX(st) {
+  if (st.phase !== 'rewind') return;
+  const a = Math.sin(st.k * PI);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.save(); ctx.globalAlpha = 0.5 * a;
+  for (let k = 0; k < 26; k++) { const y = (hash(k + st.k * 10) * H); ctx.fillStyle = 'rgba(255,230,180,0.5)'; ctx.fillRect(0, y, W, 2 + 3 * hash(k)); }
+  ctx.restore();
+}
+
+function drawScene(t) {
+  const st = videoState(t);
+  performanceT = t;
+  const { tau, cam } = st;
+  drawBackground(cam, tau);
+  // draw characters left to right; pourer after receiver so tilted head overlaps nicely
+  const vis = chars.filter(c => { const [sx] = w2s(cam, c.x, 0); return sx > -600 * cam.z - 200 && sx < W + 600 * cam.z + 200; });
+  const order = vis.slice().sort((a, b) => (pourOf(a.i, tau) ? 1 : 0) - (pourOf(b.i, tau) ? 1 : 0) || a.i - b.i);
+  for (const c of order) drawCharacter(cam, c, tau);
+  drawStreams(cam, tau);
+  return st;
+}
+
+const acc = document.createElement('canvas'); acc.width = W; acc.height = H; const actx = acc.getContext('2d');
+window.renderFrame = function (t, fps = 30) {
+  const st = videoState(t);
+  if (st.phase === 'rewind') {
+    // motion blur via sub-frames
+    const N = 6; actx.clearRect(0, 0, W, H);
+    for (let k = 0; k < N; k++) { drawScene(t + (k / N - 0.5) / fps); actx.globalAlpha = 1 / (k + 1); actx.drawImage(cv, 0, 0); }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(acc, 0, 0);
+  } else drawScene(t);
+  drawRewindFX(st);
+  drawTitle(t);
+  if (st.phase === 'story') drawCTA(st.tau);
+  // light grain + gentle vignette (kept weak: FB border rule)
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const vg = ctx.createRadialGradient(W / 2, H * 0.5, H * 0.35, W / 2, H * 0.5, H * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  return st;
+};
+window.DURATION = DURATION;
+window.v = tau => STORY_START + unwarp(tau);
+window.TIMES = { SLAM, STORY_START, HOOK_LEN, HOOK_TAU0, pours, chars: chars.map(c => ({ i: c.i, litAt: c.litAt })) };
+document.fonts.ready.then(() => { window.READY = true; });
+</script>
+</body></html>
