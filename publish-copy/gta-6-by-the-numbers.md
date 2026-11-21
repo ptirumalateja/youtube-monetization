@@ -1,7 +1,7 @@
 # GTA 6 by the Numbers
 
-- Status: v1 delivered 21 Nov 2026, awaiting Teja's review
-- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v1.mp4` (no-music: `_silent.mp4`)
+- Status: v2 (no tick sounds, car raised) delivered 21 Nov 2026, awaiting Teja's review
+- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v2.mp4` (no-music: `_silent.mp4`)
 - Length: 25.8 s, 1080x1920, original synth music, no VO
 - Facts and sources: `tools/by-the-numbers/SOURCES.md`
 - Post fast: the launch (19 Nov 2026) is the hook, and the interest fades within days.

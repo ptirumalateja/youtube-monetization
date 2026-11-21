@@ -99,7 +99,7 @@ function road(t){
   for(let k=0;k<10;k++){const p=((k+t*2.2)%10)/10;const y=HZ+Math.pow(p,2.2)*(H-HZ);X.globalAlpha=p;X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke();}
   X.globalAlpha=1;
   // lane dashes on the car lane
-  X.fillStyle='#ffd34d';const off=(t*1400)%260;for(let x=-off;x<W;x+=260)X.fillRect(x,1868,140,12);
+  X.fillStyle='#ffd34d';const off=(t*1400)%260;for(let x=-off;x<W;x+=260)X.fillRect(x,1735,140,12);
 }
 // ---------- fly-through foreground (camera passing objects) ----------
 function flyObj(kind,p,side,seed,spread){ // p 0..1: far -> past the camera
@@ -203,7 +203,7 @@ window.renderAt=function(t){
   drawCity(MID,120,t,HZ,'#5e2b8f',['#ffe38a','#7ff3ff'],REEL.theme&&REEL.theme.landmark?0.7:1);
   // mid palms
   const rt=REEL.theme&&REEL.theme.tree==='round',th=rt?.5:1;const po=(t*260)%1400;for(let k=-1;k<4;k++){palm(k*700-po+300,HZ+40,560*th,1,'#3a1468',-70,t*2+k);palm(k*700-po+560,HZ+40,420*th,.9,'#3a1468',50,t*2+k*2)}
-  road(t);X.save();X.translate(540,1740);X.scale(1.35,1.35);car(0,0,t);X.restore();
+  road(t);X.save();X.translate(540,1610);X.scale(1.35,1.35);car(0,0,t);X.restore();
   X.restore();
   // fly-through foreground objects: opener + each transition
   const ev=[[0,-0.2,'palm',-1,420],[0,0.35,'palm',1,420]];

@@ -68,15 +68,10 @@ for s in tl['scenes']:
     if t0 > 0: add(wh[:int(0.9 * SR)], t0 - 0.3, 0.45)
     if s['type'] == 'stat':
         c0, c1 = (0.0, 0.6) if inst else (0.15, 1.0)
-        k = 0; tk = c0
-        while tk < c1:  # count-up ticks, accelerating
-            n = int(0.02 * SR); tt = np.arange(n) / SR
-            add(np.sin(2 * np.pi * (2400 + 300 * k % 3) * tt) * env(n, 0.0005, 0.006), t0 + tk, 0.12)
-            tk += max(0.035, 0.09 - k * 0.006); k += 1
+        # (count-up ticks removed 21 Nov: Teja found them irritating)
         land = t0 + (0.6 if inst else 1.0)
         n = int(0.8 * SR); tt = np.arange(n) / SR  # bright landing stab
         st = sum(np.sin(2 * np.pi * note(m) * tt) for m in (76, 81, 88)) * env(n, 0.002, 0.25)
-        st += rng.standard_normal(n) * env(n, 0.001, 0.03) * 0.4
         add(st * 0.22, land)
         if s.get('chip'):
             n = int(0.25 * SR); tt = np.arange(n) / SR

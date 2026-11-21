@@ -1,7 +1,7 @@
 # Hyderabad by the Numbers (Telugu)
 
-- Status: v1 delivered 21 Nov 2026, awaiting Teja's review
-- Upload file: `final-reels/hyderabad-by-the-numbers/hyderabad-by-the-numbers-te-v1.mp4` (no-music: `_silent.mp4`)
+- Status: v2 (no tick sounds, auto raised) delivered 21 Nov 2026, awaiting Teja's review
+- Upload file: `final-reels/hyderabad-by-the-numbers/hyderabad-by-the-numbers-te-v2.mp4` (no-music: `_silent.mp4`)
 - Length: 25.0 s, 1080x1920, on-screen Telugu text, original synth music, no VO
 - Facts and sources: `tools/by-the-numbers/SOURCES-hyd.md`
 
