@@ -1,8 +1,8 @@
 # GTA 6 by the Numbers
 
-- Status: v3 (dark neon night look, fresh 20-21 Nov stats) delivered 21 Nov 2026, awaiting Teja's review
-- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v3.mp4` (no-music: `_silent.mp4`)
-- Length: 25.8 s, 1080x1920, original synth music, no VO
+- Status: v4 (opening card, Teja's order: pre-orders, GTA 5 vs 6, streams, India leave, iShowSpeed, Kalshi) delivered 21 Nov 2026, awaiting Teja's review
+- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v4.mp4` (no-music: `_silent.mp4`)
+- Length: 25.2 s, 1080x1920, original synth music, no VO
 - Facts and sources: `tools/by-the-numbers/SOURCES.md`
 - Post fast: the launch (19 Nov 2026) is the hook, and the interest fades within days.
 
@@ -10,15 +10,15 @@
 **Title:** GTA 6 made $3.79 billion in ONE day 🤯 #shorts
 
 **Description:**
-GTA 6 made $3.79 billion on day one, almost 5x what GTA 5 made in 2013. Critics gave it a 99 on Metacritic, tying the highest score ever.
-Why so big? 13 years of waiting and a reported $1.5B budget. In India, leave bookings for launch day jumped 60%, and 7.91 million people watched streams at the same time.
+15.88 million people pre-ordered GTA 6 before it came out, the most of any game ever. Then it made $3.79 billion on day one, almost 5x GTA 5.
+Why so big? 13 years of waiting turned launch day into an event: 125 million hours of streams in 24 hours, iShowSpeed alone at 4.47 million, and 60% more Indians took leave to play.
 Which number shocked you most?
 
-Sources: Take-Two via Forbes (sales), Metacritic, Guinness (GTA 5), Streams Charts (viewers), Beebom (leave), Variety (budget, reported).
+Sources: Sensor Tower (pre-orders), Take-Two (sales), Guinness (GTA 5), Streams Charts (streams), Beebom (leave), Kalshi job listing.
 
 **Tags:** gta 6, gta vi, gta 6 sales, gta 6 launch, gta 6 record, gta 6 numbers, gta 6 money, grand theft auto 6, gaming news, gta 6 day one
 
-**Pinned comment:** Which one got you: $3.79B in a day, or 60% more Indians taking leave for it? 👇
+**Pinned comment:** Be honest: would you take Kalshi's $120,000 job to play GTA 6 all year? 👇
 
 ## Instagram / Facebook caption
 GTA 6 didn't just launch. It beat Hollywood. 🎮💸

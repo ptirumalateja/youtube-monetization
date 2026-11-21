@@ -173,6 +173,16 @@ function versusScene(s,t){
   sparks(2.0,t,150+780*(s.b.v/maxV),976,s.col,99);
   const pp=back((t-2.3)/.3);if(pp>0){X.save();X.globalAlpha=A*cl(pp);X.translate(540,1170);X.scale(pp,pp);pill(s.chip,0,0,'#ffe066','#3b0d6b',42);X.restore();}
 }
+function titleScene(s,t){ // opening card: big title slams in, sub line, small line
+  const D=s.dur,out=cl((t-(D-0.18))/0.18);X.save();X.globalAlpha=1-out;
+  const p1=back((t+0.14)/.28);X.save();X.translate(540,620);X.scale(p1*(1+out*.3),p1*(1+out*.3));
+  const f1=fitFont(s.big,'900 italic',230,820);txt(s.big,0,0,`900 italic ${f1}px Inter, NotoTe`,'#fff',{stroke:'#3b0d6b',sw:20,glow:'#ff4fc0',gb:60});X.restore();
+  s.lines.forEach((ln,k)=>{const p=back((t+0.02-k*0.14)/.3);if(p<=0)return;X.save();X.translate(540,800+k*100);X.scale(p,p);
+    const f=fitFont(ln,'900 italic',96,860);txt(ln,0,0,`900 italic ${f}px Inter, NotoTe`,'#ffe066',{stroke:'#3b0d6b',sw:16,glow:'#ffb000',gb:30});X.restore();});
+  const p3=eo((t-0.35)/.25);X.globalAlpha=(1-out)*p3;const f3=fitFont(s.small,'800',50,800);txt(s.small,540,1030,`800 ${f3}px Inter, NotoTe`,'#7ff3ff',{stroke:'#2a0a50',sw:9});
+  sparks(0.05,t,540,620,'#ff4fc0',5);
+  X.restore();
+}
 function ctaScene(s,t){
   const A=eo(t/.14);X.save();X.globalAlpha=A;panel(470,1250,.95);
   s.lines.forEach((ln,k)=>{const p=back((t-k*.12)/.35);X.save();X.translate(540,600+k*120);X.scale(p,p);const cs=fitFont(ln,'900 italic',108,800);
@@ -269,9 +279,9 @@ window.renderAt=function(t){
   if(NIGHT)postN(t);
   // scene content
   let idx=TL.findIndex(s=>t>=s.t0&&t<s.t0+s.dur);if(idx<0)idx=TL.length-1;const s=TL[idx],lt=t-s.t0;
-  const stats=TL.filter(s=>s.type!=='cta');const si=stats.indexOf(s);
-  header(si<0?1:lt/s.dur,si<0?stats.length:si,stats.length);
-  if(s.type==='stat')statScene(s,lt,idx,TL.length);else if(s.type==='vs')versusScene(s,lt);else ctaScene(s,lt);
+  const stats=TL.filter(s=>s.type!=='cta'&&s.type!=='title');const si=s.type==='title'?-2:stats.indexOf(s);
+  header(si===-2?0:(si<0?1:lt/s.dur),si===-2?0:(si<0?stats.length:si),stats.length);
+  if(s.type==='stat')statScene(s,lt,idx,TL.length);else if(s.type==='vs')versusScene(s,lt);else if(s.type==='title')titleScene(s,lt);else ctaScene(s,lt);
   // hook line above everything on the first scene
   if(idx===0&&window.REEL.hookTop){X.save();txt(window.REEL.hookTop,540,1260,'900 italic 64px Inter, NotoTe','#fff',{stroke:'#3b0d6b',sw:14,glow:'#ff4fa0',gb:30});X.restore();}
   return C.toDataURL('image/jpeg',0.92);

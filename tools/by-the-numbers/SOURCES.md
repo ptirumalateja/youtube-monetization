@@ -1,14 +1,14 @@
-# GTA 6 by the numbers: sources (v3, checked 21 Nov 2026, 11:30 IST)
+# GTA 6 by the numbers: sources (v4, Teja's order, checked 21 Nov 2026, 11:50 IST)
 
 | On screen | Source |
 |---|---|
-| $3.79B in sales on day one; "biggest entertainment launch ever" | Take-Two, via Forbes (20 Nov 2026) |
-| Metacritic 99 (PS5), ~150 critic reviews, all positive; ties the all-time record | Metacritic via Nacionale, EsportNow, The Next Web (18-19 Nov) |
-| GTA 5 first-day sales $800M (2013) vs GTA 6 $3.79B; "nearly 5x" = 4.7x | Guinness via EsportNow; Take-Two |
-| 7.91M peak concurrent stream viewers; old record ~1.74M (VALORANT) → 4.5x | Streams Charts via Andro-News (7,914,231), esports.gg |
-| +60% annual-leave bookings in India for 19 Nov; +32% worldwide | Beebom via DataRefs (20 Nov) |
-| 212 GB download (≈45 single-layer DVDs at 4.7 GB) | Andro-News, DataRefs |
-| ~$1.5B reported development cost, 13 years after GTA 5 (≈₹13,000 crore at ~₹88/$) | Variety via ANI / The Daily Guardian (21 Nov); analyst estimate, Take-Two does not disclose |
+| Opening card "GTA 6 just broke the internet / 6 numbers that prove it" | Format from Teja's ref; our own art |
+| 15.88M copies pre-ordered, most pre-ordered game ever (beat Cyberpunk 2077's 8M) | Sensor Tower estimate as of 17 Nov (digital, PS5 + Xbox; $1.54B), via Beebom 10 + 17 Nov |
+| Day one: GTA 5 $0.8B (2013) vs GTA 6 $3.79B, "nearly 5x" = 4.7x | Guinness via EsportNow; Take-Two via Forbes 20 Nov |
+| 125M hours of streams watched in 24 h (125.47M; Twitch, YouTube, Kick, CHZZK, SOOP); 7.9M concurrent peak | Streams Charts via IBTimes UK 20 Nov; Streams Charts via Andro-News (7,914,231) |
+| +60% Indians booking leave for 19 Nov; +32% worldwide | Beebom via DataRefs 20 Nov |
+| iShowSpeed 4.47M hours watched in first 24 h, the most of any streamer | Streams Charts via IBTimes UK 20 Nov (an earlier win.gg snapshot said 2.88M) |
+| Clippers paid $1 per 1,000 views | KreekCraft clipping campaign, via IBTimes UK and Content Rewards (rates as of 18-19 Nov) |
+| Kalshi hired one person at $120,000 to play GTA 6 for a year (≈₹1 crore) | The Blaze, Archyde, Moneywise (some reports say up to $135K) |
 
-v1/v2 used 32.5M copies, 475M trailer views, 40B YouTube views and the $120,000 Kalshi job; v3 swaps them out so the reel does not repeat the ref reel's numbers.
-No Rockstar art, logo, footage, fonts or characters. Visuals are drawn in code; music is synthesised in `mix.py`.
+No Rockstar art, logo, footage, fonts or characters. Visuals drawn in code; music synthesised in `mix.py`.
