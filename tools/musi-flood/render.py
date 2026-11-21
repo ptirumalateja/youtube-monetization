@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(HERE, "../galwan"))
 import kb  # load(), kb_frame(), text_img(), YEL, W, H
 W, H, FPS, XF, YEL = kb.W, kb.H, 30, 0.2, kb.YEL
 WH = (255, 255, 255)
-T = json.load(open(os.path.join(HERE, os.environ.get("TOK", "tok_v4.json"))))
+T = json.load(open(os.path.join(HERE, os.environ.get("TOK", "tok_v5.json"))))
 tok = [t for _, t in T["tokens"]]
 TOTAL = T["total"] + 0.6
 
@@ -161,7 +161,7 @@ def main():
         for i, buf in enumerate(p.imap(frame, ts, chunksize=8)):
             ff.stdin.write(buf)
     ff.stdin.close(); ff.wait()
-    vo, mu = os.path.join(HERE, os.environ.get("VO", "vo_v4.wav")), os.path.join(HERE, "music.mp3")
+    vo, mu = os.path.join(HERE, os.environ.get("VO", "vo_v5.wav")), os.path.join(HERE, "music.mp3")
     ps = T.get("pause", [0, 0])[0]
     fl = ["[1:a]aresample=48000,aformat=channel_layouts=stereo,apad,asplit=2[v1][v2]",
           f"[3:a]aresample=48000,aformat=channel_layouts=stereo,volume={os.environ.get('BRAAM', '0')},adelay={int(ps*1000)}|{int(ps*1000)}[br]",
