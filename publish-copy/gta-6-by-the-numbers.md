@@ -1,7 +1,7 @@
 # GTA 6 by the Numbers
 
-- Status: v7 (Teja's Flow clip as background: full clip first, then side-on loop with slide transitions on each number) delivered 21 Nov 2026, awaiting review
-- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v7-flow.mp4` (previous code-drawn cut: `-v6-sfx-only.mp4`)
+- Status: v8 (Flow clip in full, then only its last 1 s looped with soft dissolves) delivered 21 Nov 2026, awaiting review
+- Upload file: `final-reels/gta-6-by-the-numbers/gta-6-by-the-numbers-v8-flow-loop.mp4` (previous code-drawn cut: `-v6-sfx-only.mp4`)
 - Length: 25.2 s, 1080x1920, no music, transition SFX only (whoosh + landing hit), no VO
 - Facts and sources: `tools/by-the-numbers/SOURCES.md`
 - Post fast: the launch (19 Nov 2026) is the hook, and the interest fades within days.
