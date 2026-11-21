@@ -36,11 +36,8 @@ put('laugh', 2.2, 1.0, -0.1, fade_out=0.5)
 put('laugh2', 5.0, 0.35, -0.4, fade_in=0.3, fade_out=0.8)
 put('laugh', 7.4, 0.25, -0.5, length=1.8, fade_in=0.3, fade_out=0.8)
 # grips + grit on every hand/foot landing (from the scene)
-for e in json.load(open(sys.argv[2] if len(sys.argv) > 2 else 'events.json')):
-    put('grip', e['t'] - 0.02, 0.5 if e['foot'] else 0.4, 0.2)
-    if e['foot']: put('pebbles', e['t'], 0.18, 0.2, length=0.45, fade_out=0.25)
+# (v5: per-hold grip/pebble clicks removed, Teja found them irritating)
 # over the lip and stand
-put('grip', EDGE_T, 0.7, 0.2); put('grip', PULL[0] + 0.05, 0.7, 0.2)
 put('step1', PULL[1], 0.5, 0.2); put('step2', STAND[0] + 0.1, 0.45, 0.2)
 # the crowd goes quiet, then claps
 put('gasp', 9.7, 0.4, -0.4)
