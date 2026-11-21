@@ -9,26 +9,27 @@ sys.path.insert(0, os.path.join(HERE, "../galwan"))
 import kb  # load(), kb_frame(), text_img(), YEL, W, H
 W, H, FPS, XF, YEL = kb.W, kb.H, 30, 0.2, kb.YEL
 WH = (255, 255, 255)
-T = json.load(open(os.path.join(HERE, "tok_final.json")))
+T = json.load(open(os.path.join(HERE, os.environ.get("TOK", "tok_v4.json"))))
 tok = [t for _, t in T["tokens"]]
 TOTAL = T["total"] + 0.6
 
 # (start token, media, tag lines). media: "NN" still or ("A"|"B", src start s)
 SHOTS = [
-    (0, ("A", 0.3), [("15,000+", 150, YEL), ("ఒకే రాత్రి", 70, WH)]),
-    (7, "11", [("150", 170, YEL), ("మంది బతికారు", 64, WH)]),
-    (11, "02", None),
+    (0.0, "09", [("హైదరాబాద్ · 1908", 80, WH)]),
+    (1.48, ("B", 1.8), [("15,000+", 150, YEL), ("ఒకే రాత్రి", 70, WH)]),
+    (7, ("A", 0.3), [("150", 170, YEL), ("మంది బతికారు", 64, WH)]),
+    (11, "11", None),
     (16, "03", [("28 సెప్టెంబర్ 1908", 72, WH), ("హైదరాబాద్", 50, YEL)]),
     (23, "04", None),
     (25, "05", [("36 గంటలు", 92, YEL), ("17 అంగుళాల వర్షం", 62, WH)]),
-    (31, ("B", 1.8), [("60 అడుగులు", 110, YEL), ("పైకి లేచిన మూసీ", 60, WH)]),
+    (31, ("B", 5.0), [("60 అడుగులు", 110, YEL), ("పైకి లేచిన మూసీ", 60, WH)]),
     (37, "07", None),
     (38, "08", None),
     (39, "06", None),
-    (40, "09", None),
     (42, "10", [("అఫ్జల్‌గంజ్", 80, YEL)]),
     (49, ("A", 3.6), [("150", 170, YEL)]),
     (52, "12", None),
+    (55, "02", None),
     (59, "13", [("ఉస్మానియా ఆసుపత్రి", 76, WH), ("అఫ్జల్‌గంజ్ · ఇప్పటికీ ఉంది", 50, YEL)]),
     (64, "14", None),
     (70, "15", [("ఎం. విశ్వేశ్వరయ్య", 70, WH)]),
@@ -39,7 +40,7 @@ SHOTS = [
     (94, "20", None),
 ]
 # caption chunks: (first token, display text)
-CAPS = [(0, "ఒకే రాత్రి…"), (2, "15,000 మందికి పైగా చనిపోయారు."), (7, "కానీ 150 మందిని…"), (11, "ఒకే ఒక్క చెట్టు కాపాడింది."),
+CAPS = [(0.0, "హైదరాబాద్‌ను ముంచేసిన వరద…"), (1.48, "ఒకే రాత్రి…"), (2.16, "15,000 మందికి పైగా బలి తీసుకుంది."), (7, "కానీ 150 మందిని…"), (11, "ఒకే ఒక్క చెట్టు కాపాడింది."),
         (15, "తెలుసా?"), (16, "అది 1908, సెప్టెంబర్ 28."), (23, "హైదరాబాద్ నిద్రపోతోంది."), (25, "36 గంటల్లో"),
         (28, "17 అంగుళాల వర్షం."), (31, "మూసీ నది"), (33, "60 అడుగులు పైకి లేచింది."), (37, "ఇళ్లు, వంతెనలు, మనుషులు…"),
         (40, "అన్నీ కొట్టుకుపోయాయి."), (42, "అప్పుడు అఫ్జల్‌గంజ్‌లో"), (44, "ఒక పెద్ద చింత చెట్టు ఎక్కారు"), (49, "150 మంది."),
@@ -57,7 +58,7 @@ MOVES = {
     "07": (1.05, 1.30, (.45, .50), (.68, .55)),   # diagonal push toward the fleeing people
     "08": (1.30, 1.30, (.30, .55), (.70, .55)),   # side pan across the broken bridge
     "06": (1.30, 1.20, (.50, .78), (.50, .40)),   # tilt up from the torches to the bridge
-    "09": (1.05, 1.35, (.50, .55), (.72, .30)),   # push toward Charminar
+    "09": (1.00, 1.45, (.50, .60), (.72, .30)),   # hook: fast push into flooded Charminar
     "10": (1.30, 1.15, (.30, .70), (.55, .55)),   # rising diagonal toward the child
     "12": (1.30, 1.18, (.50, .78), (.50, .35)),   # tilt up the trunk
     "13": (1.40, 1.05, (.45, .62), (.50, .50)),   # pull out from the trunk to reveal the hospital
@@ -81,14 +82,17 @@ def move_frame(src, u, mv):
     z = z0 + (z1 - z0) * e
     tw, th = src.size
     cw, ch = tw / (1.16 * z), th / (1.16 * z)
-    cx = min(max(tw * (x0 + (x1 - x0) * e), cw / 2), tw - cw / 2)
-    cy = min(max(th * (y0 + (y1 - y0) * e), ch / 2), th - ch / 2)
+    mx, my = tw * 0.065, th * 0.065  # keep off the edges (Gemini sparkle sits bottom-right)
+    cw, ch = min(cw, tw - 2 * mx), min(ch, th - 2 * my)
+    cx = min(max(tw * (x0 + (x1 - x0) * e), mx + cw / 2), tw - mx - cw / 2)
+    cy = min(max(th * (y0 + (y1 - y0) * e), my + ch / 2), th - my - ch / 2)
     return src.transform((W, H), Image.EXTENT, (cx - cw / 2, cy - ch / 2, cx + cw / 2, cy + ch / 2), Image.BICUBIC)
 
 
 LEAD = 0.06
-starts = [0.0] + [tok[s[0]] - LEAD for s in SHOTS[1:]]
-cst = [0.0] + [tok[c[0]] - LEAD for c in CAPS[1:]]
+at = lambda x: x if isinstance(x, float) else tok[x] - LEAD
+starts = [0.0] + [at(s[0]) for s in SHOTS[1:]]
+cst = [0.0] + [at(c[0]) for c in CAPS[1:]]
 G = {}
 
 
@@ -157,12 +161,14 @@ def main():
         for i, buf in enumerate(p.imap(frame, ts, chunksize=8)):
             ff.stdin.write(buf)
     ff.stdin.close(); ff.wait()
-    vo, mu = os.path.join(HERE, "vo_final.wav"), os.path.join(HERE, "music.mp3")
+    vo, mu = os.path.join(HERE, os.environ.get("VO", "vo_v4.wav")), os.path.join(HERE, "music.mp3")
+    ps = T.get("pause", [0, 0])[0]
     fl = ["[1:a]aresample=48000,aformat=channel_layouts=stereo,apad,asplit=2[v1][v2]",
+          f"[3:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.7,adelay={int(ps*1000)}|{int(ps*1000)}[br]",
           f"[2:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.32,afade=t=out:st={TOTAL-1.2:.2f}:d=1.2[mu]",
           "[mu][v2]sidechaincompress=threshold=0.05:ratio=4:attack=20:release=300[md]",
-          f"[v1][md]amix=inputs=2:normalize=0:duration=first,atrim=0:{TOTAL:.3f},loudnorm=I=-14:TP=-1.5:LRA=9[a]"]
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", pic, "-i", vo, "-i", mu, "-filter_complex", ";".join(fl),
+          f"[v1][md][br]amix=inputs=3:normalize=0:duration=first,atrim=0:{TOTAL:.3f},loudnorm=I=-14:TP=-1.5:LRA=9[a]"]
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", pic, "-i", vo, "-i", mu, "-i", os.path.join(HERE, "braam.mp3"), "-filter_complex", ";".join(fl),
                     "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", out], check=True)
     os.remove(pic)
     print("done", out, TOTAL)
