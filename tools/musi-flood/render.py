@@ -164,7 +164,7 @@ def main():
     vo, mu = os.path.join(HERE, os.environ.get("VO", "vo_v4.wav")), os.path.join(HERE, "music.mp3")
     ps = T.get("pause", [0, 0])[0]
     fl = ["[1:a]aresample=48000,aformat=channel_layouts=stereo,apad,asplit=2[v1][v2]",
-          f"[3:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.7,adelay={int(ps*1000)}|{int(ps*1000)}[br]",
+          f"[3:a]aresample=48000,aformat=channel_layouts=stereo,volume={os.environ.get('BRAAM', '0')},adelay={int(ps*1000)}|{int(ps*1000)}[br]",
           f"[2:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.32,afade=t=out:st={TOTAL-1.2:.2f}:d=1.2[mu]",
           "[mu][v2]sidechaincompress=threshold=0.05:ratio=4:attack=20:release=300[md]",
           f"[v1][md][br]amix=inputs=3:normalize=0:duration=first,atrim=0:{TOTAL:.3f},loudnorm=I=-14:TP=-1.5:LRA=9[a]"]
