@@ -25,7 +25,8 @@ const C = { skin:'#f7eedc', skinSh:'#c9b99c', skinHi:'#ffffff', out:'#1d1b1d', i
   gold:'#ffc23d', red:'#e0353a', cream:'#f3ead8', glow:'rgba(255,196,90,0.45)' };
 
 // ---------------- world layout ----------------
-const PIL = {x0:700, x1:1090, top:600};          // SUCCESS pillar (climbed on its left face)
+const PIL = {x0:640, x1:1090, top:600};          // climbed straight up its front face
+const ROUTE = 702, LBLX = 800;          // SUCCESS pillar (climbed on its left face)
 const CLF = {x0:-400, x1:380, top:1265};         // crowd ledge
 const FLAG = {x:868, y:PIL.top};
 const ROCK0 = {x:965, y:PIL.top-74, r:78};       // the boulder resting on the summit
@@ -34,7 +35,7 @@ const LABELS = [['SUCCESS',null,626],['BUILD AN','EMPIRE',762],['START A','BUSIN
 // ---------------- timeline ----------------
 const FF = 0.8;                      // flash-forward hook ends
 const SHOTS = [ // [start, name]
-  [0,'ff'],[FF,'wide1'],[2.6,'crowd1'],[4.2,'climb'],[5.98,'crowd1'],[6.6,'climb'],[7.4,'summit1'],[9.4,'wide2'],[10.9,'crowd2'],[11.9,'summit2'],[13.2,'crowd3'],[14.7,'wide3']];
+  [0,'crowd0'],[FF,'wide1'],[2.6,'climb'],[4.0,'detail'],[5.0,'climb'],[5.98,'crowd1'],[6.6,'climb'],[7.4,'summit1'],[9.4,'wide2'],[10.9,'crowd2'],[11.9,'summit2'],[13.2,'crowd3'],[14.7,'wide3']];
 const SLIP = 5.75;
 const EDGE_T = 7.7, PULL = [8.05,8.65], STAND = [8.75,9.25];
 const CLAP_T = 10.15, LOOKUP_T = 13.35;
@@ -126,11 +127,14 @@ function ik(ax,ay,tx,ty,l1,l2,bend){
 }
 
 // ---------------- figure (Born Rich mannequin) ----------------
-const LIMB=15, TORSO=64, HEADR=31, UA=34, FA=33, TH=42, SH=42;
-function limbPath(pts){ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));}
+const LIMB=12, TORSO=64, HEADR=30, UA=38, FA=38, TH=43, SH=43;
+// v2 "free flowing" figure: every limb is one smooth curve through its joint (no hinge corners), slimmer strokes
+function limbPath(pts){ctx.beginPath(); const [a,j,b]=pts; ctx.moveTo(a[0],a[1]);
+  if(pts.length===3){ const k=0.62; const c1=[a[0]+(j[0]-a[0])*2*k*0.75, a[1]+(j[1]-a[1])*2*k*0.75], c2=[b[0]+(j[0]-b[0])*2*k*0.75, b[1]+(j[1]-b[1])*2*k*0.75]; ctx.bezierCurveTo(c1[0],c1[1],c2[0],c2[1],b[0],b[1]); }
+  else ctx.lineTo(j[0],j[1]); }
 function paintLimb(pts,w,pal){
   ctx.lineCap='round'; ctx.lineJoin='round';
-  limbPath(pts); ctx.strokeStyle=pal.out; ctx.lineWidth=w+4.5; ctx.stroke();
+  limbPath(pts); ctx.strokeStyle=pal.out; ctx.lineWidth=w+4; ctx.stroke();
   limbPath(pts); ctx.strokeStyle=pal.sh; ctx.lineWidth=w; ctx.stroke();
   ctx.save(); ctx.translate(-w*0.13,-w*0.1); limbPath(pts); ctx.strokeStyle=pal.skin; ctx.lineWidth=w*0.7; ctx.stroke();
   ctx.translate(-w*0.08,-w*0.06); limbPath(pts); ctx.strokeStyle=pal.hi; ctx.globalAlpha=0.55; ctx.lineWidth=w*0.22; ctx.stroke(); ctx.restore();
@@ -143,17 +147,17 @@ function drawFig(f){
   if(f.glow!==false && dim<0.2){ ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=26*(1-dim*4); }
   const lean=f.lean||0;
   const nk=[Math.sin(lean)*TORSO, -Math.cos(lean)*TORSO];
-  const sh=[[nk[0]-14*Math.cos(lean), nk[1]+8-14*Math.sin(lean)],[nk[0]+14*Math.cos(lean), nk[1]+8+14*Math.sin(lean)]];
-  const hp=[[-8,0],[8,0]];
+  const sh=[[nk[0]-9*Math.cos(lean), nk[1]+6-9*Math.sin(lean)],[nk[0]+9*Math.cos(lean), nk[1]+6+9*Math.sin(lean)]];
+  const hp=[[-5,0],[5,0]];
   const backArm = f.backArm; // draw the arm(s) listed here before the torso
-  const arm=(i)=>{ const [e,h]=ik(sh[i][0],sh[i][1],f.hands[i][0],f.hands[i][1],UA,FA,(f.elbowOut?f.elbowOut[i]:(i?-1:1))); paintLimb([sh[i],e,h],LIMB-1,pal); };
+  const arm=(i)=>{ const [e,h]=ik(sh[i][0],sh[i][1],f.hands[i][0],f.hands[i][1],UA,FA,(f.elbowOut?f.elbowOut[i]:(i?-1:1))*0.85); paintLimb([sh[i],e,h],LIMB-1.5,pal); ctx.fillStyle=pal.skin; ctx.strokeStyle=pal.out; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(h[0],h[1],6.2,0,7); ctx.fill(); ctx.stroke(); };
   for(let i=0;i<2;i++){
     const [k,ft]=ik(hp[i][0],hp[i][1],f.feet[i][0],f.feet[i][1],TH,SH,(f.kneeOut?f.kneeOut[i]:(i?1:-1)));
-    paintLimb([hp[i],k,ft],LIMB+1,pal);
-    ctx.fillStyle=pal.sh; ctx.strokeStyle=pal.out; ctx.lineWidth=2.2; ctx.beginPath(); ctx.ellipse(ft[0]+(f.footDir!=null?f.footDir*5:(i?5:-5)),ft[1]+3,10,5.5,0,0,7); ctx.fill(); ctx.stroke();
+    paintLimb([hp[i],k,ft],LIMB+0.5,pal);
+    ctx.fillStyle=pal.sh; ctx.strokeStyle=pal.out; ctx.lineWidth=2.2; ctx.beginPath(); ctx.ellipse(ft[0]+(f.footDir!=null?f.footDir*5:(i?5:-5)),ft[1]+3,9,4.6,0,0,7); ctx.fill(); ctx.stroke();
   }
   if(backArm) for(const i of backArm) arm(i);
-  paintLimb([[0,-2],nk],LIMB+9,pal);
+  { const ar=(f.arch!=null?f.arch:5); const mid=[nk[0]*0.5-Math.cos(lean)*ar, nk[1]*0.5-Math.sin(lean)*ar]; paintLimb([[0,-2],mid,nk],LIMB+9,pal); }
   for(let i=0;i<2;i++) if(!backArm||!backArm.includes(i)) arm(i);
   const hc=[nk[0]+Math.sin(lean+(f.headTilt||0))*(HEADR+3), nk[1]-Math.cos(lean+(f.headTilt||0))*(HEADR+3)];
   if(f.sy){ctx.translate(hc[0],hc[1]); ctx.scale(1,1/f.sy); ctx.translate(-hc[0],-hc[1]);}
@@ -208,41 +212,56 @@ function climbHip(t){
   const pause = t<SLIP?0 : t<SLIP+0.45? (t-SLIP) : 0.45;
   const tt=Math.max(0,t-FF-pause), T=(EDGE_T-FF-0.45);
   let y=lerp(Y0,Y1,tt/T);
-  if(t>SLIP){ const d= t<SLIP+0.12? 30*easeIn(seg(t,SLIP,SLIP+0.12)) : 30*(1-smooth(seg(t,SLIP+0.45,SLIP+0.9))); y+=d; }
+  if(t>SLIP){ const d= t<SLIP+0.12? 34*easeIn(seg(t,SLIP,SLIP+0.12)) : 34*(1-smooth(seg(t,SLIP+0.45,SLIP+0.9))); y+=d; }
   return y;
+}
+// rock holds jutting out of the pillar's left edge: every 40 px, hands take alternate holds, feet the others
+const HY0=1300, HSTEP=40;
+const HOLDS=[]; {const R=rng(909); for(let k=0;k<=18;k++){ const side=k%2? 1:-1; HOLDS.push({k, x:ROUTE+side*(38+R()*8), y:HY0-HSTEP*k+(R()-0.5)*8, w:34+R()*22, th:20+R()*10, tilt:(R()-0.5)*0.35, seed:k*13+5}); }}
+// small knobs and cracks elsewhere on the face so the whole wall reads as real rock
+const KNOBS=[]; {const R=rng(919); for(let i=0;i<70;i++){ let x=PIL.x0+20+R()*420; if(Math.abs(x-ROUTE)<80) x-=70; if(x>LBLX-30&&x<LBLX+230) x+=250*(R()<0.5?-1:1)*0+260; KNOBS.push({x, y:PIL.top+40+R()*1300, w:10+R()*30, h:4+R()*8}); }}
+const holdTop=k=>HOLDS[k].y-HOLDS[k].th*0.45;
+const holdX=(k,u)=>HOLDS[k].x;
+function limbHold(hip,i,isFoot){
+  const p = i;   // left hand + left foot use the left column, right ones the right column
+  const q = isFoot? (HY0-(hip+22))/HSTEP : (HY0-(hip-128))/HSTEP;
+  const n=(q-p)/2, k=p+2*Math.floor(n), fr=n-Math.floor(n);
+  return {k, fr};
 }
 function climberState(t){
   const WX=PIL.x0;
   if(t<EDGE_T){
-    const hip=climbHip(t), x=WX-36;
-    const prog=(1150-hip)/58;
+    const hip=climbHip(t), x=ROUTE+Math.sin(t*5)*3;
     const hands=[], feet=[];
+    const slipping = t>SLIP && t<SLIP+0.5;
     for(let i=0;i<2;i++){
-      const s=prog+(i?0.5:0), f=s-Math.floor(s);
-      let ry = f<0.78? -122+58*f/0.78 : lerp(-64,-122,smooth((f-0.78)/0.22));
-      let rx = 34 + (f>0.78? -Math.sin((f-0.78)/0.22*Math.PI)*14 : 0);
-      if(i===1 && t>SLIP && t<SLIP+0.5){ const u=seg(t,SLIP,SLIP+0.5); rx=lerp(34,-28,Math.sin(u*Math.PI)); ry=lerp(ry,-70,Math.sin(u*Math.PI)); }
-      hands.push([rx,ry]);
-      const s2=prog+(i?0:0.5), f2=s2-Math.floor(s2);
-      let fy = f2<0.7? 52+30*f2/0.7 : lerp(82,52,smooth((f2-0.7)/0.3));
-      let fx = 24 - (f2>0.7? Math.sin((f2-0.7)/0.3*Math.PI)*16 : 0);
-      if(i===0 && t>SLIP && t<SLIP+0.45){ const u=seg(t,SLIP,SLIP+0.45); fx=lerp(30,-10,Math.sin(u*Math.PI)); fy=lerp(fy,88,Math.sin(u*Math.PI)); }
-      feet.push([fx,fy]);
+      const {k,fr}=limbHold(hip,i,false); const kk=clamp(k,0,HOLDS.length-1), kn=clamp(k+2,0,HOLDS.length-1);
+      const m=smooth(seg(fr,0.72,1));
+      let wx=lerp(holdX(kk),holdX(kn),m)+(i?1:-1)*Math.sin(m*Math.PI)*14, wy=lerp(holdTop(kk)+4,holdTop(kn)+4,m)-Math.sin(m*Math.PI)*10;
+      if(i===1 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.5)*Math.PI); wx=lerp(wx,x+70,u); wy=lerp(wy,hip-60,u); }
+      hands.push([wx-x, wy-hip]);
     }
-    return {x, y:hip, s:1, lean:0.22, feet, hands, kneeOut:[-1,-1], elbowOut:[1,1], face:'back', footDir:1};
+    for(let i=0;i<2;i++){
+      let {k,fr}=limbHold(hip,i,true); if(k===BROKEN_K && t>SLIP) k-=2;
+      const kk=clamp(k,0,HOLDS.length-1), kn=clamp(k+2,0,HOLDS.length-1);
+      const m=smooth(seg(fr,0.62,1));
+      let wx=lerp(holdX(kk),holdX(kn),m)+(i?1:-1)*Math.sin(m*Math.PI)*12, wy=lerp(holdTop(kk)-6,holdTop(kn)-6,m)-Math.sin(m*Math.PI)*12;
+      if(i===0 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.5)*Math.PI); wx=lerp(wx,x-38,u); wy=lerp(wy,hip+92,u); }
+      feet.push([wx-x, wy-hip]);
+    }
+    return {x, y:hip, s:1, lean:Math.sin(t*5)*0.04, arch:2, feet, hands, kneeOut:[-1,1], elbowOut:[1,-1], face:'back', footDir:0};
   }
   // edge -> pull-up -> crouch -> stand
-  const K=[[EDGE_T,WX-36,700,0.22],[PULL[0],WX-30,690,0.25],[PULL[0]+0.3,WX-6,628,0.55],[PULL[1],WX+38,560,0.45],[STAND[0],WX+52,556,0.2],[STAND[1],WX+60,PIL.top-80,0]];
+  const K=[[EDGE_T,ROUTE,705,0],[PULL[0],ROUTE,712,0],[PULL[0]+0.3,ROUTE,640,0],[PULL[1],ROUTE+2,552,0.1],[STAND[0],ROUTE,548,0.04],[STAND[1],PIL.x0+60,PIL.top-80,0]];
   if(t<STAND[1]){
     const [x,y,lean]=pw(K,t,true);
-    const u=seg(t,PULL[0],PULL[1]);
-    const hands=[[PIL.x0+8-x, PIL.top-4-y],[PIL.x0+34-x, PIL.top-4-y]];
-    if(t>PULL[0]+0.35){ const v=seg(t,PULL[0]+0.35,STAND[1]); hands[0]=[lerp(hands[0][0],-26,v),lerp(hands[0][1],-20,v)]; hands[1]=[lerp(hands[1][0],22,v),lerp(hands[1][1],-18,v)]; }
+    const hands=[[ROUTE-30-x, PIL.top-2-y],[ROUTE+30-x, PIL.top-2-y]];
+    if(t>PULL[0]+0.35){ const v=smooth(seg(t,PULL[0]+0.35,STAND[1])); hands[0]=[lerp(hands[0][0],-26,v),lerp(hands[0][1],-20,v)]; hands[1]=[lerp(hands[1][0],24,v),lerp(hands[1][1],-18,v)]; }
     let feet;
-    if(t<PULL[0]+0.3) feet=[[24,60],[30,74]];
-    else if(t<PULL[1]){ const v=seg(t,PULL[0]+0.3,PULL[1]); feet=[[lerp(24,-6,v),lerp(60,PIL.top-y,v)],[lerp(30,26,v),lerp(74,PIL.top-y,v)]]; }
-    else feet=[[-14,PIL.top-y],[22,PIL.top-y]];
-    return {x,y,s:1,lean,feet,hands,kneeOut:[1,1],face: t<PULL[1]?'back':'front', expr:'focus', look:-0.4};
+    if(t<PULL[0]+0.3) feet=[[-30,60],[32,78]];
+    else if(t<PULL[1]){ const v=smooth(seg(t,PULL[0]+0.3,PULL[1])); feet=[[lerp(-30,-18,v),lerp(60,PIL.top-y,v)-Math.sin(v*Math.PI)*20],[lerp(32,20,v),lerp(78,PIL.top-y,v)]]; }
+    else feet=[[-16,PIL.top-y],[20,PIL.top-y]];
+    return {x,y,s:1,lean,feet,hands,kneeOut:[-1,1],face: t<PULL[1]?'back':'front', expr:'focus', look:-0.4};
   }
   return heroState(t);
 }
@@ -360,6 +379,58 @@ function drawCrowd(t){
   shadowOff();
 }
 
+// ---------------- holds, crumbling hold, falling grit ----------------
+const BROKEN_K = limbHold(climbHip(SLIP-0.001),0,true).k;
+function holdShape(h){ // chunky irregular rock lump with a flattish top
+  const R=rng(h.seed), pts=[], n=8;
+  for(let j=0;j<n;j++){ const a=j/n*Math.PI*2+R()*0.3; const rr=0.72+R()*0.4; let py=Math.sin(a)*h.th*0.5*rr; if(py<0) py*=0.55;
+    pts.push([h.x+Math.cos(a)*h.w*0.5*rr, h.y+py]); }
+  return pts.map(([px,py])=>{ const dx=px-h.x, dy=py-h.y; return [h.x+dx*Math.cos(h.tilt)-dy*Math.sin(h.tilt), h.y+dx*Math.sin(h.tilt)+dy*Math.cos(h.tilt)]; });
+}
+function paintRockPoly(pts,cx,cy,sz,lit=1){
+  ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
+  const g=ctx.createLinearGradient(cx,cy-sz*0.6,cx,cy+sz*0.7); g.addColorStop(0,`rgb(${128*lit|0},${124*lit|0},${114*lit|0})`); g.addColorStop(0.4,'#585c5f'); g.addColorStop(1,'#25282c');
+  ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle='#141518'; ctx.lineWidth=2.2; ctx.stroke();
+}
+function drawHolds(t){
+  // small knobs and ledges across the face
+  for(const kb of KNOBS){ ctx.fillStyle='rgba(12,14,18,0.45)'; ctx.beginPath(); ctx.ellipse(kb.x+3,kb.y+kb.h*0.9,kb.w*0.55,kb.h*0.5,0,0,7); ctx.fill();
+    ctx.fillStyle='rgba(150,146,134,0.55)'; ctx.beginPath(); ctx.ellipse(kb.x,kb.y,kb.w*0.5,kb.h*0.45,0,Math.PI,0); ctx.fill();
+    ctx.strokeStyle='rgba(15,16,20,0.6)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(kb.x-kb.w*0.5,kb.y); ctx.lineTo(kb.x+kb.w*0.5,kb.y); ctx.stroke(); }
+  for(const h of HOLDS){
+    if(h.y<PIL.top+30) continue;
+    if(h.k===BROKEN_K && t>=SLIP) { ctx.fillStyle='rgba(10,12,16,0.55)'; ctx.beginPath(); ctx.ellipse(h.x,h.y,h.w*0.35,h.th*0.25,h.tilt,0,7); ctx.fill(); continue; } // scar
+    const pts=holdShape(h);
+    ctx.fillStyle='rgba(8,10,14,0.5)'; ctx.beginPath(); ctx.ellipse(h.x+6,h.y+h.th*0.75,h.w*0.5,h.th*0.4,h.tilt,0,7); ctx.fill();   // cast shadow on the wall
+    shadowOn(5,3,0.45); paintRockPoly(pts,h.x,h.y,h.th); shadowOff();
+    // lit top surface + chipped edge
+    ctx.save(); ctx.translate(h.x,h.y); ctx.rotate(h.tilt);
+    ctx.fillStyle='rgba(190,176,148,0.45)'; ctx.beginPath(); ctx.moveTo(-h.w*0.32,-h.th*0.2); ctx.lineTo(-h.w*0.1,-h.th*0.3); ctx.lineTo(h.w*0.3,-h.th*0.22); ctx.lineTo(h.w*0.22,-h.th*0.08); ctx.lineTo(-h.w*0.28,-h.th*0.06); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(255,220,160,0.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(-h.w*0.28,-h.th*0.06); ctx.lineTo(h.w*0.22,-h.th*0.08); ctx.stroke();
+    ctx.strokeStyle='rgba(15,16,20,0.7)'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(-h.w*0.15,0); ctx.lineTo(-h.w*0.05,h.th*0.35); ctx.moveTo(h.w*0.2,h.th*0.05); ctx.lineTo(h.w*0.28,h.th*0.3); ctx.stroke();
+    ctx.restore();
+  }
+  // the hold that snaps under his foot: three chunks tumble away
+  if(t>=SLIP && t<SLIP+2.2){ const h=HOLDS[BROKEN_K], tt=t-SLIP;
+    for(let c=0;c<3;c++){ const vx=(c-1)*90, vy=-120+c*50, x=h.x+(c-1)*h.w*0.3+vx*tt, y=h.y+vy*tt+0.5*2600*tt*tt; const sz=h.th*(0.9-c*0.15);
+      ctx.save(); ctx.translate(x,y); ctx.rotate(tt*(4+c*3)*(c%2?-1:1)); paintRockPoly([[-sz,-sz*0.5],[-sz*0.2,-sz*0.8],[sz*0.9,-sz*0.3],[sz*0.7,sz*0.6],[-sz*0.6,sz*0.5]],0,0,sz); ctx.restore(); } }
+}
+// every time a hand or foot lands on a new hold, a few grains break off and fall
+const EVENTS=[]; { const last=[{},{}]; for(let t=FF;t<EDGE_T;t+=1/120){ const hip=climbHip(t);
+  for(const isFoot of [false,true]) for(let i=0;i<2;i++){ const {k}=limbHold(hip,i,isFoot); const key=(isFoot?'f':'h')+i; if(last[0][key]!=null && k!==last[0][key] && k>=0 && k<HOLDS.length) EVENTS.push({t, k, foot:isFoot}); last[0][key]=k; } }
+  EVENTS.push({t:SLIP, k:BROKEN_K, foot:true, big:true}); }
+window.EVENTS=EVENTS;
+const GRAINS=[]; { const R=rng(4242); for(const e of EVENTS){ const n=e.big?26:(e.foot?8:5); const h=HOLDS[e.k];
+  for(let j=0;j<n;j++) GRAINS.push({t0:e.t+R()*0.08, x:h.x+(R()-0.5)*h.w*0.9, y:h.y+h.th*(0.1+R()*0.3), vx:(R()-0.6)*(e.big?160:70), vy:-R()*60, s:(e.big?2.5:1.6)+R()*(e.big?6:3.2), life:1.0+R()*0.9}); } }
+function drawGrit(t){
+  for(const g of GRAINS){ const tt=t-g.t0; if(tt<0||tt>g.life) continue;
+    const x=g.x+g.vx*tt, y=g.y+g.vy*tt+0.5*2200*tt*tt; const a=1-seg(tt,g.life*0.7,g.life);
+    ctx.globalAlpha=a; ctx.fillStyle='#8b8a84'; ctx.strokeStyle='#17181b'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x-g.s,y); ctx.lineTo(x,y-g.s*0.8); ctx.lineTo(x+g.s,y+g.s*0.2); ctx.lineTo(x,y+g.s*0.8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  ctx.globalAlpha=1;
+  for(const e of EVENTS){ const tt=t-e.t; if(tt<0||tt>0.7) continue; const h=HOLDS[e.k]; const r=(e.big?26:12)+tt*(e.big?90:40), a=(e.big?0.5:0.3)*(1-tt/0.7);
+    const rg=ctx.createRadialGradient(h.x,h.y+h.th,1,h.x,h.y+h.th,r); rg.addColorStop(0,`rgba(190,170,140,${a})`); rg.addColorStop(1,'rgba(190,170,140,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(h.x,h.y+h.th+tt*30,r,0,7); ctx.fill(); }
+}
+
 // ---------------- scene pieces ----------------
 function drawFlag(t){
   ctx.save(); shadowOn(6,3,0.5);
@@ -379,12 +450,12 @@ function drawFlag(t){
 function drawPillarLabels(){
   ctx.save(); ctx.textBaseline='middle';
   for(const [a,b,y] of LABELS){
-    const size=29; ctx.font=`700 ${size}px ${FONT}`; ctx.letterSpacing=`${Math.round(size*0.16)}px`;
-    ctx.strokeStyle='rgba(243,234,216,0.75)'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PIL.x0+4,y); ctx.lineTo(PIL.x0+26,y); ctx.stroke();
+    const size=28; ctx.font=`700 ${size}px ${FONT}`; ctx.letterSpacing=`${Math.round(size*0.16)}px`;
+    
     const lines=b?[a,b]:[a]; const y0=y-(lines.length-1)*size*0.6;
-    lines.forEach((ln,i)=>{ ctx.shadowColor='rgba(0,0,0,0.8)'; ctx.shadowBlur=8; ctx.fillStyle=C.cream; ctx.fillText(ln,PIL.x0+36,y0+i*size*1.2); });
+    lines.forEach((ln,i)=>{ ctx.shadowColor='rgba(0,0,0,0.8)'; ctx.shadowBlur=8; ctx.fillStyle=C.cream; ctx.fillText(ln,LBLX,y0+i*size*1.2); });
     shadowOff();
-    const w=ctx.measureText(lines[0]).width; ctx.fillStyle=C.red; ctx.fillRect(PIL.x0+36,y0+(lines.length-1)*size*1.2+size*0.72,Math.min(60,w*0.4),4);
+    const w=ctx.measureText(lines[0]).width; ctx.fillStyle=C.red; ctx.fillRect(LBLX,y0+(lines.length-1)*size*1.2+size*0.72,Math.min(60,w*0.4),4);
   }
   ctx.restore();
 }
@@ -403,7 +474,7 @@ function drawDust(t){
       const rg=ctx.createRadialGradient(x-r*0.3,y-r*0.3,2,x,y,r); rg.addColorStop(0,`rgba(196,168,128,${a})`); rg.addColorStop(1,'rgba(150,120,90,0)');
       ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); }
   }
-  if(t>SLIP && t<SLIP+1.6){ for(const p of PEB){ const tt=t-SLIP-p.d; if(tt<0) continue; const x=PIL.x0-6+p.dx+p.vx*tt, y=climbHip(SLIP)+70+0.5*2400*tt*tt; ctx.fillStyle='#6b7074'; ctx.strokeStyle=C.out; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(x,y,p.s,0,7); ctx.fill(); ctx.stroke(); } }
+  if(false){ for(const p of PEB){ const tt=t-SLIP-p.d; if(tt<0) continue; const x=PIL.x0-6+p.dx+p.vx*tt, y=climbHip(SLIP)+70+0.5*2400*tt*tt; ctx.fillStyle='#6b7074'; ctx.strokeStyle=C.out; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(x,y,p.s,0,7); ctx.fill(); ctx.stroke(); } }
 }
 function drawRockShadow(t){ // the boulder's shadow growing over the crowd
   if(t<THROW[1]||t>IMPACT+0.05) return;
@@ -418,18 +489,19 @@ function drawRockShadow(t){ // the boulder's shadow growing over the crowd
 function camAt(t){
   const [t0,name]=shotAt(t); const u=t-t0;
   let z=1,cx=540,cy=960;
-  if(name==='ff'){ z=lerp(1.32,1.38,u/FF); cx=540; cy=690; }
-  else if(name==='wide1'){ z=lerp(1.15,1.2,(t-FF)/(2.6-FF)); cx=520; cy=lerp(1000,1020,(t-FF)/1.8); }
+  if(name==='crowd0'){ z=lerp(2.9,2.6,easeOut(u/FF)); cx=lerp(200,170,u/FF); cy=1110; }
+  else if(name==='detail'){ z=2.4; cx=770; cy=climbHip(t)+10; }
+  else if(name==='wide1'){ z=lerp(1.15,1.2,(t-FF)/(2.6-FF)); cx=530; cy=lerp(1000,1020,(t-FF)/1.8); }
   else if(name==='crowd1'){ z=lerp(2.55,2.75,u/1.6); cx=lerp(150,170,u/1.6); cy=1100; }
   else if(name==='climb'){ z=2.05; cx=775; cy=climbHip(t)-110; }
   else if(name==='summit1'){ z=lerp(1.9,1.8,u/2); cx=lerp(790,810,u/2); cy=lerp(560,520,smooth(u/2)); }
-  else if(name==='wide2'){ z=lerp(1.15,1.19,u/1.5); cx=520; cy=1000; }
+  else if(name==='wide2'){ z=lerp(1.15,1.19,u/1.5); cx=530; cy=1000; }
   else if(name==='crowd2'){ z=lerp(2.6,2.75,u); cx=160; cy=1100; }
   else if(name==='summit2'){ z=1.75; cx=lerp(830,850,u/1.3); cy=lerp(480,460,u/1.3); }
   else if(name==='crowd3'){ z=lerp(2.3,2.45,seg(t,t0,IMPACT)); cx=lerp(190,200,u); cy=lerp(1060,1080,u); }
   else if(name==='wide3'){ z=lerp(1.12,1.18,smooth(u/2.8)); cx=lerp(510,500,u/2.8); cy=lerp(1000,1010,u/2.8); }
   let amp=0;
-  for(const [ta,a,d] of [[SLIP,9,0.3],[IMPACT,30,0.8],[FF,6,0.2]]){ if(t>=ta) amp+=a*Math.exp(-(t-ta)/d*3)*(t-ta<d*2?1:0); }
+  for(const [ta,a,d] of [[SLIP,14,0.35],[IMPACT,30,0.8]]){ if(t>=ta) amp+=a*Math.exp(-(t-ta)/d*3)*(t-ta<d*2?1:0); }
   const sx=amp*(Math.sin(t*73)+0.5*Math.sin(t*131)), sy=amp*(Math.cos(t*67)+0.5*Math.sin(t*119));
   return {z,cx,cy,sx,sy,name};
 }
@@ -454,7 +526,7 @@ function drawText(t){
   const red='#ff4a4f';
   if(t<2.6){ const out=1-seg(t,2.45,2.6);
     plate(230,300,0.55*out);
-    bigText([['THEY LAUGHED',C.cream,seg(t,0,0.01)+1],['AT HIS DREAM.',C.gold,seg(t,FF,FF+0.18)]],340,96,out,110); }
+    bigText([['THEY LAUGHED',C.cream,seg(t,0,0.01)+1],['AT HIS DREAM.',C.gold,seg(t,0.4,0.58)]],340,96,out,110); }
   if(t>NOW_T && t<11.9){ const a=seg(t,NOW_T,NOW_T+0.12)*(1-seg(t,11.75,11.9));
     plate(250,220,0.5*a); bigText([['NOW',C.cream,seg(t,NOW_T,NOW_T+0.18)],['THEY CLAP.',C.gold,seg(t,NOW_T+0.2,NOW_T+0.38)]],340,104,a,116); }
   if(t>END_T){ const a=seg(t,END_T,END_T+0.2);
@@ -465,7 +537,7 @@ function drawText(t){
 // ---------------- frame ----------------
 function renderAt(t){
   // the hook is a flash-forward to the boulder held overhead
-  const st = t<FF ? lerp(12.7,12.92,t/FF) : t;
+  const st = t;
   ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; shadowOff(); ctx.globalCompositeOperation='source-over';
   const cam=camAt(t);
   // sky in screen space with mild parallax
@@ -479,6 +551,7 @@ function renderAt(t){
   { const mg=ctx.createLinearGradient(0,1300,0,2300); mg.addColorStop(0,'rgba(60,120,130,0)'); mg.addColorStop(0.5,'rgba(60,120,130,0.22)'); mg.addColorStop(1,'rgba(20,40,50,0.6)'); ctx.fillStyle=mg; ctx.fillRect(-600,1300,2400,1100); }
   ctx.drawImage(ROCK,RX0,RY0,RW,RH);
   drawFlag(st);
+  drawHolds(st);
   drawPillarLabels();
   // shadows under feet on the ledge
   drawRockShadow(st);
@@ -488,10 +561,11 @@ function renderAt(t){
   const heroFirst = !(st>=LIFT[0] && st<THROW[1]+0.05) ;
   if(heroFirst){ drawFig(hero); drawBoulder(st); } else { drawBoulder(st); drawFig(hero); }
   shadowOff();
+  drawGrit(st);
   drawDust(st);
   ctx.restore();
   // impact + cut flashes
-  { let f=0; if(t>=IMPACT) f=Math.max(f,0.55*Math.exp(-(t-IMPACT)*9)); if(t>=FF&&t<FF+0.3) f=Math.max(f,0.35*Math.exp(-(t-FF)*14)); if(f>0.01){ ctx.fillStyle=`rgba(255,236,190,${f})`; ctx.fillRect(0,0,W,H);} }
+  { let f=0; if(t>=IMPACT) f=Math.max(f,0.55*Math.exp(-(t-IMPACT)*9)); if(f>0.01){ ctx.fillStyle=`rgba(255,236,190,${f})`; ctx.fillRect(0,0,W,H);} }
   ctx.globalCompositeOperation='soft-light'; ctx.fillStyle='rgba(20,90,100,0.28)'; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation='source-over';
   ctx.globalCompositeOperation='multiply'; ctx.globalAlpha=0.22; ctx.drawImage(GRAIN,0,0,W,H);
   ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;

@@ -1,6 +1,6 @@
 """Action-synced SFX bed for the They Laughed reel (no music: Teja adds a trending song).
 Usage: python3 sfx.py out.wav   Times mirror the timeline constants in scene.html."""
-import subprocess, sys
+import json, subprocess, sys
 import numpy as np
 
 SR = 48000; DUR = 17.5
@@ -33,17 +33,14 @@ def put(n, t, g=1.0, pan=0.0, fade_in=0.0, fade_out=0.0, length=None, start=0.0)
 # summit wind under everything
 for t0 in (0.0, 5.6, 11.2):
     put('wind', t0, 0.12, 0.0, fade_in=0.6, fade_out=0.6)
-# hook: boulder strain, then the cut into the laughing crowd
-put('lift', 0.0, 0.45, 0.2, length=0.8, fade_out=0.2)
-put('thud', FF, 0.6)
-put('laugh2', FF, 0.75, -0.3, fade_out=0.4)
-put('laugh', 2.6, 0.95, -0.1, fade_out=0.6)            # crowd close-up
-put('laugh2', 3.9, 0.35, -0.4, length=1.0, fade_out=0.5)
-# climbing grips (one per hand move, ~0.41 s)
-t = 4.25
-while t < EDGE_T:
-    if not (SLIP - 0.05 < t < SLIP + 0.9): put('grip', t, 0.45, 0.25)
-    t += 0.41
+# hook: the crowd close-up is already laughing on frame 0
+put('laugh2', 0.0, 0.95, -0.1, fade_out=0.3)
+put('laugh', 1.6, 0.5, -0.4, fade_out=0.8)
+# every hand/foot landing on a hold (events exported by `node render.js events events.json`): grip scrape + grit
+for e in json.load(open(sys.argv[2] if len(sys.argv) > 2 else 'events.json')):
+    if e.get('big') or e['t'] < 2.0: continue
+    put('grip', e['t'] - 0.02, 0.5 if e['foot'] else 0.4, 0.2)
+    if e['foot']: put('pebbles', e['t'], 0.18, 0.2, length=0.45, fade_out=0.25)
 # slip rehook: pebbles, a gasp from him, the crowd laughs harder
 put('pebbles', SLIP, 0.9, 0.2); put('thud', SLIP + 0.1, 0.35, 0.2)
 put('laugh2', SLIP + 0.2, 0.9, -0.2, start=0.3, length=1.0, fade_out=0.4)

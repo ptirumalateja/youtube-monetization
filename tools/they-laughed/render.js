@@ -67,5 +67,6 @@ async function video(out, fps = 30, workers = 3) {
 }
 
 const [mode, a, ...rest] = process.argv.slice(2);
-if (mode === 'stills') stills(a, rest);
+if (mode === 'events') (async () => { const b = await chromium.launch(); const p = await openPage(b); fs.writeFileSync(a, JSON.stringify(await p.evaluate(() => window.EVENTS))); await b.close(); })();
+else if (mode === 'stills') stills(a, rest);
 else video(a, parseInt(rest[0] || '30'), parseInt(rest[1] || '3'));
