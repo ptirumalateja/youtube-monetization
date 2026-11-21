@@ -8,6 +8,8 @@ html,body{margin:0;background:#000}canvas{display:block}</style>
 // "BY THE NUMBERS" engine: sunset synthwave city, camera fly-through transitions, glowing count-ups.
 // Content lives in window.REEL (set by reel-*.js). renderAt(t) draws one frame deterministically.
 const C=document.getElementById('c'),X=C.getContext('2d'),W=1080,H=1920;
+const OVERLAY=new URLSearchParams(location.search).get('overlay')==='1'; // text/panels only, transparent, over real footage
+const CHIPY=OVERLAY?1068:1150;
 function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)), lerp=(a,b,k)=>a+(b-a)*k;
 const eo=k=>1-Math.pow(1-cl(k),3), eio=k=>{k=cl(k);return k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2};
@@ -154,7 +156,7 @@ function statScene(s,t,i,total){ // t local seconds
   s.cap.forEach((ln,k)=>{const ap=s.instant?1:eo((t-landT-0.05-k*0.12)/.25);X.save();X.globalAlpha=A*ap;X.translate(0,(1-ap)*30);
     const fs=fitFont(ln,'800',56,800);txt(ln,540,822+k*68,`800 ${fs}px Inter, NotoTe`,'#ffffff',{stroke:'#2a0a50',sw:10});X.restore();});
   // chip (extra punch)
-  if(s.chip){const cp=back((t-landT-0.75)/.3);if(cp>0){X.save();X.globalAlpha=A*cl(cp);X.translate(540,1150);X.scale(cp,cp);pill(s.chip,0,0,'#ffe066','#3b0d6b',40);X.restore();}}
+  if(s.chip){const cp=back((t-landT-0.75)/.3);if(cp>0){X.save();X.globalAlpha=A*cl(cp);X.translate(540,CHIPY);X.scale(cp,cp);pill(s.chip,0,0,'#ffe066','#3b0d6b',40);X.restore();}}
 }
 function versusScene(s,t){
   const D=s.dur,out=cl((t-(D-0.16))/0.16),A=eo(t/.14)*(1-out);
@@ -259,6 +261,8 @@ window.renderAt=function(t){
   for(const s of TL){if(s.t0>0){const d=t-s.t0;if(d>-0.3&&d<0.5)zoom+=0.08*Math.sin(cl((d+0.3)/0.8)*Math.PI)}}
   {const cur=TL.find(s=>t>=s.t0&&t<s.t0+s.dur)||TL[TL.length-1];zoom*=1+0.05*cl((t-cur.t0)/cur.dur);}
   X.setTransform(1,0,0,1,0,0);
+  if(OVERLAY){X.clearRect(0,0,W,H);const g=X.createLinearGradient(0,0,0,700);g.addColorStop(0,'rgba(10,6,30,.45)');g.addColorStop(1,'rgba(10,6,30,0)');X.fillStyle=g;X.fillRect(0,0,W,700);}
+  else{
   X.save();X.translate(540+Math.sin(t*.7)*10,1300+Math.sin(t*.9)*8);X.scale(zoom,zoom);X.translate(-540,-1300);
   const NIGHT=!(REEL.theme&&REEL.theme.night===false);
   if(NIGHT){skyN(t);sunN(t);cityN(FAR,40,t,HZ,['#3a1a6e','#4a1d72'],['rgba(255,227,138,.5)','rgba(127,243,255,.5)'],1,false);hazeN();
@@ -277,6 +281,7 @@ window.renderAt=function(t){
   ev.forEach(([base,o,k,side,sp],j)=>flyObj(k,(t-(base+o))/0.7,side,j,sp));
   TL.forEach((s,i)=>{if(i>0)wipePalm((t-s.t0+0.22)/0.44,i%2?1:-1,i)});
   if(NIGHT)postN(t);
+  }
   // scene content
   let idx=TL.findIndex(s=>t>=s.t0&&t<s.t0+s.dur);if(idx<0)idx=TL.length-1;const s=TL[idx],lt=t-s.t0;
   const stats=TL.filter(s=>s.type!=='cta'&&s.type!=='title');const si=s.type==='title'?-2:stats.indexOf(s);
@@ -284,7 +289,7 @@ window.renderAt=function(t){
   if(s.type==='stat')statScene(s,lt,idx,TL.length);else if(s.type==='vs')versusScene(s,lt);else if(s.type==='title')titleScene(s,lt);else ctaScene(s,lt);
   // hook line above everything on the first scene
   if(idx===0&&window.REEL.hookTop){X.save();txt(window.REEL.hookTop,540,1260,'900 italic 64px Inter, NotoTe','#fff',{stroke:'#3b0d6b',sw:14,glow:'#ff4fa0',gb:30});X.restore();}
-  return C.toDataURL('image/jpeg',0.92);
+  return OVERLAY?C.toDataURL('image/png'):C.toDataURL('image/jpeg',0.92);
 };
 </script>
 <script>document.write('<script src="'+(new URLSearchParams(location.search).get('reel')||'reel.js')+'"><\/script>')</script>
