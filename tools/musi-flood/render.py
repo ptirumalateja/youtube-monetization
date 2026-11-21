@@ -47,6 +47,45 @@ CAPS = [(0, "ఒకే రాత్రి…"), (2, "15,000 మందికి �
         (66, "కానీ అసలు విషయం ఏంటంటే…"), (70, "ఈ వరద తర్వాతే"), (73, "నిజాం విశ్వేశ్వరయ్యను పిలిపించారు."),
         (76, "మళ్లీ ఇలా జరగకూడదని కట్టినవే…"), (80, "ఉస్మాన్ సాగర్, హిమాయత్ సాగర్."), (84, "అంటే ఈరోజు హైదరాబాద్ తాగే నీళ్లు…"),
         (89, "ఆ ఒక్క రాత్రి నేర్పిన పాఠం."), (94, "ఇలాంటి మరిన్ని విషయాల కోసం…"), (98, "'విషయం ఏంటంటే' ని సబ్‌స్క్రైబ్ చేయండి.")]
+# per-image camera move: (zoom start, zoom end, focus start (x,y), focus end (x,y)); focus in 0-1 of the image
+MOVES = {
+    "11": (1.25, 1.12, (.50, .30), (.55, .58)),   # tilt down from the sky onto the crowd
+    "02": (1.05, 1.35, (.40, .45), (.55, .38)),   # push into the gripping hands
+    "03": (1.30, 1.15, (.50, .75), (.50, .38)),   # tilt up the street to Charminar
+    "04": (1.35, 1.05, (.65, .65), (.50, .50)),   # pull out from the family
+    "05": (1.30, 1.25, (.55, .28), (.50, .70)),   # pan down: lightning -> river
+    "07": (1.05, 1.30, (.45, .50), (.68, .55)),   # diagonal push toward the fleeing people
+    "08": (1.30, 1.30, (.30, .55), (.70, .55)),   # side pan across the broken bridge
+    "06": (1.30, 1.20, (.50, .78), (.50, .40)),   # tilt up from the torches to the bridge
+    "09": (1.05, 1.35, (.50, .55), (.72, .30)),   # push toward Charminar
+    "10": (1.30, 1.15, (.30, .70), (.55, .55)),   # rising diagonal toward the child
+    "12": (1.30, 1.18, (.50, .78), (.50, .35)),   # tilt up the trunk
+    "13": (1.40, 1.05, (.45, .62), (.50, .50)),   # pull out from the trunk to reveal the hospital
+    "14": (1.05, 1.35, (.50, .50), (.48, .62)),   # push into the plaque
+    "15": (1.10, 1.35, (.35, .40), (.60, .62)),   # push onto the map
+    "16": (1.30, 1.22, (.45, .25), (.50, .72)),   # pan down along the dam works
+    "17": (1.30, 1.15, (.70, .70), (.40, .35)),   # diagonal glide along the dam
+    "18": (1.05, 1.30, (.50, .40), (.52, .72)),   # push down to the glass
+    "19": (1.30, 1.30, (.70, .55), (.30, .55)),   # side pan across the skyline
+    "20": (1.30, 1.00, (.40, .60), (.50, .50)),   # slow pull out at the end
+}
+
+
+def ease(u):
+    return u * u * (3 - 2 * u)
+
+
+def move_frame(src, u, mv):
+    z0, z1, (x0, y0), (x1, y1) = mv
+    e = ease(u)
+    z = z0 + (z1 - z0) * e
+    tw, th = src.size
+    cw, ch = tw / (1.16 * z), th / (1.16 * z)
+    cx = min(max(tw * (x0 + (x1 - x0) * e), cw / 2), tw - cw / 2)
+    cy = min(max(th * (y0 + (y1 - y0) * e), ch / 2), th - ch / 2)
+    return src.transform((W, H), Image.EXTENT, (cx - cw / 2, cy - ch / 2, cx + cw / 2, cy + ch / 2), Image.BICUBIC)
+
+
 LEAD = 0.06
 starts = [0.0] + [tok[s[0]] - LEAD for s in SHOTS[1:]]
 cst = [0.0] + [tok[c[0]] - LEAD for c in CAPS[1:]]
@@ -83,7 +122,7 @@ def shot_img(k, t):
     end = starts[k + 1] if k + 1 < len(SHOTS) else TOTAL
     u = min(1, max(0, (t - a) / (end + XF - a)))
     if isinstance(m, str):
-        return kb.kb_frame(G["src"][m], u, k)
+        return move_frame(G["src"][m], u, MOVES.get(m, (1.0, 1.13, (.5, .5), (.5, .5))))
     name, s0 = m
     im = clip_frame(name, s0 + max(0, t - starts[k]))
     z = 1.2 + 0.06 * u
