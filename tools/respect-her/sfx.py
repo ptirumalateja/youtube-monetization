@@ -89,6 +89,7 @@ put('whoosh', 20.45, 0.45, -0.1); put('thud', 21.0, 0.35, -0.2)        # climbs 
 put('glint', 21.7, 0.4, -0.2)                                          # gives the diamond
 put('shatter', 24.25, 1.0, -0.3); put('boom', 24.25, 0.6, -0.3)
 put('chime', 25.2, 0.35)
+for st in (9.15, 18.85, 25.0): put('thud', st + 0.05, 0.4); put('boom', st + 0.05, 0.25)
 
 pk = np.abs(out).max(); out *= 0.89 / pk
 p = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'f32le', '-ar', str(SR), '-ac', '2', '-i', '-', sys.argv[1]], input=out.astype(np.float32).tobytes())
