@@ -25,8 +25,8 @@ const C = { skin:'#f7eedc', skinSh:'#c9b99c', skinHi:'#ffffff', out:'#1d1b1d', i
   gold:'#ffc23d', red:'#e0353a', cream:'#f3ead8', glow:'rgba(255,196,90,0.45)' };
 
 // ---------------- world layout ----------------
-const PIL = {x0:640, x1:1090, top:600};          // climbed straight up its front face
-const ROUTE = 702, LBLX = 800;          // SUCCESS pillar (climbed on its left face)
+const PIL = {x0:700, x1:1090, top:600};          // climbed side-on up its left edge (like the ref)
+const LBLX = 736;          // SUCCESS pillar (climbed on its left face)
 const CLF = {x0:-400, x1:380, top:1265};         // crowd ledge
 const FLAG = {x:868, y:PIL.top};
 const ROCK0 = {x:965, y:PIL.top-74, r:78};       // the boulder resting on the summit
@@ -202,6 +202,30 @@ function drawFig(f){
     ctx.restore(); }
   ctx.restore();
 }
+function drawProfile(f){
+  ctx.save(); ctx.translate(f.x,f.y); ctx.scale(f.s||1,f.s||1);
+  const near={skin:C.skin,sh:C.skinSh,hi:C.skinHi,out:C.out}, far={skin:mixHex(C.skin,'#3a4650',0.45),sh:mixHex(C.skinSh,'#3a4650',0.45),hi:mixHex(C.skinHi,'#3a4650',0.45),out:C.out};
+  const lean=f.lean||0;
+  const nk=[Math.sin(lean)*TORSO, -Math.cos(lean)*TORSO];
+  const shp=[nk[0]-Math.sin(lean)*6, nk[1]+Math.cos(lean)*6];
+  const leg=(i,pal)=>{ const [k,ft]=ik(0,0,f.feet[i][0],f.feet[i][1],50,50,-1); paintLimb([[0,0],k,ft],LIMB+0.5,pal);
+    ctx.fillStyle=pal.sh; ctx.strokeStyle=pal.out; ctx.lineWidth=2.2; ctx.beginPath(); ctx.ellipse(ft[0]+4,ft[1]+2,9,4.5,0,0,7); ctx.fill(); ctx.stroke(); };
+  const arm=(i,pal)=>{ const [e,h]=ik(shp[0],shp[1],f.hands[i][0],f.hands[i][1],48,48,1); paintLimb([shp,e,h],LIMB-1.5,pal);
+    ctx.fillStyle=pal.skin; ctx.strokeStyle=pal.out; ctx.lineWidth=2.4; ctx.beginPath(); ctx.arc(h[0],h[1],6.2,0,7); ctx.fill(); ctx.stroke(); };
+  arm(1,far); leg(1,far);
+  ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=24;
+  { const mid=[nk[0]*0.5-Math.cos(lean)*4, nk[1]*0.5-Math.sin(lean)*4]; paintLimb([[0,-2],mid,nk],LIMB+9,near); }
+  const ht=(f.headBack!=null?f.headBack:0.5); const hc=[nk[0]+Math.sin(lean-ht)*(HEADR+3), nk[1]-Math.cos(lean-ht)*(HEADR+3)];
+  ctx.fillStyle=C.out; ctx.beginPath(); ctx.arc(hc[0],hc[1],HEADR+2.6,0,7); ctx.fill(); shadowOff();
+  const hg=ctx.createRadialGradient(hc[0]-HEADR*0.38,hc[1]-HEADR*0.42,2,hc[0],hc[1],HEADR*1.05); hg.addColorStop(0,C.skinHi); hg.addColorStop(0.55,C.skin); hg.addColorStop(1,C.skinSh);
+  ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(hc[0],hc[1],HEADR,0,7); ctx.fill();
+  // profile face: one eye and a brow toward the wall, looking up
+  ctx.fillStyle=C.ink; ctx.beginPath(); ctx.ellipse(hc[0]+17,hc[1]-6+(f.look||0)*4,3.4,4.4,0,0,7); ctx.fill();
+  ctx.strokeStyle=C.ink; ctx.lineWidth=3; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(hc[0]+9,hc[1]-16); ctx.lineTo(hc[0]+23,hc[1]-13); ctx.stroke();
+  ctx.lineWidth=2.6; ctx.beginPath(); ctx.moveTo(hc[0]+12,hc[1]+12); ctx.lineTo(hc[0]+22,hc[1]+10); ctx.stroke();
+  ctx.shadowColor='rgba(255,205,110,0.7)'; ctx.shadowBlur=20; leg(0,near); arm(0,near); shadowOff();
+  ctx.restore();
+}
 function drawStar(x,y,r,col){ctx.fillStyle=col; ctx.beginPath(); for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5, rr2=k%2?r*0.45:r; ctx.lineTo(x+Math.cos(a)*rr2,y+Math.sin(a)*rr2);} ctx.closePath(); ctx.fill(); ctx.strokeStyle='#7a5a10'; ctx.lineWidth=1; ctx.stroke();}
 
 // ---------------- climber ----------------
@@ -215,53 +239,56 @@ function climbHip(t){
   if(t>SLIP){ const d= t<SLIP+0.12? 34*easeIn(seg(t,SLIP,SLIP+0.12)) : 34*(1-smooth(seg(t,SLIP+0.45,SLIP+0.9))); y+=d; }
   return y;
 }
-// rock holds jutting out of the pillar's left edge: every 40 px, hands take alternate holds, feet the others
+// rock projections along the pillar's left edge (the ref's scalloped edge): every 40 px a lump he can use,
+// hands take alternate lumps, feet the others; small decorative lumps in between
 const HY0=1300, HSTEP=40;
-const HOLDS=[]; {const R=rng(909); for(let k=0;k<=18;k++){ const side=k%2? 1:-1; HOLDS.push({k, x:ROUTE+side*(38+R()*8), y:HY0-HSTEP*k+(R()-0.5)*8, w:34+R()*22, th:20+R()*10, tilt:(R()-0.5)*0.35, seed:k*13+5}); }}
-// small knobs and cracks elsewhere on the face so the whole wall reads as real rock
-const KNOBS=[]; {const R=rng(919); for(let i=0;i<70;i++){ let x=PIL.x0+20+R()*420; if(Math.abs(x-ROUTE)<80) x-=70; if(x>LBLX-30&&x<LBLX+230) x+=250*(R()<0.5?-1:1)*0+260; KNOBS.push({x, y:PIL.top+40+R()*1300, w:10+R()*30, h:4+R()*8}); }}
-const holdTop=k=>HOLDS[k].y-HOLDS[k].th*0.45;
-const holdX=(k,u)=>HOLDS[k].x;
+const HOLDS=[]; {const R=rng(909); for(let k=0;k<=18;k++){ HOLDS.push({k, x:PIL.x0+4, y:HY0-HSTEP*k+(R()-0.5)*6, w:30+R()*14, th:22+R()*8, tilt:(R()-0.5)*0.25, seed:k*13+5}); }}
+const BUMPS=[]; {const R=rng(929); for(let k=0;k<=18;k++){ if(R()<0.55) BUMPS.push({k:-1, x:PIL.x0+3, y:HY0-HSTEP*k-HSTEP*0.5+(R()-0.5)*8, w:14+R()*12, th:9+R()*7, tilt:(R()-0.5)*0.3, seed:700+k}); }}
+const KNOBS=[]; {const R=rng(919); for(let i=0;i<60;i++){ const x=PIL.x0+30+R()*360, y=PIL.top+40+R()*1300;
+  if(LABELS.some(l=>Math.abs(y-l[2])<48) && x>LBLX-20 && x<LBLX+240) continue; KNOBS.push({x, y, w:10+R()*28, h:4+R()*8}); }}
+const holdTop=k=>HOLDS[k].y-HOLDS[k].th*0.42;
+const holdX=(k,u)=>PIL.x0-HOLDS[k].w*u;
 function limbHold(hip,i,isFoot){
-  const p = i;   // left hand + left foot use the left column, right ones the right column
-  const q = isFoot? (HY0-(hip+22))/HSTEP : (HY0-(hip-128))/HSTEP;
+  const p = isFoot? (i?0:1) : i;
+  const q = isFoot? (HY0-(hip+30))/HSTEP : (HY0-(hip-150))/HSTEP;
   const n=(q-p)/2, k=p+2*Math.floor(n), fr=n-Math.floor(n);
   return {k, fr};
 }
+// climber seen side-on, facing the wall (+x): limb 0 = near side (bright), limb 1 = far side (dimmed)
 function climberState(t){
-  const WX=PIL.x0;
   if(t<EDGE_T){
-    const hip=climbHip(t), x=ROUTE+Math.sin(t*5)*3;
+    const hip=climbHip(t), x=PIL.x0-30+Math.sin(t*4.2)*2;
     const hands=[], feet=[];
-    const slipping = t>SLIP && t<SLIP+0.5;
+    const slipping = t>SLIP && t<SLIP+0.55;
     for(let i=0;i<2;i++){
       const {k,fr}=limbHold(hip,i,false); const kk=clamp(k,0,HOLDS.length-1), kn=clamp(k+2,0,HOLDS.length-1);
       const m=smooth(seg(fr,0.72,1));
-      let wx=lerp(holdX(kk),holdX(kn),m)+(i?1:-1)*Math.sin(m*Math.PI)*14, wy=lerp(holdTop(kk)+4,holdTop(kn)+4,m)-Math.sin(m*Math.PI)*10;
-      if(i===1 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.5)*Math.PI); wx=lerp(wx,x+70,u); wy=lerp(wy,hip-60,u); }
+      let wx=lerp(holdX(kk,0.28),holdX(kn,0.28),m)-Math.sin(m*Math.PI)*22, wy=lerp(holdTop(kk)+3,holdTop(kn)+3,m)-Math.sin(m*Math.PI)*6;
+      if(i===0 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.55)*Math.PI); wx=lerp(wx,x-46,u); wy=lerp(wy,hip-96,u); }
       hands.push([wx-x, wy-hip]);
     }
     for(let i=0;i<2;i++){
       let {k,fr}=limbHold(hip,i,true); if(k===BROKEN_K && t>SLIP) k-=2;
       const kk=clamp(k,0,HOLDS.length-1), kn=clamp(k+2,0,HOLDS.length-1);
       const m=smooth(seg(fr,0.62,1));
-      let wx=lerp(holdX(kk),holdX(kn),m)+(i?1:-1)*Math.sin(m*Math.PI)*12, wy=lerp(holdTop(kk)-6,holdTop(kn)-6,m)-Math.sin(m*Math.PI)*12;
-      if(i===0 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.5)*Math.PI); wx=lerp(wx,x-38,u); wy=lerp(wy,hip+92,u); }
+      let wx=lerp(holdX(kk,0.32),holdX(kn,0.32),m)-Math.sin(m*Math.PI)*26, wy=lerp(holdTop(kk)-5,holdTop(kn)-5,m)-Math.sin(m*Math.PI)*8;
+      if(i===0 && slipping){ const u=Math.sin(seg(t,SLIP,SLIP+0.55)*Math.PI); wx=lerp(wx,x-30,u); wy=lerp(wy,hip+92,u); }
       feet.push([wx-x, wy-hip]);
     }
-    return {x, y:hip, s:1, lean:Math.sin(t*5)*0.04, arch:2, feet, hands, kneeOut:[-1,1], elbowOut:[1,-1], face:'back', footDir:0};
+    return {profile:true, x, y:hip, s:1, lean:-0.08+Math.sin(t*4.2)*0.03, feet, hands, look:-0.6};
   }
-  // edge -> pull-up -> crouch -> stand
-  const K=[[EDGE_T,ROUTE,705,0],[PULL[0],ROUTE,712,0],[PULL[0]+0.3,ROUTE,640,0],[PULL[1],ROUTE+2,552,0.1],[STAND[0],ROUTE,548,0.04],[STAND[1],PIL.x0+60,PIL.top-80,0]];
+  // mantle over the lip (ref): chest over, near knee up, crouch, stand
+  const K=[[EDGE_T,PIL.x0-34,700,-0.12],[PULL[0],PIL.x0-32,708,-0.12],[PULL[0]+0.3,PIL.x0-24,640,-0.02],[PULL[1],PIL.x0+2,604,0.95],[STAND[0],PIL.x0+34,566,0.45],[STAND[1],PIL.x0+60,PIL.top-80,0.02]];
   if(t<STAND[1]){
     const [x,y,lean]=pw(K,t,true);
-    const hands=[[ROUTE-30-x, PIL.top-2-y],[ROUTE+30-x, PIL.top-2-y]];
-    if(t>PULL[0]+0.35){ const v=smooth(seg(t,PULL[0]+0.35,STAND[1])); hands[0]=[lerp(hands[0][0],-26,v),lerp(hands[0][1],-20,v)]; hands[1]=[lerp(hands[1][0],24,v),lerp(hands[1][1],-18,v)]; }
+    let hands=[[PIL.x0+2-x, PIL.top-2-y],[PIL.x0+14-x, PIL.top-2-y]];
+    if(t>PULL[0]+0.3){ const v=smooth(seg(t,PULL[0]+0.3,PULL[1])); hands=[[lerp(hands[0][0],PIL.x0+26-x,v),PIL.top-3-y],[lerp(hands[1][0],PIL.x0+42-x,v),PIL.top-3-y]]; }
+    if(t>PULL[1]){ const v=smooth(seg(t,PULL[1],STAND[1])); hands=[[lerp(hands[0][0],10,v),lerp(hands[0][1],-16,v)],[lerp(hands[1][0],-4,v),lerp(hands[1][1],-14,v)]]; }
     let feet;
-    if(t<PULL[0]+0.3) feet=[[-30,60],[32,78]];
-    else if(t<PULL[1]){ const v=smooth(seg(t,PULL[0]+0.3,PULL[1])); feet=[[lerp(-30,-18,v),lerp(60,PIL.top-y,v)-Math.sin(v*Math.PI)*20],[lerp(32,20,v),lerp(78,PIL.top-y,v)]]; }
-    else feet=[[-16,PIL.top-y],[20,PIL.top-y]];
-    return {x,y,s:1,lean,feet,hands,kneeOut:[-1,1],face: t<PULL[1]?'back':'front', expr:'focus', look:-0.4};
+    if(t<PULL[0]+0.3) feet=[[24,56],[20,94]];
+    else if(t<PULL[1]){ const v=smooth(seg(t,PULL[0]+0.3,PULL[1])); feet=[[lerp(24,PIL.x0+16-x,v),lerp(56,PIL.top-y,v)-Math.sin(v*Math.PI)*30],[lerp(20,-6,v),lerp(94,84,v)]]; }
+    else { const v=smooth(seg(t,PULL[1],STAND[0]+0.1)); feet=[[PIL.x0+28-x, PIL.top-y],[lerp(PIL.x0-8-x,PIL.x0+46-x,v), lerp(PIL.top+70-y,PIL.top-y,v)]]; }
+    return {profile:true, x,y,s:1,lean,feet,hands, look:-0.3};
   }
   return heroState(t);
 }
@@ -387,32 +414,31 @@ function holdShape(h){ // chunky irregular rock lump with a flattish top
     pts.push([h.x+Math.cos(a)*h.w*0.5*rr, h.y+py]); }
   return pts.map(([px,py])=>{ const dx=px-h.x, dy=py-h.y; return [h.x+dx*Math.cos(h.tilt)-dy*Math.sin(h.tilt), h.y+dx*Math.sin(h.tilt)+dy*Math.cos(h.tilt)]; });
 }
-function paintRockPoly(pts,cx,cy,sz,lit=1){
+function paintRockPoly(pts,cx,cy,sz,lit=1,soft=false){
   ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
-  const g=ctx.createLinearGradient(cx,cy-sz*0.6,cx,cy+sz*0.7); g.addColorStop(0,`rgb(${128*lit|0},${124*lit|0},${114*lit|0})`); g.addColorStop(0.4,'#585c5f'); g.addColorStop(1,'#25282c');
-  ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle='#141518'; ctx.lineWidth=2.2; ctx.stroke();
+  const g=ctx.createLinearGradient(cx-sz*0.4,cy-sz*0.6,cx+sz*0.2,cy+sz*0.7); g.addColorStop(0,soft?'#9a9384':'#807c72'); g.addColorStop(0.45,soft?'#5e5d58':'#585c5f'); g.addColorStop(1,'#2a2b2d');
+  ctx.fillStyle=g; ctx.fill(); ctx.strokeStyle=soft?'rgba(18,18,20,0.75)':'#141518'; ctx.lineWidth=soft?1.6:2.2; ctx.stroke();
 }
 function drawHolds(t){
   // small knobs and ledges across the face
   for(const kb of KNOBS){ ctx.fillStyle='rgba(12,14,18,0.45)'; ctx.beginPath(); ctx.ellipse(kb.x+3,kb.y+kb.h*0.9,kb.w*0.55,kb.h*0.5,0,0,7); ctx.fill();
     ctx.fillStyle='rgba(150,146,134,0.55)'; ctx.beginPath(); ctx.ellipse(kb.x,kb.y,kb.w*0.5,kb.h*0.45,0,Math.PI,0); ctx.fill();
     ctx.strokeStyle='rgba(15,16,20,0.6)'; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(kb.x-kb.w*0.5,kb.y); ctx.lineTo(kb.x+kb.w*0.5,kb.y); ctx.stroke(); }
-  for(const h of HOLDS){
+  for(const h of BUMPS.concat(HOLDS)){
     if(h.y<PIL.top+30) continue;
-    if(h.k===BROKEN_K && t>=SLIP) { ctx.fillStyle='rgba(10,12,16,0.55)'; ctx.beginPath(); ctx.ellipse(h.x,h.y,h.w*0.35,h.th*0.25,h.tilt,0,7); ctx.fill(); continue; } // scar
+    if(h.k===BROKEN_K && h.k>=0 && t>=SLIP) { ctx.fillStyle='rgba(10,12,16,0.6)'; ctx.beginPath(); ctx.ellipse(h.x+4,h.y,h.w*0.2,h.th*0.3,0,0,7); ctx.fill(); continue; } // fresh scar
     const pts=holdShape(h);
-    ctx.fillStyle='rgba(8,10,14,0.5)'; ctx.beginPath(); ctx.ellipse(h.x+6,h.y+h.th*0.75,h.w*0.5,h.th*0.4,h.tilt,0,7); ctx.fill();   // cast shadow on the wall
-    shadowOn(5,3,0.45); paintRockPoly(pts,h.x,h.y,h.th); shadowOff();
+    shadowOn(6,4,0.45); paintRockPoly(pts,h.x,h.y,h.th,1,true); shadowOff();
     // lit top surface + chipped edge
     ctx.save(); ctx.translate(h.x,h.y); ctx.rotate(h.tilt);
-    ctx.fillStyle='rgba(190,176,148,0.45)'; ctx.beginPath(); ctx.moveTo(-h.w*0.32,-h.th*0.2); ctx.lineTo(-h.w*0.1,-h.th*0.3); ctx.lineTo(h.w*0.3,-h.th*0.22); ctx.lineTo(h.w*0.22,-h.th*0.08); ctx.lineTo(-h.w*0.28,-h.th*0.06); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(200,186,156,0.35)'; ctx.beginPath(); ctx.moveTo(-h.w*0.32,-h.th*0.2); ctx.lineTo(-h.w*0.1,-h.th*0.3); ctx.lineTo(h.w*0.3,-h.th*0.22); ctx.lineTo(h.w*0.22,-h.th*0.08); ctx.lineTo(-h.w*0.28,-h.th*0.06); ctx.closePath(); ctx.fill();
     ctx.strokeStyle='rgba(255,220,160,0.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(-h.w*0.28,-h.th*0.06); ctx.lineTo(h.w*0.22,-h.th*0.08); ctx.stroke();
     ctx.strokeStyle='rgba(15,16,20,0.7)'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(-h.w*0.15,0); ctx.lineTo(-h.w*0.05,h.th*0.35); ctx.moveTo(h.w*0.2,h.th*0.05); ctx.lineTo(h.w*0.28,h.th*0.3); ctx.stroke();
     ctx.restore();
   }
   // the hold that snaps under his foot: three chunks tumble away
   if(t>=SLIP && t<SLIP+2.2){ const h=HOLDS[BROKEN_K], tt=t-SLIP;
-    for(let c=0;c<3;c++){ const vx=(c-1)*90, vy=-120+c*50, x=h.x+(c-1)*h.w*0.3+vx*tt, y=h.y+vy*tt+0.5*2600*tt*tt; const sz=h.th*(0.9-c*0.15);
+    for(let c=0;c<3;c++){ const vx=-40-c*60, vy=-100+c*50, x=h.x-h.w*(0.15+c*0.15)+vx*tt, y=h.y+vy*tt+0.5*2600*tt*tt; const sz=h.th*(0.9-c*0.15);
       ctx.save(); ctx.translate(x,y); ctx.rotate(tt*(4+c*3)*(c%2?-1:1)); paintRockPoly([[-sz,-sz*0.5],[-sz*0.2,-sz*0.8],[sz*0.9,-sz*0.3],[sz*0.7,sz*0.6],[-sz*0.6,sz*0.5]],0,0,sz); ctx.restore(); } }
 }
 // every time a hand or foot lands on a new hold, a few grains break off and fall
@@ -421,14 +447,14 @@ const EVENTS=[]; { const last=[{},{}]; for(let t=FF;t<EDGE_T;t+=1/120){ const hi
   EVENTS.push({t:SLIP, k:BROKEN_K, foot:true, big:true}); }
 window.EVENTS=EVENTS;
 const GRAINS=[]; { const R=rng(4242); for(const e of EVENTS){ const n=e.big?26:(e.foot?8:5); const h=HOLDS[e.k];
-  for(let j=0;j<n;j++) GRAINS.push({t0:e.t+R()*0.08, x:h.x+(R()-0.5)*h.w*0.9, y:h.y+h.th*(0.1+R()*0.3), vx:(R()-0.6)*(e.big?160:70), vy:-R()*60, s:(e.big?2.5:1.6)+R()*(e.big?6:3.2), life:1.0+R()*0.9}); } }
+  for(let j=0;j<n;j++) GRAINS.push({t0:e.t+R()*0.08, x:h.x-R()*h.w*0.45, y:h.y+h.th*(0.1+R()*0.3), vx:(R()-0.6)*(e.big?160:70), vy:-R()*60, s:(e.big?2.5:1.6)+R()*(e.big?6:3.2), life:1.0+R()*0.9}); } }
 function drawGrit(t){
   for(const g of GRAINS){ const tt=t-g.t0; if(tt<0||tt>g.life) continue;
     const x=g.x+g.vx*tt, y=g.y+g.vy*tt+0.5*2200*tt*tt; const a=1-seg(tt,g.life*0.7,g.life);
     ctx.globalAlpha=a; ctx.fillStyle='#8b8a84'; ctx.strokeStyle='#17181b'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x-g.s,y); ctx.lineTo(x,y-g.s*0.8); ctx.lineTo(x+g.s,y+g.s*0.2); ctx.lineTo(x,y+g.s*0.8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
   ctx.globalAlpha=1;
   for(const e of EVENTS){ const tt=t-e.t; if(tt<0||tt>0.7) continue; const h=HOLDS[e.k]; const r=(e.big?26:12)+tt*(e.big?90:40), a=(e.big?0.5:0.3)*(1-tt/0.7);
-    const rg=ctx.createRadialGradient(h.x,h.y+h.th,1,h.x,h.y+h.th,r); rg.addColorStop(0,`rgba(190,170,140,${a})`); rg.addColorStop(1,'rgba(190,170,140,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(h.x,h.y+h.th+tt*30,r,0,7); ctx.fill(); }
+    const rg=ctx.createRadialGradient(h.x-h.w*0.25,h.y+h.th,1,h.x-h.w*0.25,h.y+h.th,r); rg.addColorStop(0,`rgba(190,170,140,${a})`); rg.addColorStop(1,'rgba(190,170,140,0)'); ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(h.x-h.w*0.25,h.y+h.th+tt*30,r,0,7); ctx.fill(); }
 }
 
 // ---------------- scene pieces ----------------
@@ -450,7 +476,7 @@ function drawFlag(t){
 function drawPillarLabels(){
   ctx.save(); ctx.textBaseline='middle';
   for(const [a,b,y] of LABELS){
-    const size=28; ctx.font=`700 ${size}px ${FONT}`; ctx.letterSpacing=`${Math.round(size*0.16)}px`;
+    const size=28; ctx.strokeStyle='rgba(243,234,216,0.75)'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PIL.x0+8,y); ctx.lineTo(PIL.x0+28,y); ctx.stroke(); ctx.font=`700 ${size}px ${FONT}`; ctx.letterSpacing=`${Math.round(size*0.16)}px`;
     
     const lines=b?[a,b]:[a]; const y0=y-(lines.length-1)*size*0.6;
     lines.forEach((ln,i)=>{ ctx.shadowColor='rgba(0,0,0,0.8)'; ctx.shadowBlur=8; ctx.fillStyle=C.cream; ctx.fillText(ln,LBLX,y0+i*size*1.2); });
@@ -559,7 +585,8 @@ function renderAt(t){
   const hero=climberState(st);
   const r=rockState(st);
   const heroFirst = !(st>=LIFT[0] && st<THROW[1]+0.05) ;
-  if(heroFirst){ drawFig(hero); drawBoulder(st); } else { drawBoulder(st); drawFig(hero); }
+  const dh=f=>f.profile?drawProfile(f):drawFig(f);
+  if(heroFirst){ dh(hero); drawBoulder(st); } else { drawBoulder(st); dh(hero); }
   shadowOff();
   drawGrit(st);
   drawDust(st);
