@@ -271,15 +271,21 @@ function nAt(ta){const k=Math.floor(ta/T);const s=ta-k*T;return k+(s<S?0:ease((s
 // so figure j: x = XS + (n-j)*P ; smashed at j*T+A_HIT ; capped at (j+1)*T+A_HIT
 
 const ov=document.getElementById('ov').getContext('2d');
-function drawTitle(){ov.clearRect(0,0,W,H);
-  ov.textAlign='center';ov.textBaseline='alphabetic';
-  const lines=[[['How ','#ffffff'],['Valued Members','#f4e04d']],[['Of ','#ffffff'],['Society','#f4e04d'],[' Are Made','#ffffff']]];
-  ov.font='800 78px "Inter Display"';
-  let y=392;
+function drawLines(lines,size,y0,gap,alpha){
+  ov.globalAlpha=alpha;ov.font=`800 ${size}px "Inter Display"`;let y=y0;
   for(const ln of lines){let tw=0;for(const [s] of ln)tw+=ov.measureText(s).width;let x=W/2-tw/2;
     for(const [s,c] of ln){ov.textAlign='left';ov.lineJoin='round';ov.lineWidth=12;ov.strokeStyle='rgba(8,8,4,0.85)';ov.strokeText(s,x,y);
       ov.shadowColor='rgba(0,0,0,0.6)';ov.shadowBlur=18;ov.fillStyle=c;ov.fillText(s,x,y);ov.shadowBlur=0;x+=ov.measureText(s).width;}
-    y+=96;}
+    y+=gap;}
+  ov.globalAlpha=1;}
+const CTA0=10.5;
+function drawTitle(t){ov.clearRect(0,0,W,H);ov.textBaseline='alphabetic';
+  const k=Math.max(0,Math.min(1,(t-CTA0)/0.2));
+  if(k<1) drawLines([[['How ','#ffffff'],['Valued Members','#f4e04d']],[['Of ','#ffffff'],['Society','#f4e04d'],[' Are Made','#ffffff']]],78,392,96,1-k);
+  if(k>0){const pop=1+0.12*(1-k);ov.save();ov.translate(W/2,430);ov.scale(pop,pop);ov.translate(-W/2,-430);
+    drawLines([[['Is your ','#ffffff'],['light','#f4e04d']],[['still on?','#ffffff']]],96,400,112,k);
+    drawLines([[['Comment ','#ffffff'],['\u{1F4A1}','#ffffff'],[' if yes','#ffffff']]],50,630,60,k);
+    ov.restore();}
 }
 
 window.renderAt=function(t){
@@ -391,7 +397,7 @@ window.renderAt=function(t){
   grade.uniforms.uT.value=t;
   grade.uniforms.uFlick.value=1.0+0.012*Math.sin(t*37)+(dt<0.08?0.25*(1-dt/0.08):0);
   composer.render();
-  drawTitle();
+  drawTitle(t);
   return true;
 };
 window.ready=true;
