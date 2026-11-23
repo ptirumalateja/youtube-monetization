@@ -1,0 +1,20 @@
+{
+  "duration": 15.0,
+  "fps": 30,
+  "_comment": "Don't Tell Your Dreams. A shot-for-shot restaging (Slow Light Dark look) of the owner's reference reel; every time below was measured frame by frame from that reference (30 fps). The song starts at songOffset. scene.js and overlay.py read this.",
+  "songOffset": 0.14,
+  "shots": [[0.0, "A"], [2.167, "B"], [4.967, "C"], [5.9, "D"], [7.633, "E"], [11.267, "F"]],
+  "A": {"turn0": 0.9, "turn1": 1.5, "knifeIn": 0.6},
+  "B": {"r1Angry": 2.9, "l1Angry": 3.25, "reach0": 3.6, "reach1": 4.0},
+  "C": {"worried": 5.2, "pull0": 5.5},
+  "D": {"lines0": 5.95},
+  "E": {"close": 8.0, "open": 9.47, "absorb0": 8.0, "absorb1": 9.5, "lower0": 9.8, "lower1": 10.5, "push0": 10.5},
+  "F": {"step0": 11.3, "step1": 11.9, "back0": 12.0, "back1": 12.8, "charge0": 12.55, "burst": 12.97, "land": 13.55},
+  "lyrics": [
+    [0.4, 4.133, ["Don't tell your dreams", "to everybody around"]],
+    [4.133, 8.067, ["Some people smile", "but want to see you down"]],
+    [8.067, 11.267, ["Keep it quiet,", "don't make a sound"]],
+    [11.8, 15.0, ["Let your success be what", "shakes the ground"]]
+  ],
+  "reviewTimes": [0.3, 1.0, 1.8, 2.5, 3.4, 4.5, 5.1, 5.6, 6.5, 7.8, 8.6, 9.8, 10.9, 11.5, 12.6, 13.0, 13.2, 13.5, 14.5]
+}
