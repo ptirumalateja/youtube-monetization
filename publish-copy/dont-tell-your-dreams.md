@@ -2,20 +2,21 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 23 Nov 2026, awaiting Teja's review |
-| Upload file | `dont-tell-your-dreams_music-ready.mp4` (scratchpad; rebuild with `python3 tools/dont-tell-dreams/render.py video OUT.mp4`) |
+| Status | **v2** delivered 23 Nov 2026 (v1 superseded), awaiting Teja's review |
+| Upload file | `dont-tell-your-dreams_v2_music-ready.mp4` (scratchpad; rebuild with `python3 tools/dont-tell-dreams/render_v2.py video OUT.mp4`) |
 | Length | 15.2 s, 1080x1920, 30 fps |
 | Voice | None |
 | Sound | **None in the file (silent track).** Add the song "Don't tell your dream to everybody around" from the Instagram / Facebook music library at posting time. Text cues are timed to the reference song's phrases. |
 
-## Beats (timed to the song)
+## Beats (v2, timed to the song)
 
 | Time | On-screen line | Action |
 |---|---|---|
-| 0.5-3.9 s | Don't tell your dreams to everybody around | Hero holds a glowing star among smiling stickmen; one holds a dagger |
-| 4.1-7.7 s | Some people smile but want to see you down | Smiles turn to scowls, a hand reaches for the star, the star shrinks |
-| 8.1-11.7 s | Keep it quiet, don't make a sound | He hugs the star into his chest and the camera pushes into a determined face |
-| 12.1-15.2 s | Let your success be what shakes the ground | Whip out, shockwave from his chest, the haters topple |
+| 0.0-5.0 s | Don't tell your dreams to everybody around (from 0.5 s) | The hero holds the glowing star and walks a circle around his five friends. They beam while he is in front; when he passes behind them the masks drop: coin eyes (opportunists) and half-lids with a knife (cunning) |
+| 5.0-7.7 s | Some people smile but want to see you down (from 4.1 s) | He stops, smiles and holds the star out to them. He spots a knife: huge eyes, "!" and sweat. All the masks fall |
+| 7.4-8.5 s | | He pulls the star into his chest and hugs it |
+| 8.1-11.7 s | Keep it quiet, don't make a sound | Push in on his face: eyes shut, then a hard stare, chest glow rising, friends looming with knives |
+| 12.2-15.2 s | Let your success be what shakes the ground (from 12.1 s) | Whip out, chest blast, gold rays and a wind whoosh blow the friends, knives and coins off screen. He stands calm, glowing |
 
 ## Publish copy
 
