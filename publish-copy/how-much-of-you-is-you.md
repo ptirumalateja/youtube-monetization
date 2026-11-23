@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | **v2 (voiceover, 3D)** delivered 23 Nov 2026 (v1 silent cut superseded), awaiting Teja's review |
-| Upload file | `how-much-of-you-is-you_v2_voiceover_small.mp4` (scratchpad; rebuild: `python3 tools/cells-reel/audio_mix.py VO_PROC.wav mix.wav` then `python3 tools/cells-reel/render3d.py video OUT.mp4 mix.wav`) |
+| Status | **v3** delivered 23 Nov 2026 (v1 silent and v2 superseded), awaiting Teja's review |
+| Upload file | `how-much-of-you-is-you_v3_final.mp4` (scratchpad; rebuild: `python3 tools/cells-reel/audio_mix.py VO_PROC.wav mix.wav` then `python3 tools/cells-reel/render_v3.py video OUT.mp4 mix.wav`) |
 | Length | 24.9 s, 1080x1920, 30 fps |
 | Voice | Deep, bass-boosted AI narration. ElevenLabs voice "Rex Thunder - Deep N Tough" (eleven_v4), pitch lowered, sped up about 15%, pauses tightened, sub-bass and presence EQ. Disclose as AI voice if the platform asks. |
 | Sound | Voiceover + synthesized drone, heartbeat and sub-bass drops + CC0 Freesound hits, whooshes and wind (explosion 814046 qubodup, riser 822420 and woosh 649445 AudioPapkin, dark suspense accent 869757 mikiko850, wind 22331 sleepCircle; all CC0, no credit needed). Mixed to -14 LUFS, SFX ducked under the voice. You can add a trending track in the app at low volume. |
@@ -14,19 +14,21 @@ How much of you... is actually YOU? Less than half. So... who else... is in ther
 
 Visual hits are locked to the voice: 3.79 s (punchline, boom), 7.55 s (arrive in the micro world), 12.66 s (they outnumber you), 14.2 s (bars), 17.7 s (never been alone).
 
-## Hook structure
+## Hook structure (v3)
 
 Question -> next-second punchline that reopens the question -> second hook -> escalation -> twist -> payoff (loops to frame 0) -> tease for the next reel.
 
 | Time | On screen |
 |---|---|
-| 0.0-1.3 s | HOW MUCH OF YOU IS ACTUALLY YOU? (glowing human made of dots) |
-| 1.4 s | LESS THAN HALF. (dots snap to gold = human cells, teal = bacteria) |
-| 3.0-5.6 s | SO WHO ELSE IS IN THERE? (dive into the body) |
-| 6.0-9.3 s | Counters: 30T human cells, 38T bacteria. THEY OUTNUMBER YOU. |
-| 9.3-12.3 s | Bars: HOW MANY (bacteria win) vs HOW HEAVY (bacteria about 0.2 kg, an apple). ...BUT THEY WEIGH ABOUT AS MUCH AS AN APPLE. |
-| 12.85-15.0 s | YOU HAVE NEVER BEEN ALONE. (zoom back out to the silhouette) |
-| 15.2-18.0 s | NEXT: THE OLDEST THING IN YOU IS OLDER THAN THE SUN. FOLLOW |
+| 0.0-3.4 s | HOW MUCH OF YOU IS ACTUALLY YOU? A faceless, ink-hatched white figure on a hill (monolith, pit, flowers), the camera orbiting him, a glitch-particle double beside him |
+| 3.79-4.8 s | LESS / THAN / HALF. (one word each, on the voice). His skin dissolves into glitch pixels, incrementally, 56% of them; the double fades; sky and grass go from green to crimson |
+| 5.2-7.6 s | SO WHO ELSE IS IN THERE? The camera dives through the body |
+| 7.2-13.9 s | Microbial world: true shapes (rods, flagellated rods, cocci, chains, staph clusters, spirals, vibrio; red cells, white cells, gut-lining cells) and hundreds of thousands of specks. Counters 30T (gold) and 38T (teal). THEY OUTNUMBER YOU. |
+| 14.0-17.3 s | Bars: HOW MANY vs HOW HEAVY (an apple) |
+| 17.45-20 s | YOU HAVE NEVER BEEN ALONE. The camera pulls back out and lands on the opening scene |
+| 20.2-24.9 s | NEXT: THE OLDEST THING IN YOU IS OLDER THAN THE SUN. Skin returns to white, the double returns, the scene is identical to frame 0 (loop) |
+
+Shapes are schematic and false-coloured (warm = human, cool = bacteria). Bacteria are drawn about a third the size of a red cell, which is roughly true to scale.
 
 ## Publish copy
 
