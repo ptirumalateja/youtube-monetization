@@ -2,17 +2,17 @@
 
 | | |
 |---|---|
-| Status | **v4** delivered 23 Nov 2026 (v1-v3 superseded), awaiting Teja's review |
-| Upload file | `how-much-of-you-is-you_v4_final.mp4` (scratchpad; rebuild: `python3 tools/cells-reel/audio_mix.py VO_NONEXT.wav mix.wav` then `python3 tools/cells-reel/render_v4.py video OUT.mp4 mix.wav`; VO_NONEXT = the processed voice with the spoken "Next" cut out at 20.19-21.10 s) |
-| Length | 24.9 s, 1080x1920, 30 fps |
+| Status | **v5** delivered 23 Nov 2026 (v1-v4 superseded), awaiting Teja's review |
+| Upload file | `how-much-of-you-is-you_v5_final.mp4` (scratchpad; rebuild: `python3 tools/cells-reel/audio_mix.py VO_FINAL.wav mix.wav` then `python3 tools/cells-reel/render_v4.py video OUT.mp4 mix.wav`; VO_FINAL = the processed voice cut at 20.1 s, i.e. ending after "alone.") |
+| Length | 22.4 s, 1080x1920, 30 fps. A small SLOW LIGHT label sits at the bottom of every frame. |
 | Voice | Deep, bass-boosted AI narration. ElevenLabs voice "Rex Thunder - Deep N Tough" (eleven_v4), pitch lowered, sped up about 15%, pauses tightened, sub-bass and presence EQ. Disclose as AI voice if the platform asks. |
 | Sound | Voiceover + synthesized drone, heartbeat and sub-bass drops + CC0 Freesound hits, whooshes and wind (explosion 814046 qubodup, riser 822420 and woosh 649445 AudioPapkin, dark suspense accent 869757 mikiko850, wind 22331 sleepCircle; all CC0, no credit needed). Mixed to -14 LUFS, SFX ducked under the voice. You can add a trending track in the app at low volume. |
 
 ## Voiceover script (v2)
 
-How much of you... is actually YOU? Less than half. So... who else... is in there? 30 trillion human cells. 38 trillion bacteria. They outnumber you. But all of them together... weigh about as much as an apple. You have never... been alone. The oldest thing in you... is older than the Sun.  (The word "Next" was cut from the voice and the on-screen text in v4. The generated take still contains it; edit the cut if you regenerate.)
+How much of you... is actually YOU? Less than half. So... who else... is in there? 30 trillion human cells. 38 trillion bacteria. They outnumber you. But all of them together... weigh about as much as an apple. You have never... been alone.  (The v4 closing line about the next video was removed from the voice and the screen in v5. The generated take still contains it; the cut is at 20.1 s.)
 
-Visual hits are locked to the voice: 3.79 s (punchline, boom), 7.55 s (arrive in the micro world), 12.66 s (they outnumber you), 14.2 s (bars), 17.7 s (never been alone).
+The figure is the v3 point-splat hatched body; at "so who else" it atomizes bottom to top into coloured atoms sampled from that same body. Visual hits are locked to the voice: 3.79 s (punchline, boom), 7.55 s (arrive in the micro world), 12.66 s (they outnumber you), 14.2 s (bars), 17.7 s (never been alone).
 
 ## Hook structure (v3)
 
@@ -26,7 +26,7 @@ Question -> next-second punchline that reopens the question -> second hook -> es
 | 7.2-13.9 s | Microbial world: true shapes (rods, flagellated rods, cocci, chains, staph clusters, spirals, vibrio; red cells, white cells, gut-lining cells) and hundreds of thousands of specks. Counters 30T (gold) and 38T (teal). THEY OUTNUMBER YOU. |
 | 14.0-17.3 s | Bars: HOW MANY vs HOW HEAVY (an apple) |
 | 17.45-20 s | YOU HAVE NEVER BEEN ALONE. The camera pulls back out and lands on the opening scene |
-| 20.2-24.9 s | THE OLDEST THING IN YOU IS OLDER THAN THE SUN. Skin returns to white, the double returns, the scene is identical to frame 0 (loop) |
+| 19.6-22.4 s | The camera lands back on the opening scene: skin returns to white, the double returns, sky back to green (identical to frame 0, loops). A quiet FOLLOW appears. |
 
 Shapes are schematic and false-coloured (warm = human, cool = bacteria). Bacteria are drawn about a third the size of a red cell, which is roughly true to scale.
 
