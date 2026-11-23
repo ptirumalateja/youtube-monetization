@@ -158,7 +158,7 @@ MOODS = {
     "joy": dict(brow=(0.45, 0.0), eye=0.0, mouth="grin", pupil=(0.0, 0.0)),
 }
 
-def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0, sprite=False):
+def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0, sprite=False, tint=None):
     # scale>1 = taller crowd figure; tone<1 = darker (crowd: scale 1.3, tone 0.3, light eyes)
     sdf0, sk = make_sdf(P)
     if scale != 1.0:
@@ -178,6 +178,7 @@ def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0, sprite=False):
     col = np.clip(0.30 + 0.72 * sh + 0.30 * spec, 0, 1)[..., None] * np.array([1.0, 1.0, 1.0], np.float32)
     col = col * (np.array([0.93, 0.95, 1.0], np.float32) * (1 - sh[..., None] * 0.6) + sh[..., None] * 0.6)
     col = col * tone
+    if tint is not None: col = np.clip(col * 1.12, 0, 1) * np.array(tint, np.float32) + 0.18 * (spec[..., None] * (1 - np.array(tint, np.float32)))
     img = np.ones((H, W, 3), np.float32) * (0.97 if bg is None else 1.0) if bg is None else bg.copy()
     # contact shadow
     pil = Image.new("L", (W, H), 0); dd = ImageDraw.Draw(pil)
