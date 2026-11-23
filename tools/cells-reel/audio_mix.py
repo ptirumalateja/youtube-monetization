@@ -8,7 +8,7 @@ usage: audio_mix.py VO_PROC.wav OUT.wav
 import subprocess, sys, wave
 import numpy as np
 
-SR = 44100; DUR = 24.9
+SR = 44100; DUR = 22.4
 LIB = "/home/user/youtube-monetization/tools/sfxlib/"
 N = int(SR * DUR); t = np.arange(N) / SR
 out = np.zeros(N, np.float32)
@@ -21,7 +21,7 @@ def add(sig, t0, amp=1.0):
     out[i0:i0 + len(seg)] += seg
 
 # ---- drone bed
-env = np.interp(t, [0, 5, 7.5, 14, 17.5, 20, 24.9], [0.45, 0.7, 1.0, 0.8, 1.0, 0.7, 0.0])
+env = np.interp(t, [0, 5, 7.5, 14, 17.5, 20, 22.4], [0.45, 0.7, 1.0, 0.8, 1.0, 0.6, 0.0])
 dr = (np.sin(2 * np.pi * 55 * t) + 0.5 * np.sin(2 * np.pi * 82.5 * t + 0.7) + 0.35 * np.sin(2 * np.pi * 110 * t + 1.3)) * 0.25
 nz = np.convolve(rng.randn(N).astype(np.float32), np.ones(400) / 400, "same") * 3
 out += ((dr + nz * 0.12) * env * 0.55).astype(np.float32)
@@ -36,8 +36,8 @@ tb = 0.35
 while tb < 5.1:
     beat(tb, 0.35 + 0.5 * tb / 5); tb += 0.98 - 0.14 * tb / 5
 tb = 17.9
-while tb < 24.6:
-    beat(tb, 0.32 * (1 - max(0, tb - 22) / 3)); tb += 1.08
+while tb < 22.0:
+    beat(tb, 0.32 * (1 - max(0, tb - 20.5) / 1.7)); tb += 1.08
 
 # ---- sub-bass drops on the hits
 def subdrop(t0, f0, f1, dur, amp):
@@ -83,7 +83,7 @@ fc = (
     "[syn][e1d][e2d][rs][w1d][w2d][w3d][a1d][a2d][wind]amix=inputs=10:normalize=0,volume=0.9[sfx];"
     "[sfx][vo_sc]sidechaincompress=threshold=0.035:ratio=7:attack=12:release=260:makeup=1[sfxd];"
     "[sfxd]volume=0.85[sfxv];"
-    "[vo_m]apad=whole_dur=24.9[vop];[vop][sfxv]amix=inputs=2:normalize=0:duration=longest,alimiter=limit=0.95,loudnorm=I=-14:TP=-1.2:LRA=9,aformat=channel_layouts=stereo[out]"
+    "[vo_m]apad=whole_dur=22.4[vop];[vop][sfxv]amix=inputs=2:normalize=0:duration=longest,alimiter=limit=0.95,loudnorm=I=-14:TP=-1.2:LRA=9,aformat=channel_layouts=stereo[out]"
 )
 cmd = ["ffmpeg", "-v", "error", "-y", "-i", vo, "-i", "/tmp/cells_synth.wav",
        "-i", LIB + "814046__qubodup__explosion-from-another-dimension.wav",

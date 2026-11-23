@@ -17,6 +17,10 @@ import render3d as R3
 import render_v3 as V3
 from render3d import sm, key, W, H, FPS, DUR, N, put_text, typed, bars_layer, glow_np, hit_fx, COL, CREAM, GOLD, TEAL, FONT_B, FONT_S, font
 from render_v3 import SERIF, FO
+_ORIG_SOLID = V3.render_solid
+FIGURE = "v3"      # "v3" = point-splat hatched figure (preferred), "sdf" = clay mannequin
+DUR = 22.4
+N = int(round(FPS * DUR))
 
 # =====================================================================  SDF MANNEQUIN
 K_SM = 30.0
@@ -63,33 +67,37 @@ def ensure():
     if _Z["done"]: return
     R3.data(); V3.gdata(); V3.world(); V3.sprites()
     rng = np.random.RandomState(5)
-    pts = []
-    for _ in range(14):
-        n = 400000
-        x = rng.uniform(-170, 170, n).astype(np.float32); y = rng.uniform(0, 900, n).astype(np.float32); z = rng.uniform(-110, 130, n).astype(np.float32)
-        d = sdf(x, y, z); ok = d < 0
-        pts.append(np.stack([x[ok], y[ok], z[ok], d[ok]], 1))
-        if sum(len(p) for p in pts) > 90000: break
-    P = np.concatenate(pts)[:90000]
-    d = P[:, 3]; shell = d > -14
-    X, Y, Z = P[:, 0], P[:, 1], P[:, 2]
-    nx, ny, nz = sdf_normal(X, Y, Z)
-    Nm = np.stack([nx, ny, nz], 1).astype(np.float32)
-    n = len(P)
-    V3._G["solid"] = dict(P=np.stack([X, Y, Z], 1).astype(np.float32), Nm=Nm, rank=rng.rand(n).astype(np.float32),
-                          cls=rng.choice([1, 2, 3], n, p=[0.55, 0.22, 0.23]), rv=rng.rand(n).astype(np.float32))
-    V3._G["clone"] = np.nonzero(shell)[0][:26000]
-    # atom cloud for the dive (screen-style coordinates: Y down, 0 = torso centre)
-    sel = np.nonzero(shell | (rng.rand(n) < 0.35))[0][:30000]
-    Xs, Ys, Zs = X[sel], 436.0 - Y[sel], Z[sel]
+    if FIGURE == "sdf":
+        pts = []
+        for _ in range(14):
+            n = 400000
+            x = rng.uniform(-170, 170, n).astype(np.float32); y = rng.uniform(0, 900, n).astype(np.float32); z = rng.uniform(-110, 130, n).astype(np.float32)
+            d = sdf(x, y, z); ok = d < 0
+            pts.append(np.stack([x[ok], y[ok], z[ok], d[ok]], 1))
+            if sum(len(p) for p in pts) > 90000: break
+        P = np.concatenate(pts)[:90000]
+        d = P[:, 3]; shell = d > -14
+        X, Y, Z = P[:, 0], P[:, 1], P[:, 2]
+        nx, ny, nz = sdf_normal(X, Y, Z)
+        n = len(P)
+        V3._G["solid"] = dict(P=np.stack([X, Y, Z], 1).astype(np.float32), Nm=np.stack([nx, ny, nz], 1).astype(np.float32), rank=rng.rand(n).astype(np.float32),
+                              cls=rng.choice([1, 2, 3], n, p=[0.55, 0.22, 0.23]), rv=rng.rand(n).astype(np.float32))
+        V3._G["clone"] = np.nonzero(shell)[0][:26000]
+        sel = np.nonzero(shell | (rng.rand(n) < 0.35))[0][:30000]
+        Xs, Ys, Zs = X[sel], 436.0 - Y[sel], Z[sel]; nxs, nys, nzs = nx[sel], ny[sel], nz[sel]; Yup = Y[sel]
+    else:
+        S = V3._G["solid"]; n = len(S["P"])
+        sel = rng.choice(n, 30000, replace=False)
+        Xs, Ys, Zs = S["P"][sel, 0], 436.0 - S["P"][sel, 1], S["P"][sel, 2]
+        nxs, nys, nzs = S["Nm"][sel, 0], S["Nm"][sel, 1], S["Nm"][sel, 2]; Yup = S["P"][sel, 1]
     L = np.array([-0.5, 0.8, 0.6]); L = L / np.linalg.norm(L)
-    lit = np.clip(nx[sel] * L[0] + ny[sel] * L[1] + nz[sel] * L[2], 0, 1); rim = (1 - np.abs(nz[sel])) ** 1.5
-    br = np.where(shell[sel], 0.45 + 0.55 * lit + 0.45 * rim, 0.32 + 0.1 * rng.rand(len(sel)))
-    m = len(sel)
+    lit = np.clip(nxs * L[0] + nys * L[1] + nzs * L[2], 0, 1); rim = (1 - np.abs(nzs)) ** 1.5
+    br = 0.45 + 0.55 * lit + 0.45 * rim
+    m = len(Xs)
     R3._D["body"] = dict(X=Xs.astype(np.float32), Y=Ys.astype(np.float32), Z=Zs.astype(np.float32), r=(1.6 + rng.rand(m) * 1.7).astype(np.float32),
                          br=np.clip(br, 0.3, 1.15).astype(np.float32), ph=(rng.rand(m) * 6.28).astype(np.float32), fx=(0.6 + rng.rand(m) * 1.4).astype(np.float32),
                          fy=(0.6 + rng.rand(m) * 1.4).astype(np.float32), teal=(rng.rand(m) < 0.56), jit=rng.rand(m).astype(np.float32),
-                         ang=(rng.rand(m) * 6.28).astype(np.float32), Yup=Y[sel].astype(np.float32))
+                         ang=(rng.rand(m) * 6.28).astype(np.float32), Yup=np.asarray(Yup, np.float32))
     _Z["done"] = True
 
 # =====================================================================  TIMELINE
@@ -105,9 +113,9 @@ def hill_state4(t):
         pw = key(t, [(3.79, 0.0), (4.03, 0.34), (4.37, 0.66), (4.82, 1.0)])
         clone = 1.0 - sm((t - 3.85) / 0.95)
         return th, Hc, D, s, pw, clone
-    u = sm((t - 19.6) / 5.3) if t > 19.6 else 0.0
+    u = sm((t - 19.6) / 2.8) if t > 19.6 else 0.0
     th = -1.1 * u; Hc = 440 + 460 * u; D = 1400 - 400 * u
-    s = 1 - sm((t - 20.0) / 4.4); pw = 1 - sm((t - 21.2) / 2.7); clone = sm((t - 23.2) / 1.6)
+    s = 1 - sm((t - 19.8) / 2.4); pw = 1 - sm((t - 20.2) / 1.9); clone = sm((t - 21.0) / 1.3)
     return th, Hc, D, s, pw, clone
 
 _orig_body_cam = R3.body_cam.__wrapped__ if hasattr(R3.body_cam, "__wrapped__") else None
@@ -221,7 +229,19 @@ def render_solid4(t, C, r, u, f, pconv, shade_w=1.0):
         col = np.where((seam > 0.02)[..., None], col * (1 - seam[..., None]) + np.array([1.0, 0.86, 0.45], np.float32) * (0.9 + 0.8 * seam[..., None]) * seam[..., None], col)
     return col * mask[..., None], (mask | fr).astype(np.float32)
 
-V3.render_solid = render_solid4
+def render_solid_atom(t, C, r, u, f, pconv, shade_w=1.0):
+    G = V3.gdata(); S = G["solid"]
+    fy = front_y(t)
+    if fy <= 0: return _ORIG_SOLID(t, C, r, u, f, pconv, shade_w)
+    Yp = S["P"][:, 1]; keep = Yp >= fy; seam = (Yp < fy + 36) & keep
+    sub = dict(P=S["P"][keep], Nm=S["Nm"][keep], rank=np.where(seam[keep], 0.0, S["rank"][keep]).astype(np.float32),
+               cls=np.where(seam[keep], 1, S["cls"][keep]), rv=S["rv"][keep])
+    G["solid"] = sub
+    try: return _ORIG_SOLID(t, C, r, u, f, max(pconv, 1.0), shade_w)
+    finally: G["solid"] = S
+
+FIG = render_solid4 if FIGURE == "sdf" else render_solid_atom
+V3.render_solid = FIG
 V3.hill_state = hill_state4
 
 # =====================================================================  HILL SCENE WRAPPER (eyes at the new head, darkening)
@@ -238,13 +258,13 @@ def hill_scene4(t):
     if clone_a > 0.01:
         cb, cm = V3.render_clone(t, C, r, u, f, clone_a)
         img = img * (1 - cm[..., None] * 0.92) + cb * cm[..., None] * 0.92
-    fig, fm = render_solid4(t, C, r, u, f, pconv)
+    fig, fm = FIG(t, C, r, u, f, pconv)
     img = img * (1 - fm[..., None]) + fig * fm[..., None]
     if zm <= cp: img = over(img, mono)
-    head = np.array([0, 802, 66], np.float32)
+    head = np.array([0, 806, 62] if FIGURE != "sdf" else [0, 802, 66], np.float32)
     face_dot = float(np.dot(C - head, [0, 0, 1])) / float(np.linalg.norm(C - head))
     if face_dot > 0.4 and front_y(t) < 780:
-        e = np.array([[-22, 802, 66], [22, 802, 66]], np.float32); ex, ey, _ = V3.project(e, C, r, u, f)
+        e = np.array([[-24, 806, 64], [24, 806, 64]] if FIGURE != "sdf" else [[-22, 802, 66], [22, 802, 66]], np.float32); ex, ey, _ = V3.project(e, C, r, u, f)
         pi = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)); dd = ImageDraw.Draw(pi)
         for a, b in zip(ex, ey): dd.ellipse([a - 5, b - 5, a + 5, b + 5], fill=(214, 44, 130))
         img = np.asarray(pi, np.float32) / 255
@@ -282,6 +302,20 @@ def draw_atoms(t, dc, a):
             if ddx * ddx + ddy * ddy > 9:
                 dc.line([(float(pxs[i]), float(pys[i])), (x0, y0)], fill=col, width=max(1, int(r_ * 1.3))); continue
         dc.ellipse([x0 - r_, y0 - r_, x0 + r_, y0 + r_], fill=col)
+
+# =====================================================================  BRAND LABEL
+def brand_label(ov):
+    f = font(FONT_B, 34); txt = "SLOW LIGHT"; track = 9
+    ws = [ImageDraw.Draw(ov).textlength(ch, font=f) for ch in txt]
+    total = sum(ws) + track * (len(txt) - 1); x = (W - total) / 2; y = 1712
+    sh = Image.new("RGBA", ov.size, (0, 0, 0, 0)); sd = ImageDraw.Draw(sh); d = ImageDraw.Draw(ov)
+    xx = x
+    for ch, w_ in zip(txt, ws):
+        sd.text((xx, y + 2), ch, font=f, fill=(0, 0, 0, 200)); xx += w_ + track
+    ov.alpha_composite(sh.filter(ImageFilter.GaussianBlur(3)))
+    xx = x
+    for ch, w_ in zip(txt, ws):
+        d.text((xx, y), ch, font=f, fill=(244, 236, 214, 215)); xx += w_ + track
 
 # =====================================================================  FRAME
 def render(t):
@@ -350,11 +384,9 @@ def render(t):
         put_text(ov, ["...BUT TOGETHER THEY WEIGH", "ABOUT AS MUCH AS AN APPLE."], 60, 250, CREAM, sm((t - 14.2) / 0.3) * (1 - sm((t - 17.1) / 0.3)))
     if 17.7 <= t < 20.1:
         put_text(ov, ["YOU HAVE NEVER", "BEEN ALONE."], 90, 150, CRM, sm((t - 17.7) / 0.06) * (1 - sm((t - 19.8) / 0.3)), path=SERIF, scale=min(1.25, 1 + 0.4 * math.exp(-(t - 17.75) / 0.1)), dx=sx // 2, dy=sy // 2)
-    if t >= 20.16:
-        l1, l2 = "THE OLDEST THING IN YOU", "IS OLDER THAN THE SUN."
-        n = int((t - 20.16) * 15.0)
-        put_text(ov, [l1[:n], l2[:max(0, n - len(l1))]], 54, 1480, GOLD, sm((t - 20.16) / 0.3), path=SERIF)
-        put_text(ov, ["FOLLOW"], 40, 1665, CRM, 0.75 * sm((t - 22.4) / 0.4), path=FONT_S, glow=False)
+    if t >= 20.5:
+        put_text(ov, ["FOLLOW"], 40, 1600, CRM, 0.75 * sm((t - 20.5) / 0.4), path=FONT_S, glow=False)
+    brand_label(ov)
     out = Image.alpha_composite(base, ov).convert("RGB")
     arr = np.asarray(out, np.float32) / 255
     rng = np.random.RandomState(int(t * 24) % 6)
