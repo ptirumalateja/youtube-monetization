@@ -540,3 +540,5 @@ Already installed:
 wan2.2_ti2v_5B_fp16.safetensors
 umt5_xxl_fp8_e4m3fn_scaled.safetensors
 wan2.2_vae.safetensors
+
+- Hole-becomes-hill reels: hero figure is LOCKED to the vinyl stickman in tools/hole-hill/vinyl.py (see tools/hole-hill/DESIGN_LOCK.md). Do not change its style without user approval.

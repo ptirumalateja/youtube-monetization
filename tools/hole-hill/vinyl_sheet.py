@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/home/user/youtube-monetization/tools/hole-hill")
 import vinyl as V
+V.RES['k'] = 1
 cases = [("guard", "determined", "GRIT", 0.25), ("dig", "strain", "DIGGING", 0.95), ("fall", "shocked", "FALLING IN", 0.0), ("triumph", "joy", "ON THE HILL", 0.0)]
 T = np.array([0, 470, 0], np.float32)
 pw, ph = 360, 640

@@ -32,7 +32,7 @@ def skeleton(P):
         sh = chest + np.array([sd * 70, -26, 0], np.float32); sk["sh" + nm] = sh
         ua = nrm(P.get("ua" + nm, (sd * 0.10, -1, 0.0))); fa = nrm(P.get("fa" + nm, (sd * 0.05, -1, 0.0)))
         el = sh + ua * LEN["uarm"]; wr = el + fa * LEN["farm"]
-        sk["el" + nm] = el; sk["wr" + nm] = wr; sk["fist" + nm] = wr + fa * 22
+        sk["el" + nm] = el; sk["wr" + nm] = wr; sk["fist" + nm] = wr + fa * 22; sk["fa" + nm] = fa
         hp = pel + np.array([sd * 30, -14, 0], np.float32); sk["hp" + nm] = hp
         th = nrm(P.get("th" + nm, (sd * 0.04, -1, 0.0))); sh_ = nrm(P.get("sh_" + nm, (sd * 0.02, -1, 0.0)))
         kn = hp + th * LEN["thigh"]; an = kn + sh_ * LEN["shin"]
@@ -58,6 +58,33 @@ def sd_ell(x, y, z, c, rx, ry, rz):
     q = np.sqrt(((x - c[0]) / rx) ** 2 + ((y - c[1]) / ry) ** 2 + ((z - c[2]) / rz) ** 2)
     return (q - 1.0) * min(rx, ry, rz)
 
+def hand_frame(wr, fa, hint):
+    a = nrm(fa); n = hint - a * float(hint @ a)
+    n = nrm(n) if np.linalg.norm(n) > 1e-3 else nrm(np.cross(a, [0, 0, 1]))
+    s_ = nrm(np.cross(a, n))
+    return a, n, s_
+
+def sd_hand(x, y, z, wr, fa, hint, side):
+    """fist like the Meta AI figure: palm block + four curled fingers (grooves between them) + thumb across the front"""
+    a, n, s_ = hand_frame(wr, fa, hint)
+    c = wr + a * 26
+    lx = (x - c[0]) * s_[0] + (y - c[1]) * s_[1] + (z - c[2]) * s_[2]
+    ly = (x - c[0]) * a[0] + (y - c[1]) * a[1] + (z - c[2]) * a[2]
+    lz = (x - c[0]) * n[0] + (y - c[1]) * n[1] + (z - c[2]) * n[2]
+    q = np.sqrt((lx / 37.0) ** 2 + (ly / 31.0) ** 2 + (lz / 27.0) ** 2)
+    d = (q - 1.0) * 27.0                                           # palm / back of the hand
+    base = wr + a * 43
+    for k, off in enumerate((-23.0, -7.7, 7.7, 23.0)):
+        p0 = base + s_ * off
+        p1 = p0 + a * 7 + n * 9
+        p2 = p1 + n * 15 - a * 13                                   # finger curls tightly into the palm
+        d = smin(d, sd_cap(x, y, z, p0, p1, 11.0, 10.4), 2.0)
+        d = smin(d, sd_cap(x, y, z, p1, p2, 10.4, 9.2), 2.0)
+    t0 = wr + a * 20 + s_ * (-side * 31) + n * 8
+    t1 = wr + a * 50 + s_ * (-side * 8) + n * 27
+    d = smin(d, sd_cap(x, y, z, t0, t1, 11.5, 10.0), 3)               # thumb across the fingers
+    return d
+
 def make_sdf(P):
     sk = skeleton(P)
     props = P.get("props", [])
@@ -67,7 +94,7 @@ def make_sdf(P):
         for nm in ("L", "R"):
             d = smin(d, sd_cap(x, y, z, sk["sh" + nm], sk["el" + nm], RAD["uarm"], RAD["uarm"]), 6)
             d = smin(d, sd_cap(x, y, z, sk["el" + nm], sk["wr" + nm], RAD["farm"], RAD["farm"]), 6)
-            d = smin(d, sd_sph(x, y, z, sk["fist" + nm], RAD["hand"]), 8)
+            d = smin(d, sd_hand(x, y, z, sk["wr" + nm], sk["fa" + nm], sk["chest"] - sk["wr" + nm], -1 if nm == "L" else 1), 4)
             d = smin(d, sd_cap(x, y, z, sk["hp" + nm], sk["kn" + nm], RAD["thigh"], RAD["thigh"] - 1), 6)
             d = smin(d, sd_cap(x, y, z, sk["kn" + nm], sk["an" + nm], RAD["shin"], RAD["shin"] - 1), 6)
             d = smin(d, sd_cap(x, y, z, sk["an" + nm], sk["toe" + nm], RAD["foot"], RAD["foot"] - 1), 6)
@@ -79,11 +106,13 @@ def make_sdf(P):
 
 # ---------------------------------------------------------------- render
 _GRID = {}
+RES = {"k": 2}
 def grid():
-    if not _GRID:
-        hh, ww = H // 2, W // 2
+    k = RES["k"]
+    if _GRID.get("k") != k:
+        hh, ww = H // k, W // k
         gy, gx = np.mgrid[0:hh, 0:ww].astype(np.float32)
-        _GRID["px"] = (gx * 2 - W / 2) / FO; _GRID["py"] = (gy * 2 - H / 2) / FO
+        _GRID["px"] = (gx * k - W / 2) / FO; _GRID["py"] = (gy * k - H / 2) / FO; _GRID["k"] = k
     return _GRID
 
 def lookat(C, T):
@@ -91,7 +120,7 @@ def lookat(C, T):
     return r, u, f
 
 def march(sdf, C, r, u, f):
-    G = grid(); hh, ww = H // 2, W // 2
+    G = grid(); k = RES["k"]; hh, ww = H // k, W // k
     dx = (f[0] + G["px"] * r[0] - G["py"] * u[0]).ravel(); dy = (f[1] + G["px"] * r[1] - G["py"] * u[1]).ravel(); dz = (f[2] + G["px"] * r[2] - G["py"] * u[2]).ravel()
     n = np.sqrt(dx * dx + dy * dy + dz * dz); dx /= n; dy /= n; dz /= n
     ctr = np.array([0.0, 470.0, 0.0], np.float32); RB = 900.0
@@ -117,7 +146,9 @@ def march(sdf, C, r, u, f):
         a = flat.copy(); a[cand[hi]] = val; out[name] = a.reshape(hh, ww)
     return out
 
-def up(a): return np.asarray(Image.fromarray(a.astype(np.float32), mode="F").resize((W, H), Image.BILINEAR), np.float32)
+def up(a):
+    if a.shape == (H, W): return a.astype(np.float32)
+    return np.asarray(Image.fromarray(a.astype(np.float32), mode="F").resize((W, H), Image.BILINEAR), np.float32)
 
 MOODS = {
     "neutral": dict(brow=(0.0, 0.0), eye=1.0, mouth="flat", pupil=(0.0, 0.0)),
