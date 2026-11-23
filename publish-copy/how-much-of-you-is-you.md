@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **v5** delivered 23 Nov 2026 (v1-v4 superseded), awaiting Teja's review |
+| Status | **v5**, scheduled on 23 Nov 2026 for 19:40 IST to Facebook Reel, Instagram Reel and YouTube Short via Metricool (post id 438834997, AI disclosure on for IG and YT). v1-v4 superseded. |
 | Upload file | `how-much-of-you-is-you_v5_final.mp4` (scratchpad; rebuild: `python3 tools/cells-reel/audio_mix.py VO_FINAL.wav mix.wav` then `python3 tools/cells-reel/render_v4.py video OUT.mp4 mix.wav`; VO_FINAL = the processed voice cut at 20.1 s, i.e. ending after "alone.") |
 | Length | 22.4 s, 1080x1920, 30 fps. A small SLOW LIGHT label sits at the bottom of every frame. |
 | Voice | Deep, bass-boosted AI narration. ElevenLabs voice "Rex Thunder - Deep N Tough" (eleven_v4), pitch lowered, sped up about 15%, pauses tightened, sub-bass and presence EQ. Disclose as AI voice if the platform asks. |
