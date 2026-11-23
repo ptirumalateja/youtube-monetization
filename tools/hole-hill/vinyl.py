@@ -158,8 +158,13 @@ MOODS = {
     "joy": dict(brow=(0.45, 0.0), eye=0.0, mouth="grin", pupil=(0.0, 0.0)),
 }
 
-def render(P, mood, C, r, u, f, bg=None):
-    sdf, sk = make_sdf(P)
+def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0):
+    # scale>1 = taller crowd figure; tone<1 = darker (crowd: scale 1.3, tone 0.3, light eyes)
+    sdf0, sk = make_sdf(P)
+    if scale != 1.0:
+        sdf = lambda x, y, z: scale * sdf0(x / scale, y / scale, z / scale)
+        sk = {k: (v * scale if isinstance(v, np.ndarray) else v) for k, v in sk.items()}
+    else: sdf = sdf0
     h = march(sdf, C, r, u, f)
     mk = up(h["m"]); mask = mk > 0.5; wgt = np.maximum(mk, 1e-3)
     N = np.stack([up(h[k]) / wgt for k in ("nx", "ny", "nz")], -1)
@@ -172,6 +177,7 @@ def render(P, mood, C, r, u, f, bg=None):
     sh = np.clip((0.40 + 0.22 * sky + 0.50 * lam) * ao, 0, 1.05)
     col = np.clip(0.30 + 0.72 * sh + 0.30 * spec, 0, 1)[..., None] * np.array([1.0, 1.0, 1.0], np.float32)
     col = col * (np.array([0.93, 0.95, 1.0], np.float32) * (1 - sh[..., None] * 0.6) + sh[..., None] * 0.6)
+    col = col * tone
     img = np.ones((H, W, 3), np.float32) * (0.97 if bg is None else 1.0) if bg is None else bg.copy()
     # contact shadow
     pil = Image.new("L", (W, H), 0); dd = ImageDraw.Draw(pil)
@@ -179,7 +185,7 @@ def render(P, mood, C, r, u, f, bg=None):
         pp = np.array(p, np.float32) - C; zc = max(float(pp @ f), 1.0)
         return W / 2 + FO * float(pp @ r) / zc, H / 2 - FO * float(pp @ u) / zc, zc
     fl = proj(((sk["anL"][0] + sk["anR"][0]) / 2, 0, (sk["anL"][2] + sk["anR"][2]) / 2))
-    wd = 330 * FO / fl[2]
+    wd = 330 * scale * FO / fl[2]
     dd.ellipse([fl[0] - wd, fl[1] - wd * 0.16, fl[0] + wd, fl[1] + wd * 0.16], fill=120)
     shadow = np.asarray(pil.filter(ImageFilter.GaussianBlur(22)), np.float32)[..., None] / 255
     img = img * (1 - shadow * 0.42)
@@ -187,7 +193,7 @@ def render(P, mood, C, r, u, f, bg=None):
     img = img * (1 - alpha) + col * alpha
     # face on the head sphere
     P_ = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)); dr = ImageDraw.Draw(P_)
-    hc = sk["head"]; R = RAD["head"]
+    hc = sk["head"]; R = RAD["head"] * scale
     yaw = P.get("head_yaw", 0.0); pitch = P.get("head_pitch", 0.0)
     fwd = nrm((math.sin(yaw) * math.cos(pitch), -math.sin(pitch), math.cos(yaw) * math.cos(pitch)))
     hr = nrm(np.cross([0, 1, 0], fwd)); hr = -hr if hr[0] < 0 else hr
@@ -195,7 +201,7 @@ def render(P, mood, C, r, u, f, bg=None):
     M = MOODS[mood]
     def surf(a, b):          # point on the head: a = right offset, b = up offset (as fractions of R)
         v = nrm(fwd + hr * a + hu * b); return hc + v * (R + 0.5), v
-    INK = (14, 12, 18)
+    INK = (14, 12, 18) if tone >= 0.8 else (236, 238, 244)
     for sd in (-1, 1):
         p, v = surf(sd * 0.34, 0.06)
         view = nrm(C - p)

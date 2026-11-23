@@ -12,3 +12,6 @@ Reference: the Meta AI glossy white vinyl stickman the user supplied.
 - Moods: neutral, determined, shocked, strain, joy. Poses: guard, dig, fall, stand, triumph.
 - Render at `V.RES["k"] = 1` for final frames (about 7 s per frame); k=2 for previews.
 - Thick lines and expressive faces always.
+
+## Crowd variant (approved)
+Same figure, taller and darker: `V.render(..., scale=1.3, tone=0.42)`. Light eyes and brows, hero stays the only bright white figure.
