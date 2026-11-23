@@ -2,11 +2,17 @@
 
 | | |
 |---|---|
-| Status | v1 delivered 23 Nov 2026, awaiting Teja's review |
-| Upload file | `how-much-of-you-is-you_music-ready_small.mp4` (scratchpad; rebuild with `python3 tools/cells-reel/render.py video OUT.mp4`) |
-| Length | 18.0 s, 1080x1920, 30 fps |
-| Voice | None |
-| Sound | **None in the file (silent track).** Add trending audio in the app. Suggested sound hits (where a drop/impact fits): **1.4 s** (punchline), **9.25 s** (bars), **12.85 s** ("never been alone"). |
+| Status | **v2 (voiceover, 3D)** delivered 23 Nov 2026 (v1 silent cut superseded), awaiting Teja's review |
+| Upload file | `how-much-of-you-is-you_v2_voiceover_small.mp4` (scratchpad; rebuild: `python3 tools/cells-reel/audio_mix.py VO_PROC.wav mix.wav` then `python3 tools/cells-reel/render3d.py video OUT.mp4 mix.wav`) |
+| Length | 24.9 s, 1080x1920, 30 fps |
+| Voice | Deep, bass-boosted AI narration. ElevenLabs voice "Rex Thunder - Deep N Tough" (eleven_v4), pitch lowered, sped up about 15%, pauses tightened, sub-bass and presence EQ. Disclose as AI voice if the platform asks. |
+| Sound | Voiceover + synthesized drone, heartbeat and sub-bass drops + CC0 Freesound hits, whooshes and wind (explosion 814046 qubodup, riser 822420 and woosh 649445 AudioPapkin, dark suspense accent 869757 mikiko850, wind 22331 sleepCircle; all CC0, no credit needed). Mixed to -14 LUFS, SFX ducked under the voice. You can add a trending track in the app at low volume. |
+
+## Voiceover script (v2)
+
+How much of you... is actually YOU? Less than half. So... who else... is in there? 30 trillion human cells. 38 trillion bacteria. They outnumber you. But all of them together... weigh about as much as an apple. You have never... been alone. Next... the oldest thing in you... is older than the Sun.
+
+Visual hits are locked to the voice: 3.79 s (punchline, boom), 7.55 s (arrive in the micro world), 12.66 s (they outnumber you), 14.2 s (bars), 17.7 s (never been alone).
 
 ## Hook structure
 
