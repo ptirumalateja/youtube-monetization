@@ -28,30 +28,31 @@ def sd_cap(x, y, z, a, b, ra, rb):
     dx, dy, dz = px - ba[0] * h, py - ba[1] * h, pz - ba[2] * h
     return np.sqrt(dx * dx + dy * dy + dz * dz) - (ra + (rb - ra) * h)
 
-DEFAULT_POSE = dict(head_yaw=0.38, a1=0.03, a2=0.0, step=12.0, lean=0.0)
+DEFAULT_POSE = dict(head_yaw=0.38, a1=0.03, a2=0.0, step=12.0, lean=0.0, hunch=16.0)
 
 def sdf_fig(x, y, z, P):
     ax = np.abs(x)
     c, s = math.cos(P["head_yaw"]), math.sin(P["head_yaw"])
-    xh = x * c - z * s; zh = x * s + z * c
-    d = sd_ell(xh, y, zh, 0, 842, 8, 50, 60, 54)                       # skull
-    d = smin(d, sd_ell(xh, y, zh, 0, 800, 16, 37, 42, 44), 20)         # narrower jaw / chin (egg)
-    d = smin(d, sd_cap(x, y, z, (0, 784, 4), (0, 744, 0), 21, 27), 20)  # very short thin neck
-    d = smin(d, sd_ell(x, y, z, 0, 676, 0, 76, 84, 44), 26)           # chest
-    d = smin(d, sd_ell(x, y, z, 0, 572, 8, 68, 88, 42), 26)           # long torso with a soft belly
-    d = smin(d, sd_ell(x, y, z, 0, 478, 0, 62, 52, 40), 24)           # pelvis
-    d = smin(d, sd_ell(ax, y, z, 76, 722, 0, 38, 30, 34), 22)         # rounded, sloped shoulders
+    zu = z - P.get("hunch", 16.0) * np.clip((y - 470.0) / 340.0, 0, 1)          # upper body leans forward a little
+    xh = x * c - zu * s; zh = x * s + zu * c
+    d = sd_ell(xh, y, zh, 0, 842, 8, 55, 62, 57)                       # rounder skull
+    d = smin(d, sd_ell(xh, y, zh, 0, 800, 16, 40, 44, 46), 22)         # narrower chin (egg)
+    d = smin(d, sd_cap(x, y, zu, (0, 784, 4), (0, 744, 0), 22, 29), 20)  # very short thin neck
+    d = smin(d, sd_ell(x, y, zu, 0, 676, 0, 78, 84, 46), 26)          # chest
+    d = smin(d, sd_ell(x, y, zu, 0, 568, 9, 72, 90, 46), 28)          # long torso, soft belly
+    d = smin(d, sd_ell(x, y, z, 0, 478, 0, 72, 56, 44), 26)           # wide pelvis
+    d = smin(d, sd_ell(ax, y, zu, 78, 722, 0, 38, 30, 34), 22)         # rounded, sloped shoulders
     a1, a2 = P["a1"], P["a2"]
-    S = (82.0, 712.0, 0.0)
+    S = (84.0, 712.0, 0.0)
     E = (S[0] + 150 * math.sin(a1), S[1] - 150 * math.cos(a1), 16.0)
     Wr = (E[0] + 138 * math.sin(a2), E[1] - 138 * math.cos(a2), 34.0)
-    d = smin(d, sd_cap(ax, y, z, S, E, 31, 25), 22)                    # long arms that hug the torso
-    d = smin(d, sd_cap(ax, y, z, E, Wr, 25, 19), 20)
-    d = smin(d, sd_ell(ax, y, z, Wr[0], Wr[1] - 26 * math.cos(a2), Wr[2] + 4, 22, 40, 18), 14)    # mitten hand
-    zl = np.where(x < 0, z - P["step"], z + P["step"] * 0.5)           # one leg a little forward
-    d = smin(d, sd_cap(ax, y, zl, (28, 466, 0), (32, 262, 12), 38, 29), 22)                       # thigh
-    d = smin(d, sd_cap(ax, y, zl, (32, 262, 12), (34, 64, 4), 28, 19), 20)                        # shin
-    d = smin(d, sd_ell(ax, y, zl, 38, 22, 28, 17, 14, 36), 12)                                    # small foot
+    d = smin(d, sd_cap(ax, y, zu, S, E, 32, 26), 22)                   # long arms that hug the torso
+    d = smin(d, sd_cap(ax, y, zu, E, Wr, 26, 20), 20)
+    d = smin(d, sd_ell(ax, y, zu, Wr[0], Wr[1] - 26 * math.cos(a2), Wr[2] + 4, 23, 42, 19), 14)    # mitten hand
+    zl = np.where(x < 0, z - P["step"], z + P["step"] * 0.5)
+    d = smin(d, sd_cap(ax, y, zl, (26, 466, 0), (30, 262, 12), 42, 31), 22)                        # thigh
+    d = smin(d, sd_cap(ax, y, zl, (30, 262, 12), (32, 64, 4), 30, 20), 20)                         # shin
+    d = smin(d, sd_ell(ax, y, zl, 36, 22, 28, 18, 14, 38), 12)                                     # small foot
     return d
 
 def sdf_normal(x, y, z, P, e=1.2):
@@ -117,6 +118,54 @@ def upsample_hits(h):
 def vnoise(xx, yy, sc, seed):
     return np.sin(xx * sc * 1.0 + seed) * np.sin(yy * sc * 0.77 - seed * 0.6) + 0.5 * np.sin((xx + yy) * sc * 0.6 + seed * 1.7)
 
+def erode(m, k):
+    out = m.copy()
+    for dx, dy in ((k, 0), (-k, 0), (0, k), (0, -k), (k, k), (-k, -k), (k, -k), (-k, k)):
+        out &= np.roll(m, (dy, dx), axis=(0, 1))
+    return out
+
+def hand_strokes(mask, lam, d, r, u, L, seed=11):
+    from PIL import ImageFilter
+    rng = np.random.RandomState(seed)
+    blur = np.asarray(Image.fromarray((mask.astype(np.uint8) * 255)).filter(ImageFilter.GaussianBlur(4)), np.float32) / 255
+    gy, gx = np.gradient(blur); mag = np.sqrt(gx * gx + gy * gy) + 1e-6
+    inx, iny = gx / mag, gy / mag                                 # points into the figure
+    band = mask & ~erode(mask, 2)
+    Ls = np.array([float(L @ r), -float(L @ u)], np.float32)
+    shadow = (-inx * Ls[0] + -iny * Ls[1]) < 0.10                 # outward normal faces away from the light
+    ys, xs = np.nonzero(band)
+    pick = rng.rand(len(xs)) < np.where(shadow[ys, xs], 0.36, 0.004)
+    layer = Image.new("L", (W, H), 0); dr = ImageDraw.Draw(layer)
+    for y0, x0 in zip(ys[pick], xs[pick]):
+        dx, dy = float(inx[y0, x0]), float(iny[y0, x0])
+        n_ = math.hypot(dx, 0.30 * dy) + 1e-6; dx, dy = dx / n_, 0.30 * dy / n_      # mostly horizontal, like the reference
+        sh_ = shadow[y0, x0]
+        ln = (16 + rng.rand() * 34) if sh_ else (4 + rng.rand() * 8)
+        bend = rng.randn() * 2.2; px_, py_ = -dy, dx
+        p0 = (x0 - dx * 1.5, y0 - dy * 1.5)
+        p1 = (x0 + dx * ln * 0.5 + px_ * bend, y0 + dy * ln * 0.5 + py_ * bend)
+        p2 = (x0 + dx * ln, y0 + dy * ln)
+        dr.line([p0, p1, p2], fill=int(190 + rng.rand() * 65), width=1 + int(rng.rand() < 0.5))
+    # crosshatch block on the shadow side of the torso / upper thigh (like the reference's belly)
+    Yw = d["y"]; interior = erode(mask, 12)
+    reg = interior & (lam < 0.34) & (Yw > 440) & (Yw < 650)
+    reg = np.asarray(Image.fromarray((reg.astype(np.uint8) * 255)).filter(ImageFilter.GaussianBlur(9)), np.float32) > 150      # one coherent patch
+    for y in range(0, H, 9):
+        row = reg[y]
+        if not row.any(): continue
+        edge = np.diff(np.concatenate([[0], row.astype(np.int8), [0]]))
+        st = np.nonzero(edge == 1)[0]; en = np.nonzero(edge == -1)[0]
+        for a, b in zip(st, en):
+            if b - a > 8: dr.line([(a + rng.randint(0, 5), y + rng.randn() * 0.8), (b - rng.randint(0, 5), y + rng.randn() * 0.8)], fill=int(190 + rng.rand() * 65), width=2)
+    for x in range(0, W, 10):
+        col_ = reg[:, x]
+        if not col_.any(): continue
+        edge = np.diff(np.concatenate([[0], col_.astype(np.int8), [0]]))
+        st = np.nonzero(edge == 1)[0]; en = np.nonzero(edge == -1)[0]
+        for a, b in zip(st, en):
+            if b - a > 8: dr.line([(x + rng.randn() * 0.8, a + rng.randint(0, 5)), (x + rng.randn() * 0.8, b - rng.randint(0, 5))], fill=int(180 + rng.rand() * 70), width=2)
+    return np.asarray(layer, np.float32) / 255
+
 def render_figure(C, r, u, f, t, pose=None, mood="neutral", pconv=0.0):
     P = dict(DEFAULT_POSE); P.update(pose or {})
     G = grid(); xx, yy = G["xx"], G["yy"]
@@ -130,23 +179,11 @@ def render_figure(C, r, u, f, t, pose=None, mood="neutral", pconv=0.0):
     edge = 1.0 - np.abs((N * view).sum(-1))
     # blown-out white; the only "shading" is a hint of cool tint in the shadow
     col = np.ones((H, W, 3), np.float32) * (0.94 + 0.06 * lam[..., None]) * (np.array([0.965, 0.955, 1.0], np.float32) * (1 - lam[..., None]) + lam[..., None])
-    # hatching density: shadow side + silhouette edges
-    Dk_edge = np.clip((edge - 0.58) / 0.42, 0, 1) * np.where(lam < 0.62, 1.0, 0.25)
-    Dk_sh = np.clip((0.17 - lam) / 0.17, 0, 1)
-    Dk = np.maximum(Dk_edge, 0.8 * Dk_sh)
-    nxs = (N * r).sum(-1); nys = (N * u).sum(-1)
-    n1 = vnoise(xx, yy, 0.07, 1.3)
-    ph_h = yy / 5.4 + 0.12 * n1
-    row = np.floor(ph_h); fr_h = ph_h - row
-    rh = np.sin(row * 12.9898 + 3.1) * 43758.5453; rh = rh - np.floor(rh)            # per-row random stroke length
-    ph_v = xx / 5.4 + 0.12 * n1
-    fr_v = ph_v - np.floor(ph_v)
-    wdt = np.clip(0.15 + Dk * 0.24, 0, 0.42)
-    main = (fr_h < wdt) & (Dk > 0.10 + 0.55 * rh)                                    # comb of strokes, ragged lengths
-    grid_ = (fr_v < wdt * 0.85) & (Dk_sh > 0.45) & (fr_h < wdt * 1.6)                # neat crosshatch block in the deepest shadow
-    lines = (main | grid_) & mask
+    # hand-drawn hatching: ragged ink strokes marching in from the shadow-side edge + a crosshatch block in the shadow
+    ink_alpha = hand_strokes(mask, lam, d, r, u, L, seed=int(t * 0) + 11)
     ink = np.array([0.16, 0.12, 0.24], np.float32)
-    col = np.where(lines[..., None], col * 0.28 + ink * 0.58, col)
+    col = col * (1 - ink_alpha[..., None] * 0.88) + ink * ink_alpha[..., None] * 0.88
+    lines = ink_alpha > 0.3
     # jaw line + tick marks, heart eyes (drawn on a PIL layer, then merged)
     pil = Image.new("RGBA", (W, H), (0, 0, 0, 0)); dr = ImageDraw.Draw(pil)
     hc, hs = math.cos(P["head_yaw"]), math.sin(P["head_yaw"])
@@ -158,13 +195,12 @@ def render_figure(C, r, u, f, t, pose=None, mood="neutral", pconv=0.0):
         v = np.array(C, np.float32) - p; v = v / np.linalg.norm(v); return float(v @ nrm)
     # jaw
     jaw = []
-    for xh in np.linspace(-30, 30, 16):
-        zh = 12 + 40 * math.sqrt(max(0.0, 1 - (xh / 41.0) ** 2)); y = 800 - 0.012 * xh * xh
+    for xh in np.linspace(-34, 34, 18):
+        zh = 8 + 34 * math.sqrt(max(0.0, 1 - (xh / 42.0) ** 2)); y = 776 - 0.010 * xh * xh
         p = head_pt(xh, y, zh); n_ = head_pt(xh / 41.0, 0.15, 1.0); n_ = n_ / np.linalg.norm(n_)
         if facing(p, n_) > 0.08: jaw.append(proj(p)[:2] + (xh,))
     if len(jaw) > 2:
-        dr.line([(a, b) for a, b, _ in jaw], fill=(30, 20, 40, 255), width=3)
-        for a, b, xh in jaw[::2]: dr.line([(a, b), (a + 1, b + 9)], fill=(30, 20, 40, 255), width=2)
+        dr.line([(a, b) for a, b, _ in jaw], fill=(40, 30, 54, 210), width=2)
     # eyes: plain, normal eyes (white, thin ink outline, dark pupil); mood changes lids / brows
     INK_ = (34, 26, 44, 255)
     for sd in (-1, 1):
@@ -197,7 +233,8 @@ def render_figure(C, r, u, f, t, pose=None, mood="neutral", pconv=0.0):
     strip = (np.roll(mask, 4, axis=1) | np.roll(mask, 9, axis=1) | np.roll(mask, 5, axis=0)) & ~mask
     bx = (xx // 4).astype(np.int32); by = (yy // 4).astype(np.int32)
     hsh = np.sin(bx * 12.9898 + by * 78.233 + math.floor(t * 8) * 3.7) * 43758.5453; rk = hsh - np.floor(hsh)
-    blocks = strip & (rk < 0.5)
+    strip = strip | (np.roll(mask, 13, axis=1) & ~mask & (rk > 0.55))
+    blocks = strip & (rk < 0.62)
     pal = np.array([[0.92, 0.20, 0.80], [0.50, 0.30, 1.0], [0.30, 0.40, 1.0], [1.0, 0.22, 0.30]], np.float32)
     bc = pal[np.minimum((rk * 8).astype(int), 3)]
     return dict(col=col2, mask_ch=mask_ch, mask=mask, blocks=blocks, bcol=bc)
