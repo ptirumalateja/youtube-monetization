@@ -10,26 +10,22 @@ RENDER_DIR holds frames/f00000.jpg.. (render.cjs frames). Writes to OUT_DIR:
                                           commercial and not licensed to this channel; Content ID would claim it).
 The song file itself never goes into git.
 """
-import glob, os, subprocess, sys
-from PIL import Image
+import glob, json, os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'slow-light-dark-common'))
-import overlay
+TL = json.load(open(os.path.join(HERE, 'timeline.json')))
 
 src, out = sys.argv[1], sys.argv[2]; song = sys.argv[3] if len(sys.argv) > 3 else None
 os.makedirs(out, exist_ok=True)
-fps = overlay.TL['fps']; dur = overlay.TL['duration']; total = round(dur * fps)
+fps = TL['fps']; dur = TL['duration']; total = round(dur * fps)
 frames = sorted(glob.glob(os.path.join(src, 'frames', 'f*.jpg')))
 assert len(frames) == total, f'{len(frames)} frames, expected {total}'
 silent = os.path.join(out, 'dont-tell-your-dreams_music-ready.mp4')
-enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', '1080x1920', '-r', str(fps), '-i', '-',
-                        '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], stdin=subprocess.PIPE)
-for f, path in enumerate(frames):
-    enc.stdin.write(overlay.draw(Image.open(path).convert('RGB'), f / fps).tobytes())
-enc.stdin.close(); assert enc.wait() == 0
+# the text, speed lines and flash are drawn in the canvas (scene.js), so the frames go straight to the encoder
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-framerate', str(fps), '-i', os.path.join(src, 'frames', 'f%05d.jpg'),
+                '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], check=True)
 print('video ok:', silent)
 if song:
-    ms = int(round(overlay.TL['songOffset'] * 1000))
+    ms = int(round(TL['songOffset'] * 1000))
     prev = os.path.join(out, 'dont-tell-your-dreams_song-preview.mp4')
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', silent, '-i', song, '-filter_complex',
                     f'[1:a]adelay={ms}|{ms},apad,atrim=0:{dur},afade=t=out:st={dur - 0.4}:d=0.4[a]',
