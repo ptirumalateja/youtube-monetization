@@ -158,7 +158,7 @@ MOODS = {
     "joy": dict(brow=(0.45, 0.0), eye=0.0, mouth="grin", pupil=(0.0, 0.0)),
 }
 
-def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0):
+def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0, sprite=False):
     # scale>1 = taller crowd figure; tone<1 = darker (crowd: scale 1.3, tone 0.3, light eyes)
     sdf0, sk = make_sdf(P)
     if scale != 1.0:
@@ -188,6 +188,7 @@ def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0):
     wd = 330 * scale * FO / fl[2]
     dd.ellipse([fl[0] - wd, fl[1] - wd * 0.16, fl[0] + wd, fl[1] + wd * 0.16], fill=120)
     shadow = np.asarray(pil.filter(ImageFilter.GaussianBlur(22)), np.float32)[..., None] / 255
+    if sprite: img = col.copy(); shadow = shadow * 0
     img = img * (1 - shadow * 0.42)
     alpha = np.clip((mk - 0.22) / 0.56, 0, 1)[..., None]
     img = img * (1 - alpha) + col * alpha
@@ -234,6 +235,7 @@ def render(P, mood, C, r, u, f, bg=None, scale=1.0, tone=1.0):
             for q in (-0.5, 0, 0.5): dr.line([(mx + q * w_ * 1.1, my - 0.05 * R * sc), (mx + q * w_ * 1.1, my + 0.06 * R * sc)], fill=INK, width=2)
         elif k == "grin":
             dr.chord([mx - w_ * 1.4, my - 0.10 * R * sc, mx + w_ * 1.4, my + 0.12 * R * sc], 0, 180, fill=INK)
+    if sprite: return np.asarray(P_, np.float32) / 255, alpha[..., 0]
     return np.asarray(P_, np.float32) / 255, mask
 
 # ---------------------------------------------------------------- poses (segment directions)
