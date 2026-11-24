@@ -51,7 +51,7 @@ while tk < 5.2:
     add(tick(0.7 * (1.0 - 0.6 * (tk - 0.5) / 4.7)), tk, 0.2); tk += 0.05
 L = int(0.08 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 900 * tt) * np.exp(-tt / 0.015) + bp(noise(L), 1500, 6000) * np.exp(-tt / 0.01)).astype(np.float32), 5.2, 0.45)
 # typed text ticks (labels) and the final line
-for a, b, r in ((0.4, 1.7, 0.09), (0.8, 1.7, 0.1), (2.4, 3.5, 0.09), (5.0, 5.7, 0.07), (5.7, 6.4, 0.08), (7.2, 7.9, 0.1), (8.4, 9.0, 0.12)):
+for a, b, r in ((7.2, 7.9, 0.1), (8.4, 9.0, 0.12)):
     for x in np.arange(a, b, r): add(tick(0.7), float(x), 0.1)
 L = int(0.5 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 500, 5000) * np.sin(np.pi * tt / 0.5) ** 2, 8.95, 0.22)   # title swaps to the closing line
 L = int(0.12 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1000 * tt) * np.exp(-tt / 0.02) + bp(noise(L), 1500, 6000) * np.exp(-tt / 0.012)).astype(np.float32), 9.3, 0.4)
