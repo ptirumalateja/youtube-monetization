@@ -3,7 +3,7 @@
 Video: `ayyappa_route_te.mp4` (1080×1920, ~58s, Teja voice only, pop captions, 3D map)
 Cover: `ayyappa_cover_1080x1920.jpg` · Thumbnail: `ayyappa_thumbnail_1280x720.jpg`
 
-**Every platform:** turn on the AI label (the coconut hook, 18 steps, abhishekam and aazhi shots are AI-generated). YouTube: "Altered or synthetic content" → Yes. Audience: not made for kids.
+**Every platform:** turn on the AI label (the coconut hook, abhishekam and aazhi shots are AI-generated). YouTube: "Altered or synthetic content" → Yes. Audience: not made for kids.
 **Keep the credits block in the description** — the Wikimedia photos (CC BY / CC BY-SA) and map imagery (CC BY 4.0) require attribution.
 **Post during mandala season** (now through Makaravilakku, Jan 14). Evening 9 PM worked for you.
 
@@ -31,7 +31,7 @@ Note: the route on the map is approximate (drawn through the main stops, not a G
 
 🗺️ Map: Sentinel-2 cloudless 2016 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016), CC BY 4.0; terrain: AWS Terrain Tiles (Mapzen); map points © OpenStreetMap contributors (ODbL).
 📷 Photos (Wikimedia Commons): "Sabarimala Pilgrims in Black Dress" — Kandukuru Nagarjun (CC BY 2.0); "Sabarimala pilgrims walking" — Challiyan / Dr. Vipin Challiyil (CC BY-SA 4.0); "Pilgrims trekking on the path through forests leading to Sabarimala temple" — Shantham11 (CC BY-SA 4.0); "Snanaghat, Pampa 1", "Sabarimala - Pampa pathway", "Sannidhanam, Sabarimala" — Praveenp (CC BY-SA 4.0).
-🤖 Some scenes are AI-generated (coconut, 18 steps, abhishekam, aazhi).
+🤖 Some scenes are AI-generated (coconut, abhishekam, aazhi).
 
 #Sabarimala #శబరిమల #Ayyappa #అయ్యప్ప #SwamiyeSaranamAyyappa #Irumudi #Erumeli #Pamba #Karimala #PeriyarTigerReserve #MandalaPooja #VishayamEntante #TeluguShorts
 ```
