@@ -1,6 +1,6 @@
 # Ayyappa: Sabarimala forest route — Publish Copy (విషయం ఏంటంటే)
 
-Video: `ayyappa_route_te.mp4` (1080×1920, ~58s, Teja voice only, pop captions, 3D map)
+Video: `ayyappa_route_te.mp4` (1080×1920, ~63s, ends with a 6-stop route card to screenshot, Teja voice only, pop captions, 3D map)
 Cover: `ayyappa_cover_1080x1920.jpg` · Thumbnail: `ayyappa_thumbnail_1280x720.jpg`
 
 **Every platform:** turn on the AI label (the coconut hook, abhishekam and aazhi shots are AI-generated). YouTube: "Altered or synthetic content" → Yes. Audience: not made for kids.
@@ -21,6 +21,8 @@ Cover: `ayyappa_cover_1080x1920.jpg` · Thumbnail: `ayyappa_thumbnail_1280x720.j
 ఈ కొబ్బరికాయలో ఉన్నది నెయ్యి కాదు… ఒక భక్తుడి ఆత్మ! 🙏
 
 41 రోజుల దీక్ష తర్వాత స్వాములు ఇరుముడిని తలపై పెట్టుకుని ఎరుమేలి నుంచి పంబ వరకు దాదాపు 40 కిలోమీటర్లు కాలినడకన వెళ్తారు — అందులో సగం దారి పులులు తిరిగే పెరియార్ టైగర్ రిజర్వ్ అడవి. అళుదా నదిలో రాయి, కల్లిడుంకున్ను, కరిమల ఎక్కుడు, పంబ స్నానం, నీలిమల, చివరికి పద్దెనిమిది మెట్లు… ఆ నెయ్యితో అయ్యప్పకు అభిషేకం.
+
+📸 వీడియో చివర్లో ఉన్న రూట్ కార్డ్‌ని స్క్రీన్‌షాట్ తీసి సేవ్ చేసుకోండి.
 
 మీరు ఇరుముడి కట్టి శబరిమల వెళ్లారా? మీ అనుభవం కామెంట్‌లో చెప్పండి 👇
 🔔 ఇలాంటి మరిన్ని విషయాల కోసం సబ్‌స్క్రైబ్ చేయండి: @vishayamentantetelugu
@@ -58,7 +60,7 @@ sabarimala, sabarimala route, sabarimala forest route, erumeli to pamba, sabarim
 దాదాపు 40 కి.మీ. — సగం దారి పులులు తిరిగే అడవి 🐅
 
 💬 మీరు ఇరుముడి కట్టి వెళ్లారా? కామెంట్ చేయండి
-📌 శబరిమల వెళ్లే వాళ్ల కోసం సేవ్ చేసుకోండి
+📌 చివర్లో రూట్ కార్డ్ ఉంది — స్క్రీన్‌షాట్ తీసి సేవ్ చేసుకోండి
 🔁 మీ ఇంట్లో స్వాములకు షేర్ చేయండి
 
 Map: Sentinel-2 cloudless by EOX (CC BY 4.0) · Photos: Wikimedia Commons (credits on YouTube) · Some scenes AI-generated

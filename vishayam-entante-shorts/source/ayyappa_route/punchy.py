@@ -56,7 +56,7 @@ def build(cfg_path):
               f"tpad=stop_mode=clone:stop_duration={hold+0.2:.3f},"
               f"scale=w='trunc(1080*{z}/2)*2':h='trunc(1920*{z}/2)*2':eval=frame:flags=lanczos,"
               f"crop=1080:1920:x='(in_w-1080)*({zx0}+({zx1}-{zx0})*{ease})':y='(in_h-1920)*({zy0}+({zy1}-{zy0})*{ease})',"
-              f"setsar=1,{GRADE},trim=0:{L:.3f},setpts=PTS-STARTPTS,format=yuv420p[v]")
+              f"setsar=1,{"null" if sc.get("nograde") else GRADE},trim=0:{L:.3f},setpts=PTS-STARTPTS,format=yuv420p[v]")
         if sc.get("sfx"):
             af = (f"[1:a]atrim={s0}:{s1},asetpts=PTS-STARTPTS,atempo={max(min(speed,2),0.5):.4f},aresample=48000,"
                   f"volume={sc['sfx']},apad,atrim=0:{L:.3f}[a]")
