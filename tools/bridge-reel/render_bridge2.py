@@ -14,11 +14,11 @@ def lerp(a, b, t): return a + (b - a) * t
 GOLD = (255, 196, 96); CREAM = (252, 246, 232)
 
 # ------------------------------------------------------------------ layout (final pixels)
-TOP_Y = 800          # top panel deck line
-BOT_Y = 1310         # bottom panel deck line
+TOP_Y = 830          # top panel deck line
+BOT_Y = 1335         # bottom panel deck line
 # safe zone: 15% top (y>=288) and 20% bottom (y<=1536) stay clear for the app UI; all content lives inside it
-LINE1, LINE2, CNT_Y = 905, 985, 945
-LBL1, LBL2, DIM_Y, SL_Y = 470, 1015, 1400, 1500
+LINE1, LINE2, CNT_Y = 940, 1020, 980
+LBL1, LBL2, DIM_Y, SL_Y = 500, 1048, 1412, 1506
 LED_TOP = (270, 810) # inner ledge edges (top panel)
 LED_BOT = (300, 780)
 NPL = 18             # planks across the top gap (9 per side, 3 per stride)
