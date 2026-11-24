@@ -28,8 +28,8 @@ add(bp((np.sign(np.sin(2 * np.pi * np.cumsum(fr) / SR)) * 0.5).astype(np.float32
 for k in range(5): add(step(0.9), 2.1 + k * 0.32, 0.4)
 add(tone(220, 0.35, 0.15, 0.5), 3.2, 0.3); add(tone(180, 0.4, 0.2, 0.5), 3.5, 0.3)
 # phone close-up: tap, toggle click, whoosh, sonar ping
-add(tick(1.0) + tone(1400, 0.05, 0.01, 0.5), 4.55, 0.4)
-add(tone(1000, 0.08, 0.02, 0.7) + bp(noise(int(0.08 * SR)), 1500, 6000) * 0.4, 5.0, 0.45)
+add(tick(1.0), 4.55, 0.4); add(tone(1400, 0.05, 0.01, 0.5), 4.55, 0.4)
+add(tone(1000, 0.08, 0.02, 0.7), 5.0, 0.45); add(bp(noise(int(0.08 * SR)), 1500, 6000) * 0.4, 5.0, 0.45)
 for k, f in enumerate((660, 880, 1100)): add(tone(f, 0.5, 0.18, 0.6), 5.1 + k * 0.12, 0.28)
 # rage burst
 L = int(0.8 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 500, 6000) * np.exp(-tt / 0.15), 5.6, 0.45)
