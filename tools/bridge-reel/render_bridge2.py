@@ -14,14 +14,15 @@ def lerp(a, b, t): return a + (b - a) * t
 GOLD = (255, 196, 96); CREAM = (252, 246, 232)
 
 # ------------------------------------------------------------------ layout (final pixels)
-TOP_Y = 740          # top panel deck line
-BOT_Y = 1330         # bottom panel deck line (content ends ~y=1520: the bottom ~20% stays clear for the app UI)
-LINE1, LINE2, CNT_Y = 850, 942, 896
-LBL1, LBL2, DIM_Y, SL_Y = 350, 985, 1405, 1520
+TOP_Y = 800          # top panel deck line
+BOT_Y = 1310         # bottom panel deck line
+# safe zone: 15% top (y>=288) and 20% bottom (y<=1536) stay clear for the app UI; all content lives inside it
+LINE1, LINE2, CNT_Y = 905, 985, 945
+LBL1, LBL2, DIM_Y, SL_Y = 470, 1015, 1400, 1500
 LED_TOP = (270, 810) # inner ledge edges (top panel)
 LED_BOT = (300, 780)
 NPL = 18             # planks across the top gap (9 per side, 3 per stride)
-KT, KB = 1.65, 1.12  # figure scale top / bottom
+KT, KB = 1.5, 1.02  # figure scale top / bottom
 
 # ------------------------------------------------------------------ stick figure (FK, units)
 LT, LTH, LSH, LUA, LFA = 62.0, 38.0, 38.0, 28.0, 27.0
@@ -78,9 +79,9 @@ def bg():
         x, y = rng.randint(0, W), rng.randint(0, H); img[y:y + 2, x:x + 2] += rng.randint(14, 30)
     _BG["a"] = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB").convert("RGBA"); return _BG["a"].copy()
 def ledge(d, x0, x1, y, S=SS, inner="r"):
-    d.rectangle([x0 * S, y * S, x1 * S, (y + 46) * S], fill=(72, 78, 98, 255)); d.rectangle([x0 * S, (y + 46) * S, x1 * S, (y + 120) * S], fill=(30, 34, 50, 255))
+    d.rectangle([x0 * S, y * S, x1 * S, (y + 46) * S], fill=(72, 78, 98, 255)); d.rectangle([x0 * S, (y + 46) * S, x1 * S, (y + 90) * S], fill=(30, 34, 50, 255))
     d.line([(x0 * S, y * S), (x1 * S, y * S)], fill=(150, 158, 182, 255), width=int(3 * S)); d.line([(x0 * S, (y + 46) * S), (x1 * S, (y + 46) * S)], fill=(110, 118, 142, 160), width=int(2 * S))
-    xi = x1 if inner == "r" else x0; d.line([(xi * S, y * S), (xi * S, (y + 120) * S)], fill=(120, 130, 160, 130), width=int(2 * S))
+    xi = x1 if inner == "r" else x0; d.line([(xi * S, y * S), (xi * S, (y + 90) * S)], fill=(120, 130, 160, 130), width=int(2 * S))
 def planks(d, x0, n, step, y, direction, size=31, S=SS):
     for i in range(n):
         px = x0 + direction * step * i; xa, xb = (px, px + size) if direction > 0 else (px - size, px)
@@ -196,10 +197,10 @@ def frame(t):
         td.text((W / 2, 75), gold, font=font(INTER_XB, sz), fill=255, anchor="mm")
         gcol = np.zeros((150, W, 3), np.float32); gg = np.linspace(0, 1, 150, dtype=np.float32)[:, None, None]
         gcol[:] = np.array([255, 214, 130], np.float32) * (1 - gg) + np.array([246, 164, 56], np.float32) * gg
-        gl = Image.fromarray(gcol.astype(np.uint8), "RGB").convert("RGBA"); gl.putalpha(tl); lay.alpha_composite(gl, (0, 100))
+        gl = Image.fromarray(gcol.astype(np.uint8), "RGB").convert("RGBA"); gl.putalpha(tl); lay.alpha_composite(gl, (0, 255))
         w2 = 50
         while ImageDraw.Draw(lay).textlength(white, font=font(INTER_XB, w2)) > 840 and w2 > 30: w2 -= 2
-        ImageDraw.Draw(lay).text((W / 2, 262), white, font=font(INTER_XB, w2), fill=(246, 244, 240, 255), anchor="mm"); return lay
+        ImageDraw.Draw(lay).text((W / 2, 415), white, font=font(INTER_XB, w2), fill=(246, 244, 240, 255), anchor="mm"); return lay
     a1 = 1.0 if t < 9.0 else max(0.0, 1 - (t - 9.0) / 0.25); a2 = 0.0 if t < 9.25 else min(1.0, (t - 9.25) / 0.3)
     base_i = img.convert("RGBA")
     for (g_, w_, al) in (("WHO TRIES HARDER", "IN YOUR RELATIONSHIP?", a1), ("ONE PERSON CAN'T BUILD", "A BRIDGE FOR TWO.", a2)):
@@ -219,7 +220,7 @@ def frame(t):
     yy = DIM_Y; d.line([(LED_BOT[0] + 14, yy), (LED_BOT[1] - 14, yy)], fill=(110, 120, 170), width=2)
     for x_ in range(LED_BOT[0] + 14, LED_BOT[1] - 14, 22): d.line([(x_, yy), (x_ + 10, yy)], fill=(18, 20, 34), width=3)
     d.polygon([(LED_BOT[0] + 14, yy), (LED_BOT[0] + 30, yy - 8), (LED_BOT[0] + 30, yy + 8)], fill=(120, 130, 180)); d.polygon([(LED_BOT[1] - 14, yy), (LED_BOT[1] - 30, yy - 8), (LED_BOT[1] - 30, yy + 8)], fill=(120, 130, 180))
-    spaced(d, (540, DIM_Y + 28), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 26), (150, 160, 215), 4, "c")
+    spaced(d, (540, DIM_Y + 26), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 26), (150, 160, 215), 4, "c")
     spaced(d, (540, SL_Y), "S L O W   L I G H T", font(MONO, 20), (96, 100, 124), 2, "c")
     return img
 
