@@ -39,15 +39,14 @@ for n in range(3):
     for k in range(3): add(knock(430 + 30 * k), t0 + (k + 1) / 3.4 * 1.3, 0.45)
     ts = t0 + 1.3
     for fr in (0.15, 0.5): add(step(), ts + fr * 0.8, 0.5)
-add(step(0.8), 0.82, 0.35)
-for k in range(3): add(knock(560 + 30 * k), 0.8 + (k + 1) / 3.4 * 0.9, 0.4)
-for fr in (0.2, 0.6): add(step(), 1.7 + fr * 0.6, 0.45)
-# phone: lift rustle (after her one stride), taps, buzz
-L = int(0.3 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 1200, 6000) * np.sin(np.pi * tt / 0.3) ** 2, 2.7, 0.14)
-for tk in (3.2, 3.5, 3.9, 4.4, 5.0, 5.6, 6.2, 6.8, 7.4, 8.0):
+# phone: lift rustle, taps, buzzes; she lowers it, turns and walks away at the end
+L = int(0.3 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 1200, 6000) * np.sin(np.pi * tt / 0.3) ** 2, 0.3, 0.12)
+for tk in (0.9, 1.2, 1.6, 2.0, 3.1, 3.4, 4.2, 4.6, 5.0, 6.1, 6.5, 7.4, 8.0):
     L = int(0.05 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1800 * tt) * np.exp(-tt / 0.008) * 0.6).astype(np.float32), tk, 0.18)
-for tb in (4.1, 5.9, 7.6):
+for tb in (2.4, 4.0, 6.8):
     L = int(0.4 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 150 * tt) * (0.5 + 0.5 * np.sin(2 * np.pi * 30 * tt)) * np.exp(-tt / 0.25)).astype(np.float32), tb, 0.35)
+L = int(0.35 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 800, 5000) * np.sin(np.pi * tt / 0.35) ** 2, 9.45, 0.14)
+for k in range(5): add(step(0.8), 10.15 + k * 0.4, 0.34 * (1 - k * 0.17))
 # DAY counter ticks (fast, fading), lock click at 365
 tk = 0.5
 while tk < 5.2:
