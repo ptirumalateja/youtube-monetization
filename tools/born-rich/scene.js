@@ -34,6 +34,11 @@ const SPEED={
   E:t=>t<TL.go?0:(ramp(t,TL.go,1.2,0,4.0)+ramp(t,TL.egoBoost,TL.egoBoost+0.6,0,3.5)-ramp(t,TL.celebrate,TL.celebrate+0.7,0,4.85))*stopK(t)};  // cruise, surge as Motivation fades, celebrate early
 const XS={}; for(const k in SPEED){ const a=new Float32Array(NS); let x=X0; for(let i=0;i<NS;i++){ a[i]=x; x+=SPEED[k](i*DT)*DT; } XS[k]=a; }
 const xAt=(k,t)=>{ const f=clamp(t,0,DUR)/DT, i=Math.min(NS-2,Math.floor(f)); return lerp(XS[k][i],XS[k][i+1],f-i); };
+// gait phase integrated from speed (cycles/s = v / stride(v)), so the legs only ever slow down as a runner slows.
+// (v3/v4 used distance / stride(v): when the stride shrank during Motivation's burnout the phase jumped and the legs spun.)
+const strideOf=v=>Math.max(1.3,0.36*v+0.9);   // metres per gait cycle: ~3.4 m at 7 m/s (about 2 cycles/s)
+const PH={}; for(const k in SPEED){ const a=new Float32Array(NS); let p=0; for(let i=0;i<NS;i++){ a[i]=p; const v=SPEED[k](i*DT); p+=2*Math.PI*v/strideOf(v)*DT; } PH[k]=a; }
+const phAt=(k,t)=>{ const f=clamp(t,0,DUR)/DT, i=Math.min(NS-2,Math.floor(f)); return lerp(PH[k][i],PH[k][i+1],f-i); };
 const LANE={M:2.8,D:0,E:-2.8};   // wide lanes: from the raised side camera each runner gets his own band of the frame
 
 // ---------------------------------------------------------------- runners
@@ -49,7 +54,7 @@ const CHEER={...P0,p:-0.12,tilt:-0.4,hy:0.55,ty:0.35,sL:2.75,sR:2.95,eL:0.35,eR:
 const SPENT={...P0,p:0.95,tilt:0.28,aL:0.32,aR:0.22,kL:0.55,kR:0.48,dy:-0.08,sL:0.55,sR:0.55,eL:0.2,eR:0.2};
 const STAND={...P0,p:0.06,kL:0.08,kR:0.08};
 // stride per gait cycle grows with speed (cadence about 1.45 cycles/s when running)
-function runPose(base,dist,v,amp,{A=0.62,K=1.35,arm=0.75}={}){ const ph=dist/Math.max(1.3,0.36*Math.max(v,0.1)+0.9)*2*Math.PI;   // stride per cycle: ~3.4 m at 7 m/s (about 2 cycles/s)
+function runPose(base,ph,amp,{A=0.62,K=1.35,arm=0.75}={}){
   const P=R.gait(base,ph,amp,A,K,arm); P.dy=(P.dy||0)-0.025*amp+0.05*amp*Math.abs(Math.cos(ph)); return P; }
 function handsOn(P,root,yaw){ const J=R.skel(P,root,yaw); const f=J.fwd;
   return {...P,tL:J.kL.clone().addScaledVector(f,0.06).add(V(0,0.04,0)),tR:J.kR.clone().addScaledVector(f,0.06).add(V(0,0.04,0)),wL:1,wR:1,pL:V(-0.3,-0.4,0.8),pR:V(-0.3,-0.4,-0.8)}; }
@@ -59,11 +64,11 @@ function runner(k,t){
   const go=sm5(sstep(TL.go-0.05,TL.go+0.35,t));
   const amp=clamp(v/2.6,0,1)*(t<TF?1:1-sstep(TF-0.1,TF+0.25,t));
   let P;
-  if(k==='M'){ const sp=sstep(TL.burnout0+0.6,TL.burnout1,t); const run=runPose(RUN,x-X0,v,amp*1.05,{A:0.7,K:1.5,arm:0.9});
+  if(k==='M'){ const sp=sstep(TL.burnout0+0.6,TL.burnout1,t); const run=runPose(RUN,phAt(k,t),amp*1.05,{A:0.7,K:1.5,arm:0.9});
     P=R.blend(R.blend(CROUCH,run,go),SPENT,sm5(sp)); P.p+=0.05*Math.sin(2*Math.PI*1.6*t)*sp; if(sp>0.6) P=handsOn(P,root,yaw); }
-  else if(k==='D'){ const run=runPose(RUN,x-X0,v,amp,{A:0.55,K:1.2,arm:0.62}); P=R.blend(CROUCH,run,go); if(t>TF-0.1) P=R.blend(P,STAND,sm5(sstep(TF-0.1,TF+0.3,t))); }
+  else if(k==='D'){ const run=runPose(RUN,phAt(k,t),amp,{A:0.55,K:1.2,arm:0.62}); P=R.blend(CROUCH,run,go); if(t>TF-0.1) P=R.blend(P,STAND,sm5(sstep(TF-0.1,TF+0.3,t))); }
   else { const ch=sm5(sstep(TL.celebrate,TL.celebrate+0.5,t)); const base=R.blend(SWAG,CHEER,ch);
-    const run=runPose(base,x-X0,v,Math.max(amp,0.35*(1-sstep(TF,TF+0.3,t))),{A:0.45-0.2*ch,K:0.9-0.4*ch,arm:0.5*(1-ch)});
+    const run=runPose(base,phAt(k,t),Math.max(amp,0.35*(1-sstep(TF,TF+0.3,t))),{A:0.45-0.2*ch,K:0.9-0.4*ch,arm:0.5*(1-ch)});
     P=R.blend(CROUCH,run,go); P.ty+=0.12*Math.sin(2*Math.PI*1.1*t)*(1-ch);                 // swagger
     if(t>TF){ const dn=sm5(sstep(TF,TF+0.7,t)); P.sL=lerp(P.sL,1.2,dn); P.sR=lerp(P.sR,1.0,dn); P.hy=lerp(P.hy,0,dn); P.ty=lerp(P.ty,0,dn); } }
   if(t>TF) P=lookAtCar(t,P,1);
