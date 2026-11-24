@@ -17,7 +17,7 @@ GOLD = (255, 196, 96); CREAM = (252, 246, 232)
 TOP_Y = 940          # top panel deck line
 BOT_Y = 1640         # bottom panel deck line
 LED_TOP = (270, 810) # inner ledge edges (top panel)
-LED_BOT = (230, 850)
+LED_BOT = (300, 780)
 NPL = 18             # planks across the top gap (9 per side, 3 per stride)
 KT, KB = 1.65, 1.12  # figure scale top / bottom
 
@@ -159,7 +159,7 @@ def frame(t):
     planted, bstep, bx, bpose = bottom_state(t); gapb = LED_BOT[1] - LED_BOT[0]
     planks(pd, LED_BOT[1], planted, bstep, BOT_Y, -1, size=bstep - 3)
     dim = (214, 216, 232, 255)
-    ps = mix(POSES["stand"], POSES["phone"], sm((t - 0.3) / 0.5)); Js = draw_fig(fd, 120, BOT_Y + 2, 1, ps, KB, (214, 218, 236, 255), ponytail=True)
+    ps = mix(POSES["stand"], POSES["phone"], sm((t - 0.3) / 0.5)); Js = draw_fig(fd, 205, BOT_Y + 2, 1, ps, KB, (214, 218, 236, 255), ponytail=True)
     draw_fig(fd, bx, BOT_Y + 2, -1, bpose, KB, (214, 218, 236, 255))
     # downscale layers
     plk1 = plk.resize((W, H), Image.LANCZOS); fig1 = fig.resize((W, H), Image.LANCZOS)
@@ -181,41 +181,41 @@ def frame(t):
     base.alpha_composite(fig1)
     # phone glow (bottom)
     if t > 0.45:
-        pw_ = (120 + Js["wF"][0] * KB + 6, BOT_Y + 2 + Js["wF"][1] * KB - 4); a = sm((t - 0.45) / 0.4) * (0.85 + 0.15 * math.sin(t * 6)); gp = Image.new("RGBA", (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(gp)
+        pw_ = (205 + Js["wF"][0] * KB + 6, BOT_Y + 2 + Js["wF"][1] * KB - 4); a = sm((t - 0.45) / 0.4) * (0.85 + 0.15 * math.sin(t * 6)); gp = Image.new("RGBA", (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(gp)
         gd.ellipse([pw_[0] - 40, pw_[1] - 40, pw_[0] + 40, pw_[1] + 40], fill=(80, 130, 255, int(130 * a))); base.alpha_composite(gp.filter(ImageFilter.GaussianBlur(14)))
         ImageDraw.Draw(base).rounded_rectangle([pw_[0] - 6, pw_[1] - 10, pw_[0] + 6, pw_[1] + 10], radius=3, fill=(240, 246, 255, 255), outline=(60, 90, 170, 255))
     # ---- text
     img = base.convert("RGB"); d = ImageDraw.Draw(img)
     # gold gradient title
-    tl = Image.new("L", (W, 140), 0); ImageDraw.Draw(tl).text((W / 2, 70), "WHO TRIES HARDER", font=font(INTER_XB, 86), fill=255, anchor="mm")
+    tl = Image.new("L", (W, 140), 0); ImageDraw.Draw(tl).text((W / 2, 70), "WHO TRIES HARDER", font=font(INTER_XB, 80), fill=255, anchor="mm")
     gcol = np.zeros((140, W, 3), np.float32); gg = np.linspace(0, 1, 140, dtype=np.float32)[:, None, None]
     gcol[:] = np.array([255, 214, 130], np.float32) * (1 - gg) + np.array([246, 164, 56], np.float32) * gg
     img.paste(Image.fromarray(gcol.astype(np.uint8), "RGB"), (0, 235), tl)
-    d.text((W / 2, 395), "IN YOUR RELATIONSHIP?", font=font(INTER_XB, 62), fill=(246, 244, 240), anchor="mm")
+    d.text((W / 2, 395), "IN YOUR RELATIONSHIP?", font=font(INTER_XB, 58), fill=(246, 244, 240), anchor="mm")
     # panel labels
-    spaced(d, (60, 535), "BOTH BUILD", font(MONO, 42), (232, 232, 238), 9)
+    spaced(d, (130, 535), "BOTH BUILD", font(MONO, 42), (232, 232, 238), 9)
     s = typed("PLANK BY PLANK", 0.4, 12, t) if t < 5.0 else (typed("THEY MEET", 5.0, 14, t) if t < 5.7 else typed("HOLD ON", 5.7, 12, t))
-    if s: spaced(d, (62, 590), s, font(MONO, 26), (170, 174, 196), 5)
+    if s: spaced(d, (132, 590), s, font(MONO, 26), (170, 174, 196), 5)
     # DAY counter between the panels
     n = day_n(t); col = GOLD if n >= 365 else (236, 236, 242)
     d.line([(0, 1170), (W, 1170)], fill=(40, 44, 64), width=2); d.line([(0, 1262), (W, 1262)], fill=(40, 44, 64), width=2)
     d.text((540 - 78, 1216), "DAY", font=font(MONO, 30), fill=(150, 154, 176), anchor="mm"); d.text((540 + 52, 1216), str(n), font=font(INTER_B, 58), fill=col, anchor="mm")
-    spaced(d, (60, 1300), "ONE BUILDS", font(MONO, 42), (140, 144, 164), 9)
+    spaced(d, (130, 1300), "ONE BUILDS", font(MONO, 42), (140, 144, 164), 9)
     if t < 0.8: s2, c2 = "", None
     elif t < 2.4: s2, c2 = typed("HE BUILDS", 0.8, 10, t), None
     elif t < 7.2: s2, c2 = typed("SHE SCROLLS", 2.4, 11, t), None
     elif t < 8.4: s2, c2 = typed("TOO FAR", 7.2, 9, t), (240, 90, 90)
     else: s2, c2 = typed("ALONE", 8.4, 8, t), (240, 90, 90)
-    if s2: spaced(d, (62, 1355), s2, font(MONO, 26), c2 or (130, 134, 154), 5)
+    if s2: spaced(d, (132, 1355), s2, font(MONO, 26), c2 or (130, 134, 154), 5)
     # dimension line + final message
     if t < 9.2:
         yy = 1760; d.line([(LED_BOT[0] + 14, yy), (LED_BOT[1] - 14, yy)], fill=(110, 120, 170), width=2)
         for x_ in range(LED_BOT[0] + 14, LED_BOT[1] - 14, 22): d.line([(x_, yy), (x_ + 10, yy)], fill=(18, 20, 34), width=3)
         d.polygon([(LED_BOT[0] + 14, yy), (LED_BOT[0] + 30, yy - 8), (LED_BOT[0] + 30, yy + 8)], fill=(120, 130, 180)); d.polygon([(LED_BOT[1] - 14, yy), (LED_BOT[1] - 30, yy - 8), (LED_BOT[1] - 30, yy + 8)], fill=(120, 130, 180))
-        spaced(d, (540, 1790), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 30), (150, 160, 215), 4, "c")
+        spaced(d, (540, 1790), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 28), (150, 160, 215), 4, "c")
     else:
         m = typed("ONE PERSON CAN'T BUILD A BRIDGE FOR TWO.", 9.2, 18, t)
-        spaced(d, (540, 1775), m, font(MONO, 29), GOLD, 3, "c")
+        spaced(d, (540, 1775), m, font(MONO, 26), GOLD, 3, "c")
     spaced(d, (540, 1884), "S L O W   L I G H T", font(MONO, 22), (92, 96, 118), 2, "c")
     return img
 
