@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""SFX only (no music) for the 10 s 'who tries harder' cut. usage: audio_bridge3.py OUT.wav"""
+import sys, subprocess, wave
+import numpy as np
+SR = 44100; DUR = 10.0; N = int(SR * DUR); t = np.arange(N) / SR
+rng = np.random.RandomState(13); out = np.zeros(N, np.float32)
+def add(sig, t0, amp=1.0):
+    i0 = int(t0 * SR)
+    if i0 >= N or i0 < 0: return
+    seg = sig[:N - i0] * amp; out[i0:i0 + len(seg)] += seg
+def bp(x, lo, hi):
+    X = np.fft.rfft(x); f = np.fft.rfftfreq(len(x), 1 / SR); X[(f < lo) | (f > hi)] = 0; return np.fft.irfft(X, len(x)).astype(np.float32)
+def noise(L): return rng.randn(L).astype(np.float32)
+def knock(f=520, amp=1.0):
+    L = int(0.14 * SR); tt = np.arange(L) / SR
+    return ((np.sin(2 * np.pi * f * tt) * np.exp(-tt / 0.025) + 0.5 * np.sin(2 * np.pi * f * 1.9 * tt) * np.exp(-tt / 0.015)) * amp + bp(noise(L), 600, 3500) * np.exp(-tt / 0.012) * 0.5).astype(np.float32)
+def step(amp=1.0):
+    L = int(0.16 * SR); tt = np.arange(L) / SR
+    return (np.sin(2 * np.pi * 85 * tt) * np.exp(-tt / 0.05) + bp(noise(L), 300, 1800) * np.exp(-tt / 0.018) * 0.5).astype(np.float32) * amp
+def tick(amp=1.0):
+    L = int(0.02 * SR); tt = np.arange(L) / SR; return (bp(noise(L), 2000, 8000) * np.exp(-tt / 0.004)).astype(np.float32) * amp
+out += bp(noise(N), 50, 300) * 0.012
+# top builders (faster): kneel, three knocks each side, long-stride footsteps
+for n in range(3):
+    t0 = 0.4 + n * 1.0
+    add(step(0.9), t0 + 0.02, 0.5); add(step(0.9), t0 + 0.05, 0.5)
+    for k in range(3):
+        tp = t0 + (k + 1) / 3.4 * 0.6; add(knock(540 + 40 * k), tp, 0.55); add(knock(500 + 40 * k), tp + 0.04, 0.45)
+    ts = t0 + 0.6
+    for fr in (0.15, 0.55): add(step(), ts + fr * 0.4, 0.6); add(step(), ts + fr * 0.4 + 0.03, 0.55)
+# bottom builder (heavier)
+for n in range(3):
+    t0 = 0.5 + n * 1.25
+    add(step(0.8), t0 + 0.02, 0.4)
+    for k in range(3): add(knock(430 + 30 * k), t0 + (k + 1) / 3.4 * 0.8, 0.45)
+    ts = t0 + 0.8
+    for fr in (0.15, 0.55): add(step(), ts + fr * 0.45, 0.5)
+# phone: lift, taps, buzzes; lowered at the end
+L = int(0.3 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 1200, 6000) * np.sin(np.pi * tt / 0.3) ** 2, 0.3, 0.12)
+for tk in (0.9, 1.3, 1.8, 2.3, 2.8, 3.3, 3.9, 4.4, 4.9, 5.5):
+    L = int(0.05 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1800 * tt) * np.exp(-tt / 0.008) * 0.6).astype(np.float32), tk, 0.18)
+for tb in (1.6, 2.9, 4.2):
+    L = int(0.4 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 150 * tt) * (0.5 + 0.5 * np.sin(2 * np.pi * 30 * tt)) * np.exp(-tt / 0.25)).astype(np.float32), tb, 0.35)
+L = int(0.35 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 800, 5000) * np.sin(np.pi * tt / 0.35) ** 2, 6.2, 0.14)
+for k in range(5): add(step(0.8), 7.0 + k * 0.38, 0.34 * (1 - k * 0.17))
+# DAY counter ticks + lock click at 365
+tk = 0.4
+while tk < 3.6: add(tick(0.7 * (1.0 - 0.6 * (tk - 0.4) / 3.2)), tk, 0.2); tk += 0.045
+L = int(0.08 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 900 * tt) * np.exp(-tt / 0.015) + bp(noise(L), 1500, 6000) * np.exp(-tt / 0.01)).astype(np.float32), 3.6, 0.45)
+# typed ticks: TOO FAR, ALONE, closing line
+for a, b, r in ((4.4, 5.0, 0.09), (5.2, 5.7, 0.1), (6.5, 7.6, 0.05)):
+    for x in np.arange(a, b, r): add(tick(0.7), float(x), 0.1)
+# hug: air swell, sub boom, soft heartbeat
+L = int(1.1 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 400, 4500) * np.sin(np.pi * tt / 1.1) ** 2, 3.3, 0.35)
+L = int(1.0 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * (70 * np.exp(-tt * 3)) * tt) * np.exp(-tt / 0.3)).astype(np.float32), 4.25, 0.7)
+for tb in (4.6, 5.4, 6.2):
+    for off, a in ((0.0, 1.0), (0.2, 0.6)):
+        L = int(0.3 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * (60 - 16 * tt / 0.3) * tt) * np.exp(-tt / 0.08) * a).astype(np.float32), tb + off, 0.35)
+# too far rumble + slump
+rum = bp(noise(N), 35, 120) * np.interp(t, [4.2, 4.9, 5.6, 6.6], [0, 0.6, 0.9, 0.0]); out += rum * 0.9
+L = int(1.3 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * (110 * np.exp(-tt * 2.6)) * tt) * np.exp(-tt / 0.35)).astype(np.float32), 5.35, 0.75)
+L = int(0.7 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 500, 4000) * np.exp(-tt / 0.2) * np.sin(np.pi * np.minimum(tt / 0.1, 1) / 2), 5.3, 0.2)
+# title swaps to the closing line
+L = int(0.5 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 500, 5000) * np.sin(np.pi * tt / 0.5) ** 2, 5.8, 0.22)
+L = int(0.12 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1000 * tt) * np.exp(-tt / 0.02) + bp(noise(L), 1500, 6000) * np.exp(-tt / 0.012)).astype(np.float32), 6.15, 0.4)
+out = np.tanh(out * 1.2) * 0.9
+tmp = "/tmp/bridge3_raw.wav"
+with wave.open(tmp, "wb") as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes((np.clip(out, -1, 1) * 32767).astype(np.int16).tobytes())
+subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-af", "afade=t=out:st=9.4:d=0.6,loudnorm=I=-15:TP=-1.2:LRA=9,aformat=channel_layouts=stereo", "-ar", "44100", sys.argv[1]], check=True); print("wrote", sys.argv[1])
