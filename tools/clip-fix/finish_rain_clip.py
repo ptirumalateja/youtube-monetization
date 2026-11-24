@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Finish the 'rain figure' clip: remove the moving/static corner sparkles per frame (detect + inpaint), add the caption in the earlier clip's own font, trim, fade out, loudness-normalise.
-usage: finish_rain_clip.py IN.mp4 CAPTION_SOURCE_CLIP.mp4 OUT.mp4 [END=7.2] [CAPTION_Y=300]"""
+usage: finish_rain_clip.py IN.mp4 CAPTION_SOURCE_CLIP.mp4 OUT.mp4 [END=7.2] [CAPTION_Y=300] [SPEED=1.0]   (END is the output length; SPEED>1 plays the source faster)"""
 import sys, os, subprocess, tempfile, glob
 import numpy as np, cv2
-src, capsrc, dst = sys.argv[1:4]; END = float(sys.argv[4]) if len(sys.argv) > 4 else 7.2; CY = int(sys.argv[5]) if len(sys.argv) > 5 else 300
+src, capsrc, dst = sys.argv[1:4]; END = float(sys.argv[4]) if len(sys.argv) > 4 else 7.2; CY = int(sys.argv[5]) if len(sys.argv) > 5 else 300; SPEED = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 tmp = tempfile.mkdtemp(prefix="rainfix_"); fi = os.path.join(tmp, "in"); fo = os.path.join(tmp, "out"); os.makedirs(fi); os.makedirs(fo)
-subprocess.run(["ffmpeg", "-v", "error", "-y", "-t", str(END), "-i", src, "-vf", "fps=30", os.path.join(fi, "%04d.png")], check=True)
+subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-vf", f"setpts=PTS/{SPEED},fps=30", "-t", str(END), os.path.join(fi, "%04d.png")], check=True)
 files = sorted(glob.glob(fi + "/*.png")); H, W = cv2.imread(files[0]).shape[:2]
 # caption pixels taken from the earlier clip at full brightness (same typeface), scaled to this width
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "5", "-i", capsrc, "-frames:v", "1", os.path.join(tmp, "cap.png")], check=True)
@@ -38,7 +38,7 @@ for i, fpath in enumerate(files):
         A = np.zeros((H, W), np.float32); A[CY:CY + ch, cx0:cx0 + cw] = cal * a; f = (f.astype(np.float32) * (1 - A[..., None]) + TXT * A[..., None]).clip(0, 255).astype(np.uint8)
     cv2.imwrite(os.path.join(fo, os.path.basename(fpath)), f)
 print("frames with sparkle removed:", cnt, "of", len(files))
-af = f"afade=t=out:st={END - 0.4:.2f}:d=0.4,loudnorm=I=-14:TP=-1.5:LRA=9"
+af = f"atempo={SPEED},afade=t=out:st={END - 0.4:.2f}:d=0.4,loudnorm=I=-14:TP=-1.5:LRA=9"
 vf = f"fade=t=out:st={END - 0.35:.2f}:d=0.35"
-subprocess.run(["ffmpeg", "-v", "error", "-y", "-framerate", "30", "-i", os.path.join(fo, "%04d.png"), "-t", str(END), "-i", src, "-map", "0:v", "-map", "1:a?", "-vf", vf, "-af", af, "-c:v", "libx264", "-preset", "slow", "-crf", "15", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", dst], check=True)
+subprocess.run(["ffmpeg", "-v", "error", "-y", "-framerate", "30", "-i", os.path.join(fo, "%04d.png"), "-i", src, "-t", str(END), "-map", "0:v", "-map", "1:a?", "-vf", vf, "-af", af, "-c:v", "libx264", "-preset", "slow", "-crf", "15", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", dst], check=True)
 print("wrote", dst)
