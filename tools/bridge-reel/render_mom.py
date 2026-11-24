@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""'Mom's hotspot' (12 s, 1080x1920): 2 AM, Mom wakes the kid ("NO INTERNET!"), he turns on his hotspot, the signal crosses the city and the planet, Mom's video starts BUFFERING, his battery hits 1%.
+"""'Mom's brightness' (12 s, 1080x1920): 2 AM, Mom wakes the kid ("NO INTERNET!"), he takes her phone to check, her brightness is at 100% and it blinds him, the glare crosses the city and shows from space, he ends up X-rayed.
 Navy + gold theme, glowing cream stick figures, safe zones (15% top / 20% bottom). SFX only. Own characters, own wording.
 usage: render_mom.py sheet OUT.png t... | frames OUTDIR | video OUT.mp4 AUDIO.wav FRAMESDIR"""
 import sys, os, math, random, subprocess
@@ -109,33 +109,37 @@ def scene_b(pn, fg, t):    # mom enters: NO INTERNET!
     if u > 1.35: bubble(fg, 380, 835, "Beta... NO\nINTERNET!", tail=(-0.5, 105))
     if u > 1.3:   # her phone
         fg.rrect(mx + 108, 940, mx + 150, 1020, 8, (30, 36, 60, 255), (210, 216, 240, 255), 3)
-def scene_c(pn, fg, t):    # phone close-up: hotspot on
-    u = t - 4.4; pn.rrect(280, 560, 800, 1460, 50, (22, 28, 54, 255), (214, 220, 244, 255), 6)
-    pn.text((540, 660), "Settings", INTER_B, 42, (230, 232, 244, 255))
-    pn.rrect(310, 740, 770, 860, 26, (40, 48, 84, 255), None); pn.text((470, 800), "Personal Hotspot", INTER_B, 38, (236, 238, 248, 255))
-    on = sm((u - 0.55) / 0.2); tx = lerp(668, 722, on)
-    pn.rrect(640, 770, 750, 830, 30, tuple(int(lerp(a, b, on)) for a, b in zip((92, 98, 124), GOLDC)) + (255,), None)
-    pn.circ(tx - (0 if on else 14) + 0, 800, 24, (252, 250, 244, 255))
-    fx = 0.55 + 0.45 * math.sin(u * 5)
-    for i, r in enumerate((60, 110, 160)):   # wifi arcs under the row
-        if on > 0.5:
-            a0 = (u - 0.75) * 3 - i * 0.18; al = int(255 * max(0, min(1, a0)));
-            for dx in range(1): pn.d.arc([pn.p(540 - r, 1130 - r)[0], pn.p(540 - r, 1130 - r)[1], pn.p(540 + r, 1130 + r)[0], pn.p(540 + r, 1130 + r)[1]], 225, 315, fill=GOLDC + (al,), width=pn.w(12))
-        pn.circ(540, 1130, 12, GOLDC + (255,) if on > 0.5 else (92, 98, 124, 255))
-    # thumb
-    ty = lerp(1500, 840, sm(u / 0.5)) if u < 0.7 else lerp(840, 1100, sm((u - 0.7) / 0.5))
-    fg.rrect(tx - 42 + 20, ty, tx + 42 + 20, ty + 260, 40, CREAM + (255,), None)
-def scene_d(pn, fg, t):    # rage burst
-    u = t - 5.6; rot = u * 0.9
+def scene_c(pn, fg, t):    # he takes her phone: screen wakes at 100% brightness
+    u = t - 4.4; rise = sm(u / 0.45); oy = (1 - rise) * 500
+    pn.rrect(290, 600 + oy, 790, 1480 + oy, 54, (22, 28, 54, 255), (214, 220, 244, 255), 6)
+    fl = sm((u - 0.62) / 0.35)
+    scr = tuple(int(lerp(a_, b_, fl)) for a_, b_ in zip((30, 36, 66), (255, 250, 236))) + (255,)
+    pn.rrect(312, 626 + oy, 768, 1454 + oy, 40, scr, None)
+    ink = tuple(int(lerp(a_, b_, fl)) for a_, b_ in zip((200, 206, 232), (60, 56, 50))) + (255,)
+    pn.text((540, 740 + oy), "Brightness", INTER_B, 46, ink)
+    pn.rrect(380, 880 + oy, 700, 930 + oy, 25, (120, 124, 150, 255) if fl < 0.5 else (200, 196, 186, 255), None)
+    fillx = lerp(420, 700, sm((u - 0.5) / 0.15)); pn.rrect(380, 880 + oy, fillx, 930 + oy, 25, GOLDC + (255,), None); pn.circ(fillx, 905 + oy, 38, (252, 250, 244, 255), (60, 56, 50, 255), 4)
+    pn.text((540, 1010 + oy), "100%" if u > 0.62 else "", INTER_XB, 90, ink)
+    # hands taking the phone
+    fg.rrect(246, 1200 + oy, 340, 1560 + oy, 46, CREAM + (255,), None); fg.rrect(740, 1200 + oy, 834, 1560 + oy, 46, CREAM + (255,), None)
+    if fl > 0:
+        for i in range(7):
+            r = 330 + i * 110 * fl; fg.circ(540, 1040 + oy, r, (255, 250, 236, int(110 * fl * (1 - i / 8))))
+
+def scene_d(pn, fg, t):    # blinded
+    u = t - 5.6; rot = u * 0.6
+    pn.d.rectangle([0, 0, W * SS, H * SS], fill=(255, 250, 238, int(255 * max(0, 1 - u * 1.4))))
     for i in range(30):
-        a0 = rot + i * 2 * math.pi / 30; a1 = a0 + math.pi / 30 * (0.9 + 0.3 * math.sin(i + u * 14))
-        R = 1500; pn.poly([(540, 940), (540 + R * math.cos(a0), 940 + R * math.sin(a0)), (540 + R * math.cos(a1), 940 + R * math.sin(a1))], GOLDC + (110 if i % 2 else 40,))
-    k = 1.0 + 0.1 * math.sin(u * 22) * (1 - u); fg.circ(540, 940, 190 * k, CREAM + (255,))
+        a0 = rot + i * 2 * math.pi / 30; a1 = a0 + math.pi / 30 * (0.9 + 0.3 * math.sin(i + u * 14)); R = 1500
+        pn.poly([(540, 940), (540 + R * math.cos(a0), 940 + R * math.sin(a0)), (540 + R * math.cos(a1), 940 + R * math.sin(a1))], (255, 244, 214, 150 if i % 2 else 60))
+    k = 1.0 + 0.1 * math.sin(u * 24) * (1 - u); fg.circ(540, 940, 190 * k, CREAM + (255,))
     for sd in (-1, 1):
-        fg.line([(540 + sd * 40, 900), (540 + sd * 120, 880 - 0 * sd)], 14, NAVY + (255,)); fg.line([(540 + sd * 52, 930), (540 + sd * 98, 960)], 12, NAVY + (255,))
-    fg.rrect(460, 1010, 620, 1070, 12, (246, 246, 246, 255), NAVY + (255,), 6)
-    for xx in range(480, 620, 26): fg.line([(xx, 1012), (xx, 1068)], 3, NAVY + (255,))
-    fg.line([(420, 770), (520, 810)], 18, NAVY + (255,)); fg.line([(660, 770), (560, 810)], 18, NAVY + (255,))
+        fg.line([(540 + sd * 40, 916), (540 + sd * 112, 940)], 16, NAVY + (255,)); fg.line([(540 + sd * 40, 940), (540 + sd * 112, 916)], 16, NAVY + (255,))
+        fg.line([(540 + sd * 36, 878), (540 + sd * 120, 850)], 16, NAVY + (255,))
+    fg.circ(540, 1030, 40, NAVY + (255,)); fg.circ(540, 1030, 24, (210, 90, 90, 255))
+    for sd in (-1, 1): fg.line([(540 + sd * 205, 990), (540 + sd * 255, 960)], 22, CREAM + (255,))   # hands flying up to shield
+    fg.text((540, 1250), "AAAH!", HAND, 120, (255, 250, 236, int(255 * min(1, u * 5))))
+
 CITY = [(90, 760, 150, 600), (230, 640, 120, 720), (370, 700, 150, 660), (530, 560, 190, 800), (740, 680, 140, 680), (890, 600, 160, 760)]
 def scene_e(pn, fg, t):    # signal crosses the city, then the planet
     u = t - 6.4
@@ -144,9 +148,10 @@ def scene_e(pn, fg, t):    # signal crosses the city, then the planet
             pn.rrect(x, y + 1300 - 640 - 0 * h, x + w, FLOOR + 160, 4, (30, 38, 68, 255), (70, 80, 120, 255), 3)
             for wy in range(y + 1300 - 640 + 22, FLOOR + 130, 54):
                 for wx in range(int(x) + 22, int(x + w) - 14, 34): pn.rrect(wx, wy, wx + 16, wy + 22, 2, (54, 66, 112, 255) if (wx + wy) % 5 else (250, 230, 160, 255), None)
-        wx_, wy_ = 560, 900; pn.rrect(wx_ - 8, wy_ - 12, wx_ + 22, wy_ + 20, 2, GOLDC + (255,), None)
+        wx_, wy_ = 560, 900; pn.rrect(wx_ - 8, wy_ - 12, wx_ + 22, wy_ + 20, 2, (255, 250, 232, 255), None)
         L = min(1.0, u / 0.45); R = 1100 * L
-        pn.poly([(wx_ + 6, wy_ + 4), (wx_ + 6 + R, wy_ - 170 * L - 40), (wx_ + 6 + R, wy_ + 190 * L + 40)], (255, 232, 170, int(120 * min(1, u * 3))))
+        pn.poly([(wx_ + 6, wy_ + 4), (wx_ + 6 + R, wy_ - 230 * L - 40), (wx_ + 6 + R, wy_ + 260 * L + 40)], (255, 246, 214, int(175 * min(1, u * 3))))
+        pn.circ(wx_ + 6, wy_ + 4, 60 + 40 * L, (255, 246, 214, int(120 * L)))
         for i in range(5):
             r = ((u * 520) - i * 120) % 600 + 20; al = int(255 * max(0, 1 - r / 640))
             pn.d.arc([pn.p(wx_ - r, wy_ - r)[0], pn.p(wx_ - r, wy_ - r)[1], pn.p(wx_ + r, wy_ + r)[0], pn.p(wx_ + r, wy_ + r)[1]], -45, 45, fill=GOLDC + (al,), width=pn.w(10))
@@ -158,22 +163,28 @@ def scene_e(pn, fg, t):    # signal crosses the city, then the planet
         pn.line([(560 - s * 2.4, 1330), (560 + s * 2.4, 1330)], 8, (255, 244, 210, 255)); pn.line([(560, 1330 - s * 2.4), (560, 1330 + s * 2.4)], 8, (255, 244, 210, 255))
         for i in range(3):
             r = ((v * 420) - i * 130) % 420; pn.d.ellipse([pn.p(560 - r, 1330 - r)[0], pn.p(560 - r, 1330 - r)[1], pn.p(560 + r, 1330 + r)[0], pn.p(560 + r, 1330 + r)[1]], outline=GOLDC + (int(220 * max(0, 1 - r / 420)),), width=pn.w(6))
-def scene_f(pn, fg, t):    # buffering + 1%
+def scene_f(pn, fg, t):    # X-ray
     u = t - 8.4; room(pn, t, 0.0); bed_front(pn, 720, FLOOR - 4, mound=False)
-    mood = "smile" if u < 0.9 else "o"
-    fig_front(fg, 340, FLOOR, 1.18, "mom", arms=((8, 8), (96, 120)), mood=mood)
-    fg.rrect(448, 940, 490, 1020, 8, (30, 36, 60, 255), (210, 216, 240, 255), 3)
-    if u > 0.4 and u < 1.6:   # full bars
-        for i in range(4): fg.rrect(458 + i * 7, 1000 - 6 - i * 6, 462 + i * 7, 1000, 1, GOLDC + (255,), None)
-    if u > 0.9:
-        bubble(fg, 400, 835, "Beta... it's\nBUFFERING!", tail=(-0.5, 105))
-        a = (u * 3) % 1.0; fg.d.arc([fg.p(442, 980)[0], fg.p(442, 980)[1], fg.p(498, 1036)[0], fg.p(498, 1036)[1]], 0, 270 * a + 30, fill=(255, 255, 255, 255), width=fg.w(5))
-    # kid: tired, phone glowing, battery 1%
-    fig_front(fg, 735, FLOOR - 52, 1.1, "kid", arms=((30, 58), (30, 58)), sit=True, mood="flat", lids=0.55 + 0.1 * math.sin(u * 3))
-    blanket(fg, 735, FLOOR - 4); fg.rrect(702, 1108, 768, 1186, 8, (30, 36, 60, 255), (210, 216, 240, 255), 3)
-    if u > 1.3:
-        bx, by = 760, 880; fg.rrect(bx - 54, by - 24, bx + 46, by + 24, 7, None, (255, 120, 110, 255), 4); fg.rrect(bx + 46, by - 9, bx + 56, by + 9, 2, (255, 120, 110, 255), None)
-        fg.rrect(bx - 49, by - 19, bx - 38, by + 19, 3, (255, 120, 110, 255), None); fg.text((bx - 120, by), "1%", INTER_B, 44, (255, 150, 140, 255))
+    fig_front(fg, 340, FLOOR, 1.18, "mom", arms=((8, 8), (8, 8)), mood="smile")
+    if u > 1.0: bubble(fg, 420, 835, "Beta... did the\ninternet come?", tail=(-0.5, 105), size=40)
+    k = 1.1; x = 735; gy = FLOOR - 52
+    kid = fig_front(fg, x, gy, k, "kid", arms=((30, 58), (30, 58)), sit=True, mood="flat", lids=0.0)
+    hx, hy = kid["head"]; sy = kid["sh"][1]
+    # beam from the phone in his hands, up into his face
+    pn.poly([(735, 1160), (560, 640), (910, 640)], (255, 250, 236, int(110 + 60 * math.sin(u * 8))))
+    pn.poly([(735, 1160), (640, 640), (830, 640)], (255, 252, 244, 90))
+    # X-ray: skull face + ribs, dark sockets
+    fg.circ(hx, hy, 33 * k, (252, 250, 244, 255)); 
+    for sd in (-1, 1): fg.circ(hx + sd * 12 * k, hy - 2 * k, 9 * k, (30, 36, 60, 255))
+    fg.poly([(hx - 4 * k, hy + 8 * k), (hx + 4 * k, hy + 8 * k), (hx, hy + 17 * k)], (30, 36, 60, 255), None)
+    fg.rrect(hx - 14 * k, hy + 20 * k, hx + 14 * k, hy + 29 * k, 2, (252, 250, 244, 255), (30, 36, 60, 255), 3)
+    for xx in range(-9, 10, 6): fg.line([(hx + xx * k, hy + 20 * k), (hx + xx * k, hy + 29 * k)], 2, (30, 36, 60, 255))
+    for i in range(4): fg.line([(x - 28 * k, sy + 24 * k + i * 15 * k), (x + 28 * k, sy + 24 * k + i * 15 * k)], 4, (30, 36, 60, 200))
+    blanket(fg, x, FLOOR - 4); fg.rrect(702, 1108, 768, 1186, 8, (255, 252, 244, 255), (210, 216, 240, 255), 3)
+    # brightness readout
+    if u > 0.2:
+        fg.rrect(560, 790, 910, 850, 30, (30, 36, 66, 255), (214, 220, 244, 255), 3); fg.rrect(566, 796, 904, 844, 24, GOLDC + (255,), None)
+        fg.text((735, 820), "BRIGHTNESS 100%", INTER_XB, 28, (40, 30, 10, 255))
 
 SCENES = [(0.0, scene_a, Cam(1.32, 560, 1090)), (1.8, scene_b, Cam(1.3, 560, 1060)), (4.4, scene_c, Cam(1.0, 540, 1000)), (5.6, scene_d, Cam(1.0, 540, 940)), (6.4, scene_e, Cam(1.15, 540, 1040)), (8.4, scene_f, Cam(1.3, 560, 1060))]
 def cam_for(t, i):
@@ -216,7 +227,7 @@ def frame(t):
         a = np.asarray(lt, np.float32).copy(); a[..., 3] *= al; return Image.fromarray(a.astype(np.uint8), "RGBA")
     a1 = 1.0 if t < 10.2 else max(0.0, 1 - (t - 10.2) / 0.25); a2 = 0.0 if t < 10.45 else min(1.0, (t - 10.45) / 0.3)
     bi = img.convert("RGBA")
-    for g_, w_, al in (("WHEN MOM'S INTERNET DIES", "AT 2 AM, YOU BECOME THE ROUTER", a1), ("EVERY KID IS MOM'S HOTSPOT", "NO SLEEP INCLUDED.", a2)):
+    for g_, w_, al in (("WHEN MOM KEEPS BRIGHTNESS AT 100%", "AND YOU CHECK HER INTERNET AT 2 AM", a1), ("MOM'S BRIGHTNESS: 100%.", "ALWAYS. NO EXCEPTIONS.", a2)):
         if al > 0.01: bi.alpha_composite(title(g_, w_, al))
     img = bi.convert("RGB"); d = ImageDraw.Draw(img)
     spaced(d, (540, 1610), "S L O W   L I G H T", font(MONO, 20), (96, 100, 124), 2, "c")
