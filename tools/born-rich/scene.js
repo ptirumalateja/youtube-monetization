@@ -14,26 +14,29 @@ const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get
 const X0=TL.startX, XF=TL.finishX, TF=TL.freeze, TC=TL.carCross;
 
 // ---------------------------------------------------------------- stage (lamp moves with the race)
-const LAMP_H=6.0;   // higher than the pilot's 4.6 m: the camera looks down the whole track from above the finish
-const S=SLD.createStage({W,H,lamp:V(X0,LAMP_H,0.05),lampTarget:V(X0,0,0),cone:0.5,spot:120,beam:0.055,motes:6000,moteSpan:22,moteCx:2});
-S.scene.fog.density=0.05;   // a longer stage than the pilot: lighter fog so the start line still reads from the finish
+const LAMP_H=8.5;   // higher than the pilot's 4.6 m: one pool has to hold three wide lanes and a spread-out pack
+const S=SLD.createStage({W,H,lamp:V(X0,LAMP_H,0.05),lampTarget:V(X0,0,0),cone:0.5,spot:175,beam:0.05,motes:14000,moteSpan:56,moteCx:2});
+S.scene.fog.density=0.024;   // a 40 m track and a camera up to 24 m away: much lighter fog than the pilot
 const {scene,cam}=S; const BEAM=S.NOREFL[0];
 const R=SLD.createRig(scene);
 
 // ---------------------------------------------------------------- race: speed profiles integrated once (pure lookups)
 const DT=1/240, NS=Math.ceil((DUR+1)/DT);
 const ramp=(t,a,b,v0,v1)=>lerp(v0,v1,sstep(a,b,t));
-const stopK=t=>1-sstep(TF-0.12,TF+0.22,t);                              // everyone halts at the freeze
+const stopK=t=>1-sstep(TF-0.15,TF+0.25,t);                              // everyone halts at the freeze
 const SPEED={
-  M:t=>t<TL.go?0:ramp(t,TL.go,1.0,0,3.1)*(1-sstep(TL.burnout0,TL.burnout1,t)),   // sprint, then burns out
-  D:t=>t<TL.go?0:ramp(t,TL.go,1.1,0,1.0)*stopK(t),                              // steady
-  E:t=>t<TL.go?0:(ramp(t,TL.go,1.2,0,1.0)+ramp(t,TL.egoBoost,4.3,0,0.85)-ramp(t,TL.celebrate,6.8,0,1.45))*stopK(t)};  // jog, push, celebrate early
+  M:t=>t<TL.go?0:ramp(t,TL.go,1.0,0,7.0)*(1-sstep(TL.burnout0,TL.burnout1,t)),   // all-out sprint, then burns out
+  D:t=>t<TL.go?0:ramp(t,TL.go,1.2,0,4.8)*stopK(t),                              // steady, never stops
+  E:t=>t<TL.go?0:(ramp(t,TL.go,1.2,0,4.0)+ramp(t,TL.egoBoost,TL.egoBoost+0.6,0,3.5)-ramp(t,TL.celebrate,TL.celebrate+0.7,0,4.85))*stopK(t)};  // cruise, surge as Motivation fades, celebrate early
 const XS={}; for(const k in SPEED){ const a=new Float32Array(NS); let x=X0; for(let i=0;i<NS;i++){ a[i]=x; x+=SPEED[k](i*DT)*DT; } XS[k]=a; }
 const xAt=(k,t)=>{ const f=clamp(t,0,DUR)/DT, i=Math.min(NS-2,Math.floor(f)); return lerp(XS[k][i],XS[k][i+1],f-i); };
 const LANE={M:2.8,D:0,E:-2.8};   // wide lanes: from the raised side camera each runner gets his own band of the frame
 
 // ---------------------------------------------------------------- runners
 const figs={M:R.makeFig(PAL.CREAM,'m',{rim:0.18,lift:0.08}),D:R.makeFig(PAL.CREAM,'d',{rim:0.18,lift:0.08}),E:R.makeFig(PAL.CREAM,'e',{rim:0.18,lift:0.08})};
+// Ego's aura: when he surges, his rim and self-glow run hot (amber-red) and a soft halo rides behind him; it dies at the freeze
+const egoHalo=SLD.glowSprite(scene,0xff7a2a,0); S.NOREFL.push(egoHalo);
+function egoAura(t){ return sstep(TL.egoBoost,TL.egoBoost+0.5,t)*(1-0.35*sstep(TL.celebrate,TL.celebrate+0.8,t))*(1-sstep(TF,TF+0.6,t)); }
 const P0=R.P0;
 const CROUCH={...P0,p:0.9,tilt:-0.55,aL:0.95,aR:-0.15,kL:1.9,kR:1.25,dy:-0.03,sL:0.5,sR:0.5,eL:0.3,eR:0.3};
 const RUN={...P0,p:0.3,tilt:-0.12,aL:0.05,aR:0.05,kL:0.35,kR:0.35,sL:0,sR:0,eL:1.55,eR:1.55};
@@ -42,7 +45,7 @@ const CHEER={...P0,p:-0.12,tilt:-0.4,hy:0.55,ty:0.35,sL:2.75,sR:2.95,eL:0.35,eR:
 const SPENT={...P0,p:0.95,tilt:0.28,aL:0.32,aR:0.22,kL:0.55,kR:0.48,dy:-0.08,sL:0.55,sR:0.55,eL:0.2,eR:0.2};
 const STAND={...P0,p:0.06,kL:0.08,kR:0.08};
 // stride per gait cycle grows with speed (cadence about 1.45 cycles/s when running)
-function runPose(base,dist,v,amp,{A=0.62,K=1.35,arm=0.75}={}){ const ph=dist/Math.max(1.3,0.62*Math.max(v,0.1)+0.75)*2*Math.PI;
+function runPose(base,dist,v,amp,{A=0.62,K=1.35,arm=0.75}={}){ const ph=dist/Math.max(1.3,0.36*Math.max(v,0.1)+0.9)*2*Math.PI;   // stride per cycle: ~3.4 m at 7 m/s (about 2 cycles/s)
   const P=R.gait(base,ph,amp,A,K,arm); P.dy=(P.dy||0)-0.025*amp+0.05*amp*Math.abs(Math.cos(ph)); return P; }
 function handsOn(P,root,yaw){ const J=R.skel(P,root,yaw); const f=J.fwd;
   return {...P,tL:J.kL.clone().addScaledVector(f,0.06).add(V(0,0.04,0)),tR:J.kR.clone().addScaledVector(f,0.06).add(V(0,0.04,0)),wL:1,wR:1,pL:V(-0.3,-0.4,0.8),pR:V(-0.3,-0.4,-0.8)}; }
@@ -64,12 +67,14 @@ function runner(k,t){
 
 // ---------------------------------------------------------------- track: start line, faint lanes, finish posts and tape
 const lineMat=new THREE.MeshStandardMaterial({color:0xcfc6b4,roughness:0.8,emissive:0xcfc6b4,emissiveIntensity:0.04});
-const finMat=new THREE.MeshStandardMaterial({color:0xede6d6,roughness:0.7,emissive:0xede6d6,emissiveIntensity:0.35});
+const finMat=new THREE.MeshStandardMaterial({color:0xede6d6,roughness:0.7,emissive:0xede6d6,emissiveIntensity:0.1});
 function stripe(x0,x1,z0,z1,mat){ const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat); m.rotation.x=-Math.PI/2; m.position.set((x0+x1)/2,0.003,(z0+z1)/2); m.receiveShadow=true; scene.add(m); return m; }
 stripe(X0-0.55,X0-0.45,-4.0,4.0,lineMat);
-stripe(XF-0.09,XF+0.09,-4.2,6.4,finMat);
+stripe(XF-0.08,XF+0.08,-4.2,5.6,finMat);
 const laneMat=new THREE.MeshStandardMaterial({color:0x3a3a40,roughness:0.85,transparent:true,opacity:0.55});
 for(const z of [-4.2,-1.4,1.4,4.2]) stripe(X0-0.5,XF+6,z-0.012,z+0.012,laneMat);
+const tickMat=new THREE.MeshStandardMaterial({color:0x6a6a72,roughness:0.8,transparent:true,opacity:0.6});
+for(let x=X0+2;x<XF+8;x+=2) for(const z of [-4.2,-1.4,1.4,4.2]) stripe(x-0.03,x+0.03,z-0.28,z+0.28,tickMat);   // ticks every 2 m: the ground visibly rushes past
 const POSTS=[V(XF,0,-4.1),V(XF,0,7.0)], TAPE_H=1.12;
 const postMat=new THREE.MeshStandardMaterial({color:0x8a8f98,roughness:0.5,metalness:0.2});
 for(const p of []){ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.04,TAPE_H+0.08,16),postMat); m.position.copy(p).add(V(0,(TAPE_H+0.08)/2,0)); m.castShadow=true; scene.add(m); }
@@ -133,7 +138,7 @@ const trail=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShaderMaterial
   fragmentShader:`uniform float uA; varying vec2 vU; void main(){ float a=pow(vU.x,2.2)*exp(-pow((vU.y-0.5)*5.0,2.0)); gl_FragColor=vec4(vec3(1.0,0.16,0.08)*a*uA,1.0); }`}));
 scene.add(trail); S.NOREFL.push(trail);
 // car path: constant 21 m/s in the near lane, crosses the line at TC, brakes hard and drifts to a stop under the lamp
-const VC=13, DEC=34, LANEC=4.7;   // its own near lane, between the runners and the camera
+const VC=26, DEC=110, LANEC=4.7;   // its own near lane, between the runners and the camera
 function carAt(t){ const tau=t-TC; let x, v;
   if(tau<0){ x=XF+VC*tau; v=VC; } else { const ts=VC/DEC, u=Math.min(tau,ts); x=XF+VC*u-0.5*DEC*u*u; v=Math.max(0,VC-DEC*tau); }
   const dr=sm5(sstep(TC+0.05,TL.carStop+0.05,t)); const yaw=-0.12*dr, z=LANEC+0.15*dr;   // a short twitch as it brakes
@@ -169,10 +174,12 @@ function lampZ(t){ return lerp(0.05,carAt(DUR).z,sm5(sstep(TC+0.02,TC+0.75,t)));
 // side-on tracking camera (near side, +z), a little raised so the lanes separate: who is ahead reads at a glance.
 // It follows the pack, widening as the gaps open; after the car crosses it settles on the line with the car's tail in frame.
 const LANE_MID=0.6, PORTRAIT_W=2*Math.tan(S.cam.fov*Math.PI/360)*(W/H);   // frame width per metre of distance
-function camAt(t){ const xs=['M','D','E'].map(k=>xAt(k,t)); const lo=Math.min(...xs), hi=Math.max(...xs);
+function camAt(t){ const xm=xAt('M',t), xd=xAt('D',t), xe=xAt('E',t);
+  // once Motivation has burned out the camera lets him fall behind and stays with the race
+  const drop=sm5(sstep(TL.burnout1+0.3,TL.burnout1+1.6,t)), lo=Math.min(lerp(Math.min(xm,xd,xe),Math.min(xd,xe),drop)), hi=Math.max(xm,xd,xe);
   let cx=(lo+hi)/2+0.35, need=hi-lo+3.4;
-  const u=sm5(sstep(TC-0.6,TL.carStop+0.3,t)); cx=lerp(cx,XF+1.1,u); need=lerp(need,9.8,u);
-  const d=clamp(need/PORTRAIT_W,13,20);
+  const u=sm5(sstep(TC-0.15,TL.carStop+0.45,t)); cx=lerp(cx,XF+1.4,u); need=lerp(need,10.0,u);
+  const d=clamp(need/PORTRAIT_W,13,24);
   const l=V(cx,1.0,LANE_MID), p=V(cx,0.9+0.55*d,LANE_MID+0.85*d);
   return {p,l}; }
 const shakeAt=t=>{ let s=0; for(const [t0,a,d] of [[TC-0.05,0.8,0.3],[TL.carStop-0.05,0.5,0.25],[TL.go,0.25,0.15]]) if(t>t0) s+=a*Math.exp(-(t-t0)/d); return s; };
@@ -180,6 +187,9 @@ const shakeAt=t=>{ let s=0; for(const [t0,a,d] of [[TC-0.05,0.8,0.3],[TL.carStop
 // ---------------------------------------------------------------- one sub-frame
 function setT(t){
   const RN={}; for(const k of ['M','D','E']){ const r=runner(k,t); R.poseFig(figs[k],R.skel(r.P,r.root,r.yaw)); RN[k]=r; }
+  { const au=egoAura(t), f=figs.E; f.mat.emissiveIntensity=0.08+0.32*au; f.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xff9a50),au);
+    f.mat.userData.rim.value=0.18+0.55*au; const J=R.skel(RN.E.P,RN.E.root,RN.E.yaw); egoHalo.position.copy(J.neck).lerp(J.hip,0.5).add(V(-0.15,0,-0.05));
+    egoHalo.scale.set(2.2+0.3*Math.sin(t*11),2.8,1); egoHalo.material.opacity=0.32*au*(0.85+0.15*Math.sin(t*17)); }
   // (finish tape dropped in the side-on version: its near post crossed the frame like a bar)
   // car
   const c=carAt(t), vis=c.x>XF-VC*1.2; CAR.visible=vis;

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Status | v2: side-on camera (owner: "show it from side angle, easy to see who is ahead") |
-| Upload file | `born-rich.mp4` (master with sound); `born-rich_music-ready.mp4` (silent: start at 0.40 s, car crosses the line at 8.60 s, end-card boom at 10.92 s) |
+| Status | v3: side-on camera, 40 m track at real running speeds, Ego's surge with an aura (owner notes, 24 Nov) |
+| Upload file | `born-rich.mp4` (master with sound); `born-rich_music-ready.mp4` (silent: start at 0.40 s, Ego's surge at 3.0 s, car crosses the line at 8.60 s, end-card boom at 10.92 s) |
 | Length | 14.0 s, clean end card (WAS IT EVER A FAIR RACE?) |
 | Voice | None (wordless; ElevenLabs sound effects) |
 | Build | `tools/born-rich/` (three.js scene, PIL text, numpy mix, `sfx/gen.sh`) |
@@ -15,7 +15,7 @@
 
 **YouTube description:**
 > Same ground. Same finish line.
-> Motivation sprints first and burns out. Discipline keeps going. Ego takes the lead and celebrates too early.
+> Motivation sprints first and burns out. Discipline keeps going. Ego surges past them both and celebrates too early.
 > Then a fourth one arrives. He didn't run. He just arrived.
 >
 > The OECD's 2018 report "A Broken Social Elevator?" estimates that in an average OECD country it could take four to five generations for children from the poorest 10% of families to reach the average income.

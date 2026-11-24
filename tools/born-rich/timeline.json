@@ -3,16 +3,16 @@
   "fps": 30,
   "_comment": "All times in seconds. Scene, overlay and mix read these (overlay/mix through meta.json).",
   "go": 0.4,
-  "startX": -5.0,
-  "finishX": 5.0,
-  "burnout0": 1.9,
-  "burnout1": 3.3,
-  "egoBoost": 3.8,
-  "celebrate": 6.2,
+  "startX": -20.0,
+  "finishX": 20.0,
+  "burnout0": 2.6,
+  "burnout1": 3.8,
+  "egoBoost": 3.0,
+  "celebrate": 5.9,
   "engine": 7.2,
   "carCross": 8.6,
   "carStop": 9.1,
-  "freeze": 9.15,
+  "freeze": 8.75,
   "look0": 9.45,
   "look1": 10.4,
   "card": 10.8,
@@ -21,11 +21,11 @@
     2.3
   ],
   "capBurn": [
-    4.3,
-    5.9
+    2.8,
+    4.3
   ],
   "capEgo": [
-    6.6,
+    6.1,
     8.1
   ],
   "capArrive": [
@@ -44,5 +44,9 @@
     9.3,
     10.5,
     12.0
+  ],
+  "capLead": [
+    4.4,
+    5.95
   ]
 }

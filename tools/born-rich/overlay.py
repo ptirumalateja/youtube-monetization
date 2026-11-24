@@ -3,7 +3,7 @@
 - Hook from frame 0: SAME GROUND. / SAME FINISH LINE.  (the 3-second test: the text says what is happening)
 - Name tags above the runners' heads (screen positions from meta.json): MOTIVATION, DISCIPLINE, EGO; staggered at the
   start line so they do not overlap, then level.
-- Beat captions: MOTIVATION BURNS OUT. / EGO CELEBRATES TOO EARLY. / HE DIDN'T RUN. HE JUST ARRIVED.
+- Beat captions: MOTIVATION BURNS OUT. / EGO TAKES THE LEAD. / EGO CELEBRATES TOO EARLY. / HE DIDN'T RUN. HE JUST ARRIVED.
 - A red BORN RICH tag rides on the car from the moment it crosses the line.
 - End card over the darkened last frames: WAS IT EVER A / FAIR RACE? (FAIR RACE? in red), FOLLOW @SLOWLIGHTTV.
 
@@ -73,6 +73,7 @@ def draw(img, t):
     # hook
     items += caption(t, ['SAME GROUND.', 'SAME FINISH LINE.'], *TL['capHook'], y=160, size=78, colors=[CREAM, GOLD])
     items += caption(t, ['MOTIVATION', 'BURNS OUT.'], *TL['capBurn'])
+    items += caption(t, ['EGO TAKES', 'THE LEAD.'], *TL['capLead'])
     items += caption(t, ['EGO CELEBRATES', 'TOO EARLY.'], *TL['capEgo'])
     items += caption(t, ["HE DIDN'T RUN.", 'HE JUST ARRIVED.'], *TL['capArrive'], colors=[CREAM, RED])
     # name tags over the heads (staggered at the start line)

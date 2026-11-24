@@ -16,3 +16,5 @@ gen skid 1.6 "Car tyres screeching to a hard sudden stop on asphalt, short skid,
 gen tape 0.8 "A finish line ribbon tape snapping and whipping in the air, close, no music"
 gen idle 4.5 "A powerful sports car engine idling low and steady after stopping, deep rumble, no music"
 gen boom 3.0 "A single deep cinematic low boom hit with a long dark tail, no music"
+gen surge 1.6 "A runner suddenly kicking into a much faster sprint, a rising rush of air and quickening hard footsteps, no music"
+gen pack 7.0 "Two runners sprinting hard side by side on a gritty dirt track, fast heavy footsteps and breathing, close, no music"
