@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """'What success looks like:' sketch-style replica (15 s, 1080x1920). White paper, wobbly hand-drawn panels, kid in a green #5 jersey,
 EXPECTATION (1 post -> 1,000,000 followers) vs REALITY (stack posts into a staircase, followers crawl, then it happens).
-Own drawing code; the credit line is our channel handle. Coordinates are in the reference's 720x1280 space (K=1.5 to final).
+Plain black stickman on pure white. Own drawing code; the credit line is our channel handle. Coordinates are in the reference's 720x1280 space (K=1.5 to final).
 usage: render_exact.py sheet OUT.png t... | frames OUTDIR | video OUT.mp4 AUDIO.wav FRAMESDIR"""
 import sys, os, math, random, subprocess
 import numpy as np
@@ -11,7 +11,7 @@ W, H = 1080, 1920; FPS = 30; DUR = 15.0; K = 1.5; SS = 2
 HERE = os.path.dirname(os.path.abspath(__file__))
 HAND = os.path.join(HERE, "fonts", "PatrickHand-Regular.ttf")
 INTER_B = "/usr/share/fonts/opentype/inter/Inter-Bold.otf"; INTER_SB = "/usr/share/fonts/opentype/inter/Inter-SemiBold.otf"
-INK = (22, 22, 22); GREEN = (22, 88, 68); PAPER = (255, 255, 253)
+INK = (22, 22, 22); GREEN = (22, 88, 68); PAPER = (255, 255, 255)
 CREDIT = "@SLOWLIGHTTV"
 def sm(x): x = min(max(x, 0.0), 1.0); return x * x * (3 - 2 * x)
 def lerp(a, b, t): return a + (b - a) * t
@@ -74,32 +74,25 @@ def ground(ink, y, seed): ink.line(wob((45, y), (675, y), 1.0, seed), w=2.4)
 
 # ------------------------------------------------------------------ the kid
 def draw_kid(ink, x, y0, pose="stand", walk=0.0, face=1):
-    """x = centre, y0 = floor; reference px. pose: stand (phone), cheer, place"""
+    """plain black stickman. x = centre, y0 = floor; reference px. pose: stand (holding a phone), cheer, place"""
     s = lambda dx, dy: (x + face * dx, y0 + dy)
-    sw = math.sin(walk * 2 * math.pi) * (5 if walk else 0)
-    # legs + shoes
-    for k, off in ((0, -5.5), (1, 5.5)):
-        sx = sw * (1 if k else -1)
-        ink.line([s(off, -44), s(off + sx * 0.4, -22), s(off + sx, -3)], w=2.3)
-        ink.d.ellipse([ink.px(s(off + sx - 4.5 * face, -4.5))[0], ink.px(s(off + sx, -4.5))[1], ink.px(s(off + sx + 5.5 * face, 1.5))[0], ink.px(s(off + sx, 1.5))[1]], fill=INK)
-    # shorts + jersey
-    ink.poly([s(-9.5, -64), s(9.5, -64), s(10.5, -42), s(-10.5, -42)], PAPER, INK, 1.6)
-    ink.poly([s(-11, -100), s(11, -100), s(10, -62), s(-10, -62)], GREEN, INK, 1.4)
-    ink.text(s(0, -80), "5", HAND, 13, (255, 255, 255), "mm")
+    sw = math.sin(walk * 2 * math.pi) * (7 if walk else 0)
+    W_ = 3.2
+    # legs
+    ink.line([s(0, -50), s(-4 - sw * 0.5, -26), s(-7 - sw, -1)], w=W_); ink.line([s(0, -50), s(4 + sw * 0.5, -26), s(7 + sw, -1)], w=W_)
+    # torso
+    ink.line([s(0, -50), s(0, -88)], w=W_)
     # arms
     if pose == "cheer":
-        ink.line([s(-10, -97), s(-15, -112), s(-17, -126)], w=2.2); ink.line([s(10, -97), s(15, -112), s(17, -126)], w=2.2)
-        ink.circle(x - face * 17, y0 - 128, 3.2, w=1.5); ink.circle(x + face * 17, y0 - 128, 3.2, w=1.5)
+        ink.line([s(0, -85), s(-10, -102), s(-17, -118)], w=W_); ink.line([s(0, -85), s(10, -102), s(17, -118)], w=W_)
+        ink.circle(x - face * 17, y0 - 121, 3.0, fill=PAPER, w=2.0); ink.circle(x + face * 17, y0 - 121, 3.0, fill=PAPER, w=2.0)
     elif pose == "place":
-        ink.line([s(10, -97), s(24, -102), s(36, -104)], w=2.2); ink.line([s(-10, -97), s(-13, -80), s(-12, -66)], w=2.2)
+        ink.line([s(0, -85), s(18, -88), s(34, -90)], w=W_); ink.line([s(0, -85), s(-5, -70), s(-4, -56)], w=W_)
     else:
-        ink.line([s(10, -97), s(17, -86), s(14, -104)], w=2.2); ink.line([s(-10, -97), s(-13, -80), s(-12, -66)], w=2.2)
-        ink.rect(*(s(11.5, -112)[0], s(11.5, -112)[1], s(16.5, -100)[0], s(16.5, -100)[1]), fill=(52, 104, 214), outline=INK, w=1.0) if face > 0 else None
-    # head + cap
-    ink.circle(x, y0 - 112, 11.5, w=1.9)
-    ink.poly([(x - 12, y0 - 114), (x - 8, y0 - 121), (x + 4, y0 - 123), (x + 12, y0 - 115), (x + 12, y0 - 112), (x - 12, y0 - 112)], GREEN, INK, 1.4)
-    ink.poly([(x + 4, y0 - 113), (x + 18, y0 - 112), (x + 17, y0 - 109), (x + 4, y0 - 110)], GREEN, INK, 1.2)
-    ink.d.ellipse([ink.px((x + 2.5, y0 - 108.5))[0], ink.px((x + 2.5, y0 - 108.5))[1], ink.px((x + 5, y0 - 106))[0], ink.px((x + 5, y0 - 106))[1]], fill=INK)
+        ink.line([s(0, -85), s(12, -74), s(11, -94)], w=W_); ink.line([s(0, -85), s(-5, -70), s(-4, -56)], w=W_)
+        ink.poly([s(9.5, -104), s(14.5, -104), s(14.5, -91), s(9.5, -91)], INK, INK, 1.0)
+    # head
+    ink.circle(x, y0 - 100, 10.5, fill=PAPER, w=3.0)
 
 TAB = [(240, 150, 40), (52, 104, 214), (96, 160, 80), (232, 118, 160), (244, 196, 60), (222, 70, 60)]
 def book(ink, x, y, w=38, h=9.2, i=0):
