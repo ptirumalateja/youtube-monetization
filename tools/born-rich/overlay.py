@@ -53,7 +53,7 @@ def composite(base, mask, layer, halo=12, k=0.8):
     base.alpha_composite(layer)
 
 
-def caption(t, lines, t0, t1, y=168, size=58, colors=None):
+def caption(t, lines, t0, t1, y=290, size=58, colors=None):   # below the Reels/Shorts top bar (about the top 250 px)
     a = sstep(t0, t0 + 0.18, t) * (1 - sstep(t1 - 0.25, t1, t))
     pop = 1 + 0.06 * (1 - sstep(t0, t0 + 0.2, t))
     out = []
@@ -71,7 +71,7 @@ def draw(img, t):
         img = Image.blend(img, dark, card)
     base = img.convert('RGBA'); m = frame_meta(t); items = []
     # hook
-    items += caption(t, ['SAME GROUND.', 'SAME FINISH LINE.'], *TL['capHook'], y=160, size=78, colors=[CREAM, GOLD])
+    items += caption(t, ['SAME GROUND.', 'SAME FINISH LINE.'], *TL["capHook"], y=272, size=76, colors=[CREAM, GOLD])
     items += caption(t, ['MOTIVATION', 'BURNS OUT.'], *TL['capBurn'])
     items += caption(t, ['EGO TAKES', 'THE LEAD.'], *TL['capLead'])
     items += caption(t, ['EGO CELEBRATES', 'TOO EARLY.'], *TL['capEgo'])
