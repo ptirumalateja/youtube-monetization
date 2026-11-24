@@ -4,7 +4,7 @@
 
 RENDER_DIR holds frames/f00000.jpg.. (render.cjs frames), meta.json (render.cjs meta) and mix.wav (mix.py). Writes:
   born-rich.mp4               master, 1080x1920 30 fps, -15 LUFS, true peak checked after AAC
-  born-rich_music-ready.mp4   same picture, silent (car crosses the line at 8.60 s; end card boom at 10.92 s)
+  born-rich_music-ready.mp4   same picture, silent (car crosses the line at 8.60 s; roof landing 10.22 s; end card boom at 11.42 s)
 """
 import glob, os, subprocess, sys
 from PIL import Image
