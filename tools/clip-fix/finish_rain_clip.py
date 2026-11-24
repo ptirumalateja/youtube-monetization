@@ -18,7 +18,25 @@ for i_ in range(1, n_):
     if st_[i_][4] >= 3: keep[lab_ == i_] = cal[lab_ == i_]
 cal = keep; ys, xs = np.nonzero(cal > 0.05); cal = cal[max(0, ys.min() - 3):ys.max() + 4, max(0, xs.min() - 3):xs.max() + 4]
 sc = 1.7; cal = np.clip(cv2.resize(cal, None, fx=sc, fy=sc, interpolation=cv2.INTER_CUBIC), 0, 1); ch, cw = cal.shape
-cx0 = (W - cw) // 2; TXT = np.array([226, 228, 232], np.float32)
+# word spans (from empty-column gaps), then bolden the strokes and colour chosen words
+cols = (cal.max(0) > 0.12).astype(np.uint8); spans = []; start = None; gap = 0
+for x_ in range(cw):
+    if cols[x_]:
+        if start is None: start = x_
+        gap = 0; last = x_
+    elif start is not None:
+        gap += 1
+        if gap > 9: spans.append((start, last)); start = None
+if start is not None: spans.append((start, last))
+print("words found:", len(spans))
+HIL = {3: (86, 196, 255), 8: (86, 196, 255)}      # BGR gold on "thoughts" and "anyone."
+COL = np.tile(np.array([232, 228, 226], np.float32), (ch, cw, 1))
+for wi, c in HIL.items():
+    if wi < len(spans): COL[:, spans[wi][0]:spans[wi][1] + 1] = np.array(c, np.float32)
+dil = cv2.GaussianBlur(cv2.dilate(cal, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))), (0, 0), 0.6)
+cal = np.clip(0.5 * cal * 1.3 + 0.5 * dil * 1.2, 0, 1)   # a little bolder
+SHAD = cv2.GaussianBlur(np.roll(np.roll(cal, 3, 0), 2, 1), (0, 0), 2.0) * 0.7
+cx0 = (W - cw) // 2
 def sparkle_mask(f):
     g = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY); reg = g[1700:H, 880:W].astype(np.float32)
     lift = reg - cv2.medianBlur(reg.astype(np.uint8), 41).astype(np.float32)
@@ -35,7 +53,9 @@ for i, fpath in enumerate(files):
     if m.any(): f = cv2.inpaint(f, m * 255, 5, cv2.INPAINT_TELEA); cnt += 1
     a = min(1.0, max(0.0, (t - 0.25) / 0.7))
     if a > 0:
-        A = np.zeros((H, W), np.float32); A[CY:CY + ch, cx0:cx0 + cw] = cal * a; f = (f.astype(np.float32) * (1 - A[..., None]) + TXT * A[..., None]).clip(0, 255).astype(np.uint8)
+        As_ = np.zeros((H, W), np.float32); As_[CY:CY + ch, cx0:cx0 + cw] = SHAD * a; ff = f.astype(np.float32) * (1 - As_[..., None])
+        A = np.zeros((H, W), np.float32); A[CY:CY + ch, cx0:cx0 + cw] = cal * a; C_ = np.zeros((H, W, 3), np.float32); C_[CY:CY + ch, cx0:cx0 + cw] = COL
+        f = (ff * (1 - A[..., None]) + C_ * A[..., None]).clip(0, 255).astype(np.uint8)
     cv2.imwrite(os.path.join(fo, os.path.basename(fpath)), f)
 print("frames with sparkle removed:", cnt, "of", len(files))
 af = f"atempo={SPEED},afade=t=out:st={END - 0.4:.2f}:d=0.4,loudnorm=I=-14:TP=-1.5:LRA=9"
