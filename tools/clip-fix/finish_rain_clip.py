@@ -51,7 +51,7 @@ for i, fpath in enumerate(files):
     f = cv2.imread(fpath); t = i / 30.0
     m = sparkle_mask(f)
     if m.any(): f = cv2.inpaint(f, m * 255, 5, cv2.INPAINT_TELEA); cnt += 1
-    a = min(1.0, max(0.0, (t - 0.25) / 0.7))
+    a = 1.0   # caption fully visible from frame 0
     if a > 0:
         As_ = np.zeros((H, W), np.float32); As_[CY:CY + ch, cx0:cx0 + cw] = SHAD * a; ff = f.astype(np.float32) * (1 - As_[..., None])
         A = np.zeros((H, W), np.float32); A[CY:CY + ch, cx0:cx0 + cw] = cal * a; C_ = np.zeros((H, W, 3), np.float32); C_[CY:CY + ch, cx0:cx0 + cw] = COL
