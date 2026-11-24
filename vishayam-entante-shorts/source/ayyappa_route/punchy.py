@@ -101,7 +101,7 @@ def build(cfg_path):
         if cur: chunks.append(cur)
         for i, ch in enumerate(chunks):
             s_ = ch[0][0] / T + off
-            e_ = (chunks[i+1][0][0] / T + off - 0.02) if i + 1 < len(chunks) else min(ch[-1][1] / T + off + 0.4, total - 0.1)
+            e_ = min(chunks[i+1][0][0] / T + off - 0.02, ch[-1][1] / T + off + 0.8) if i + 1 < len(chunks) else min(ch[-1][1] / T + off + 0.4, total - 0.1)
             parts_ = []
             for w in ch:
                 t = w[2]
