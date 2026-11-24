@@ -32,18 +32,21 @@ for n in range(3):
     ts = t0 + 0.8
     for j, fr in enumerate((0.15, 0.45)):
         add(step(), ts + fr * 0.6, 0.6); add(step(), ts + fr * 0.6 + 0.03, 0.55)
-# bottom builder (slower): knocks and steps
+# bottom builder (slower, heavier) and her one early stride
 for n in range(3):
-    t0 = 0.8 + n * 1.9
+    t0 = 0.8 + n * 2.1
     add(step(0.8), t0 + 0.02, 0.4)
-    for k in range(3): add(knock(430 + 30 * k), t0 + (k + 1) / 3.4 * 1.15, 0.45)
-    ts = t0 + 1.15
-    for fr in (0.15, 0.5): add(step(), ts + fr * 0.75, 0.5)
-# phone: lift rustle, taps, buzz
-L = int(0.3 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 1200, 6000) * np.sin(np.pi * tt / 0.3) ** 2, 0.3, 0.12)
-for tk in (0.9, 1.2, 1.6, 2.0, 3.1, 3.4, 4.2, 4.6, 5.0, 6.1, 6.5):
+    for k in range(3): add(knock(430 + 30 * k), t0 + (k + 1) / 3.4 * 1.3, 0.45)
+    ts = t0 + 1.3
+    for fr in (0.15, 0.5): add(step(), ts + fr * 0.8, 0.5)
+add(step(0.8), 0.82, 0.35)
+for k in range(3): add(knock(560 + 30 * k), 0.8 + (k + 1) / 3.4 * 0.9, 0.4)
+for fr in (0.2, 0.6): add(step(), 1.7 + fr * 0.6, 0.45)
+# phone: lift rustle (after her one stride), taps, buzz
+L = int(0.3 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 1200, 6000) * np.sin(np.pi * tt / 0.3) ** 2, 2.7, 0.14)
+for tk in (3.2, 3.5, 3.9, 4.4, 5.0, 5.6, 6.2, 6.8, 7.4, 8.0):
     L = int(0.05 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1800 * tt) * np.exp(-tt / 0.008) * 0.6).astype(np.float32), tk, 0.18)
-for tb in (2.4, 4.0, 6.8):
+for tb in (4.1, 5.9, 7.6):
     L = int(0.4 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 150 * tt) * (0.5 + 0.5 * np.sin(2 * np.pi * 30 * tt)) * np.exp(-tt / 0.25)).astype(np.float32), tb, 0.35)
 # DAY counter ticks (fast, fading), lock click at 365
 tk = 0.5
@@ -53,8 +56,9 @@ L = int(0.08 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 900 * tt) * 
 # typed text ticks (labels) and the final line
 for a, b, r in ((7.2, 7.9, 0.1), (8.4, 9.0, 0.12)):
     for x in np.arange(a, b, r): add(tick(0.7), float(x), 0.1)
-L = int(0.5 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 500, 5000) * np.sin(np.pi * tt / 0.5) ** 2, 8.95, 0.22)   # title swaps to the closing line
-L = int(0.12 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1000 * tt) * np.exp(-tt / 0.02) + bp(noise(L), 1500, 6000) * np.exp(-tt / 0.012)).astype(np.float32), 9.3, 0.4)
+L = int(0.5 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 500, 5000) * np.sin(np.pi * tt / 0.5) ** 2, 8.65, 0.22)   # title swaps to the closing line
+L = int(0.12 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * 1000 * tt) * np.exp(-tt / 0.02) + bp(noise(L), 1500, 6000) * np.exp(-tt / 0.012)).astype(np.float32), 8.95, 0.4)
+for x in np.arange(9.8, 10.8, 0.05): add(tick(0.8), float(x), 0.1)
 # hug: air swell + sub boom + soft heartbeat
 L = int(1.4 * SR); tt = np.arange(L) / SR; add(bp(noise(L), 400, 4500) * np.sin(np.pi * tt / 1.4) ** 2, 5.3, 0.35)
 L = int(1.0 * SR); tt = np.arange(L) / SR; add((np.sin(2 * np.pi * (70 * np.exp(-tt * 3)) * tt) * np.exp(-tt / 0.3)).astype(np.float32), 5.7, 0.7)

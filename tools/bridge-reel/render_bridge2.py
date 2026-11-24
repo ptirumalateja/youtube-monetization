@@ -109,20 +109,34 @@ def top_state(t):
             planted = min(planted, per_side)
         out.append((side, base, planted, x, pose))
     return out
+def tired(p, n, amt=1.0):
+    q = dict(p); q["lean"] = q["lean"] + 7 * n * amt; q["tilt"] = q["tilt"] + 6 * n * amt; return q
 def bottom_state(t):
-    CY, KN = 1.9, 1.15; t0 = 0.8; gap = LED_BOT[1] - LED_BOT[0]; step = (gap / NPL) * 0.9
+    """him (right): keeps building, slower and more stooped each stride, then stops. Returns planted, step, x, pose"""
+    CY, KN = 2.1, 1.3; t0 = 0.8; gap = LED_BOT[1] - LED_BOT[0]; step = (gap / NPL) * 0.9
     tt = max(0.0, t - t0); n = int(tt / CY); f = (tt % CY) / CY; stride = 3 * step; base = LED_BOT[1]
     if n >= 3:
         planted = 9; x = base - stride * 3
-        pose = mix(POSES["stand"], POSES["reach"], sm((t - (t0 + 3 * CY)) / 0.6)) if t < 8.4 else mix(POSES["reach"], POSES["slump"], sm((t - 8.4) / 0.9))
+        pose = tired(mix(POSES["stand"], POSES["reach"], sm((t - (t0 + 3 * CY)) / 0.7)), 3) if t < 8.4 else mix(tired(POSES["reach"], 3), POSES["slump"], sm((t - 8.4) / 0.9))
     else:
         kn = KN / CY
         if f < kn:
             u = f / kn; planted = n * 3 + int(u * 3.4); pose = mix(POSES["stand"], POSES["kneel"], sm(u / 0.2)) if u < 0.9 else mix(POSES["kneel"], POSES["stand"], sm((u - 0.9) / 0.1)); x = base - stride * n
         else:
-            u = (f - kn) / (1 - kn); planted = n * 3 + 3; pose = walk_pose(u * 2 * math.pi, 1.5); x = base - stride * (n + sm(u))
-        planted = min(planted, 9)
+            u = (f - kn) / (1 - kn); planted = n * 3 + 3; pose = walk_pose(u * 2 * math.pi, 1.5 - 0.2 * n); x = base - stride * (n + sm(u))
+        pose = tired(pose, n); planted = min(planted, 9)
     return planted, step, x, pose
+PH_T = 2.9   # the moment she pulls out her phone and stops
+def her_state(t, step):
+    """her (left): starts building too (so both look like progress), places one stride of planks, then stops and scrolls"""
+    t0, CY, KN = 0.8, 1.5, 0.9; x0 = LED_BOT[0] - 30; stride = 3 * step
+    if t < t0: return 0, x0, POSES["stand"]
+    tt = t - t0
+    if tt < KN:
+        u = tt / KN; pose = mix(POSES["stand"], POSES["kneel"], sm(u / 0.2)) if u < 0.9 else mix(POSES["kneel"], POSES["stand"], sm((u - 0.9) / 0.1)); return min(3, int(u * 3.4)), x0, pose
+    if tt < CY:
+        u = (tt - KN) / (CY - KN); return 3, lerp(x0, x0 + stride, sm(u)), walk_pose(u * 2 * math.pi, 1.5)
+    pose = mix(POSES["stand"], POSES["phone"], sm((t - (t0 + CY + 0.2)) / 0.5)); return 3, x0 + stride, pose
 
 # ------------------------------------------------------------------ text helpers
 _F = {}
@@ -161,8 +175,8 @@ def frame(t):
     ledge(pd, 0, LED_BOT[0], BOT_Y, inner="r"); ledge(pd, LED_BOT[1], W, BOT_Y, inner="l")
     planted, bstep, bx, bpose = bottom_state(t); gapb = LED_BOT[1] - LED_BOT[0]
     planks(pd, LED_BOT[1], planted, bstep, BOT_Y, -1, size=bstep - 3)
-    dim = (214, 216, 232, 255)
-    ps = mix(POSES["stand"], POSES["phone"], sm((t - 0.3) / 0.5)); Js = draw_fig(fd, 205, BOT_Y + 2, 1, ps, KB, (214, 218, 236, 255), ponytail=True)
+    hp, hx_, hpose = her_state(t, bstep); planks(pd, LED_BOT[0], hp, bstep, BOT_Y, 1, size=bstep - 3)
+    Js = draw_fig(fd, hx_, BOT_Y + 2, 1, hpose, KB, (214, 218, 236, 255), ponytail=True)
     draw_fig(fd, bx, BOT_Y + 2, -1, bpose, KB, (214, 218, 236, 255))
     # downscale layers
     plk1 = plk.resize((W, H), Image.LANCZOS); fig1 = fig.resize((W, H), Image.LANCZOS)
@@ -183,8 +197,8 @@ def frame(t):
         a[..., 3] *= np.linspace(0.22, 0.0, a.shape[0], dtype=np.float32)[:, None]; base.alpha_composite(Image.fromarray(a.astype(np.uint8), "RGBA"), (0, yl + 4))
     base.alpha_composite(fig1)
     # phone glow (bottom)
-    if t > 0.45:
-        pw_ = (205 + Js["wF"][0] * KB + 6, BOT_Y + 2 + Js["wF"][1] * KB - 4); a = sm((t - 0.45) / 0.4) * (0.85 + 0.15 * math.sin(t * 6)); gp = Image.new("RGBA", (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(gp)
+    if t > PH_T:
+        pw_ = (hx_ + Js["wF"][0] * KB + 6, BOT_Y + 2 + Js["wF"][1] * KB - 4); a = sm((t - PH_T) / 0.4) * (0.85 + 0.15 * math.sin(t * 6)); gp = Image.new("RGBA", (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(gp)
         gd.ellipse([pw_[0] - 40, pw_[1] - 40, pw_[0] + 40, pw_[1] + 40], fill=(80, 130, 255, int(130 * a))); base.alpha_composite(gp.filter(ImageFilter.GaussianBlur(14)))
         ImageDraw.Draw(base).rounded_rectangle([pw_[0] - 6, pw_[1] - 10, pw_[0] + 6, pw_[1] + 10], radius=3, fill=(240, 246, 255, 255), outline=(60, 90, 170, 255))
     # ---- text
@@ -201,27 +215,31 @@ def frame(t):
         w2 = 50
         while ImageDraw.Draw(lay).textlength(white, font=font(INTER_XB, w2)) > 840 and w2 > 30: w2 -= 2
         ImageDraw.Draw(lay).text((W / 2, 415), white, font=font(INTER_XB, w2), fill=(246, 244, 240, 255), anchor="mm"); return lay
-    a1 = 1.0 if t < 9.0 else max(0.0, 1 - (t - 9.0) / 0.25); a2 = 0.0 if t < 9.25 else min(1.0, (t - 9.25) / 0.3)
+    a1 = 1.0 if t < 8.7 else max(0.0, 1 - (t - 8.7) / 0.25); a2 = 0.0 if t < 8.95 else min(1.0, (t - 8.95) / 0.3)
     base_i = img.convert("RGBA")
     for (g_, w_, al) in (("WHO TRIES HARDER", "IN YOUR RELATIONSHIP?", a1), ("ONE PERSON CAN'T BUILD", "A BRIDGE FOR TWO.", a2)):
         if al > 0.01:
             lay = title_layer(g_, w_, 72, 50); la = np.asarray(lay, np.float32).copy(); la[..., 3] *= al; base_i.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"))
     img = base_i.convert("RGB"); d = ImageDraw.Draw(img)
     # panel labels (minimal: no sub-labels)
-    spaced(d, (130, LBL1), "BOTH BUILD", font(MONO, 38), (232, 232, 238), 9)
+    spaced(d, (130, LBL1), "BOTH BUILD", font(MONO, 26), (186, 188, 202), 7)
     n = day_n(t); col = GOLD if n >= 365 else (236, 236, 242)
     d.line([(0, LINE1), (W, LINE1)], fill=(40, 44, 64), width=2); d.line([(0, LINE2), (W, LINE2)], fill=(40, 44, 64), width=2)
     d.text((540 - 78, CNT_Y), "DAY", font=font(MONO, 28), fill=(150, 154, 176), anchor="mm"); d.text((540 + 52, CNT_Y), str(n), font=font(INTER_B, 52), fill=col, anchor="mm")
-    spaced(d, (130, LBL2), "ONE BUILDS", font(MONO, 38), (140, 144, 164), 9)
+    spaced(d, (130, LBL2), "ONE BUILDS", font(MONO, 26), (124, 128, 148), 7)
     if t > 7.2:
         s2 = typed("TOO FAR", 7.2, 9, t) if t < 8.4 else typed("ALONE", 8.4, 8, t)
-        spaced(d, (132, LBL2 + 52), s2, font(MONO, 24), (240, 90, 90), 5)
+        spaced(d, (132, LBL2 + 40), s2, font(MONO, 22), (240, 90, 90), 5)
     # dimension line + final message
     yy = DIM_Y; d.line([(LED_BOT[0] + 14, yy), (LED_BOT[1] - 14, yy)], fill=(110, 120, 170), width=2)
     for x_ in range(LED_BOT[0] + 14, LED_BOT[1] - 14, 22): d.line([(x_, yy), (x_ + 10, yy)], fill=(18, 20, 34), width=3)
     d.polygon([(LED_BOT[0] + 14, yy), (LED_BOT[0] + 30, yy - 8), (LED_BOT[0] + 30, yy + 8)], fill=(120, 130, 180)); d.polygon([(LED_BOT[1] - 14, yy), (LED_BOT[1] - 30, yy - 8), (LED_BOT[1] - 30, yy + 8)], fill=(120, 130, 180))
-    spaced(d, (540, DIM_Y + 26), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 26), (150, 160, 215), 4, "c")
+    if t < 9.6: spaced(d, (540, DIM_Y + 26), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 26), (150, 160, 215), 4, "c")
+    else: spaced(d, (540, DIM_Y + 26), typed("365 DAYS. STILL BUILDING ALONE.", 9.8, 20, t), font(MONO, 25), (150, 160, 215) if t < 11.0 else (176, 184, 235), 4, "c")
     spaced(d, (540, SL_Y), "S L O W   L I G H T", font(MONO, 20), (96, 100, 124), 2, "c")
+    dk = 1.0 - 0.28 * sm((t - 8.6) / 1.6)
+    if dk < 0.999:
+        reg = img.crop((0, LINE2, W, H)); a_ = np.asarray(reg, np.float32) * dk; img.paste(Image.fromarray(a_.astype(np.uint8), "RGB"), (0, LINE2))
     return img
 
 def _job(a):
