@@ -17,13 +17,14 @@ def lv(a, b, t): return np.array([lerp(a[i], b[i], t) for i in range(3)], np.flo
 def nrm(v): v = np.array(v, np.float32); return v / (np.linalg.norm(v) + 1e-9)
 
 # ------------------------------------------------------------------ shots / camera
-CUTS = [3.0, 6.0, 7.6, 10.6, 12.6]
+CUTS = [3.0, 5.2, 6.6, 10.0, 11.4, 12.6]
 SHOTS = [  # (t0, t1, C0, C1, T0, T1)
     (0.0, 3.0, (1000, 780, -1500), (720, 800, -1300), (-80, 820, 0), (120, 830, 0)),
-    (3.0, 6.0, (-420, 1550, -1250), (380, 1450, -1000), (0, 0, -300), (0, 0, -300)),
-    (6.0, 7.6, (430, 905, -760), (190, 905, -420), (30, 868, 0), (50, 868, 0)),
-    (7.6, 10.6, (-950, 200, -1200), (-600, 170, -950), (0, 190, -300), (0, 210, -250)),
-    (10.6, 12.6, (0, 930, -2650), (0, 880, -2150), (0, 860, 0), (0, 840, 0)),
+    (3.0, 5.2, (-420, 1550, -1250), (380, 1450, -1000), (0, 0, -300), (0, 0, -300)),
+    (5.2, 6.6, (430, 905, -760), (190, 905, -420), (30, 868, 0), (50, 868, 0)),
+    (6.6, 10.0, (1500, 790, -1000), (1050, 810, -1250), (-250, 780, 0), (300, 800, 0)),
+    (10.0, 11.4, (-950, 200, -1200), (-600, 170, -950), (0, 190, -300), (0, 210, -250)),
+    (11.4, 12.6, (0, 930, -2650), (0, 880, -2150), (0, 860, 0), (0, 840, 0)),
     (12.6, 14.0, (0, 830, -2150), (0, 800, -1650), (0, 780, -100), (0, 770, -100)),
 ]
 def shot_of(t):
@@ -61,11 +62,15 @@ for i in range(120):
     NOTES.append(dict(x=rnd.uniform(-1500, 1500), y=rnd.uniform(260, 1900), w=rnd.uniform(70, 150), h=rnd.uniform(90, 190), rot=rnd.uniform(-0.25, 0.25),
                       col=rnd.choice(NOTE_COLS) if rnd.random() < 0.8 else (60, 56, 62), lines=rnd.randint(2, 5), seed=i))
 KP = [(-380, 930), (-120, 945), (180, 925), (420, 940), (60, 935)]       # key pins placed by the hero
-KP_T = [0.62, 1.32, 2.02, 2.72, 7.05]                                     # when each appears
-KP_THREADS = [(0, 1, 0.9, 0.4), (1, 2, 1.6, 0.4), (2, 3, 2.3, 0.4), (4, 1, 7.2, 0.4), (4, 2, 7.4, 0.4)]   # (a, b, start, dur)
+KP_T = [0.62, 1.32, 2.02, 2.72, 6.0]                                     # when each appears
+KP_THREADS = [(0, 1, 0.9, 0.4), (1, 2, 1.6, 0.4), (2, 3, 2.3, 0.4), (4, 1, 6.15, 0.35), (4, 2, 6.3, 0.35)]   # (a, b, start, dur)
 EXIT = (800, 1180)
 GOLD = [(0, 1), (1, 4), (4, 2), (2, 3)]
-GOLD_T0 = 10.9
+GOLD_T0 = 11.5
+EV = [(-520, 650), (-250, 730), (60, 650), (330, 740), (600, 660)]    # evidence-board notes he links with red string
+EV_LINKS = [(0, 1), (1, 2), (2, 3), (3, 4), (1, 3), (2, 4)]
+EV_T0, EV_DT, EV_DUR = 6.8, 0.5, 0.42
+def ev_pin_time(i): return 6.7 if i == 0 else min(EV_T0 + k * EV_DT + EV_DUR for k, (a, b) in enumerate(EV_LINKS) if b == i)
 MAPS = [(-380, -300, 900, 620, 0.15, (214, 224, 232)), (330, -380, 860, 600, -0.2, (232, 222, 196)), (-60, -620, 940, 560, 0.05, (210, 226, 214)),
         (500, -700, 640, 480, 0.3, (228, 214, 214)), (-640, -640, 600, 460, -0.35, (222, 226, 238))]
 
@@ -153,6 +158,15 @@ def env(t, hero_floor):
             draw_note(d, dict(x=px, y=py, w=130, h=160, rot=(-0.1, 0.07, -0.05, 0.1, 0.03)[i], col=(246, 240, 220), lines=4, seed=300 + i), z=-8, pop=pop, warm=1.0)
             pin_dot(d, px, py + 54, z=-12)
     for (a, b, t0, dur) in KP_THREADS: thread(d, KP[a], KP[b], min(1.0, max(0.0, (t - t0) / dur)))
+    # evidence board: notes + red strings pulled hand to hand
+    for i, (px, py) in enumerate(EV):
+        tp = ev_pin_time(i)
+        if t >= tp:
+            pop = min(1.0, 0.6 + (t - tp) / 0.12 * 0.4) if t - tp < 0.12 else 1.0
+            draw_note(d, dict(x=px, y=py, w=120, h=150, rot=(0.08, -0.06, 0.1, -0.09, 0.05)[i], col=((246, 238, 200), (214, 232, 244), (246, 220, 214), (226, 240, 214), (246, 238, 200))[i], lines=4, seed=500 + i), z=-8, pop=pop)
+            pin_dot(d, px, py + 50, z=-12)
+    for k, (a, b) in enumerate(EV_LINKS):
+        thread(d, EV[a], EV[b], min(1.0, max(0.0, (t - (EV_T0 + k * EV_DT)) / EV_DUR)), wpx=3.4)
     # exit door note (appears with the gold route)
     gp = GOLD_T0 + 0.35 * len(GOLD)
     if t > GOLD_T0 - 0.2:
@@ -213,24 +227,35 @@ def hero_state(t):
                 tgt = np.array([KP[i][0], KP[i][1], -14], np.float32); side = "L" if KP[i][0] < hx else "R"
                 set_arm(P, side, loc(tgt), min(1.0, amt * 1.2))
         shadow = (hx, -110, 170, 120)
-    elif t < 6.0:
-        u = (t - 3.0) / 3.0; pos = np.array([lerp(-60, 60, u), 0, -330], np.float32); phi = lerp(0.0, 0.35, u)
+    elif t < 5.2:
+        u = (t - 3.0) / 2.2; pos = np.array([lerp(-60, 60, u), 0, -330], np.float32); phi = lerp(0.0, 0.35, u)
         P = dict(V.POSES["kneel_draw"]); loc = loc_fn(pos, phi)
         set_arm(P, "R", np.array([240 * math.sin((t - 3) * 3.4), 14, 400 + 90 * math.sin((t - 3) * 2.3)], np.float32), 1.0)
         set_arm(P, "L", np.array([-150, 14, 340 + 30 * math.sin((t - 3) * 2.0)], np.float32), 1.0)
         shadow = (pos[0], -330 - 100, 260, 230)
-    elif t < 7.6:
-        u = (t - 6.0) / 1.6; pos = np.array([-130, 0, -110], np.float32); P = dict(V.POSES["stand"]); P["spine"] = (0, 1, 0.1); loc = loc_fn(pos, 0.0)
-        amt = sm(u / 0.5) * (1 - 0.0 * u); tgt = np.array([KP[4][0] + 8 * math.sin(u * 14), KP[4][1] + 6 * math.cos(u * 11), -14], np.float32)
-        set_arm(P, "R", loc(tgt), min(1.0, amt))
-        shadow = (-130, -110, 170, 120)
-    elif t < 10.6:
-        u = (t - 7.6) / 3.0; P = dict(V.POSES["prone_write"]); pos = np.array([0, 0, -130], np.float32)
+    elif t < 6.6:
+        u = (t - 5.2) / 1.4; pos = np.array([-130, 0, -110], np.float32); P = dict(V.POSES["stand"]); P["spine"] = (0, 1, 0.1); loc = loc_fn(pos, 0.0)
+        amt = sm(u / 0.5); tgt = np.array([KP[4][0] + 8 * math.sin(u * 14), KP[4][1] + 6 * math.cos(u * 11), -14], np.float32)
+        set_arm(P, "R", loc(tgt), min(1.0, amt)); shadow = (-130, -110, 170, 120)
+    elif t < 10.0:
+        # evidence board: pull red string from note to note
+        hand = np.array(EV[0], np.float32); side = "R"
+        for k, (a, b) in enumerate(EV_LINKS):
+            ts = EV_T0 + k * EV_DT
+            if t >= ts + EV_DUR: hand = np.array(EV[b], np.float32)
+            elif t >= ts:
+                pa, pb = np.array(EV[a], np.float32), np.array(EV[b], np.float32); hand = pa + (pb - pa) * sm((t - ts) / EV_DUR); side = "R" if pb[0] >= pa[0] else "L"; break
+            else:
+                pa = np.array(EV[a], np.float32); hand = hand + (pa - hand) * sm((t - (ts - 0.1)) / 0.1); side = "R" if EV[b][0] >= EV[a][0] else "L"; break
+        hx = float(hand[0]) * 0.88 + (60 if side == "L" else -60) * 0.0
+        pos = np.array([hx, 0, -110], np.float32); P = dict(V.POSES["stand"]); P["spine"] = (0, 1, 0.08); P["pelvis"] = (0, 470 - 5 * abs(math.sin(t * 9)), 0); loc = loc_fn(pos, 0.0)
+        set_arm(P, side, loc(np.array([hand[0], hand[1], -14], np.float32)), 1.0); shadow = (hx, -110, 170, 120)
+    elif t < 11.4:
+        u = (t - 10.0) / 1.4; P = dict(V.POSES["prone_write"]); pos = np.array([0, 0, -130], np.float32)
         set_arm(P, "R", np.array([210 + 45 * math.sin(t * 7.5), 8, 330 + 30 * math.cos(t * 7.5)], np.float32), 1.0)
-        set_arm(P, "L", np.array([-180, 8, 300], np.float32), 1.0)
-        shadow = (0, -420, 190, 380)
+        set_arm(P, "L", np.array([-180, 8, 300], np.float32), 1.0); shadow = (0, -420, 190, 380)
     elif t < 12.6:
-        u = (t - 10.6) / 2.0; pos = np.array([0, 0, lerp(-240, -380, sm(u))], np.float32); P = dict(V.POSES["stand"]); mood = "determined"
+        u = (t - 11.4) / 1.2; pos = np.array([0, 0, lerp(-240, -380, sm(u))], np.float32); P = dict(V.POSES["stand"]); mood = "determined"
         P["pelvis"] = (0, 470 - 3 * math.sin(t * 2.4), 0); shadow = (0, pos[2], 170, 120)
     else:
         u = (t - 12.6) / 1.4; pos = np.array([0, 0, -380], np.float32); phi = lerp(0.0, math.pi, sm(u / 0.65)); P = dict(V.POSES["stand"])
@@ -248,17 +273,9 @@ def font(sz):
     if sz not in _F: _F[sz] = ImageFont.truetype(FONT, sz)
     return _F[sz]
 def caption(img, t):
-    d = ImageDraw.Draw(img, "RGBA")
-    parts = [("everyone saw chaos. he saw the ", False), ("plan.", True)] if t < 12.4 else [("he never said a ", False), ("word.", True)]
-    al = 1.0 if t < 12.2 else (min(1.0, (t - 12.5) / 0.35) if t >= 12.5 else max(0.0, 1 - (t - 12.2) / 0.2))
-    if al <= 0: return
-    f = font(54); tot = sum(d.textlength(s, font=f) for s, _ in parts); x = (W - tot) / 2; y = 250
-    lay = Image.new("RGBA", img.size, (0, 0, 0, 0)); ld = ImageDraw.Draw(lay)
-    for s, hi in parts:
-        col = (255, 200, 84) if hi else (244, 242, 236)
-        ld.text((x + 2, y + 3), s, font=f, fill=(0, 0, 0, int(160 * al))); ld.text((x, y), s, font=f, fill=col + (int(255 * al),), stroke_width=1, stroke_fill=col + (int(255 * al),)); x += ld.textlength(s, font=f)
-    img.alpha_composite(lay)
-    lab = "S L O W   L I G H T"; w = d.textlength(lab, font=font(30)); d.text(((W - w) / 2, 1822), lab, font=font(30), fill=(255, 255, 255, 215), stroke_width=3, stroke_fill=(10, 10, 14, 170))
+    """no captions (added by the user in the app); only the channel label"""
+    d = ImageDraw.Draw(img, "RGBA"); lab = "S L O W   L I G H T"; w = d.textlength(lab, font=font(30))
+    d.text(((W - w) / 2, 1822), lab, font=font(30), fill=(255, 255, 255, 215), stroke_width=3, stroke_fill=(10, 10, 14, 170))
 def whip(arr, t):
     for c in CUTS[:-1]:
         for side, dt in ((-1, c - t), (1, t - c)):
@@ -271,8 +288,7 @@ def frame(t):
     P, mood, phi, pos, sh = hero_state(t)
     e = env(t, sh)
     g = gold_layer(t); glow = g.filter(ImageFilter.GaussianBlur(22)); e.alpha_composite(glow); e.alpha_composite(glow); e.alpha_composite(glow); e.alpha_composite(g)
-    blur = {0: 1.2, 1: 1.5, 2: 6.0, 3: 3.0, 4: 1.0, 5: 1.0}[si]
-    if t >= 12.6: blur = 1.5
+    blur = {0: 1.2, 1: 1.5, 2: 6.0, 3: 1.6, 4: 3.0, 5: 1.0, 6: 1.5}[si]
     if blur > 0.5: e = e.filter(ImageFilter.GaussianBlur(blur))
     rgb, a = render_hero(P, mood, phi, pos)
     hero = np.dstack([np.clip(rgb * 255, 0, 255), a[..., None] * 255]).astype(np.uint8)
@@ -282,7 +298,6 @@ def frame(t):
     arr = np.asarray(e.convert("RGB"), np.float32)
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     vig = np.clip(1 - 0.5 * (((xx - W / 2) / (W * 0.72)) ** 2 + ((yy - H * 0.48) / (H * 0.7)) ** 2), 0.25, 1.0); arr = arr * vig[..., None]
-    arr = arr * (0.55 + 0.45 * np.clip(yy / 520.0, 0, 1))[..., None]
     arr = arr + np.random.RandomState(int(t * 30)).randn(H, W, 1).astype(np.float32) * 4.0
     arr = whip(arr, t)
     img = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGB").convert("RGBA"); caption(img, t); return img.convert("RGB")
