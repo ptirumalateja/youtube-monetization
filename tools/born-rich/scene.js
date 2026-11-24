@@ -15,7 +15,7 @@ const X0=TL.startX, XF=TL.finishX, TF=TL.freeze, TC=TL.carCross;
 
 // ---------------------------------------------------------------- stage (lamp moves with the race)
 const LAMP_H=6.0;   // higher than the pilot's 4.6 m: the camera looks down the whole track from above the finish
-const S=SLD.createStage({W,H,lamp:V(X0,LAMP_H,0.05),lampTarget:V(X0,0,0),cone:0.3,spot:84,motes:6000,moteSpan:22,moteCx:2});
+const S=SLD.createStage({W,H,lamp:V(X0,LAMP_H,0.05),lampTarget:V(X0,0,0),cone:0.5,spot:120,beam:0.055,motes:6000,moteSpan:22,moteCx:2});
 S.scene.fog.density=0.05;   // a longer stage than the pilot: lighter fog so the start line still reads from the finish
 const {scene,cam}=S; const BEAM=S.NOREFL[0];
 const R=SLD.createRig(scene);
@@ -30,7 +30,7 @@ const SPEED={
   E:t=>t<TL.go?0:(ramp(t,TL.go,1.2,0,1.0)+ramp(t,TL.egoBoost,4.3,0,0.85)-ramp(t,TL.celebrate,6.8,0,1.45))*stopK(t)};  // jog, push, celebrate early
 const XS={}; for(const k in SPEED){ const a=new Float32Array(NS); let x=X0; for(let i=0;i<NS;i++){ a[i]=x; x+=SPEED[k](i*DT)*DT; } XS[k]=a; }
 const xAt=(k,t)=>{ const f=clamp(t,0,DUR)/DT, i=Math.min(NS-2,Math.floor(f)); return lerp(XS[k][i],XS[k][i+1],f-i); };
-const LANE={M:0.95,D:0,E:-0.95};
+const LANE={M:2.8,D:0,E:-2.8};   // wide lanes: from the raised side camera each runner gets his own band of the frame
 
 // ---------------------------------------------------------------- runners
 const figs={M:R.makeFig(PAL.CREAM,'m',{rim:0.18,lift:0.08}),D:R.makeFig(PAL.CREAM,'d',{rim:0.18,lift:0.08}),E:R.makeFig(PAL.CREAM,'e',{rim:0.18,lift:0.08})};
@@ -64,17 +64,18 @@ function runner(k,t){
 
 // ---------------------------------------------------------------- track: start line, faint lanes, finish posts and tape
 const lineMat=new THREE.MeshStandardMaterial({color:0xcfc6b4,roughness:0.8,emissive:0xcfc6b4,emissiveIntensity:0.04});
+const finMat=new THREE.MeshStandardMaterial({color:0xede6d6,roughness:0.7,emissive:0xede6d6,emissiveIntensity:0.35});
 function stripe(x0,x1,z0,z1,mat){ const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat); m.rotation.x=-Math.PI/2; m.position.set((x0+x1)/2,0.003,(z0+z1)/2); m.receiveShadow=true; scene.add(m); return m; }
-stripe(X0-0.55,X0-0.45,-1.5,1.5,lineMat);
-stripe(XF-0.06,XF+0.06,-3.4,1.8,lineMat);
+stripe(X0-0.55,X0-0.45,-4.0,4.0,lineMat);
+stripe(XF-0.09,XF+0.09,-4.2,6.4,finMat);
 const laneMat=new THREE.MeshStandardMaterial({color:0x3a3a40,roughness:0.85,transparent:true,opacity:0.55});
-for(const z of [-1.45,-0.48,0.48,1.45]) stripe(X0-0.5,XF+6,z-0.012,z+0.012,laneMat);
-const POSTS=[V(XF,0,-3.5),V(XF,0,1.9)], TAPE_H=1.12;
+for(const z of [-4.2,-1.4,1.4,4.2]) stripe(X0-0.5,XF+6,z-0.012,z+0.012,laneMat);
+const POSTS=[V(XF,0,-4.1),V(XF,0,7.0)], TAPE_H=1.12;
 const postMat=new THREE.MeshStandardMaterial({color:0x8a8f98,roughness:0.5,metalness:0.2});
-for(const p of POSTS){ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.04,TAPE_H+0.08,16),postMat); m.position.copy(p).add(V(0,(TAPE_H+0.08)/2,0)); m.castShadow=true; scene.add(m); }
+for(const p of []){ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.04,TAPE_H+0.08,16),postMat); m.position.copy(p).add(V(0,(TAPE_H+0.08)/2,0)); m.castShadow=true; scene.add(m); }
 const TSEG=60, tapeMat=new THREE.MeshStandardMaterial({color:0xede6d6,roughness:0.6,emissive:0xede6d6,emissiveIntensity:0.12,side:THREE.DoubleSide});
-const tape=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.045,0.004),tapeMat,TSEG); tape.castShadow=true; tape.frustumCulled=false; scene.add(tape);
-const SPAN=POSTS[1].z-POSTS[0].z, BREAKZ=-2.3, tmpO=new THREE.Object3D();
+const tape=new THREE.InstancedMesh(new THREE.BoxGeometry(1,0.045,0.004),tapeMat,TSEG); tape.castShadow=true; tape.frustumCulled=false;
+const SPAN=POSTS[1].z-POSTS[0].z, BREAKZ=4.7, tmpO=new THREE.Object3D();
 // one point on the tape: u in 0..1 from post A to post B
 function tapePoint(u,t){ const z=lerp(POSTS[0].z,POSTS[1].z,u), sag=0.05*4*u*(1-u); const p=V(XF,TAPE_H-sag+0.012*Math.sin(t*3+u*9),z);
   if(t<TC) return p;
@@ -132,10 +133,10 @@ const trail=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShaderMaterial
   fragmentShader:`uniform float uA; varying vec2 vU; void main(){ float a=pow(vU.x,2.2)*exp(-pow((vU.y-0.5)*5.0,2.0)); gl_FragColor=vec4(vec3(1.0,0.16,0.08)*a*uA,1.0); }`}));
 scene.add(trail); S.NOREFL.push(trail);
 // car path: constant 21 m/s in the near lane, crosses the line at TC, brakes hard and drifts to a stop under the lamp
-const VC=12, DEC=70, LANEC=-2.3;   // outside lane on the right of the frame
+const VC=13, DEC=34, LANEC=4.7;   // its own near lane, between the runners and the camera
 function carAt(t){ const tau=t-TC; let x, v;
   if(tau<0){ x=XF+VC*tau; v=VC; } else { const ts=VC/DEC, u=Math.min(tau,ts); x=XF+VC*u-0.5*DEC*u*u; v=Math.max(0,VC-DEC*tau); }
-  const dr=sm5(sstep(TC+0.05,TL.carStop+0.05,t)); const yaw=0.38*dr, z=LANEC+2.25*dr;   // drifts toward the middle, rear kicking out
+  const dr=sm5(sstep(TC+0.05,TL.carStop+0.05,t)); const yaw=-0.12*dr, z=LANEC+0.15*dr;   // a short twitch as it brakes
   return {x,z,yaw,v,dist:x-(XF-VC*3)}; }
 const CAR_STOP=carAt(DUR).x;
 
@@ -158,24 +159,28 @@ const puffU={uT:{value:0},uH:{value:H}};
 // ---------------------------------------------------------------- lamp: over the pack, leaning to the leader; swings onto the car
 const smoothMax=(a,k=0.6)=>k*Math.log(a.reduce((s,x)=>s+Math.exp(x/k),0));
 function lampX(t){ const xs=['M','D','E'].map(k=>xAt(k,t)); const lead=smoothMax(xs), mid=(Math.min(...xs)+lead)/2;
-  let x=lerp(mid,lead,0.55)-0.4;
+  let x=lerp(mid,lead,0.3);
   x=lerp(x,XF-1.8,sm5(sstep(7.2,8.3,t)));                       // settles near the line as the race closes
   return lerp(x,CAR_STOP-0.2,sm5(sstep(TC+0.02,TC+0.75,t))); }   // the light goes to the car
 function lampZ(t){ return lerp(0.05,carAt(DUR).z,sm5(sstep(TC+0.02,TC+0.75,t))); }
 
 // ---------------------------------------------------------------- camera: three-quarter, ahead and to the right of the pack, looking back at them
 // fixed, from above and beyond the finish, looking back down the track: depth reads as height in the tall frame
-const CPOS=V(XF+12.0,4.9,-0.6), CLOOK=V(XF-4.2,0.25,-0.45);
-S.cam.fov=30; S.cam.updateProjectionMatrix();   // longer lens from further back: the car and the runners keep a closer size ratio
-function camAt(t){ const p=CPOS.clone().lerp(CLOOK,0.06*sm5(sstep(0,DUR,t)));
-  // during the race the lens tilts up a little (runners centred in the tall frame); it tilts down to the line as the car comes
-  const l=CLOOK.clone().add(V(0,1.35*(1-sm5(sstep(7.4,8.5,t))),0)); return {p,l}; }
+// side-on tracking camera (near side, +z), a little raised so the lanes separate: who is ahead reads at a glance.
+// It follows the pack, widening as the gaps open; after the car crosses it settles on the line with the car's tail in frame.
+const LANE_MID=0.6, PORTRAIT_W=2*Math.tan(S.cam.fov*Math.PI/360)*(W/H);   // frame width per metre of distance
+function camAt(t){ const xs=['M','D','E'].map(k=>xAt(k,t)); const lo=Math.min(...xs), hi=Math.max(...xs);
+  let cx=(lo+hi)/2+0.35, need=hi-lo+3.4;
+  const u=sm5(sstep(TC-0.6,TL.carStop+0.3,t)); cx=lerp(cx,XF+1.1,u); need=lerp(need,9.8,u);
+  const d=clamp(need/PORTRAIT_W,13,20);
+  const l=V(cx,1.0,LANE_MID), p=V(cx,0.9+0.55*d,LANE_MID+0.85*d);
+  return {p,l}; }
 const shakeAt=t=>{ let s=0; for(const [t0,a,d] of [[TC-0.05,0.8,0.3],[TL.carStop-0.05,0.5,0.25],[TL.go,0.25,0.15]]) if(t>t0) s+=a*Math.exp(-(t-t0)/d); return s; };
 
 // ---------------------------------------------------------------- one sub-frame
 function setT(t){
   const RN={}; for(const k of ['M','D','E']){ const r=runner(k,t); R.poseFig(figs[k],R.skel(r.P,r.root,r.yaw)); RN[k]=r; }
-  drawTape(t);
+  // (finish tape dropped in the side-on version: its near post crossed the frame like a bar)
   // car
   const c=carAt(t), vis=c.x>XF-VC*1.2; CAR.visible=vis;
   CAR.position.set(c.x,0,c.z); CAR.rotation.y=c.yaw; CAR.updateMatrixWorld(true);
@@ -188,7 +193,8 @@ function setT(t){
   headHalo.forEach((s,i)=>{ s.position.copy(CAR.localToWorld(V(2.3,0.56,i?0.68:-0.68))); s.scale.setScalar(0.5); s.material.opacity=0.45*blast; });
   trail.visible=fast>0.3&&vis; if(trail.visible){ const L=3.8*fast; trail.position.copy(tl).add(V(-L/2,0,0)); trail.scale.set(L,0.07,1); trail.lookAt(cam.position.clone().setX(trail.position.x)); trail.material.uniforms.uA.value=1.2*fast; }
   // lamp
-  const lx=lampX(t), lz=lampZ(t); S.LAMP.set(lx+1.7,LAMP_H,lz); S.LAMP_T.set(lx,0,lz-0.05);   // lamp a little toward the camera so it lights the runners' fronts BEAM.position.copy(S.LAMP); const AX=S.LAMP_T.clone().sub(S.LAMP).normalize(); S.beamU.uAxis.value.copy(AX); BEAM.quaternion.setFromUnitVectors(V(0,-1,0),AX);
+  const lx=lampX(t), lz=lampZ(t); S.LAMP.set(lx+0.5,LAMP_H,lz+1.6); S.LAMP_T.set(lx,0,lz);   // lamp a little ahead and toward the camera so it lights the runners' faces and sides
+  BEAM.position.copy(S.LAMP); const AX=S.LAMP_T.clone().sub(S.LAMP).normalize(); S.beamU.uAxis.value.copy(AX); BEAM.quaternion.setFromUnitVectors(V(0,-1,0),AX);
   S.spot.position.copy(S.LAMP); S.spot.target.position.copy(S.LAMP_T); S.spot.target.updateMatrixWorld();
   puffU.uT.value=t;
   // camera
@@ -209,6 +215,6 @@ window.renderAt=function(t,Ksub=3){ let K=Ksub, sh=1/60;
 const proj=v=>{ const p=v.clone().project(cam); return [p.x*0.5+0.5,0.5-p.y*0.5,p.z<1?1:0]; };
 window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t};
   for(const k of ['M','D','E']){ const J=R.skel(s.RN[k].P,s.RN[k].root,s.RN[k].yaw); o[k]=proj(J.head.clone().add(V(0,0.3,0))); o[k+'x']=s.RN[k].x; o[k+'v']=SPEED[k](t); }
-  o.car=proj(CAR.localToWorld(V(0,1.45,0))); o.carX=s.c.x; o.carV=s.c.v; o.carVis=CAR.visible?1:0; return o; };
+  o.car=proj(CAR.localToWorld(V(-0.9,1.45,0))); o.carX=s.c.x; o.carV=s.c.v; o.carVis=CAR.visible?1:0; return o; };
 window.events={...TL,carStopX:CAR_STOP};
 window.ready=true;

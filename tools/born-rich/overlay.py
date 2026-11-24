@@ -81,7 +81,7 @@ def draw(img, t):
     for k, name, st in (('M', 'MOTIVATION', 120), ('D', 'DISCIPLINE', 75), ('E', 'EGO', 30)):
         x, y, vis = m[k]
         if not vis: continue
-        dy = st * (1 - lvl) + 30 * lvl
+        dy = 30   # lanes are stacked in the side view, no stagger needed
         a = tag_a * (0.7 if (k == 'M' and t > TL['burnout1']) else 1.0)
         items.append((name, 33, 'Bold', 5, x * W, y * H - dy - 40, CREAM, a))
     mask, layer = text_layer(items)

@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| Status | v1 (first full render) |
+| Status | v2: side-on camera (owner: "show it from side angle, easy to see who is ahead") |
 | Upload file | `born-rich.mp4` (master with sound); `born-rich_music-ready.mp4` (silent: start at 0.40 s, car crosses the line at 8.60 s, end-card boom at 10.92 s) |
 | Length | 14.0 s, clean end card (WAS IT EVER A FAIR RACE?) |
 | Voice | None (wordless; ElevenLabs sound effects) |
 | Build | `tools/born-rich/` (three.js scene, PIL text, numpy mix, `sfx/gen.sh`) |
-| Idea | Owner's brief (24 Nov 2026), from a reference reel; rebuilt in our own look: one shared track, a gold lamp that follows the race and swings onto the car, our 3D cream runners, our mono type, a different camera (high, looking back down the track from beyond the finish) |
+| Idea | Owner's brief (24 Nov 2026), from a reference reel; rebuilt in our own look: one shared track, a gold lamp that follows the race and swings onto the car, our 3D cream runners, our mono type, a raised side camera over wide lanes in one space (not split panels) |
 
 ## Publish copy
 
