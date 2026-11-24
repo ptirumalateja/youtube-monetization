@@ -1,0 +1,8 @@
+{
+  "name": "born-rich",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "three": "0.170.0"
+  }
+}

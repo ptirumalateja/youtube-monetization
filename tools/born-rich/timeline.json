@@ -1,0 +1,48 @@
+{
+  "duration": 14.0,
+  "fps": 30,
+  "_comment": "All times in seconds. Scene, overlay and mix read these (overlay/mix through meta.json).",
+  "go": 0.4,
+  "startX": -5.0,
+  "finishX": 5.0,
+  "burnout0": 1.6,
+  "burnout1": 3.0,
+  "egoBoost": 3.8,
+  "celebrate": 6.2,
+  "engine": 7.2,
+  "carCross": 8.6,
+  "carStop": 9.1,
+  "freeze": 9.15,
+  "look0": 9.45,
+  "look1": 10.4,
+  "card": 10.8,
+  "capHook": [
+    0.0,
+    2.3
+  ],
+  "capBurn": [
+    4.3,
+    5.9
+  ],
+  "capEgo": [
+    6.6,
+    8.1
+  ],
+  "capArrive": [
+    8.75,
+    10.75
+  ],
+  "reviewTimes": [
+    0.2,
+    1.5,
+    3.0,
+    4.8,
+    6.0,
+    7.3,
+    8.4,
+    8.7,
+    9.3,
+    10.5,
+    12.0
+  ]
+}
