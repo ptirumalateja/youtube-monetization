@@ -14,11 +14,11 @@ def lerp(a, b, t): return a + (b - a) * t
 GOLD = (255, 196, 96); CREAM = (252, 246, 232)
 
 # ------------------------------------------------------------------ layout (final pixels)
-TOP_Y = 830          # top panel deck line
-BOT_Y = 1335         # bottom panel deck line
+TOP_Y = 870          # top panel deck line
+BOT_Y = 1395         # bottom panel deck line
 # safe zone: 15% top (y>=288) and 20% bottom (y<=1536) stay clear for the app UI; all content lives inside it
-LINE1, LINE2, CNT_Y = 940, 1020, 980
-LBL1, LBL2, DIM_Y, SL_Y = 500, 1048, 1412, 1506
+LINE1, LINE2, CNT_Y = 985, 1075, 1030
+LBL1, LBL2, DIM_Y, SL_Y = 520, 1105, 1485, 1610
 LED_TOP = (270, 810) # inner ledge edges (top panel)
 LED_BOT = (300, 780)
 NPL = 18             # planks across the top gap (9 per side, 3 per stride)
@@ -232,8 +232,8 @@ def frame(t):
     yy = DIM_Y; d.line([(LED_BOT[0] + 14, yy), (LED_BOT[1] - 14, yy)], fill=(110, 120, 170), width=2)
     for x_ in range(LED_BOT[0] + 14, LED_BOT[1] - 14, 22): d.line([(x_, yy), (x_ + 10, yy)], fill=(18, 20, 34), width=3)
     d.polygon([(LED_BOT[0] + 14, yy), (LED_BOT[0] + 30, yy - 8), (LED_BOT[0] + 30, yy + 8)], fill=(120, 130, 180)); d.polygon([(LED_BOT[1] - 14, yy), (LED_BOT[1] - 30, yy - 8), (LED_BOT[1] - 30, yy + 8)], fill=(120, 130, 180))
-    if t < 9.6: spaced(d, (540, DIM_Y + 26), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 26), (150, 160, 215), 4, "c")
-    else: spaced(d, (540, DIM_Y + 26), typed("365 DAYS. STILL BUILDING ALONE.", 9.8, 20, t), font(MONO, 25), (150, 160, 215) if t < 11.0 else (176, 184, 235), 4, "c")
+    if t < 9.6: spaced(d, (540, DIM_Y + 22), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 26), (150, 160, 215), 4, "c")
+    else: spaced(d, (540, DIM_Y + 22), typed("365 DAYS. STILL BUILDING ALONE.", 9.8, 20, t), font(MONO, 25), (150, 160, 215) if t < 11.0 else (176, 184, 235), 4, "c")
     spaced(d, (540, SL_Y), "S L O W   L I G H T", font(MONO, 20), (96, 100, 124), 2, "c")
     dk = 1.0 - 0.28 * sm((t - 8.6) / 1.6)
     if dk < 0.999:
