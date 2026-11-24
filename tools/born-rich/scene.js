@@ -18,6 +18,10 @@ const LAMP_H=8.5;   // higher than the pilot's 4.6 m: one pool has to hold three
 const S=SLD.createStage({W,H,lamp:V(X0,LAMP_H,0.05),lampTarget:V(X0,0,0),cone:0.5,spot:175,beam:0.05,motes:14000,moteSpan:56,moteCx:2});
 S.scene.fog.density=0.024;   // a 40 m track and a camera up to 24 m away: much lighter fog than the pilot
 const {scene,cam}=S; const BEAM=S.NOREFL[0];
+// depth precision: the camera stands 13-24 m away, so the kit's 0.02 m near plane left too little depth resolution and
+// the floor skin (6 mm above the mirror) lost to the mirror on some frames (the 2.5-3.5 s flicker). Near plane at 2 m.
+cam.near=2.0; cam.far=90; cam.updateProjectionMatrix();
+S.spot.shadow.camera.far=22; S.spot.shadow.camera.updateProjectionMatrix();   // and the 7 m shadow range ends above the floor with an 8.5 m lamp
 const R=SLD.createRig(scene);
 
 // ---------------------------------------------------------------- race: speed profiles integrated once (pure lookups)
@@ -179,7 +183,7 @@ function camAt(t){ const xm=xAt('M',t), xd=xAt('D',t), xe=xAt('E',t);
   const drop=sm5(sstep(TL.burnout1+0.3,TL.burnout1+1.6,t)), lo=Math.min(lerp(Math.min(xm,xd,xe),Math.min(xd,xe),drop)), hi=Math.max(xm,xd,xe);
   let cx=(lo+hi)/2+0.35, need=hi-lo+3.4;
   const u=sm5(sstep(TC-0.15,TL.carStop+0.45,t)); cx=lerp(cx,XF+1.4,u); need=lerp(need,10.0,u);
-  const d=clamp(need/PORTRAIT_W,13,24);
+  const d=clamp(need/PORTRAIT_W,13,20);   // past ~21 m the floor skin and mirror flickered (2.5-3.5 s in v3)
   const l=V(cx,1.0,LANE_MID), p=V(cx,0.9+0.55*d,LANE_MID+0.85*d);
   return {p,l}; }
 const shakeAt=t=>{ let s=0; for(const [t0,a,d] of [[TC-0.05,0.8,0.3],[TL.carStop-0.05,0.5,0.25],[TL.go,0.25,0.15]]) if(t>t0) s+=a*Math.exp(-(t-t0)/d); return s; };
