@@ -53,3 +53,11 @@ def walk_pose(ph):
 P["glare_a"] = dict(spine=D(0, 1, 0.08), head_pitch=0.18, neck=D(0, 1, 0.15), head_yaw=0.0)
 P["glare_b"] = dict(spine=D(0, 1, 0.1), head_pitch=0.25, neck=D(0, 1, 0.2), head_yaw=0.22,
     uaL=D(-0.12, -1, 0.1), faL=D(0.0, -1, 0.3), uaR=D(0.12, -1, 0.1), faR=D(0.0, -1, 0.3))
+
+# ---- "the plan" reel poses (hero faces +z in local space)
+P["kneel_draw"] = dict(spine=D(0, 1, 0.55), neck=D(0, 1, 0.45), head_pitch=0.5, pelvis=(0, 232, -60),
+    thL=D(-0.10, -1, 0.0), sh_L=D(-0.02, -0.03, -1), thR=D(0.10, -1, 0.0), sh_R=D(0.02, -0.03, -1), ftL=D(-0.2, 0, -1), ftR=D(0.2, 0, -1),
+    uaL=D(-0.2, -0.6, 0.8), faL=D(-0.05, -0.8, 0.6), uaR=D(0.25, -0.6, 0.8), faR=D(0.1, -0.7, 0.7))
+P["prone_write"] = dict(spine=D(0, 0.10, 1), neck=D(0, 0.55, 1), head_pitch=0.15, pelvis=(0, 62, -230),
+    thL=D(-0.10, -0.14, -1), sh_L=D(-0.04, -0.04, -1), thR=D(0.10, -0.14, -1), sh_R=D(0.04, -0.04, -1), ftL=D(-0.2, -0.3, -1), ftR=D(0.2, -0.3, -1),
+    uaL=D(-0.2, -0.9, 0.5), faL=D(-0.05, -0.2, 1), uaR=D(0.25, -0.9, 0.5), faR=D(0.1, -0.15, 1))
