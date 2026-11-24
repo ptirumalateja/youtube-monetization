@@ -15,7 +15,7 @@
   "freeze": 8.75,
   "look0": 9.45,
   "look1": 10.4,
-  "card": 10.8,
+  "card": 11.3,
   "capHook": [
     0.0,
     2.3
@@ -30,7 +30,7 @@
   ],
   "capArrive": [
     8.75,
-    10.75
+    11.25
   ],
   "reviewTimes": [
     0.2,
@@ -48,5 +48,10 @@
   "capLead": [
     4.4,
     5.95
-  ]
+  ],
+  "richOut": 9.2,
+  "richDoor": 9.6,
+  "richJump": 9.85,
+  "richLand": 10.25,
+  "richPose": 10.5
 }

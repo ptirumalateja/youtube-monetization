@@ -9,6 +9,7 @@
 - The car: engine roar rising from the dark (sound first, picture second), a nitro pop, the pass aligned to the line,
   the tape snapping, a tyre skid, then a low idle.
 - The freeze: everything else stops dead; only the idle and the room are left (held breath).
+- Born Rich gets out: door open, door slam, a heavy thump as he lands on the roof.
 - The question: one deep boom under WAS IT EVER A FAIR RACE?, drone swell, room tone to the end.
 CC0 wind room tone from ../sfxlib (sleepCircle 22331); everything else is ElevenLabs.
 """
@@ -73,6 +74,11 @@ place(bus['fol'], fade(sfx('tape')), TC - 0.02, 0.8, 0.3)
 sk = sfx('skid'); place(bus['hit'], fade(cut(sk, TF - TC + 0.1, 0.2), 0.005, 0.2), TC + 0.04, 0.75, 0.2)
 idle = sfx('idle'); idl = np.tile(idle, 3)[:int((DUR - TC - 0.4) * SR)]
 place(bus['hit'], fade(lp(idl, 900), 0.5, 0.6) * curve(len(idl), [(0, 0.35), (TF - TC - 0.4, 0.2), (CARD - TC - 0.4, 0.16), (DUR - TC - 0.4, 0.1)]), TC + 0.4, 0.5, 0.2)
+
+# ---- he gets out (far side, unseen door) and jumps onto the roof
+place(bus['hit'], fade(sfx('door_open')), E['richOut'] - 0.05, 0.6, 0.1)
+place(bus['hit'], fade(sfx('door_shut')), E['richDoor'] - 0.02, 0.75, 0.1)
+place(bus['hit'], fade(sfx('roof_land')), E['richLand'] - 0.03, 0.9, 0.1)
 
 # ---- the question
 boom = sfx('boom'); place(bus['hit'], fade(boom, 0.003, 0.3), CARD + 0.12, 1.0, 0.0)

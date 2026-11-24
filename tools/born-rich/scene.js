@@ -148,6 +148,28 @@ function carAt(t){ const tau=t-TC; let x, v;
   const dr=sm5(sstep(TC+0.05,TL.carStop+0.05,t)); const yaw=-0.12*dr, z=LANEC+0.15*dr;   // a short twitch as it brakes
   return {x,z,yaw,v,dist:x-(XF-VC*3)}; }
 const CAR_STOP=carAt(DUR).x;
+// Born Rich himself: after the stop he gets out on the far side of the car (hidden by it), rises, jumps onto the roof and
+// stands there, chest out, hands on hips, looking down at the runners. Car-local coordinates (car faces +x, camera on +z).
+const rich=R.makeFig(PAL.CREAM,'rich',{rim:0.18,lift:0.08});
+const RICH_SIDE=V(-0.45,0,-1.55), RICH_ROOF=V(-0.3,1.15,0);     // beside the far door / on the roof (local, before CAR scale)
+const POWER={...P0,p:-0.12,tilt:-0.2,hy:0,kL:0.04,kR:0.04,aL:0.16,aR:-0.16,sL:0.3,sR:0.3,eL:1.6,eR:1.6};
+function richAt(t,c){
+  if(t<TL.richOut) return null;
+  const toW=v=>CAR.localToWorld(v.clone());
+  let root, P, yaw=c.yaw+Math.PI/2*(1-sm5(sstep(TL.richDoor,TL.richJump,t)))+0;   // steps out facing away from the car, turns to it
+  const out=sm5(sstep(TL.richOut,TL.richDoor,t));
+  if(t<TL.richJump){ root=toW(RICH_SIDE); P=R.blend(R.POSES.crouch,{...P0,p:0.1},out);
+    if(t>TL.richDoor) P=R.blend(P,{...R.POSES.crouch,p:0.7,kL:1.2,kR:1.2,aL:0.7,aR:0.6,sL:-0.6,sR:-0.6},sm5(sstep(TL.richDoor+0.05,TL.richJump,t))); }
+  else if(t<TL.richLand){ const u=(t-TL.richJump)/(TL.richLand-TL.richJump); const a=toW(RICH_SIDE), b=toW(RICH_ROOF);
+    root=a.clone().lerp(b,sm5(u)); root.y+=0.55*Math.sin(Math.PI*u); P={...R.POSES.crouch,p:0.5,kL:1.5,kR:1.4,aL:1.0,aR:0.9,sL:2.4*Math.sin(Math.PI*u),sR:2.4*Math.sin(Math.PI*u),eL:0.3,eR:0.3}; }
+  else { root=toW(RICH_ROOF); const up=sm5(sstep(TL.richLand,TL.richPose,t)); P=R.blend({...R.POSES.crouch,p:0.6,kL:1.3,kR:1.2},POWER,up);
+    yaw=c.yaw+Math.PI; P.p+=0.012*Math.sin(2*Math.PI*0.4*t); }
+  if(t<TL.richJump) yaw=c.yaw+Math.PI/2;                                            // facing the camera side of the car while he gets out
+  return {root,P,yaw,a:sstep(TL.richOut,TL.richOut+0.12,t)}; }
+function poseRich(t,c){ const r=richAt(t,c); if(!r){ rich.setAlpha(0); return null; }
+  let P=r.P; if(t>TL.richLand){ const J=R.skel(P,r.root,r.yaw); const side=rotY(V(0,0,1),r.yaw); const w=sm5(sstep(TL.richLand+0.1,TL.richPose,t));
+    P={...P,tL:J.hip.clone().addScaledVector(side,0.2).add(V(0,0.06,0)),tR:J.hip.clone().addScaledVector(side,-0.2).add(V(0,0.06,0)),wL:w,wR:w,pL:V(-0.2,0,1),pR:V(-0.2,0,-1)}; }
+  R.poseFig(rich,R.skel(P,r.root,r.yaw)); rich.setAlpha(r.a); return {...r,P}; }
 
 // ---------------------------------------------------------------- dust kicked up by the skid and by the runners' first steps
 const puffU={uT:{value:0},uH:{value:H}};
@@ -200,6 +222,7 @@ function setT(t){
   CAR.position.set(c.x,0,c.z); CAR.rotation.y=c.yaw; CAR.updateMatrixWorld(true);
   WHEELS.forEach(w=>{ w.sp.rotation.z=-c.dist/(0.34*CS); });
 
+  const RC=poseRich(t,c);
   const blast=vis?sstep(XF-VC*1.15,XF-VC*0.9,c.x):0, fast=clamp(c.v/VC);
   const tl=CAR.localToWorld(V(-2.36,0.7,0)); tailHalo.position.copy(tl); tailHalo.scale.set(0.9,0.3,1); tailHalo.material.opacity=0.3*blast;
   carLight.position.copy(CAR.localToWorld(V(-2.9,0.5,0))); carLight.intensity=(0.08+0.7*fast)*blast;
@@ -216,7 +239,7 @@ function setT(t){
   const sh=shakeAt(t); if(sh>0){ cam.rotateX(0.004*sh*Math.sin(t*131)); cam.rotateY(0.004*sh*Math.sin(t*97+1.3)); }
   const go=sstep(TL.go-0.08,TL.go,t)*(1-sstep(TL.go,TL.go+0.5,t));            // the start: the lamp kicks
   S.tick(t,0.35*go+(t>TC?0.12*sstep(TC,TC+0.8,t):0));
-  return {RN,c}; }
+  return {RN,c,RC}; }
 
 // ---------------------------------------------------------------- render: motion blur (longer shutter on the blast)
 const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
@@ -229,6 +252,6 @@ window.renderAt=function(t,Ksub=3){ let K=Ksub, sh=1/60;
 const proj=v=>{ const p=v.clone().project(cam); return [p.x*0.5+0.5,0.5-p.y*0.5,p.z<1?1:0]; };
 window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t};
   for(const k of ['M','D','E']){ const J=R.skel(s.RN[k].P,s.RN[k].root,s.RN[k].yaw); o[k]=proj(J.head.clone().add(V(0,0.3,0))); o[k+'x']=s.RN[k].x; o[k+'v']=SPEED[k](t); }
-  o.car=proj(CAR.localToWorld(V(-0.9,1.45,0))); o.carX=s.c.x; o.carV=s.c.v; o.carVis=CAR.visible?1:0; return o; };
+  o.car=proj(CAR.localToWorld(V(-0.9,1.45,0))); o.rich=s.RC?proj(R.skel(s.RC.P,s.RC.root,s.RC.yaw).head.clone().add(V(0,0.35,0))):null; o.carX=s.c.x; o.carV=s.c.v; o.carVis=CAR.visible?1:0; return o; };
 window.events={...TL,carStopX:CAR_STOP};
 window.ready=true;

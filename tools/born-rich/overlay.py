@@ -4,7 +4,7 @@
 - Name tags above the runners' heads (screen positions from meta.json): MOTIVATION, DISCIPLINE, EGO; staggered at the
   start line so they do not overlap, then level.
 - Beat captions: MOTIVATION BURNS OUT. / EGO TAKES THE LEAD. / EGO CELEBRATES TOO EARLY. / HE DIDN'T RUN. HE JUST ARRIVED.
-- A red BORN RICH tag rides on the car from the moment it crosses the line.
+- A red BORN RICH tag rides on the car from the moment it crosses the line, then above his head once he stands on the roof.
 - End card over the darkened last frames: WAS IT EVER A / FAIR RACE? (FAIR RACE? in red), FOLLOW @SLOWLIGHTTV.
 
   python3 overlay.py still IN.jpg T OUT.jpg META     overlay one rendered frame at time T
@@ -89,7 +89,10 @@ def draw(img, t):
     # BORN RICH: red chip on the car
     ca = sstep(TL['carCross'], TL['carCross'] + 0.12, t) * (1 - card)
     if ca > 0 and m['carVis']:
-        x, y, _ = m['car']; f = font(36, 'ExtraBold'); w = width('BORN RICH', f, 5); cx, cy = x * W, y * H - 40
+        x, y, _ = m['car']
+        if m.get('rich'):   # once he stands on the roof the tag rides above his head
+            u = sstep(TL['richLand'], TL['richPose'], t); x = x + (m['rich'][0] - x) * u; y = y + (m['rich'][1] - y) * u
+        f = font(36, 'ExtraBold'); w = width('BORN RICH', f, 5); cx, cy = x * W, y * H - 40
         pop = 1 + 0.15 * (1 - sstep(TL['carCross'], TL['carCross'] + 0.2, t))
         chip = Image.new('RGBA', (W, H), (0, 0, 0, 0)); cd = ImageDraw.Draw(chip)
         hw, hh = (w / 2 + 22) * pop, 32 * pop

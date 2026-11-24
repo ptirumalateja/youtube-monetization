@@ -18,3 +18,6 @@ gen idle 4.5 "A powerful sports car engine idling low and steady after stopping,
 gen boom 3.0 "A single deep cinematic low boom hit with a long dark tail, no music"
 gen surge 1.6 "A runner suddenly kicking into a much faster sprint, a rising rush of air and quickening hard footsteps, no music"
 gen pack 7.0 "Two runners sprinting hard side by side on a gritty dirt track, fast heavy footsteps and breathing, close, no music"
+gen door_open 0.8 "A heavy sports car door unlatching and swinging open, close, no music"
+gen door_shut 0.8 "A heavy sports car door slammed shut with a solid thud, close, no music"
+gen roof_land 0.9 "A man jumping up and landing hard on a metal car roof, one heavy hollow thump, no music"
