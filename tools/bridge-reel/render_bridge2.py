@@ -186,12 +186,24 @@ def frame(t):
         ImageDraw.Draw(base).rounded_rectangle([pw_[0] - 6, pw_[1] - 10, pw_[0] + 6, pw_[1] + 10], radius=3, fill=(240, 246, 255, 255), outline=(60, 90, 170, 255))
     # ---- text
     img = base.convert("RGB"); d = ImageDraw.Draw(img)
-    # gold gradient title
-    tl = Image.new("L", (W, 140), 0); ImageDraw.Draw(tl).text((W / 2, 70), "WHO TRIES HARDER", font=font(INTER_XB, 80), fill=255, anchor="mm")
-    gcol = np.zeros((140, W, 3), np.float32); gg = np.linspace(0, 1, 140, dtype=np.float32)[:, None, None]
-    gcol[:] = np.array([255, 214, 130], np.float32) * (1 - gg) + np.array([246, 164, 56], np.float32) * gg
-    img.paste(Image.fromarray(gcol.astype(np.uint8), "RGB"), (0, 235), tl)
-    d.text((W / 2, 395), "IN YOUR RELATIONSHIP?", font=font(INTER_XB, 58), fill=(246, 244, 240), anchor="mm")
+    # title (gold + white); the end CTA replaces it at the top
+    def title_layer(gold, white, fit_g, size_w):
+        lay = Image.new("RGBA", (W, H), (0, 0, 0, 0)); tl = Image.new("L", (W, 150), 0); td = ImageDraw.Draw(tl)
+        sz = fit_g
+        while td.textlength(gold, font=font(INTER_XB, sz)) > 840 and sz > 40: sz -= 2
+        td.text((W / 2, 75), gold, font=font(INTER_XB, sz), fill=255, anchor="mm")
+        gcol = np.zeros((150, W, 3), np.float32); gg = np.linspace(0, 1, 150, dtype=np.float32)[:, None, None]
+        gcol[:] = np.array([255, 214, 130], np.float32) * (1 - gg) + np.array([246, 164, 56], np.float32) * gg
+        gl = Image.fromarray(gcol.astype(np.uint8), "RGB").convert("RGBA"); gl.putalpha(tl); lay.alpha_composite(gl, (0, 230))
+        w2 = 58
+        while ImageDraw.Draw(lay).textlength(white, font=font(INTER_XB, w2)) > 840 and w2 > 30: w2 -= 2
+        ImageDraw.Draw(lay).text((W / 2, 395), white, font=font(INTER_XB, w2), fill=(246, 244, 240, 255), anchor="mm"); return lay
+    a1 = 1.0 if t < 9.0 else max(0.0, 1 - (t - 9.0) / 0.25); a2 = 0.0 if t < 9.25 else min(1.0, (t - 9.25) / 0.3)
+    base_i = img.convert("RGBA")
+    for (g_, w_, al) in (("WHO TRIES HARDER", "IN YOUR RELATIONSHIP?", a1), ("ONE PERSON CAN'T BUILD", "A BRIDGE FOR TWO.", a2)):
+        if al > 0.01:
+            lay = title_layer(g_, w_, 80, 58); la = np.asarray(lay, np.float32).copy(); la[..., 3] *= al; base_i.alpha_composite(Image.fromarray(la.astype(np.uint8), "RGBA"))
+    img = base_i.convert("RGB"); d = ImageDraw.Draw(img)
     # panel labels
     spaced(d, (130, 535), "BOTH BUILD", font(MONO, 42), (232, 232, 238), 9)
     s = typed("PLANK BY PLANK", 0.4, 12, t) if t < 5.0 else (typed("THEY MEET", 5.0, 14, t) if t < 5.7 else typed("HOLD ON", 5.7, 12, t))
@@ -208,14 +220,11 @@ def frame(t):
     else: s2, c2 = typed("ALONE", 8.4, 8, t), (240, 90, 90)
     if s2: spaced(d, (132, 1355), s2, font(MONO, 26), c2 or (130, 134, 154), 5)
     # dimension line + final message
-    if t < 9.2:
+    if True:
         yy = 1760; d.line([(LED_BOT[0] + 14, yy), (LED_BOT[1] - 14, yy)], fill=(110, 120, 170), width=2)
         for x_ in range(LED_BOT[0] + 14, LED_BOT[1] - 14, 22): d.line([(x_, yy), (x_ + 10, yy)], fill=(18, 20, 34), width=3)
         d.polygon([(LED_BOT[0] + 14, yy), (LED_BOT[0] + 30, yy - 8), (LED_BOT[0] + 30, yy + 8)], fill=(120, 130, 180)); d.polygon([(LED_BOT[1] - 14, yy), (LED_BOT[1] - 30, yy - 8), (LED_BOT[1] - 30, yy + 8)], fill=(120, 130, 180))
         spaced(d, (540, 1790), (f"{n} DAY OF TRYING" if n == 1 else f"{n} DAYS OF TRYING"), font(MONO, 28), (150, 160, 215), 4, "c")
-    else:
-        m = typed("ONE PERSON CAN'T BUILD A BRIDGE FOR TWO.", 9.2, 18, t)
-        spaced(d, (540, 1775), m, font(MONO, 26), GOLD, 3, "c")
     spaced(d, (540, 1884), "S L O W   L I G H T", font(MONO, 22), (92, 96, 118), 2, "c")
     return img
 
