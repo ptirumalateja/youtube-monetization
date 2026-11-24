@@ -30,7 +30,7 @@ def build(cfg_path):
     tmp = os.path.join(W, "tmp_" + cfg["name"]); os.makedirs(tmp, exist_ok=True)
     vo = os.path.join(tmp, "vo.wav")
     run(["ffmpeg", "-y", "-v", "error", "-i", os.path.join(W, cfg["vo"]),
-         "-af", (f"rubberband=tempo={cfg['vo_tempo']}:formant=preserved:pitchq=quality:transients=smooth:detector=soft:phase=independent,aresample=48000" if cfg.get("smooth_tempo") else f"atempo={cfg['vo_tempo']},aresample=48000"), vo])
+         "-af", (f"rubberband=tempo={cfg['vo_tempo']}:formant=preserved:pitchq=quality:transients=smooth:detector=soft:phase=independent," + cfg.get("vo_fx","anull") + ",aresample=48000" if cfg.get("smooth_tempo") else f"atempo={cfg['vo_tempo']},aresample=48000"), vo])
     T = cfg["vo_tempo"]; off = cfg["vo_offset"]
     vo_len = dur(vo)
     total = off + vo_len + cfg["tail"]

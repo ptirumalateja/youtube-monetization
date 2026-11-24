@@ -6,8 +6,8 @@
 html,body{margin:0;background:#000;overflow:hidden}
 #m{position:absolute;inset:0}
 .pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:0;transition:none}
-.pin .lab{font-family:'TeluguBold';color:#fff;background:rgba(8,8,10,.88);border:3px solid #ffd27a;border-radius:16px;padding:6px 22px 2px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.6)}
-.pin .dot{width:28px;height:28px;border-radius:50%;background:#ff3b30;border:5px solid #fff;margin-top:10px;box-shadow:0 0 0 8px rgba(255,59,48,.35)}
+.pin .lab{font-family:'TeluguBold';color:#fff;background:rgba(8,8,10,.88);border:3px solid #ffd27a;border-radius:16px;padding:8px 28px 4px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.pin .dot{width:34px;height:34px;border-radius:50%;background:#ff3b30;border:5px solid #fff;margin-top:10px;box-shadow:0 0 0 8px rgba(255,59,48,.35)}
 .badge{position:absolute;font-family:'TeluguBold';color:#1a1310;background:#f2b544;border-radius:22px;padding:10px 26px 4px;opacity:0;box-shadow:0 8px 20px rgba(0,0,0,.55);white-space:nowrap}
 .emoji{font-family:'Noto Color Emoji'}
 #counter{position:absolute;left:0;right:0;text-align:center;font-family:'TeluguBold';color:#ffe100;opacity:0;
@@ -48,7 +48,7 @@ window.map = new maplibregl.Map({container:'m',interactive:false,preserveDrawing
  center:CFG.keys[0].c,zoom:CFG.keys[0].z,pitch:CFG.keys[0].p,bearing:CFG.keys[0].b});
 // overlays
 const ov=document.getElementById('ov');
-const pins={};for(const p of CFG.pins){const d=document.createElement('div');d.className='pin';d.innerHTML=`<div class="lab" style="font-size:${64*S}px">${p.label}</div><div class="dot"></div>`;ov.appendChild(d);pins[p.id]={el:d,...p}}
+const pins={};for(const p of CFG.pins){const d=document.createElement('div');d.className='pin';d.innerHTML=`<div class="lab" style="font-size:${86*S}px">${p.label}</div><div class="dot"></div>`;ov.appendChild(d);pins[p.id]={el:d,...p}}
 const badges={};for(const b of CFG.badges){const d=document.createElement('div');d.className='badge';d.style.fontSize=(b.size||54)*S+'px';d.style.left=(b.x*S)+'px';d.style.top=(b.y*S)+'px';d.innerHTML=b.html;ov.appendChild(d);badges[b.id]={el:d,...b}}
 const counter=document.createElement('div');counter.id='counter';counter.style.top=(CFG.counter.y*S)+'px';counter.style.fontSize=(CFG.counter.size*S)+'px';ov.appendChild(counter);
 const stone=document.createElement('div');stone.id='stone';ov.appendChild(stone);
