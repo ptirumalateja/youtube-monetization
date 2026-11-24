@@ -1,0 +1,13 @@
+{"note":"Approximate pilgrim-path waypoints. Erumeli, Kalaketty, Neelimala, Sannidhanam from OSM/Wikipedia geodata; Azhutha crossing, Kallidumkunnu, Mukkuzhi, Karimala, Pamba estimated from published segment distances (Tapioca, Onmanorama). Route drawn as a smoothed line, not a GPS track.",
+ "points":[
+  {"name":"ఎరుమేలి","en":"Erumeli","lat":9.4768,"lon":76.8705,"src":"nominatim"},
+  {"name":"","en":"Perur Thodu","lat":9.4700,"lon":76.8880,"src":"est"},
+  {"name":"","en":"Kalaketty","lat":9.4460,"lon":76.8985,"src":"wikipedia"},
+  {"name":"అళుదా నది","en":"Azhutha","lat":9.4380,"lon":76.9170,"src":"est"},
+  {"name":"కల్లిడుంకున్ను","en":"Kallidumkunnu","lat":9.4400,"lon":76.9300,"src":"est"},
+  {"name":"","en":"Mukkuzhi","lat":9.4300,"lon":76.9530,"src":"est"},
+  {"name":"కరిమల","en":"Karimala","lat":9.4200,"lon":77.0000,"src":"est"},
+  {"name":"","en":"Valiyanavattom","lat":9.4120,"lon":77.0350,"src":"est"},
+  {"name":"పంబ","en":"Pamba","lat":9.4105,"lon":77.0640,"src":"est"},
+  {"name":"నీలిమల","en":"Neelimala","lat":9.4197,"lon":77.0696,"src":"nominatim"},
+  {"name":"సన్నిధానం","en":"Sannidhanam","lat":9.4355,"lon":77.0806,"src":"nominatim"}]}

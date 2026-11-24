@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="maplibre-gl.css" rel="stylesheet">
+<script src="maplibre-gl.js"></script>
+<style>
+@font-face{font-family:'TeluguBold';src:url('../fonts/NotoSansTelugu-Bold.ttf')}
+html,body{margin:0;background:#000;overflow:hidden}
+#m{position:absolute;inset:0}
+.pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none;opacity:0;transition:none}
+.pin .lab{font-family:'TeluguBold';color:#fff;background:rgba(8,8,10,.88);border:3px solid #ffd27a;border-radius:16px;padding:6px 22px 2px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.pin .dot{width:28px;height:28px;border-radius:50%;background:#ff3b30;border:5px solid #fff;margin-top:10px;box-shadow:0 0 0 8px rgba(255,59,48,.35)}
+.badge{position:absolute;font-family:'TeluguBold';color:#1a1310;background:#f2b544;border-radius:22px;padding:10px 26px 4px;opacity:0;box-shadow:0 8px 20px rgba(0,0,0,.55);white-space:nowrap}
+.emoji{font-family:'Noto Color Emoji'}
+#counter{position:absolute;left:0;right:0;text-align:center;font-family:'TeluguBold';color:#ffe100;opacity:0;
+ text-shadow:5px 5px 0 #000,-5px 5px 0 #000,5px -5px 0 #000,-5px -5px 0 #000,0 7px 0 #000,0 10px 20px rgba(0,0,0,.8)}
+#stone{position:absolute;width:44px;height:36px;border-radius:50% 45% 50% 40%;background:radial-gradient(circle at 35% 35%,#d9d4cc,#7d776f 70%);border:4px solid #fff;transform:translate(-50%,-50%);opacity:0;box-shadow:0 0 18px rgba(255,255,255,.7)}
+</style></head><body><div id="m"></div><div id="ov"></div>
+<script>
+const CFG = window.CFG;
+const W = innerWidth, H = innerHeight, S = W/1080;
+function lerp(a,b,t){return a+(b-a)*t}
+function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
+function clamp(x,a=0,b=1){return Math.max(a,Math.min(b,x))}
+// Catmull-Rom smoothing of the route
+function smooth(pts,n=14){const o=[];for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(i-1,0)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(i+2,pts.length-1)];
+ for(let k=0;k<n;k++){const t=k/n,t2=t*t,t3=t2*t;o.push([0,1].map(j=>0.5*((2*p1[j])+(-p0[j]+p2[j])*t+(2*p0[j]-5*p1[j]+4*p2[j]-p3[j])*t2+(-p0[j]+3*p1[j]-3*p2[j]+p3[j])*t3)))}}
+ o.push(pts[pts.length-1]);return o}
+const route = smooth(CFG.route.map(p=>[p.lon,p.lat]));
+// cumulative length for progress
+const cum=[0];for(let i=1;i<route.length;i++){const dx=(route[i][0]-route[i-1][0])*Math.cos(route[i][1]*Math.PI/180),dy=route[i][1]-route[i-1][1];cum.push(cum[i-1]+Math.hypot(dx,dy))}
+const total=cum[cum.length-1];
+function partial(p){const L=p*total,o=[route[0]];for(let i=1;i<route.length;i++){if(cum[i]<=L){o.push(route[i])}else{const f=(L-cum[i-1])/(cum[i]-cum[i-1]);o.push([lerp(route[i-1][0],route[i][0],f),lerp(route[i-1][1],route[i][1],f)]);break}}return o}
+function pointAt(p){return partial(clamp(p)).slice(-1)[0]}
+function routeProgressNear(name){const wp=CFG.route.find(r=>r.en===name);let best=0,bd=1e9;for(let i=0;i<route.length;i++){const d=Math.hypot(route[i][0]-wp.lon,route[i][1]-wp.lat);if(d<bd){bd=d;best=i}}return cum[best]/total}
+window.map = new maplibregl.Map({container:'m',interactive:false,preserveDrawingBuffer:true,fadeDuration:0,attributionControl:false,maxPitch:85,
+ style:{version:8,sources:{
+  sat:{type:'raster',tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],tileSize:256,maxzoom:14},
+  dem:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:13},
+  route:{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[route[0],route[0]]}}},
+  reserve:{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[[0,0],[0,0]]}}}},
+  layers:[{id:'bg',type:'background',paint:{'background-color':'#06101c'}},
+   {id:'sat',type:'raster',source:'sat',paint:{'raster-saturation':0.35,'raster-contrast':0.18,'raster-brightness-min':0.06,'raster-brightness-max':1}},
+
+   {id:'routeglow',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fff6c8','line-width':18*S,'line-blur':10*S,'line-opacity':0.75}},
+   {id:'routeline',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffcc00','line-width':11*S}},
+   {id:'reserveglow',type:'line',source:'reserve',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ff5a00','line-width':34*S,'line-blur':14*S,'line-opacity':0}},
+   {id:'reserveline',type:'line',source:'reserve',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ff7a1a','line-width':13*S,'line-opacity':0}}],
+  terrain:{source:'dem',exaggeration:CFG.exag||1.6},sky:{'sky-color':'#6fa3d8','horizon-color':'#d6e6f5','fog-color':'#c9dcef','sky-horizon-blend':0.7,'horizon-fog-blend':0.55,'fog-ground-blend':0.35}},
+ center:CFG.keys[0].c,zoom:CFG.keys[0].z,pitch:CFG.keys[0].p,bearing:CFG.keys[0].b});
+// overlays
+const ov=document.getElementById('ov');
+const pins={};for(const p of CFG.pins){const d=document.createElement('div');d.className='pin';d.innerHTML=`<div class="lab" style="font-size:${64*S}px">${p.label}</div><div class="dot"></div>`;ov.appendChild(d);pins[p.id]={el:d,...p}}
+const badges={};for(const b of CFG.badges){const d=document.createElement('div');d.className='badge';d.style.fontSize=(b.size||54)*S+'px';d.style.left=(b.x*S)+'px';d.style.top=(b.y*S)+'px';d.innerHTML=b.html;ov.appendChild(d);badges[b.id]={el:d,...b}}
+const counter=document.createElement('div');counter.id='counter';counter.style.top=(CFG.counter.y*S)+'px';counter.style.fontSize=(CFG.counter.size*S)+'px';ov.appendChild(counter);
+const stone=document.createElement('div');stone.id='stone';ov.appendChild(stone);
+function camAt(t){const K=CFG.keys;if(t<=K[0].t)return K[0];if(t>=K[K.length-1].t)return K[K.length-1];
+ for(let i=0;i<K.length-1;i++){if(t>=K[i].t&&t<=K[i+1].t){const a=K[i],b=K[i+1],f=ease((t-a.t)/(b.t-a.t));
+  return {c:[lerp(a.c[0],b.c[0],f),lerp(a.c[1],b.c[1],f)],z:lerp(a.z,b.z,f),p:lerp(a.p,b.p,f),b:lerp(a.b,b.b,f)}}}}
+function vis(t,s,e,fade=0.25){if(t<s||t>e)return 0;return Math.min(1,(t-s)/fade,(e-t)/fade)}
+window.setFrame = function(t){
+ const c=camAt(t);map.jumpTo({center:c.c,zoom:c.z,pitch:c.p,bearing:c.b});
+ const R=CFG.routeDraw;const prog=clamp((t-R.s)/(R.e-R.s));map.getSource('route').setData({type:'Feature',geometry:{type:'LineString',coordinates:prog>0?partial(ease(prog)):[route[0],route[0]]}});
+ const zv=vis(t,CFG.zoneShow.s,CFG.zoneShow.e,0.4);const pulse=0.75+0.25*Math.sin(t*6);map.setPaintProperty('reserveglow','line-opacity',0.8*zv*pulse);map.setPaintProperty('reserveline','line-opacity',zv);
+ for(const id in pins){const p=pins[id];const v=vis(t,p.s,p.e,0.2);p.el.style.opacity=v;if(v>0){const sp=map.project([p.lon,p.lat]);p.el.style.left=sp.x+'px';p.el.style.top=sp.y+'px';const pop=clamp((t-p.s)/0.25);p.el.style.transform=`translate(-50%,-100%) scale(${0.6+0.4*pop})`}}
+ for(const id in badges){const b=badges[id];const v=vis(t,b.s,b.e,0.25);b.el.style.opacity=v;const pop=clamp((t-b.s)/0.25);b.el.style.transform=`scale(${0.7+0.3*pop}) rotate(${b.rot||0}deg)`}
+ const C=CFG.counter;const cv=vis(t,C.s,C.e,0.2);counter.style.opacity=cv;const val=Math.round(C.to*ease(clamp((t-C.s)/(C.countEnd-C.s))));counter.textContent=`${val} ${C.unit}`;
+ const St=CFG.stone;const sv=vis(t,St.s,St.e,0.2);stone.style.opacity=sv;if(sv>0){const f=ease(clamp((t-St.moveS)/(St.moveE-St.moveS)));const a=routeProgressNear(St.from),b=routeProgressNear(St.to);const pt=pointAt(lerp(a,b,f));const sp=map.project(pt);stone.style.left=sp.x+'px';stone.style.top=(sp.y-30*S)+'px';stone.style.width=44*S+'px';stone.style.height=36*S+'px'}
+};
+map.on('load',()=>{const a=routeProgressNear(CFG.reserveFrom),b=routeProgressNear(CFG.reserveTo);const seg=partial(b).slice(Math.max(1,Math.floor(a*route.length)));map.getSource('reserve').setData({type:'Feature',geometry:{type:'LineString',coordinates:seg}});window.LOADED=true});
+</script></body></html>
