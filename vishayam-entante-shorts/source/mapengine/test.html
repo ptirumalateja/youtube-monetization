@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>html,body,#m{margin:0;width:540px;height:960px}</style></head><body><div id="m"></div>
+<script>
+const map=new maplibregl.Map({container:'m',interactive:false,preserveDrawingBuffer:true,fadeDuration:0,attributionControl:false,
+ style:{version:8,sources:{
+  sat:{type:'raster',tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],tileSize:256,maxzoom:13},
+  dem:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:13}},
+  layers:[{id:'bg',type:'background',paint:{'background-color':'#0a1a2a'}},{id:'sat',type:'raster',source:'sat'}],
+  terrain:{source:'dem',exaggeration:1.6}},
+ center:[77.0,9.42],zoom:11.2,pitch:68,bearing:70,maxPitch:85});
+map.on('load',()=>console.log('loaded'));
+map.on('error',e=>console.log('MAPERR',e.error?e.error.message:''));
+map.on('idle',()=>{window.READY=true});
+</script></body></html>
