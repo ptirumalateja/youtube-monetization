@@ -25,6 +25,8 @@ python3 compose.py /path/to/render /path/to/deliver
   stones crumble to dust in the air (dust points) while their words drift up and fade; light rain (line shader) and stars;
   pale grass; quiet ending: a sunrise glow behind the hilltop, rays only hinted, arms up; captions in Inter Medium with gold
   Lora Italic (`../slow-light-dark-common/fonts`, OFL); mix adds rain, a crumble per stone and a soft bell instead of the boom.
+- v8: the last pose is ATPEACE (upright, head level, arms easy), turned 0.75 rad toward the camera so the smile reads, breathing
+  stilled: only the light moves. Walk up = two heavy steps, two easier, then the run (WALK_V 2.5). FOLLOW 40 px white. 19.9 s.
 - `timeline.json`: slip (3.1-4.35), kneel and sack drop (4.45-5.05), camera push (4.3-5.5), the five throws, stand (10.9),
   walk up (11.7) into the light, bloom (14.7), enlightenment glow (14.75-17.2), end card (17.4).
 - `scene.js`: hill = extruded side profile (rise 4.4 m over 5.6 m, plateau), faint cream edge line; lamp high over the

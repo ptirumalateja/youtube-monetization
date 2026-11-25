@@ -1,5 +1,5 @@
 {
- "duration": 19.3,
+ "duration": 19.9,
  "fps": 30,
  "_comment": "All times in seconds. Scene, overlay and mix read these (overlay/mix through meta.json).",
  "slip0": 3.6,
@@ -28,9 +28,9 @@
  "pull0": 11.5,
  "pull1": 12.9,
  "walk0": 11.9,
- "arrive": 15.4,
- "bloom0": 15.35,
- "bloom1": 16.25,
+ "arrive": 15.9,
+ "bloom0": 15.85,
+ "bloom1": 16.75,
  "capA": [
   0.0,
   1.95
@@ -47,7 +47,7 @@
   11.05,
   12.7
  ],
- "card": 15.7,
+ "card": 16.2,
  "reviewTimes": [
   0.5,
   3.6,
@@ -61,6 +61,6 @@
   16.8,
   18.5
  ],
- "glow0": 15.4,
- "glow1": 16.45
+ "glow0": 15.9,
+ "glow1": 16.95
 }

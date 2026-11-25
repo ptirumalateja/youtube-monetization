@@ -88,7 +88,7 @@ const FACE=(()=>{ const ink=new THREE.MeshBasicMaterial({color:0x1d1712}); const
   const browG=new THREE.CylinderGeometry(1,1,1,6); browG.rotateZ(Math.PI/2); const brows=[0,1].map(()=>{ const m=new THREE.Mesh(browG,ink); g.add(m); return m; });
   const mouthG=new THREE.TorusGeometry(1,0.16,6,24,Math.PI*0.75); mouthG.rotateZ(Math.PI+Math.PI*0.125); mouthG.translate(0,0.62,0);   // a shallow arc, centred: scale.y>0 smiles, <0 frowns
   const mouth=new THREE.Mesh(mouthG,ink); g.add(mouth);
-  return (J,ex)=>{ const R0=0.13*HS; const u=J.head.clone().sub(J.neck).normalize(); const f=V(u.y,-u.x,0);      // up of the head, and the way he faces
+  return (J,ex,yaw=0)=>{ const R0=0.13*HS; const u=J.head.clone().sub(J.neck).normalize(); const fw=rotY(V(1,0,0),yaw); const f=fw.sub(u.clone().multiplyScalar(fw.dot(u))).normalize();      // up of the head, and the way he faces
     const n=f.clone().multiplyScalar(0.62).add(V(0,0,0.78)).normalize(); const side=new THREE.Vector3().crossVectors(u,n).normalize();
     const at=(a,b,c)=>J.head.clone().addScaledVector(n,R0*a).addScaledVector(side,R0*b).addScaledVector(u,R0*c);
     const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(side,u,n));
@@ -122,11 +122,11 @@ const SLIPX=X_PEAK-X_BOTTOM;
 const slipU=u=>u<0.6?0.55*Math.pow(u/0.6,2):0.55+0.45*(1-Math.pow(1-(u-0.6)/0.4,2));   // gathers speed down the slope, then skids out on the flat
 const xCarry=t=>X_HOOK+(X_PEAK-X_HOOK)*climbU(clamp(t/TL.slip0))-SLIPX*slipU(clamp((t-TL.slip0)/(TL.slip1-TL.slip0)));
 const XK=xCarry(TL.slip1);                                              // where he kneels
-const WALK_V=2.7;
+const WALK_V=2.5;
 const X_STOP=PLAT.x-1.45;   // just short of the flag (FLAG.x-0.65): it waves at his right shoulder
 const WALK_TAB=(()=>{ const dt=1/240, d=[0], ph=[0]; for(let k=1;k<240*8;k++){ const s=k*dt;
-    const f=s<0.9?0.28:0.28+0.72*sm5(sstep(0.9,1.8,s));                     // two heavy steps, then the build
-    const v=WALK_V*f*Math.min(1,s/0.25), stride=lerp(0.75,1.45,(f-0.28)/0.72);
+    const f=s<0.9?0.28:s<1.9?0.28+0.27*sm5(sstep(0.9,1.2,s)):0.55+0.45*sm5(sstep(1.9,2.5,s));   // two heavy steps, two easier ones, then he runs
+    const v=WALK_V*f*Math.min(1,s/0.25), stride=lerp(0.75,1.5,(f-0.28)/0.72);
     d.push(d[k-1]+v*dt); ph.push(ph[k-1]+v/stride*2*Math.PI*dt); } return {d,ph}; })();
 const walkLook=(t,a)=>{ const s=Math.max(0,t-TL.walk0); const i=Math.min(a.length-1,Math.floor(s*240)); return a[i]; };
 function xWalk(t){ return Math.min(XK+walkLook(t,WALK_TAB.d),X_STOP); }
@@ -140,7 +140,7 @@ const KNEEL={...P0,p:0.45,tilt:0.2,aL:0.18,aR:0.05,kL:1.62,kR:1.55,dy:-0.03,sL:0
 const STAND={...P0,p:0.04,tilt:-0.12,kL:0.06,kR:0.06};
 const WALKUP={...P0,p:0.16,tilt:-0.1,kL:0.25,kR:0.25,eL:0.6,eR:0.6};
 const LOOKUP={...P0,p:-0.06,tilt:-0.3,sL:0.55,sR:0.55,eL:0.15,eR:0.15,kL:0.04,kR:0.04};   // chest open, face lifted to the light
-const ARMSUP={...LOOKUP,sL:2.75,sR:2.6,eL:0.2,eR:0.25};   // then both arms up, quietly
+const ATPEACE={...P0,p:0.0,tilt:-0.08,sL:0.32,sR:0.22,eL:0.25,eR:0.3,kL:0.03,kR:0.03};   // the last pose: upright, head level, arms open and easy. Held still.
 const thrownBy=t=>TL.throws.filter(x=>t>=x).length;
 function heroAt(t){
   const x=xAt(t); let root=ground(x), yaw=0, P;
@@ -154,9 +154,10 @@ function heroAt(t){
     if(t>TL.stand0){ P=R.blend(P,STAND,sm5(sstep(TL.stand0,TL.stand1,t))); }
     if(t>TL.walk0){ const ph=walkLook(t,WALK_TAB.ph); const a=sstep(TL.walk0,TL.walk0+0.3,t)*(1-sstep(T_ARR-0.25,T_ARR+0.15,t));
       P=R.gait(R.blend(STAND,WALKUP,sstep(TL.walk0,TL.walk0+0.4,t)),ph,a,0.55,1.05,0.55); P.p+=0.08*a+0.22*(1-sstep(TL.walk0+0.7,TL.walk0+1.6,t))*a;   // still bowed for the first heavy steps
-      if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.9,t))); if(t>T_ARR+0.9) P=R.blend(P,ARMSUP,sm5(sstep(T_ARR+0.9,T_ARR+1.9,t))); } }
+      if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.8,t))); if(t>T_ARR+0.6) P=R.blend(P,ATPEACE,sm5(sstep(T_ARR+0.6,T_ARR+1.8,t)));
+    yaw=-0.75*sm5(sstep(T_ARR+0.2,T_ARR+1.6,t)); } }   // he turns gently toward us, so the smile reads; then he is still, only the light moves
   // breathing
-  P.p+=0.012*Math.sin(2*Math.PI*0.5*t);
+  P.p+=0.012*Math.sin(2*Math.PI*0.5*t)*(1-sstep(T_ARR+1.2,T_ARR+2.0,t));
   if(t>=TL.kneel0-0.05&&t<TL.stand1) return {root,yaw,P,x};   // kneeling on the flat at the bottom: knees on the ground is right
   const f=groundFix(P,root,yaw); return {root:f.root,yaw,P:f.P,x}; }
 // Feet on a 50-degree slope: the rig stands both feet at the root height, so the uphill foot sank into the hill (most
@@ -289,7 +290,7 @@ function setT(t){
     const tw=held?1:0.6; P={...P,tL:rest,wL:0.8,pL:V(-0.4,-0.6,0.7),tR:held||sk2.p.clone().add(V(0,sk2.s*1.0,-0.05)),wR:tw,pR:V(-0.6,-0.3,-0.7)};
     // twist the shoulders back as he winds up each throw
     const tws=TL.throws.reduce((a,T)=>a+Math.exp(-Math.pow((t-T+0.08)/0.16,2)),0); P.ty=(P.ty||0)+0.75*tws; P.hy=(P.hy||0)+0.5*tws; }
-  J=R.skel(P,h.root,h.yaw); R.poseFig(hero,J); FACE(J,faceEx(t));
+  J=R.skel(P,h.root,h.yaw); R.poseFig(hero,J); FACE(J,faceEx(t),h.yaw);
   sack.position.copy(sk.p); sack.scale.set(sk.s,sk.s*0.95,sk.s*0.9);
   const tilt=sk.on>0.5?Math.atan2(J.neck.y-J.hip.y,J.neck.x-J.hip.x)-Math.PI/2:0; sack.rotation.set(0,0,tilt*sk.on*0.6);
   neck.position.copy(sk.p).add(V(0.0,sk.s*1.0,0)); neck.scale.setScalar(Math.max(0.35,sk.s/SACK_R0));

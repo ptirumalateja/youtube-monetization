@@ -144,7 +144,7 @@ def draw(img, t):
         a = sstep(TL['card'] + 0.2, TL['card'] + 0.55, t); pop = 1 + 0.05 * (1 - a)
         em, el = text_layer([('What are you', 66, 'Sans', 0, W / 2, 300, WHITE, a),
                              ('still carrying?', 76, 'Ital', 0, W / 2, 384, GOLD, sstep(TL['card'] + 0.6, TL['card'] + 1.1, t)),
-                             ('FOLLOW @SLOWLIGHTTV', 30, 'SansSemi', 6, W / 2, 520, WHITE, 0.9 * sstep(TL['card'] + 1.2, TL['card'] + 1.6, t))])
+                             ('FOLLOW @SLOWLIGHTTV', 40, 'SansSemi', 6, W / 2, 515, (255, 255, 255), sstep(TL['card'] + 0.9, TL['card'] + 1.2, t))])
         composite_text(base, em, el)
     # watermark
     wm, wl = text_layer([])
