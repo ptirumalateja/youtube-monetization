@@ -1,6 +1,6 @@
 # Ramudu Nadichina Dhaari — Publish Copy (విషయం ఏంటంటే)
 
-Video: `rama_route_te.mp4` (1080×1920, ~52s, Teja voice only, pop captions, 3D map with footprint walk)
+Video: `rama_route_te.mp4` (1080×1920, ~55s, Teja voice only, pop captions, 3D map with footprint walk)
 Cover: `rama_cover_1080x1920.jpg` · Thumbnail: `rama_thumbnail_1280x720.jpg`
 
 **Every platform:** turn on the AI label (the feet, boat, padukas and Jatayu clips are AI-generated). YouTube: "Altered or synthetic content" → Yes. Audience: not made for kids.
