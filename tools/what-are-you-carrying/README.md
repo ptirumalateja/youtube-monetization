@@ -16,6 +16,10 @@ python3 compose.py /path/to/render /path/to/deliver
   throwing labelled baggage away, 32 s, silent). Our version: 3D cream figure, a sack of stones instead of a boulder,
   the series gold lamp as the "new life" at the top of a steep hill, side view, 17.5 s, our own words.
 - v2 (owner notes): the slip takes him all the way back down to OLD LIFE (3.1-4.35) and he lets go on the flat; a gold flag waves at the top (NEW LIFE); arriving there triggers an enlightenment: slow sunburst of rays behind him, halo, rising gold motes, warm glow on him, the lamp lifts.
+- v6 (Meta AI review the owner shared): one warm key light (`KEY`) follows him from the lamp side the whole film and turns
+  up 3x for the glow; low self-glow so his shadow side falls off; figure drawn 18% bigger (joints scaled about the feet,
+  hand targets mapped through); deeper CARRY bend; sack darkened to dead weight; opening close-up pulls out to the wide,
+  then a slow push in; walk up = two heavy steps, then the build; end card holds 2.5 s (18.8 s total).
 - `timeline.json`: slip (3.1-4.35), kneel and sack drop (4.45-5.05), camera push (4.3-5.5), the five throws, stand (10.9),
   walk up (11.7) into the light, bloom (14.7), enlightenment glow (14.75-17.2), end card (17.4).
 - `scene.js`: hill = extruded side profile (rise 4.4 m over 5.6 m, plateau), faint cream edge line; lamp high over the

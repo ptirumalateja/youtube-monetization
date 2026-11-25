@@ -23,8 +23,20 @@ cam.near=0.5; cam.far=90; cam.updateProjectionMatrix();
 S.spot.shadow.camera.far=16; S.spot.shadow.camera.updateProjectionMatrix();
 S.scene.fog.density=0.045;
 const R=SLD.createRig(scene);
-const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.24,lift:0.14});
+const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.2,rimCol:0xffd9a0,lift:0.035});   // low self-glow, so his lit side and shadow side read as a falloff
+// one light rule for the whole film: a warm key from the lamp side (upper right) that follows him. Lit right side, dark left side,
+// a long shadow to the left. At the top the same light turns up for the payoff.
+const KEY=new THREE.SpotLight(0xffc77a,0,9,0.42,0.6,1.0); KEY.castShadow=true; KEY.shadow.mapSize.set(1024,1024); KEY.shadow.bias=-0.0006;
+KEY.shadow.camera.near=1; KEY.shadow.camera.far=10; scene.add(KEY); scene.add(KEY.target);
+function keyAt(t,J){ const c=J.neck.clone().lerp(J.hip,0.5); KEY.target.position.copy(c); KEY.position.copy(c).add(V(2.8,2.0,3.6));
+  const e=sm5(sstep(TL.glow0,TL.glow1,t)); KEY.intensity=14*(1+2*e); }
 const P0=R.P0;
+// he is drawn 18% bigger than the series rig, so he reads on a phone in the wide shots: joints scaled about his feet (hand targets
+// mapped in and back out so held things stay in his hands), limbs thickened to match after posing
+const HS=1.18; { const skel0=R.skel; const pin=(t,root)=>t&&t.clone().sub(root).multiplyScalar(1/HS).add(root);
+  R.skel=(P,root,yaw)=>{ const Q=(P.tL||P.tR)?{...P,tL:pin(P.tL,root),tR:pin(P.tR,root)}:P; const J=skel0(Q,root,yaw);
+    for(const k in J) if(J[k]&&J[k].isVector3) J[k]=J[k].clone().sub(root).multiplyScalar(HS).add(root); return J; };
+  const pose0=R.poseFig; R.poseFig=(F,J)=>{ pose0(F,J); F.bones.forEach(b=>{ b.scale.x*=HS; b.scale.z*=HS; }); F.joints.forEach(b=>b.scale.multiplyScalar(HS)); F.head.scale.multiplyScalar(HS); }; }
 
 { // hill mesh: extruded side profile, 3 m deep, dark stone; a faint cream edge on the near top edge so the line reads in the dark
   const pts=[V(-16,-0.02,0),V(-16,0,0)]; for(let i=0;i<=80;i++){ const x=i/80*HL; pts.push(V(x,hAt(x),0)); } pts.push(V(18,HH,0),V(18,-0.02,0));
@@ -51,8 +63,8 @@ const GRASS=(()=>{ const Rn=rng(77); const blade=new THREE.ConeGeometry(0.017,1,
     m.instanceMatrix.needsUpdate=true; }; })();
 
 // ---------------------------------------------------------------- the sack and the stones
-const sackMat=new THREE.MeshStandardMaterial({color:0x8c7a62,emissive:0x8c7a62,emissiveIntensity:0.05,roughness:0.97,map:SLD.noiseTex(256,4,150,40,40,0.08)});
-SLD.rimify(sackMat,0xfff1d8,0.2,'sack');
+const sackMat=new THREE.MeshStandardMaterial({color:0x4a3f33,emissive:0x4a3f33,emissiveIntensity:0.01,roughness:1.0,map:SLD.noiseTex(256,4,150,40,40,0.08)});
+SLD.rimify(sackMat,0xfff1d8,0.05,'sack');
 const sack=new THREE.Mesh((()=>{ const g=new THREE.IcosahedronGeometry(1,5); const p=g.attributes.position; const Rn=rng(3);
   for(let i=0;i<p.count;i++){ const x=p.getX(i),y=p.getY(i),z=p.getZ(i); const k=1+0.035*Math.sin(x*5+y*3)+0.025*Math.sin(z*6-y*2)+(y<-0.4?-0.12*(y+0.4):0); p.setXYZ(i,x*k,y*k*(y<0?0.9:1.05),z*k); }
   g.computeVertexNormals(); return g; })(),sackMat);
@@ -74,13 +86,18 @@ const xCarry=t=>X_HOOK+(X_PEAK-X_HOOK)*climbU(clamp(t/TL.slip0))-SLIPX*slipU(cla
 const XK=xCarry(TL.slip1);                                              // where he kneels
 const WALK_V=2.7;
 const X_STOP=PLAT.x-1.45;   // just short of the flag (FLAG.x-0.65): it waves at his right shoulder
-function xWalk(t){ const s=Math.max(0,t-TL.walk0); const ramp=0.35; const d=WALK_V*(s<ramp?s*s/(2*ramp):s-ramp/2); return Math.min(XK+d,X_STOP); }
+const WALK_TAB=(()=>{ const dt=1/240, d=[0], ph=[0]; for(let k=1;k<240*8;k++){ const s=k*dt;
+    const f=s<0.9?0.28:0.28+0.72*sm5(sstep(0.9,1.8,s));                     // two heavy steps, then the build
+    const v=WALK_V*f*Math.min(1,s/0.25), stride=lerp(0.75,1.45,(f-0.28)/0.72);
+    d.push(d[k-1]+v*dt); ph.push(ph[k-1]+v/stride*2*Math.PI*dt); } return {d,ph}; })();
+const walkLook=(t,a)=>{ const s=Math.max(0,t-TL.walk0); const i=Math.min(a.length-1,Math.floor(s*240)); return a[i]; };
+function xWalk(t){ return Math.min(XK+walkLook(t,WALK_TAB.d),X_STOP); }
 const T_ARR=(()=>{ let t=TL.walk0; while(xWalk(t)<X_STOP-1e-3&&t<DUR) t+=1/240; return t; })();
 const xAt=t=>t<TL.walk0?xCarry(Math.min(t,TL.slip1)):xWalk(t);
 const ground=x=>V(x,hAt(x),0);
 
 // ---------------------------------------------------------------- poses
-const CARRY={...P0,p:1.0,tilt:-0.55,aL:0.45,aR:0.1,kL:0.75,kR:0.55,dy:-0.05,sL:-0.2,sR:-0.2,eL:2.0,eR:2.0};
+const CARRY={...P0,p:1.12,tilt:-0.22,aL:0.55,aR:0.2,kL:0.98,kR:0.78,dy:-0.02,sL:-0.2,sR:-0.2,eL:2.0,eR:2.0};
 const KNEEL={...P0,p:0.45,tilt:0.2,aL:0.18,aR:0.05,kL:1.62,kR:1.55,dy:-0.03,sL:0.5,sR:0.5,eL:0.4,eR:0.4};   // upright on both knees, leaning to the sack
 const STAND={...P0,p:0.04,tilt:-0.12,kL:0.06,kR:0.06};
 const WALKUP={...P0,p:0.16,tilt:-0.1,kL:0.25,kR:0.25,eL:0.6,eR:0.6};
@@ -96,8 +113,8 @@ function heroAt(t){
     const lighter=n/STONE_N; let base=R.blend({...CARRY,p:1.05,kL:1.0,kR:0.9,dy:-0.12},{...KNEEL,p:lerp(0.62,0.12,lighter),tilt:lerp(0.35,-0.1,lighter)},k);
     P=base;
     if(t>TL.stand0){ P=R.blend(P,STAND,sm5(sstep(TL.stand0,TL.stand1,t))); }
-    if(t>TL.walk0){ const d=x-XK; const ph=d/1.45*2*Math.PI; const a=sstep(TL.walk0,TL.walk0+0.3,t)*(1-sstep(T_ARR-0.25,T_ARR+0.15,t));
-      P=R.gait(R.blend(STAND,WALKUP,sstep(TL.walk0,TL.walk0+0.4,t)),ph,a,0.55,1.05,0.55); P.p+=0.08*a;
+    if(t>TL.walk0){ const ph=walkLook(t,WALK_TAB.ph); const a=sstep(TL.walk0,TL.walk0+0.3,t)*(1-sstep(T_ARR-0.25,T_ARR+0.15,t));
+      P=R.gait(R.blend(STAND,WALKUP,sstep(TL.walk0,TL.walk0+0.4,t)),ph,a,0.55,1.05,0.55); P.p+=0.08*a+0.22*(1-sstep(TL.walk0+0.7,TL.walk0+1.6,t))*a;   // still bowed for the first heavy steps
       if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.9,t))); } }
   // breathing
   P.p+=0.012*Math.sin(2*Math.PI*0.5*t);
@@ -108,7 +125,7 @@ function heroAt(t){
 function groundFix(P,root,yaw){ let J; P={...P};
   for(let it=0;it<24;it++){ J=R.skel(P,root,yaw); let ok=true;
     for(const s of ['L','R']){ const f=J['f'+s], k=J['k'+s]; const pen=Math.max(hAt(f.x)+0.012-f.y,hAt(k.x)+0.04-k.y);
-      if(pen>0.004){ ok=false; P['k'+s]+=Math.min(0.35,pen*2.6); P['a'+s]+=Math.min(0.22,pen*1.5); } }
+      if(pen>0.004&&P['k'+s]<2.3){ ok=false; P['k'+s]=Math.min(2.3,P['k'+s]+Math.min(0.35,pen*2.6)); P['a'+s]=Math.min(1.9,P['a'+s]+Math.min(0.22,pen*1.5)); } }   // capped: a runaway bend folds the leg backwards
     if(ok) break; }
   // safety net: if a foot or knee is still in the slope, lift the whole body just clear of it
   J=R.skel(P,root,yaw); let lift=0; for(const s of ['L','R']) lift=Math.max(lift,hAt(J['f'+s].x)+0.012-J['f'+s].y,hAt(J['k'+s].x)+0.04-J['k'+s].y);
@@ -182,7 +199,7 @@ function enlighten(t,J){ const e=sm5(sstep(TL.glow0,TL.glow1,t)); const c=J.neck
   halo.position.copy(c).add(V(0,0.2,-0.3)); halo.scale.setScalar(1.4+1.2*e); halo.material.opacity=0.42*e;
   halo2.position.copy(c).add(V(0,0.3,-0.6)); halo2.scale.setScalar(5.5*e+0.1); halo2.material.opacity=0.16*e;
   riseU.uT.value=t; riseU.uO.value.copy(J.hip).setY(J.hip.y-0.9); riseU.uA.value=e;
-  hero.mat.emissiveIntensity=0.14+0.3*e; hero.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xffc670),e); hero.mat.userData.rim.value=0.24+0.4*e;
+  hero.mat.emissiveIntensity=0.035+0.4*e; hero.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xffc670),e); hero.mat.userData.rim.value=0.2+0.45*e;
   waveFlag(t); GRASS(t); }
 
 // ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
@@ -190,7 +207,11 @@ const WIDE={p:V(2.95,4.6,25.5),l:V(2.85,4.4,0)};   // the whole hill, him small 
 function camAt(t){ const J0=ground(XK);
   const close={p:V(XK+0.05,J0.y+1.5,7.6),l:V(XK+0.05,J0.y+0.85,0)};   // centred on him for the fall and the letting go
   const top={p:V(PLAT.x-1.75,HH+2.0,10.5),l:V(PLAT.x-1.25,HH+2.3,0)};
-  let p=WIDE.p.clone(), l=WIDE.l.clone();
+  const xh=xCarry(Math.min(t,TL.slip0)), J1=ground(xh);
+  const hook={p:V(xh+1.7,J1.y+2.1,8.2),l:V(xh+0.55,J1.y+0.85,0)};   // a little ahead of him: his bowed head and bent knees under the sack, not the back of the sack
+  const wideIn={p:V(WIDE.p.x+0.3,WIDE.p.y-0.2,WIDE.p.z-3.0),l:V(WIDE.l.x+0.2,WIDE.l.y-0.3,0)};
+  let p=WIDE.p.clone().lerp(wideIn.p,sm5(sstep(1.6,TL.push0,t))), l=WIDE.l.clone().lerp(wideIn.l,sm5(sstep(1.6,TL.push0,t)));
+  const u0=sm5(sstep(0.7,1.7,t)); p=hook.p.clone().lerp(p,u0); l=hook.l.clone().lerp(l,u0);
   const u1=sm5(sstep(TL.push0,TL.push1,t)); p.lerp(close.p,u1); l.lerp(close.l,u1);
   if(t>TL.pull0){ // pull back and follow him up the hill, ending framed on the plateau and the lamp
     const x=xAt(t); const follow={p:V(x+0.9,hAt(x)+2.4,11.5),l:V(x+0.6,hAt(x)+1.4,0)};
@@ -224,7 +245,7 @@ function setT(t){
   const c=camAt(t); cam.position.copy(c.p); cam.lookAt(c.l);
   // the lamp blooms when he steps into it
   const pay=0.32*sm5(sstep(TL.bloom0,TL.bloom1,t));
-  enlighten(t,J);
+  enlighten(t,J); keyAt(t,J);
   S.tick(t,pay);
   LAST={J}; return {J,h}; }
 

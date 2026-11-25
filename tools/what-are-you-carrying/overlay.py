@@ -56,7 +56,7 @@ def caption(t, lines, t0, t1, y=290, size=58, colors=None):
     return [(ln, int(size * pop), 'ExtraBold', 4, W / 2, y + i * int(size * 1.3), (colors or [CREAM] * len(lines))[i], a) for i, ln in enumerate(lines)]
 
 
-def chip(base, text, cx, cy, a, pop=1.0, size=38):
+def chip(base, text, cx, cy, a, pop=1.0, size=46):
     """A red label chip (the stones' names), with a soft drop shadow."""
     if a <= 0: return
     f = font(int(size * pop), 'ExtraBold'); w = width(text, f, 4)
@@ -70,7 +70,7 @@ def chip(base, text, cx, cy, a, pop=1.0, size=38):
     base.alpha_composite(c)
 
 
-def arrow(mask, layer, p0, p1, rgb, a, bend=1, gap=26, w=4):
+def arrow(mask, layer, p0, p1, rgb, a, bend=1, gap=26, w=6):
     """A slightly curved arrow p0 -> p1 (stops `gap` px short of p1), drawn into the text halo mask and the layer."""
     import math
     (x0, y0), (x1, y1) = p0, p1
@@ -81,7 +81,7 @@ def arrow(mask, layer, p0, p1, rgb, a, bend=1, gap=26, w=4):
     pts = [((1 - u) ** 2 * x0 + 2 * (1 - u) * u * cx + u * u * x1, (1 - u) ** 2 * y0 + 2 * (1 - u) * u * cy + u * u * y1)
            for u in (i / 40 for i in range(41))]
     tx, ty = x1 - pts[-3][0], y1 - pts[-3][1]; tl = math.hypot(tx, ty) or 1; tx, ty = tx / tl, ty / tl
-    head = [(x1 + tx * 4, y1 + ty * 4), (x1 - tx * 18 - ty * 11, y1 - ty * 18 + tx * 11), (x1 - tx * 18 + ty * 11, y1 - ty * 18 - tx * 11)]
+    head = [(x1 + tx * 4, y1 + ty * 4), (x1 - tx * 24 - ty * 14, y1 - ty * 24 + tx * 14), (x1 - tx * 24 + ty * 14, y1 - ty * 24 - tx * 14)]
     for d, fill in ((ImageDraw.Draw(mask), int(255 * a)), (ImageDraw.Draw(layer), rgb + (int(255 * a),))):
         d.line(pts, fill=fill, width=w, joint='curve'); d.polygon(head, fill=fill)
 
@@ -98,7 +98,7 @@ def draw(img, t):
     items += caption(t, ["IT'S NOT THE CLIMB.", "IT'S THE WEIGHT."], *TL['capC'], colors=[CREAM, GOLD])
     items += caption(t, ['LET IT GO.'], *TL['capD'], size=72, colors=[GOLD])
     # place names on the wide shots
-    wide = (1 - sstep(TL['push0'], TL['push0'] + 0.4, t)) + sstep(TL['pull1'] - 0.2, TL['pull1'] + 0.4, t) * (1 - card)
+    wide = sstep(1.3, 1.8, t) * (1 - sstep(TL['push0'], TL['push0'] + 0.4, t)) + sstep(TL['pull1'] - 0.2, TL['pull1'] + 0.4, t) * (1 - card)
     # the label sits off to one side and a small hand-drawn arrow curves to the spot it names
     end = t > TL['pull1']
     arrows = []
@@ -109,12 +109,12 @@ def draw(img, t):
         if not (vis and 0.03 < x < 0.97 and 0.05 < y < 0.95): continue
         a = 0.9 * min(1.0, wide)
         if a <= 0: continue
-        hw = width(name, font(30, 'Bold'), 6) / 2
+        hw = width(name, font(40, 'ExtraBold'), 6) / 2
         tx, ty = x * W, y * H
         lx = min(max(tx + off[0], hw + 30), W - hw - 30); ly = min(max(ty + off[1], 300), H - 140)
-        items.append((name, 30, 'Bold', 6, lx, ly - 18, col, a))
+        items.append((name, 40, 'ExtraBold', 6, lx, ly - 24, col, a))
         # start just off the label's edge facing the target, end a little short of the target
-        sx = lx + (hw + 8) * (1 if tx > lx else -1) * 0.55; sy = ly + (26 if ty > ly else -26)
+        sx = lx + (hw + 8) * (1 if tx > lx else -1) * 0.55; sy = ly + (32 if ty > ly else -32)
         arrows.append(((sx, sy), (tx, ty), col, a, 1 if off[0] * off[1] > 0 else -1))
     mask, layer = text_layer(items)
     for ar in arrows: arrow(mask, layer, *ar)
@@ -131,7 +131,7 @@ def draw(img, t):
         a = sstep(TL['card'] + 0.2, TL['card'] + 0.55, t); pop = 1 + 0.05 * (1 - a)
         em, el = text_layer([('WHAT ARE YOU', int(80 * pop), 'ExtraBold', 4, W / 2, 285, CREAM, a),
                              ('STILL CARRYING?', int(84 * pop), 'ExtraBold', 4, W / 2, 390, GOLD, sstep(TL['card'] + 0.5, TL['card'] + 0.85, t)),
-                             ('FOLLOW @SLOWLIGHTTV', 26, 'Bold', 8, W / 2, 520, CREAM, 0.75 * sstep(TL['card'] + 1.1, TL['card'] + 1.5, t))])
+                             ('FOLLOW @SLOWLIGHTTV', 40, 'ExtraBold', 6, W / 2, 520, (255, 255, 255), sstep(TL['card'] + 0.8, TL['card'] + 1.1, t))])
         composite_text(base, em, el)
     # watermark
     wm, wl = text_layer([])
