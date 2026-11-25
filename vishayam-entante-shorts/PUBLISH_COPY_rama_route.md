@@ -1,6 +1,6 @@
 # Ramudu Nadichina Dhaari — Publish Copy (విషయం ఏంటంటే)
 
-Video: `rama_route_te.mp4` (1080×1920, ~62s, Teja voice only, pop captions, 3D map with footprint walk)
+Video: `rama_route_te.mp4` (1080×1920, ~63s, Teja voice only, pop captions, 3D map with footprint walk)
 Cover: `rama_cover_1080x1920.jpg` · Thumbnail: `rama_thumbnail_1280x720.jpg`
 
 **Every platform:** turn on the AI label (the feet, boat, padukas and Jatayu clips are AI-generated). YouTube: "Altered or synthetic content" → Yes. Audience: not made for kids.
@@ -13,7 +13,7 @@ Cover: `rama_cover_1080x1920.jpg` · Thumbnail: `rama_thumbnail_1280x720.jpg`
 
 **Title**
 ```
-14 ఏళ్లు… 2,600 కి.మీ. చెప్పులు లేకుండా! 👣 రాముడు నడిచిన దారి 3D Map | Ramayanam in Telugu
+14 ఏళ్లు… 2,600 కి.మీ. చెప్పులు లేకుండా! 👣 శ్రీరాములవారు నడిచిన దారి 3D Map | Ramayanam in Telugu
 ```
 
 **Description**
@@ -35,12 +35,12 @@ Note: ~2,600 km is measured on the map in straight lines between the stops, so t
 📷 Photos (Wikimedia Commons): "Godavari river at Parnashala Bhadrachalam" — Adityamadhav83 (CC BY-SA 3.0); "Hampi - Tungabhadra River - Anjaneya Hill - 1" — Ingo Mehling (CC BY-SA 4.0).
 🤖 Some scenes are AI-generated (feet, boat, padukas, Jatayu).
 
-#Ramayanam #రామాయణం #SriRama #శ్రీరాముడు #Lepakshi #లేపాక్షి #Bhadrachalam #Parnasala #Hampi #Ramayana3DMap #VishayamEntante #TeluguShorts
+#Ramayanam #రామాయణం #SriRama #శ్రీరామ #Lepakshi #లేపాక్షి #Bhadrachalam #Parnasala #Hampi #Ramayana3DMap #VishayamEntante #TeluguShorts
 ```
 
 **Tags**
 ```
-ramayanam map telugu, ramudu nadichina dhaari, ramayana route map, ramudi vanavasam, ayodhya to lanka, lepakshi le pakshi story, parnasala bhadrachalam, kishkindha hampi, rameswaram ram setu, 3d map telugu, శ్రీరాముడు, రామాయణం, లేపాక్షి, vishayam entante, telugu shorts
+ramayanam map telugu, ramudu nadichina dhaari, ramayana route map, ramudi vanavasam, ayodhya to lanka, lepakshi le pakshi story, parnasala bhadrachalam, kishkindha hampi, rameswaram ram setu, 3d map telugu, శ్రీరామ, రామాయణం, లేపాక్షి, vishayam entante, telugu shorts
 ```
 
 **Pinned comment**
@@ -75,7 +75,7 @@ Map: Sentinel-2 cloudless by EOX (CC BY 4.0) · Photos: Wikimedia Commons (credi
 
 **Caption**
 ```
-14 ఏళ్లు… 2,600 కిలోమీటర్లు… చెప్పులు లేకుండా! రాముడు నడిచిన దారి 3D మ్యాప్ మీద 👣
+14 ఏళ్లు… 2,600 కిలోమీటర్లు… చెప్పులు లేకుండా! శ్రీరాములవారు నడిచిన దారి 3D మ్యాప్ మీద 👣
 మన లేపాక్షి పేరు "లే పక్షి!" నుంచే వచ్చిందట.
 
 మీ దగ్గర్లో ఉన్న రామాయణ స్థలం ఏది? కామెంట్‌లో చెప్పండి 👇
