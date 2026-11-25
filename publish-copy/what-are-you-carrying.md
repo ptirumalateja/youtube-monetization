@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v4: v3 + end card lands with the enlightenment (17.6 s), camera centred on him for the fall and the letting go (owner notes, 25 Nov) |
+| Status | v5: v4 + curved arrows on OLD LIFE / NEW LIFE, grass on the hill, gold flag waving on the hilltop from the opening shot, no-letterbox finish for Facebook (owner notes, 25 Nov) |
 | Upload file | `what-are-you-carrying.mp4` (master with sound); `what-are-you-carrying_music-ready.mp4` (silent: slip 3.6 s, stones 6.65 / 7.8 / 8.85 / 9.8 / 10.65 s, arrival, glow and end card 15.25-15.6 s, boom 15.7 s) |
 | Length | 17.6 s, end card WHAT ARE YOU STILL CARRYING? |
 | Voice | None (wordless; ElevenLabs sound effects) |
