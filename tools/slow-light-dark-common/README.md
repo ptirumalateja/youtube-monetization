@@ -15,3 +15,8 @@ cd tools/slow-light-dark-common && npm install
 OUT=/tmp/x W=540 H=960 SUB=1 TIMES=0.5,2 node render.cjs stills
 ```
 To start a reel: copy this folder to `tools/<slug>/` (or copy `sld.js`, `render.cjs`, `index.html`, `package.json` next to your scene) and import `./sld.js`. The page server only serves files inside the reel folder, so a `../` import will not resolve. If you change a look value, change it here too and tell the other reel sessions.
+
+## fonts/
+
+Inter Medium / SemiBold (rsms, OFL) and Lora Italic 400 / 500 (Cyreal, OFL, `Lora-OFL.txt`) for the softer caption style
+first used in What Are You Carrying v7 (`overlay.py` there loads them). JetBrains Mono stays the series default.

@@ -18,3 +18,6 @@ gen boom 3.0 "A single deep cinematic low boom hit with a long dark tail, no mus
 gen shimmer 4.0 "A radiant bright ethereal shimmer swelling up, soft airy choir-like glow and gentle high sparkles, calm and uplifting, no drums, no music melody"
 gen flag 4.0 "A cloth flag flapping softly in a gentle wind on a hilltop, close, no music"
 gen slide_long 1.4 "A man losing his footing and sliding all the way down a steep gravel slope, a long scrape and stones skittering, no music"
+gen crumble 1.5 "A small stone crumbling into fine dust in the air, a soft dry crackle dissolving into a gentle airy whisper, quiet, no music"
+gen rain 10.0 "Light gentle night rain falling softly on grass and earth, steady, calm, lonely, distant, no thunder, no music"
+gen chime 3.0 "A single soft warm low bell tone with a long gentle fade, quiet and tender, no drums"

@@ -20,6 +20,11 @@ python3 compose.py /path/to/render /path/to/deliver
   up 3x for the glow; low self-glow so his shadow side falls off; figure drawn 18% bigger (joints scaled about the feet,
   hand targets mapped through); deeper CARRY bend; sack darkened to dead weight; opening close-up pulls out to the wide,
   then a slow push in; walk up = two heavy steps, then the build; end card holds 2.5 s (18.8 s total).
+- v7 (the reference's feeling, owner + Meta AI notes): FACE (dot eyes, brows, a mouth arc; sad -> relieved -> smiling, drawn on
+  the camera side of the head); camera holds the whole hill (old life to new life) for the climb and the slip, then a slow zoom;
+  stones crumble to dust in the air (dust points) while their words drift up and fade; light rain (line shader) and stars;
+  pale grass; quiet ending: a sunrise glow behind the hilltop, rays only hinted, arms up; captions in Inter Medium with gold
+  Lora Italic (`../slow-light-dark-common/fonts`, OFL); mix adds rain, a crumble per stone and a soft bell instead of the boom.
 - `timeline.json`: slip (3.1-4.35), kneel and sack drop (4.45-5.05), camera push (4.3-5.5), the five throws, stand (10.9),
   walk up (11.7) into the light, bloom (14.7), enlightenment glow (14.75-17.2), end card (17.4).
 - `scene.js`: hill = extruded side profile (rise 4.4 m over 5.6 m, plateau), faint cream edge line; lamp high over the

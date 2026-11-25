@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | v6: Meta AI review pass (owner, 25 Nov): one warm key light on him the whole film (lit right side, shadow to the left, turned up for the glow), figure 18% bigger, crushed under the sack, darker sack, opening close-up pulling out to the wide, heavy first steps on the walk up, bigger place names and stone chips, end card held 2.5 s with a bigger white FOLLOW |
-| Upload file | `what-are-you-carrying.mp4` (master with sound); `what-are-you-carrying_music-ready.mp4` (silent: slip 3.6 s, stones 6.65 / 7.8 / 8.85 / 9.8 / 10.65 s, arrival, glow and end card 15.4-15.7 s, boom 15.85 s) |
-| Length | 18.8 s, end card WHAT ARE YOU STILL CARRYING? |
+| Status | v7: the reference's feeling in our 3D look (owner + Meta AI notes, 25 Nov): a face (sad, relieved, smiling), one wide shot of the whole hill for the climb and the fall, then a slow zoom, stones crumble to dust as their words drift off, light rain and stars, softer pale grass, a quiet sunrise ending with arms up, sentence-case captions in Inter with gold Lora Italic, rain and a soft bell in the sound. Keeps v6's warm key light, bigger figure and darker sack |
+| Upload file | `what-are-you-carrying.mp4` (master with sound); `what-are-you-carrying_music-ready.mp4` (silent: slip 3.6 s, stones 6.65 / 7.8 / 8.85 / 9.8 / 10.65 s, arrival and sunrise 15.4 s, end card 15.7 s, bell 15.85 s) |
+| Length | 19.3 s, end card What are you still carrying? |
 | Voice | None (wordless; ElevenLabs sound effects) |
 | Build | `tools/what-are-you-carrying/` |
 | Idea | From a reference reel the owner shared (25 Nov 2026); rebuilt as our own: 3D figure, a sack of stones, the series gold lamp as the new life at the top, side view, our words |

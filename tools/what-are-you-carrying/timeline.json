@@ -1,5 +1,5 @@
 {
- "duration": 18.8,
+ "duration": 19.3,
  "fps": 30,
  "_comment": "All times in seconds. Scene, overlay and mix read these (overlay/mix through meta.json).",
  "slip0": 3.6,
@@ -7,8 +7,8 @@
  "kneel0": 4.95,
  "kneel1": 5.55,
  "sackDrop": 5.45,
- "push0": 4.45,
- "push1": 5.6,
+ "push0": 4.9,
+ "push1": 6.3,
  "throws": [
   6.65,
   7.8,

@@ -4,11 +4,12 @@
 
 - The climb: strained breathing and grunts, slow heavy footsteps on gravel; the slip all the way back down (long scrape).
 - He kneels: the sack drops with a deep thud and the rocks clunk inside.
-- Each stone: a rummage in the sack, a throw whoosh, then the stone tumbling far down the hill, panned left as it rolls
-  away into the dark. The strain fades as the sack empties.
+- Each stone: a rummage in the sack, a throw whoosh, then a soft crumble as it breaks into dust in the air. The strain
+  fades as the sack empties.
+- Light rain the whole time (ElevenLabs), easing off as the sun comes up.
 - LET IT GO: one long relieved breath. Then light, quick footsteps up the slope, a warm swell as he steps into the lamp,
   and a radiant shimmer for the enlightenment (with the flag flapping softly beside him).
-- The question: one deep boom under WHAT ARE YOU STILL CARRYING?
+- The question: one soft warm bell under What are you still carrying? (quiet ending: it whispers, it doesn't shout)
 CC0 wind room tone from ../sfxlib (sleepCircle 22331); everything else is ElevenLabs.
 """
 import json, os, sys
@@ -44,6 +45,10 @@ drone = curve(N, [(0, 0.5), (E['kneel0'], 0.8), (THROWS[-1], 0.35), (E['arrive']
 duck = np.ones(N)
 bed(bus, room, drone, duck)
 
+# ---- light rain under everything, easing off as the sun comes up
+rn = sfx('rain'); rain = np.tile(rn, N // len(rn) + 1)[:N] * curve(N, [(0, 0.0), (0.3, 1.0), (E['glow0'], 1.0), (DUR, 0.35)])
+place(bus['air'], rain, 0.0, 0.32, 0.0)
+
 # ---- the climb (frame 0 is already mid-step), the slip, the sack drop
 place(bus['fol'], fade(sfx('strain'), 0.02, 0.4), 0.0, 0.85, 0.0)
 place(bus['fol'], fade(cut(sfx('strain'), 2.6, 0.6), 0.2, 0.6), 3.4, 0.6, 0.0)
@@ -56,20 +61,17 @@ place(bus['hit'], fade(sfx('sack_drop'), 0.003, 0.2), E['sackDrop'] + 0.15, 0.85
 for i, T in enumerate(THROWS):
     place(bus['fol'], fade(sfx('rummage')), T - 0.65, 0.55, 0.15)
     place(bus['fol'], fade(sfx('throw')), T - 0.06, 0.7, -0.1)
-    r = fade(sfx('roll'), 0.005, 0.8); pan = np.linspace(-0.2, -0.85, len(r))
-    seg = np.zeros((2, len(r))); seg[0] = r * np.cos((pan + 1) * np.pi / 4) * 1.414; seg[1] = r * np.sin((pan + 1) * np.pi / 4) * 1.414
-    i0 = int((T + 0.3) * SR); n = min(len(r), N - i0)
-    bus['hit'][:, i0:i0 + n] += seg[:, :n] * (0.7 - 0.05 * i)
+    place(bus['air'], fade(sfx('crumble'), 0.005, 0.5), T + 0.22, 0.55, -0.35)
 
 # ---- letting go, walking up light, arriving in the light
 place(bus['fol'], fade(sfx('exhale')), E['stand0'] - 0.1, 0.8, 0.0)
 place(bus['fol'], fade(cut(sfx('steps_light'), E['arrive'] - E['walk0'] + 0.1, 0.15)), E['walk0'], 0.65, 0.1)
 place(bus['air'], fade(sfx('arrive'), 0.3, 0.8), E['bloom0'] - 0.2, 0.8, 0.0)
-place(bus['air'], fade(sfx('shimmer'), 0.4, 1.0), E['glow0'] - 0.1, 0.75, 0.0)
+place(bus['air'], fade(sfx('shimmer'), 0.4, 1.0), E['glow0'] - 0.1, 0.45, 0.0)
 place(bus['fol'], fade(sfx('flag'), 0.6, 0.8), E['glow0'] - 0.6, 0.3, 0.3)
 
 # ---- the question
-place(bus['hit'], fade(sfx('boom'), 0.003, 0.3), CARD + 0.15, 0.9, 0.0)
+place(bus['air'], fade(sfx('chime'), 0.01, 0.8), CARD + 0.15, 0.6, 0.0)
 
 mix = finish(bus, duck)
 write_wav(mix, sys.argv[2])

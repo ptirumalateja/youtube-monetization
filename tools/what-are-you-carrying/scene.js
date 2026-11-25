@@ -29,7 +29,7 @@ const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.2,rimCol:0xffd9a0,lift:0.035});   /
 const KEY=new THREE.SpotLight(0xffc77a,0,9,0.42,0.6,1.0); KEY.castShadow=true; KEY.shadow.mapSize.set(1024,1024); KEY.shadow.bias=-0.0006;
 KEY.shadow.camera.near=1; KEY.shadow.camera.far=10; scene.add(KEY); scene.add(KEY.target);
 function keyAt(t,J){ const c=J.neck.clone().lerp(J.hip,0.5); KEY.target.position.copy(c); KEY.position.copy(c).add(V(2.8,2.0,3.6));
-  const e=sm5(sstep(TL.glow0,TL.glow1,t)); KEY.intensity=14*(1+2*e); }
+  const e=sm5(sstep(TL.glow0,TL.glow1,t)); KEY.intensity=14*(1+1.2*e); }
 const P0=R.P0;
 // he is drawn 18% bigger than the series rig, so he reads on a phone in the wide shots: joints scaled about his feet (hand targets
 // mapped in and back out so held things stay in his hands), limbs thickened to match after posing
@@ -51,7 +51,7 @@ const HS=1.18; { const skel0=R.skel; const pin=(t,root)=>t&&t.clone().sub(root).
 
 // ---------------------------------------------------------------- grass: small tufts along the hill's surface, thickest on the near edge so the line gets a soft, living silhouette
 const GRASS=(()=>{ const Rn=rng(77); const blade=new THREE.ConeGeometry(0.017,1,3,1); blade.translate(0,0.5,0);
-  const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:0x5a5a3e,emissive:0x5a5a3e,emissiveIntensity:0.06,roughness:0.9}),0xfff1d8,0.22,'grass');
+  const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:0x837d66,emissive:0xc9c2a8,emissiveIntensity:0.05,roughness:0.9}),0xfff1d8,0.3,'grass');
   const B=[]; const tuft=(x,z)=>{ const n=3+Math.floor(Rn()*4), h0=0.08+0.1*Rn();
     for(let k=0;k<n;k++){ const bx=x+(Rn()-0.5)*0.07, bz=z+(Rn()-0.5)*0.07; B.push({x:bx,y:hAt(bx)-0.005,z:bz,h:h0*(0.6+0.6*Rn()),lean:(Rn()-0.5)*0.7,ry:Rn()*6.28,ph:Rn()*6.28}); } };
   for(let i=0;i<520;i++){ const x=-7+Rn()*20; tuft(x,1.5-Math.pow(Rn(),2)*0.5); }      // the near edge, in silhouette
@@ -61,6 +61,44 @@ const GRASS=(()=>{ const Rn=rng(77); const blade=new THREE.ConeGeometry(0.017,1,
   return t=>{ for(let i=0;i<B.length;i++){ const b=B[i]; o.position.set(b.x,b.y,b.z);
       o.rotation.set(0.25*b.lean,b.ry,b.lean+0.07*Math.sin(t*1.3+b.x*0.9+b.ph*0.3)); o.scale.set(1,b.h,1); o.updateMatrix(); m.setMatrixAt(i,o.matrix); }
     m.instanceMatrix.needsUpdate=true; }; })();
+
+// ---------------------------------------------------------------- a light rain the whole time, and a few stars: the night feels alive, lonely, heavy
+const rainU={uT:{value:0}};
+{ const Rn=rng(55), N=1300, pos=new Float32Array(N*2*3), sd=new Float32Array(N*2*4);
+  for(let i=0;i<N;i++){ const x=-9+23*Rn(), z=-3+9*Rn(), ph=Rn()*14, sp=7+3*Rn(); for(let e=0;e<2;e++){ pos.set([x,0,z],(i*2+e)*3); sd.set([ph,sp,e,0.25+0.25*Rn()],(i*2+e)*4); } }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('sd',new THREE.BufferAttribute(sd,4));
+  const m=new THREE.LineSegments(g,new THREE.ShaderMaterial({uniforms:rainU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+    vertexShader:`attribute vec4 sd; uniform float uT; varying float vA; void main(){ float y=13.0-mod(sd.x+sd.y*uT,14.5); float L=sd.w;
+      vec3 p=position+vec3(-0.06*L*sd.z,y+L*sd.z,0.0); vA=sd.z; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+    fragmentShader:`varying float vA; void main(){ gl_FragColor=vec4(vec3(0.62,0.66,0.74)*(0.03+0.07*vA),1.0); }`}));
+  m.frustumCulled=false; scene.add(m); S.NOREFL.push(m); }
+const starU={uT:{value:0},uH:{value:H}};
+{ const Rn=rng(66), N=260, pos=new Float32Array(N*3), sd=new Float32Array(N*2);
+  for(let i=0;i<N;i++){ pos.set([-40+90*Rn(),3+38*Rn(),-45],i*3); sd.set([Rn()*6.28,0.4+0.6*Rn()],i*2); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('sd',new THREE.BufferAttribute(sd,2));
+  const m=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:starU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+    vertexShader:`attribute vec2 sd; uniform float uT,uH; varying float vA; void main(){ vA=sd.y*(0.65+0.35*sin(uT*1.7+sd.x)); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_PointSize=2.0+1.5*sd.y; }`,
+    fragmentShader:`varying float vA; void main(){ float d=length(gl_PointCoord-0.5); gl_FragColor=vec4(vec3(0.9,0.92,1.0)*smoothstep(0.5,0.1,d)*vA*0.55,1.0); }`}));
+  m.frustumCulled=false; scene.add(m); S.NOREFL.push(m); }
+
+// ---------------------------------------------------------------- his face: two dot eyes, brows, a mouth. Sad under the sack, relieved as he lets go, smiling at the top.
+// Drawn on the side of the head turned toward the camera (the film is a side view), so it reads in the wide shots too.
+const FACE=(()=>{ const ink=new THREE.MeshBasicMaterial({color:0x1d1712}); const g=new THREE.Group(); scene.add(g);
+  const eyeG=new THREE.SphereGeometry(1,12,8), eyes=[0,1].map(()=>{ const m=new THREE.Mesh(eyeG,ink); g.add(m); return m; });
+  const browG=new THREE.CylinderGeometry(1,1,1,6); browG.rotateZ(Math.PI/2); const brows=[0,1].map(()=>{ const m=new THREE.Mesh(browG,ink); g.add(m); return m; });
+  const mouthG=new THREE.TorusGeometry(1,0.16,6,24,Math.PI*0.75); mouthG.rotateZ(Math.PI+Math.PI*0.125); mouthG.translate(0,0.62,0);   // a shallow arc, centred: scale.y>0 smiles, <0 frowns
+  const mouth=new THREE.Mesh(mouthG,ink); g.add(mouth);
+  return (J,ex)=>{ const R0=0.13*HS; const u=J.head.clone().sub(J.neck).normalize(); const f=V(u.y,-u.x,0);      // up of the head, and the way he faces
+    const n=f.clone().multiplyScalar(0.62).add(V(0,0,0.78)).normalize(); const side=new THREE.Vector3().crossVectors(u,n).normalize();
+    const at=(a,b,c)=>J.head.clone().addScaledVector(n,R0*a).addScaledVector(side,R0*b).addScaledVector(u,R0*c);
+    const q=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(side,u,n));
+    [-1,1].forEach((sg,i)=>{ const e=eyes[i]; e.position.copy(at(0.93,0.34*sg,0.18)); e.quaternion.copy(q); e.scale.set(0.11*R0,0.15*R0*(ex>0.75?lerp(1,0.45,(ex-0.75)/0.25):1),0.06*R0);
+      const b=brows[i]; b.position.copy(at(0.9,0.36*sg,0.5)); b.quaternion.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(V(0,0,1),-sg*0.45*clamp(-ex)));
+      const bs=clamp(0.25-ex*0.9,0,1); b.scale.set(0.28*R0*bs+1e-4,0.035*R0,0.035*R0); });
+    mouth.position.copy(at(0.95,0,-0.34)); mouth.quaternion.copy(q); const my=ex<0?lerp(-0.12,-0.55,-ex):lerp(-0.12,0.75,ex);
+    mouth.scale.set(0.2*R0,0.2*R0*my,0.2*R0); }; })();
+const faceEx=t=>{ if(t<TL.kneel1) return -1; if(t<TL.stand0) return lerp(-1,-0.15,sstep(TL.throws[0],TL.throws[STONE_N-1]+0.3,t));
+  return lerp(lerp(-0.15,0.25,sstep(TL.stand0,TL.stand1,t)),1,sm5(sstep(T_ARR-0.3,T_ARR+0.7,t))); };
 
 // ---------------------------------------------------------------- the sack and the stones
 const sackMat=new THREE.MeshStandardMaterial({color:0x4a3f33,emissive:0x4a3f33,emissiveIntensity:0.01,roughness:1.0,map:SLD.noiseTex(256,4,150,40,40,0.08)});
@@ -75,7 +113,7 @@ const stoneMat=new THREE.MeshStandardMaterial({color:0x9a958c,emissive:0x9a958c,
 SLD.rimify(stoneMat,0xfff1d8,0.25,'stone');
 const stones=[...Array(STONE_N)].map((_,i)=>{ const g=new THREE.IcosahedronGeometry(1,2); const p=g.attributes.position; const Rn=rng(40+i);
   for(let j=0;j<p.count;j++){ const k=0.85+0.3*Rn(); p.setXYZ(j,p.getX(j)*k,p.getY(j)*k*0.85,p.getZ(j)*k); } g.computeVertexNormals();
-  const m=new THREE.Mesh(g,stoneMat); m.castShadow=true; m.receiveShadow=true; m.scale.setScalar(0.17+0.03*((i*7)%3)); scene.add(m); return m; });
+  const m=new THREE.Mesh(g,stoneMat); m.castShadow=true; m.receiveShadow=true; m.scale.setScalar(0.17+0.03*((i*7)%3)); m.userData.s0=m.scale.x; scene.add(m); return m; });
 
 // ---------------------------------------------------------------- his path
 const X_HOOK=-0.95, X_PEAK=2.55, X_BOTTOM=-0.75;                     // starts on the flat at the bottom, trudges up to about the middle of the hill (slowing as it steepens), then the slip takes him all the way back down
@@ -101,7 +139,8 @@ const CARRY={...P0,p:1.12,tilt:-0.22,aL:0.55,aR:0.2,kL:0.98,kR:0.78,dy:-0.02,sL:
 const KNEEL={...P0,p:0.45,tilt:0.2,aL:0.18,aR:0.05,kL:1.62,kR:1.55,dy:-0.03,sL:0.5,sR:0.5,eL:0.4,eR:0.4};   // upright on both knees, leaning to the sack
 const STAND={...P0,p:0.04,tilt:-0.12,kL:0.06,kR:0.06};
 const WALKUP={...P0,p:0.16,tilt:-0.1,kL:0.25,kR:0.25,eL:0.6,eR:0.6};
-const LOOKUP={...P0,p:-0.1,tilt:-0.55,sL:0.55,sR:0.55,eL:0.15,eR:0.15,kL:0.04,kR:0.04};   // chest open, face lifted to the light
+const LOOKUP={...P0,p:-0.06,tilt:-0.3,sL:0.55,sR:0.55,eL:0.15,eR:0.15,kL:0.04,kR:0.04};   // chest open, face lifted to the light
+const ARMSUP={...LOOKUP,sL:2.75,sR:2.6,eL:0.2,eR:0.25};   // then both arms up, quietly
 const thrownBy=t=>TL.throws.filter(x=>t>=x).length;
 function heroAt(t){
   const x=xAt(t); let root=ground(x), yaw=0, P;
@@ -115,7 +154,7 @@ function heroAt(t){
     if(t>TL.stand0){ P=R.blend(P,STAND,sm5(sstep(TL.stand0,TL.stand1,t))); }
     if(t>TL.walk0){ const ph=walkLook(t,WALK_TAB.ph); const a=sstep(TL.walk0,TL.walk0+0.3,t)*(1-sstep(T_ARR-0.25,T_ARR+0.15,t));
       P=R.gait(R.blend(STAND,WALKUP,sstep(TL.walk0,TL.walk0+0.4,t)),ph,a,0.55,1.05,0.55); P.p+=0.08*a+0.22*(1-sstep(TL.walk0+0.7,TL.walk0+1.6,t))*a;   // still bowed for the first heavy steps
-      if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.9,t))); } }
+      if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.9,t))); if(t>T_ARR+0.9) P=R.blend(P,ARMSUP,sm5(sstep(T_ARR+0.9,T_ARR+1.9,t))); } }
   // breathing
   P.p+=0.012*Math.sin(2*Math.PI*0.5*t);
   if(t>=TL.kneel0-0.05&&t<TL.stand1) return {root,yaw,P,x};   // kneeling on the flat at the bottom: knees on the ground is right
@@ -160,7 +199,20 @@ function stoneAt(i,t,J){ const T=TL.throws[i];
     const sk=sackAt(t,J); const mouth=sk.p.clone().add(V(0,sk.s*0.9,0)); const show=J.neck.clone().add(V(0.42,0.12,0.18)); const back=STONE_SIM[i].p0;
     const u1=sm5(sstep(T-0.62,T-0.3,t)), u2=sstep(T-0.16,T,t);
     return {p:mouth.clone().lerp(show,u1).lerp(back,u2*u2),ang:0,inHand:true}; }
-  const f=Math.min(STONE_SIM[i].out.length-1,Math.floor((t-T)*240)); const o=STONE_SIM[i].out[f]; return {p:V(o[0],o[1],o[2]),ang:o[3],inHand:false}; }
+  if(t>T+0.55) return null;                                             // crumbled to dust in the air
+  const f=Math.min(STONE_SIM[i].out.length-1,Math.floor((t-T)*240)); const o=STONE_SIM[i].out[f]; return {p:V(o[0],o[1],o[2]),ang:o[3],inHand:false,k:1-sstep(T+0.22,T+0.55,t)}; }
+// the dust each stone breaks into: drifts back and up, glows faintly, gone in a second
+const dustU={uT:{value:0},uH:{value:H}};
+{ const Rn=rng(91), N=70, pos=new Float32Array(STONE_N*N*3), sd=new Float32Array(STONE_N*N*4);
+  TL.throws.forEach((T,i)=>{ const o=STONE_SIM[i].out[Math.floor(0.3*240)];
+    for(let k=0;k<N;k++){ const j=i*N+k; pos.set([o[0],o[1],o[2]],j*3); sd.set([T+0.24+0.12*Rn(),(Rn()-0.75)*1.3,(Rn()-0.2)*1.0,(Rn()-0.5)*0.8],j*4); } });
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('sd',new THREE.BufferAttribute(sd,4));
+  const m=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:dustU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+    vertexShader:`attribute vec4 sd; uniform float uT,uH; varying float vA;
+      void main(){ float a=uT-sd.x; vA=a<0.0?0.0:(1.0-smoothstep(0.2,1.1,a)); vec3 p=position+vec3(sd.y,sd.z,sd.w)*(1.0-exp(-a*2.5))+vec3(-0.15,0.25,0.0)*a;
+        vec4 mv=modelViewMatrix*vec4(p,1.0); gl_Position=projectionMatrix*mv; gl_PointSize=a<0.0?0.0:clamp(0.035*uH/(-mv.z),1.0,24.0); }`,
+    fragmentShader:`varying float vA; void main(){ float d=length(gl_PointCoord-0.5); float a=smoothstep(0.5,0.0,d); gl_FragColor=vec4(vec3(0.95,0.85,0.7)*a*vA*0.9,1.0); }`}));
+  m.frustumCulled=false; scene.add(m); S.NOREFL.push(m); }
 
 // ---------------------------------------------------------------- the flag at the top (NEW LIFE), waving gently in the lamp's light
 const FLAG=V(PLAT.x-0.8,HH,-0.5);   // just in from the crest, behind his path: in the opening wide shot, and he stops right beside it
@@ -183,6 +235,7 @@ const rayU={uA:{value:0}};
       fragmentShader:`uniform float uA,uS; varying vec2 vU; void main(){ float a=pow(1.0-vU.y,1.8)*exp(-pow((vU.x-0.5)*3.2,2.0))*uA*(0.55+0.45*uS); gl_FragColor=vec4(vec3(1.0,0.78,0.42)*a*0.32,1.0); }`}));
     m.rotation.z=i/22*Math.PI*2+0.15*(Rn()-0.5); RAYS.add(m); } }
 const halo=SLD.glowSprite(scene,0xffd27a,0); const halo2=SLD.glowSprite(scene,0xffb24a,0); S.NOREFL.push(halo,halo2);
+const sun=SLD.glowSprite(scene,0xffd08a,0), sunCore=SLD.glowSprite(scene,0xfff0c8,0), sky=SLD.glowSprite(scene,0xff9a4a,0); S.NOREFL.push(sun,sunCore,sky);
 const riseU={uT:{value:0},uH:{value:H},uO:{value:V(0,0,0)},uA:{value:0}};
 { const Rn=rng(31), N=420, pos=new Float32Array(N*3), sd=new Float32Array(N*4);
   for(let i=0;i<N;i++){ const a=Rn()*6.283, r=0.15+0.9*Math.sqrt(Rn()); pos.set([Math.cos(a)*r,Rn()*0.4,Math.sin(a)*r*0.6],i*3); sd.set([0.25+0.6*Rn(),Rn()*6.28,0.6+0.8*Rn(),Rn()*2.4],i*4); }
@@ -195,23 +248,22 @@ const riseU={uT:{value:0},uH:{value:H},uO:{value:V(0,0,0)},uA:{value:0}};
     fragmentShader:`varying float vA; void main(){ float d=length(gl_PointCoord-0.5); float a=smoothstep(0.5,0.0,d); gl_FragColor=vec4(vec3(1.0,0.82,0.5)*a*a*vA,1.0); }`}));
   m.frustumCulled=false; scene.add(m); S.NOREFL.push(m); }
 function enlighten(t,J){ const e=sm5(sstep(TL.glow0,TL.glow1,t)); const c=J.neck.clone().lerp(J.hip,0.3);
-  RAYS.position.copy(c).add(V(0,0,-0.7)); RAYS.rotation.z=0.06*t; RAYS.scale.setScalar(0.6+0.5*e); rayU.uA.value=e;
-  halo.position.copy(c).add(V(0,0.2,-0.3)); halo.scale.setScalar(1.4+1.2*e); halo.material.opacity=0.42*e;
-  halo2.position.copy(c).add(V(0,0.3,-0.6)); halo2.scale.setScalar(5.5*e+0.1); halo2.material.opacity=0.16*e;
-  riseU.uT.value=t; riseU.uO.value.copy(J.hip).setY(J.hip.y-0.9); riseU.uA.value=e;
-  hero.mat.emissiveIntensity=0.035+0.4*e; hero.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xffc670),e); hero.mat.userData.rim.value=0.2+0.45*e;
+  RAYS.position.copy(c).add(V(0,0,-0.7)); RAYS.rotation.z=0.06*t; RAYS.scale.setScalar(0.6+0.5*e); rayU.uA.value=0.22*e;   // only a hint of rays now: the sunrise does the work
+  const r=sm5(sstep(TL.glow0-0.3,DUR,t)), sp=V(PLAT.x-0.4,HH-1.0+3.4*r,-9);    // the sun comes up slowly behind the hilltop and keeps rising to the end
+  sun.position.copy(sp); sun.scale.setScalar(13); sun.material.opacity=0.5*e; sunCore.position.copy(sp); sunCore.scale.setScalar(4.2); sunCore.material.opacity=0.85*e;
+  sky.position.copy(sp).add(V(0,-1,-2)); sky.scale.setScalar(42); sky.material.opacity=0.2*e;
+  halo.position.copy(c).add(V(0,0.2,-0.3)); halo.scale.setScalar(1.2+0.8*e); halo.material.opacity=0.1*e;
+  halo2.position.copy(c).add(V(0,0.3,-0.6)); halo2.scale.setScalar(3.5*e+0.1); halo2.material.opacity=0.08*e;
+  riseU.uT.value=t; riseU.uO.value.copy(J.hip).setY(J.hip.y-0.9); riseU.uA.value=0.5*e; rainU.uT.value=t; starU.uT.value=t; dustU.uT.value=t;
+  hero.mat.emissiveIntensity=0.035+0.12*e; hero.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xffc670),e); hero.mat.userData.rim.value=0.2+0.45*e;
   waveFlag(t); GRASS(t); }
 
 // ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
 const WIDE={p:V(2.95,4.6,25.5),l:V(2.85,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
 function camAt(t){ const J0=ground(XK);
-  const close={p:V(XK+0.05,J0.y+1.5,7.6),l:V(XK+0.05,J0.y+0.85,0)};   // centred on him for the fall and the letting go
+  const close={p:V(XK+0.35,J0.y+1.45,6.8),l:V(XK+0.25,J0.y+0.95,0)};   // a touch ahead of him so his face reads   // centred on him for the fall and the letting go
   const top={p:V(PLAT.x-1.75,HH+2.0,10.5),l:V(PLAT.x-1.25,HH+2.3,0)};
-  const xh=xCarry(Math.min(t,TL.slip0)), J1=ground(xh);
-  const hook={p:V(xh+1.7,J1.y+2.1,8.2),l:V(xh+0.55,J1.y+0.85,0)};   // a little ahead of him: his bowed head and bent knees under the sack, not the back of the sack
-  const wideIn={p:V(WIDE.p.x+0.3,WIDE.p.y-0.2,WIDE.p.z-3.0),l:V(WIDE.l.x+0.2,WIDE.l.y-0.3,0)};
-  let p=WIDE.p.clone().lerp(wideIn.p,sm5(sstep(1.6,TL.push0,t))), l=WIDE.l.clone().lerp(wideIn.l,sm5(sstep(1.6,TL.push0,t)));
-  const u0=sm5(sstep(0.7,1.7,t)); p=hook.p.clone().lerp(p,u0); l=hook.l.clone().lerp(l,u0);
+  let p=WIDE.p.clone(), l=WIDE.l.clone();
   const u1=sm5(sstep(TL.push0,TL.push1,t)); p.lerp(close.p,u1); l.lerp(close.l,u1);
   if(t>TL.pull0){ // pull back and follow him up the hill, ending framed on the plateau and the lamp
     const x=xAt(t); const follow={p:V(x+0.9,hAt(x)+2.4,11.5),l:V(x+0.6,hAt(x)+1.4,0)};
@@ -230,14 +282,14 @@ function setT(t){
   if(sk.on>0.02){ const top=sk.p.clone().add(V(0.12,sk.s*0.75,0)); P={...P,tL:top.clone().add(V(0,0,0.14)),tR:top.clone().add(V(0,0,-0.14)),wL:sk.on,wR:sk.on,pL:V(-0.5,-0.5,0.7),pR:V(-0.5,-0.5,-0.7)}; }
   let held=null;
   for(let i=0;i<STONE_N;i++){ const s=stoneAt(i,t,J); if(!s){ stones[i].visible=false; continue; }
-    stones[i].visible=true; stones[i].position.copy(s.p); stones[i].rotation.set(0,0,s.ang);
+    stones[i].visible=true; stones[i].position.copy(s.p); stones[i].rotation.set(0,0,s.ang); stones[i].scale.setScalar(stones[i].userData.s0*(s.k??1));
     if(s.inHand) held=s.p; }
   if(t>TL.kneel1-0.2&&t<TL.stand1){ // left hand rests on the sack, right hand works the stones
     const sk2=sackAt(t,J); const rest=sk2.p.clone().add(V(-0.05,sk2.s*0.85,0.18));
     const tw=held?1:0.6; P={...P,tL:rest,wL:0.8,pL:V(-0.4,-0.6,0.7),tR:held||sk2.p.clone().add(V(0,sk2.s*1.0,-0.05)),wR:tw,pR:V(-0.6,-0.3,-0.7)};
     // twist the shoulders back as he winds up each throw
     const tws=TL.throws.reduce((a,T)=>a+Math.exp(-Math.pow((t-T+0.08)/0.16,2)),0); P.ty=(P.ty||0)+0.75*tws; P.hy=(P.hy||0)+0.5*tws; }
-  J=R.skel(P,h.root,h.yaw); R.poseFig(hero,J);
+  J=R.skel(P,h.root,h.yaw); R.poseFig(hero,J); FACE(J,faceEx(t));
   sack.position.copy(sk.p); sack.scale.set(sk.s,sk.s*0.95,sk.s*0.9);
   const tilt=sk.on>0.5?Math.atan2(J.neck.y-J.hip.y,J.neck.x-J.hip.x)-Math.PI/2:0; sack.rotation.set(0,0,tilt*sk.on*0.6);
   neck.position.copy(sk.p).add(V(0.0,sk.s*1.0,0)); neck.scale.setScalar(Math.max(0.35,sk.s/SACK_R0));
