@@ -43,6 +43,8 @@
 
 **Pinned comment:** Which runner are you right now: Motivation, Discipline or Ego? 👇
 
+**YouTube tags (Studio tags field, 328 characters):** born rich,was it ever a fair race,fair race,motivation vs discipline,motivation discipline ego,discipline vs motivation,ego,privilege,inequality,social mobility,rich vs poor,unfair start,life is not fair,stickman animation,stickman race,3d stickman,parable,motivational short,mindset,self improvement,hard work,slow light,shorts
+
 **Hashtags:** #motivation #discipline #ego #inequality #privilege #stickman #animation #parable #slowlight #shorts
 
 **Upload settings:** 9:16, made with AI/synthetic media label on (synthetic scene and AI-generated sound), no music claimed. Sound credit line: optional courtesy line "Room tone: sleepCircle via Freesound (CC0)."
