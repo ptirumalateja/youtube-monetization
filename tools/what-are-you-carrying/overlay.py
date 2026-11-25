@@ -5,7 +5,8 @@
 - Small place names on the wide shots: OLD LIFE at the foot of the hill, NEW LIFE at the top under the lamp.
 - Beat captions: IT'S NOT THE CLIMB. / IT'S THE WEIGHT.   LET IT GO.
 - A red chip names each stone as he lifts it and throws it: FEAR, EXCUSES, SELF-DOUBT, TOXIC PEOPLE, BAD HABITS.
-- End card over the darkened last frames: WHAT ARE YOU / STILL CARRYING? + FOLLOW @SLOWLIGHTTV.
+- End card at the top of the frame, over the enlightenment (no darkening; it lands as he reaches the flag):
+  WHAT ARE YOU / STILL CARRYING? + FOLLOW @SLOWLIGHTTV.
 All captions sit below the Reels/Shorts top bar (y >= 270).
 
   python3 overlay.py still IN.jpg T OUT.jpg META     overlay one rendered frame at time T
@@ -73,8 +74,7 @@ def draw(img, t):
         img = img.resize((W, H), Image.LANCZOS)
     card = sstep(TL['card'], TL['card'] + 0.5, t)
     if card > 0:
-        dark = ImageEnhance.Brightness(img.filter(ImageFilter.GaussianBlur(5 * card))).enhance(1 - 0.5 * card)
-        img = Image.blend(img, dark, card)
+        img = ImageEnhance.Brightness(img).enhance(1 - 0.08 * card)   # the enlightenment stays visible under the question
     base = img.convert('RGBA'); m = frame_meta(t); items = []
     items += caption(t, ['TRYING TO REACH', 'A NEW LIFE...'], *TL['capA'], y=280, size=68, colors=[CREAM, GOLD])
     items += caption(t, ['...WHILE CARRYING', 'THE OLD ONE.'], *TL['capB'], y=280, size=68, colors=[CREAM, CREAM])
@@ -100,9 +100,9 @@ def draw(img, t):
     # end card
     if card > 0:
         a = sstep(TL['card'] + 0.2, TL['card'] + 0.55, t); pop = 1 + 0.05 * (1 - a)
-        em, el = text_layer([('WHAT ARE YOU', int(88 * pop), 'ExtraBold', 4, W / 2, 700, CREAM, a),
-                             ('STILL CARRYING?', int(92 * pop), 'ExtraBold', 4, W / 2, 815, GOLD, sstep(TL['card'] + 0.5, TL['card'] + 0.85, t)),
-                             ('FOLLOW @SLOWLIGHTTV', 26, 'Bold', 8, W / 2, 1000, CREAM, 0.75 * sstep(TL['card'] + 1.1, TL['card'] + 1.5, t))])
+        em, el = text_layer([('WHAT ARE YOU', int(80 * pop), 'ExtraBold', 4, W / 2, 285, CREAM, a),
+                             ('STILL CARRYING?', int(84 * pop), 'ExtraBold', 4, W / 2, 390, GOLD, sstep(TL['card'] + 0.5, TL['card'] + 0.85, t)),
+                             ('FOLLOW @SLOWLIGHTTV', 26, 'Bold', 8, W / 2, 520, CREAM, 0.75 * sstep(TL['card'] + 1.1, TL['card'] + 1.5, t))])
         composite_text(base, em, el)
     # watermark
     wm, wl = text_layer([])

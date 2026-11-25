@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| Status | v3: starts at the bottom, climbs to mid-hill, slides all the way back down, flag at the top, enlightenment on arrival (owner notes, 25 Nov) |
-| Upload file | `what-are-you-carrying.mp4` (master with sound); `what-are-you-carrying_music-ready.mp4` (silent: slip 3.6 s, stones 6.65 / 7.8 / 8.85 / 9.8 / 10.65 s, arrival and glow 15.25 s, end-card boom 18.05 s) |
-| Length | 20.0 s, end card WHAT ARE YOU STILL CARRYING? |
+| Status | v4: v3 + end card lands with the enlightenment (17.6 s), camera centred on him for the fall and the letting go (owner notes, 25 Nov) |
+| Upload file | `what-are-you-carrying.mp4` (master with sound); `what-are-you-carrying_music-ready.mp4` (silent: slip 3.6 s, stones 6.65 / 7.8 / 8.85 / 9.8 / 10.65 s, arrival, glow and end card 15.25-15.6 s, boom 15.7 s) |
+| Length | 17.6 s, end card WHAT ARE YOU STILL CARRYING? |
 | Voice | None (wordless; ElevenLabs sound effects) |
 | Build | `tools/what-are-you-carrying/` |
 | Idea | From a reference reel the owner shared (25 Nov 2026); rebuilt as our own: 3D figure, a sack of stones, the series gold lamp as the new life at the top, side view, our words |

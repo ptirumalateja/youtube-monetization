@@ -174,7 +174,7 @@ function enlighten(t,J){ const e=sm5(sstep(TL.glow0,TL.glow1,t)); const c=J.neck
 // ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
 const WIDE={p:V(2.5,4.6,24.5),l:V(2.4,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
 function camAt(t){ const J0=ground(XK);
-  const close={p:V(XK+0.2,J0.y+1.5,7.6),l:V(XK-0.35,J0.y+0.85,0)};
+  const close={p:V(XK+0.05,J0.y+1.5,7.6),l:V(XK+0.05,J0.y+0.85,0)};   // centred on him for the fall and the letting go
   const top={p:V(PLAT.x-1.2,HH+2.0,10.5),l:V(PLAT.x-0.6,HH+2.3,0)};
   let p=WIDE.p.clone(), l=WIDE.l.clone();
   const u1=sm5(sstep(TL.push0,TL.push1,t)); p.lerp(close.p,u1); l.lerp(close.l,u1);
