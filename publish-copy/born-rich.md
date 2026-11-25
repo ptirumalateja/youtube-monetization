@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | v4: v3 + flicker fix (2.5-3.5 s) + Born Rich gets out and stands on the car roof (owner notes, 24 Nov) |
+| Status | Final v6 (25 Nov 2026): side-on race on a 40 m track, Ego's surge with an aura, Born Rich stands on his car, flicker and leg fixes, captions below the platform top bar |
 | Upload file | `born-rich.mp4` (master with sound); `born-rich_music-ready.mp4` (silent: start at 0.40 s, Ego's surge at 3.0 s, car crosses the line at 8.60 s, door 9.15 s, roof landing 10.22 s, end-card boom at 11.42 s) |
 | Length | 14.0 s, clean end card (WAS IT EVER A FAIR RACE?) |
 | Voice | None (wordless; ElevenLabs sound effects) |
@@ -11,12 +11,12 @@
 
 ## Publish copy
 
-**YouTube Shorts title:** Three Runners. One Car. Was It Ever a Fair Race? #shorts
+**YouTube Shorts title:** Same Track. Same Finish Line. Then He Arrived. #shorts
 
 **YouTube description:**
 > Same ground. Same finish line.
-> Motivation sprints first and burns out. Discipline keeps going. Ego surges past them both and celebrates too early.
-> Then a fourth one arrives. He didn't run. He just arrived, and climbed on top.
+> Motivation sprints first and burns out. Discipline keeps going. Ego surges past them both and starts celebrating before the line.
+> Then a fourth one arrives. He didn't run. He just arrived, and stood on top.
 >
 > The OECD's 2018 report "A Broken Social Elevator?" estimates that in an average OECD country it could take four to five generations for children from the poorest 10% of families to reach the average income.
 >
@@ -33,15 +33,15 @@
 > Discipline kept going.
 > Ego celebrated too early.
 >
-> Then someone who never ran crossed first.
+> Then someone who never ran crossed first, and stood on top.
 >
-> In an average OECD country it can take 4 to 5 generations for a child from the poorest 10% to reach the average income.
+> In an average OECD country it could take 4 to 5 generations for a child from the poorest 10% to reach the average income.
 >
 > Was it ever a fair race? 🏁
 >
-> #motivation #discipline #inequality #stickman #parable #reels
+> #motivation #discipline #inequality #privilege #stickman #parable #reels
 
-**Pinned comment:** Which runner are you right now: Motivation, Discipline or Ego?
+**Pinned comment:** Which runner are you right now: Motivation, Discipline or Ego? 👇
 
 **Hashtags:** #motivation #discipline #ego #inequality #privilege #stickman #animation #parable #slowlight #shorts
 
