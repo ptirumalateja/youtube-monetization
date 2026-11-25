@@ -36,6 +36,20 @@ const P0=R.P0;
   const edge=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ep),400,0.012,6,false),new THREE.MeshBasicMaterial({color:new THREE.Color(0xede6d6).multiplyScalar(0.28)}));
   scene.add(edge); }
 
+
+// ---------------------------------------------------------------- grass: small tufts along the hill's surface, thickest on the near edge so the line gets a soft, living silhouette
+const GRASS=(()=>{ const Rn=rng(77); const blade=new THREE.ConeGeometry(0.017,1,3,1); blade.translate(0,0.5,0);
+  const mat=SLD.rimify(new THREE.MeshStandardMaterial({color:0x5a5a3e,emissive:0x5a5a3e,emissiveIntensity:0.06,roughness:0.9}),0xfff1d8,0.22,'grass');
+  const B=[]; const tuft=(x,z)=>{ const n=3+Math.floor(Rn()*4), h0=0.08+0.1*Rn();
+    for(let k=0;k<n;k++){ const bx=x+(Rn()-0.5)*0.07, bz=z+(Rn()-0.5)*0.07; B.push({x:bx,y:hAt(bx)-0.005,z:bz,h:h0*(0.6+0.6*Rn()),lean:(Rn()-0.5)*0.7,ry:Rn()*6.28,ph:Rn()*6.28}); } };
+  for(let i=0;i<520;i++){ const x=-7+Rn()*20; tuft(x,1.5-Math.pow(Rn(),2)*0.5); }      // the near edge, in silhouette
+  for(let i=0;i<260;i++){ const x=-7+Rn()*20; let z=-1.4+Rn()*2.6; if(Math.abs(z)<0.35) z+=z<0?-0.35:0.35; tuft(x,z); }   // scattered over the slope, off his path
+  const m=new THREE.InstancedMesh(blade,mat,B.length); m.castShadow=false; m.receiveShadow=true; m.frustumCulled=false; scene.add(m);
+  const o=new THREE.Object3D();
+  return t=>{ for(let i=0;i<B.length;i++){ const b=B[i]; o.position.set(b.x,b.y,b.z);
+      o.rotation.set(0.25*b.lean,b.ry,b.lean+0.07*Math.sin(t*1.3+b.x*0.9+b.ph*0.3)); o.scale.set(1,b.h,1); o.updateMatrix(); m.setMatrixAt(i,o.matrix); }
+    m.instanceMatrix.needsUpdate=true; }; })();
+
 // ---------------------------------------------------------------- the sack and the stones
 const sackMat=new THREE.MeshStandardMaterial({color:0x8c7a62,emissive:0x8c7a62,emissiveIntensity:0.05,roughness:0.97,map:SLD.noiseTex(256,4,150,40,40,0.08)});
 SLD.rimify(sackMat,0xfff1d8,0.2,'sack');
@@ -169,7 +183,7 @@ function enlighten(t,J){ const e=sm5(sstep(TL.glow0,TL.glow1,t)); const c=J.neck
   halo2.position.copy(c).add(V(0,0.3,-0.6)); halo2.scale.setScalar(5.5*e+0.1); halo2.material.opacity=0.16*e;
   riseU.uT.value=t; riseU.uO.value.copy(J.hip).setY(J.hip.y-0.9); riseU.uA.value=e;
   hero.mat.emissiveIntensity=0.14+0.3*e; hero.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xffc670),e); hero.mat.userData.rim.value=0.24+0.4*e;
-  waveFlag(t); }
+  waveFlag(t); GRASS(t); }
 
 // ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
 const WIDE={p:V(2.5,4.6,24.5),l:V(2.4,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
@@ -226,6 +240,8 @@ window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t}
   o.stones=stones.map(m=>m.visible?proj(m.position.clone().add(V(0,0.32,0))):null);
   o.oldLife=proj(V(-0.5,-0.35,1.6));   // OLD LIFE sits just under him on the ground edge at the start
   o.newLife=proj(V(FLAG.x+0.35,HH+2.25,0.2)); o.newLifeWide=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
+  // arrow targets: where the place names point (his start spot at the foot of the hill, the hilltop, the flag)
+  o.oldPt=proj(V(X_HOOK,0.05,1.5)); o.newPtWide=proj(V(PLAT.x-1.6,HH+0.08,1.5)); o.newPt=proj(V(FLAG.x,HH+1.3,0.25));
   return o; };
 window.events={...TL,XK,T_ARR};
 window.ready=true;

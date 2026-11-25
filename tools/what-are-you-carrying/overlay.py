@@ -2,7 +2,8 @@
 
 - Hook from frame 0 (the 3-second test: the text says what is happening): TRYING TO REACH / A NEW LIFE...  then
   ...WHILE CARRYING / THE OLD ONE.
-- Small place names on the wide shots: OLD LIFE at the foot of the hill, NEW LIFE at the top under the lamp.
+- Small place names on the wide shots, each with a curved hand-drawn arrow: OLD LIFE points to his spot at the foot of
+  the hill, NEW LIFE to the hilltop (and to the flag at the end).
 - Beat captions: IT'S NOT THE CLIMB. / IT'S THE WEIGHT.   LET IT GO.
 - A red chip names each stone as he lifts it and throws it: FEAR, EXCUSES, SELF-DOUBT, TOXIC PEOPLE, BAD HABITS.
 - End card at the top of the frame, over the enlightenment (no darkening; it lands as he reaches the flag):
@@ -69,6 +70,22 @@ def chip(base, text, cx, cy, a, pop=1.0, size=38):
     base.alpha_composite(c)
 
 
+def arrow(mask, layer, p0, p1, rgb, a, bend=1, gap=26, w=4):
+    """A slightly curved arrow p0 -> p1 (stops `gap` px short of p1), drawn into the text halo mask and the layer."""
+    import math
+    (x0, y0), (x1, y1) = p0, p1
+    dx, dy = x1 - x0, y1 - y0; L = math.hypot(dx, dy)
+    if L < gap * 2: return
+    x1, y1 = x1 - dx / L * gap, y1 - dy / L * gap
+    cx, cy = (x0 + x1) / 2 - dy / L * 0.22 * L * bend, (y0 + y1) / 2 + dx / L * 0.22 * L * bend
+    pts = [((1 - u) ** 2 * x0 + 2 * (1 - u) * u * cx + u * u * x1, (1 - u) ** 2 * y0 + 2 * (1 - u) * u * cy + u * u * y1)
+           for u in (i / 40 for i in range(41))]
+    tx, ty = x1 - pts[-3][0], y1 - pts[-3][1]; tl = math.hypot(tx, ty) or 1; tx, ty = tx / tl, ty / tl
+    head = [(x1 + tx * 4, y1 + ty * 4), (x1 - tx * 18 - ty * 11, y1 - ty * 18 + tx * 11), (x1 - tx * 18 + ty * 11, y1 - ty * 18 - tx * 11)]
+    for d, fill in ((ImageDraw.Draw(mask), int(255 * a)), (ImageDraw.Draw(layer), rgb + (int(255 * a),))):
+        d.line(pts, fill=fill, width=w, joint='curve'); d.polygon(head, fill=fill)
+
+
 def draw(img, t):
     if img.size != (W, H):
         img = img.resize((W, H), Image.LANCZOS)
@@ -82,13 +99,25 @@ def draw(img, t):
     items += caption(t, ['LET IT GO.'], *TL['capD'], size=72, colors=[GOLD])
     # place names on the wide shots
     wide = (1 - sstep(TL['push0'], TL['push0'] + 0.4, t)) + sstep(TL['pull1'] - 0.2, TL['pull1'] + 0.4, t) * (1 - card)
-    nl = 'newLife' if t > TL['pull1'] else 'newLifeWide'   # on the hill top in the opening, at the flag at the end
-    for key, name, col in (('oldLife', 'OLD LIFE', CREAM), (nl, 'NEW LIFE', GOLD)):
-        x, y, vis = m[key]
-        if vis and 0.04 < x < 0.96 and 0.05 < y < 0.92:
-            hw = width(name, font(28, 'Bold'), 6) / 2 + 30
-            items.append((name, 28, 'Bold', 6, min(max(x * W, hw), W - hw), y * H - 60, col, 0.85 * min(1.0, wide)))
+    # the label sits off to one side and a small hand-drawn arrow curves to the spot it names
+    end = t > TL['pull1']
+    arrows = []
+    for key, pt, name, col, off in (('oldLife', 'oldPt', 'OLD LIFE', CREAM, (150, 150)),
+                                    ('newLife' if end else 'newLifeWide', 'newPt' if end else 'newPtWide', 'NEW LIFE', GOLD,
+                                     (-190, -150) if end else (-170, -190))):
+        x, y, vis = m[pt]
+        if not (vis and 0.03 < x < 0.97 and 0.05 < y < 0.95): continue
+        a = 0.9 * min(1.0, wide)
+        if a <= 0: continue
+        hw = width(name, font(30, 'Bold'), 6) / 2
+        tx, ty = x * W, y * H
+        lx = min(max(tx + off[0], hw + 30), W - hw - 30); ly = min(max(ty + off[1], 300), H - 140)
+        items.append((name, 30, 'Bold', 6, lx, ly - 18, col, a))
+        # start just off the label's edge facing the target, end a little short of the target
+        sx = lx + (hw + 8) * (1 if tx > lx else -1) * 0.55; sy = ly + (26 if ty > ly else -26)
+        arrows.append(((sx, sy), (tx, ty), col, a, 1 if off[0] * off[1] > 0 else -1))
     mask, layer = text_layer(items)
+    for ar in arrows: arrow(mask, layer, *ar)
     composite_text(base, mask, layer)
     # the stones' names: from the moment he lifts each one until shortly after it leaves his hand
     for i, (T, name) in enumerate(zip(TL['throws'], TL['labels'])):

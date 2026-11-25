@@ -19,10 +19,10 @@ python3 compose.py /path/to/render /path/to/deliver
 - `timeline.json`: slip (3.1-4.35), kneel and sack drop (4.45-5.05), camera push (4.3-5.5), the five throws, stand (10.9),
   walk up (11.7) into the light, bloom (14.7), enlightenment glow (14.75-17.2), end card (17.4).
 - `scene.js`: hill = extruded side profile (rise 4.4 m over 5.6 m, plateau), faint cream edge line; lamp high over the
-  top leaning down the slope. The sack rides on his back (hands hold the mouth over his shoulders), is set down beside
+  top leaning down the slope. Small grass tufts (one instanced mesh, gentle sway) along the near edge and over the slope. The sack rides on his back (hands hold the mouth over his shoulders), is set down beside
   him (far side, so it never hides him), shrinks with each stone. Stones: shown in front of his chest (label), wound back
   over the shoulder and thrown; flight and roll down the profile precomputed, so `renderAt(t)` stays pure.
-- `overlay.py`: hook TRYING TO REACH / A NEW LIFE... then ...WHILE CARRYING / THE OLD ONE., OLD LIFE / NEW LIFE markers,
+- `overlay.py`: hook TRYING TO REACH / A NEW LIFE... then ...WHILE CARRYING / THE OLD ONE., OLD LIFE / NEW LIFE markers with curved arrows,
   IT'S NOT THE CLIMB. / IT'S THE WEIGHT., red chips on the stones, LET IT GO., end card WHAT ARE YOU / STILL CARRYING?
   All captions below the platform top bar (y >= 270).
 - `mix.py`: ElevenLabs foley (strain, heavy steps, slip, sack drop, rummage, throw, long rolls panned away, relieved
