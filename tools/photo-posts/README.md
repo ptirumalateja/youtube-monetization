@@ -8,3 +8,8 @@
 
 - Image: OpenArt GPT Image 2 (text2image, 4:5, 2k, medium, 40 credits), folder "Slow Light photo posts"; prompt in the OpenArt history. A procedural 3D attempt (`lobster/`, `node still.cjs OUT.png W H`) is kept for reference; it read as a toy, so the owner chose OpenArt.
 - `lobster_comp.py IN.png OUT.png`: crop to 1080x1350, warm the highlights toward gold, lift shadows to deep teal (no black border), headline in Inter Medium + Lora Italic (`fonts/`, OFL), SLOW LIGHT watermark. Copy: `publish-copy/lobster-photo-post.md`.
+
+# Same Size (25 Nov 2026), corridor illusion
+
+- v1 flat: `same_size_illusion.py OUT.png`.
+- v2 3D (the one to post): `cd corridor && QS=mode=corridor node still.cjs C.png 2160 2700 && QS=mode=figure node still.cjs F.png 1200 2400`, then `python3 same_size_3d.py C.png F.png OUT.png`. The figure sprite is pasted twice at the same height (360 px in the post); the far copy is only tinted and rim-lit.
