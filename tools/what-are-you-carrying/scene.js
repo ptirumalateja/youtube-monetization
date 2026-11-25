@@ -73,7 +73,7 @@ const slipU=u=>u<0.6?0.55*Math.pow(u/0.6,2):0.55+0.45*(1-Math.pow(1-(u-0.6)/0.4,
 const xCarry=t=>X_HOOK+(X_PEAK-X_HOOK)*climbU(clamp(t/TL.slip0))-SLIPX*slipU(clamp((t-TL.slip0)/(TL.slip1-TL.slip0)));
 const XK=xCarry(TL.slip1);                                              // where he kneels
 const WALK_V=2.7;
-const X_STOP=PLAT.x-0.15;   // beside the flag
+const X_STOP=PLAT.x-1.45;   // just short of the flag (FLAG.x-0.65): it waves at his right shoulder
 function xWalk(t){ const s=Math.max(0,t-TL.walk0); const ramp=0.35; const d=WALK_V*(s<ramp?s*s/(2*ramp):s-ramp/2); return Math.min(XK+d,X_STOP); }
 const T_ARR=(()=>{ let t=TL.walk0; while(xWalk(t)<X_STOP-1e-3&&t<DUR) t+=1/240; return t; })();
 const xAt=t=>t<TL.walk0?xCarry(Math.min(t,TL.slip1)):xWalk(t);
@@ -146,15 +146,15 @@ function stoneAt(i,t,J){ const T=TL.throws[i];
   const f=Math.min(STONE_SIM[i].out.length-1,Math.floor((t-T)*240)); const o=STONE_SIM[i].out[f]; return {p:V(o[0],o[1],o[2]),ang:o[3],inHand:false}; }
 
 // ---------------------------------------------------------------- the flag at the top (NEW LIFE), waving gently in the lamp's light
-const FLAG=V(PLAT.x+0.55,HH,0.25);
+const FLAG=V(PLAT.x-0.8,HH,-0.5);   // just in from the crest, behind his path: in the opening wide shot, and he stops right beside it
 { const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.03,2.0,12),SLD.rimify(new THREE.MeshStandardMaterial({color:0xb9b2a4,metalness:0.3,roughness:0.45}),0xfff1d8,0.2,'pole'));
   pole.position.copy(FLAG).add(V(0,1.0,0)); pole.castShadow=true; scene.add(pole); }
-const flagGeo=new THREE.PlaneGeometry(0.78,0.46,24,10); flagGeo.translate(0.39,0,0); const FLAG0=flagGeo.attributes.position.array.slice();
+const flagGeo=new THREE.PlaneGeometry(0.95,0.56,24,10); flagGeo.translate(0.475,0,0); const FLAG0=flagGeo.attributes.position.array.slice();
 const flag=new THREE.Mesh(flagGeo,new THREE.MeshStandardMaterial({color:PAL.GOLD,emissive:PAL.GOLD,emissiveIntensity:0.18,roughness:0.7,side:THREE.DoubleSide}));
 flag.position.copy(FLAG).add(V(0.02,1.72,0)); flag.castShadow=true; scene.add(flag);
-function waveFlag(t){ const p=flagGeo.attributes.position; const g=1+1.5*sstep(TL.glow0,TL.glow0+0.6,t);
-  for(let i=0;i<p.count;i++){ const x=FLAG0[i*3], y=FLAG0[i*3+1]; const k=x/0.78;
-    p.setXYZ(i,x*(1-0.04*k),y-0.05*k*k,0.07*g*k*Math.sin(x*9-t*6.5+y*2)+0.03*k*Math.sin(t*3.1+y*5)); }
+function waveFlag(t){ const p=flagGeo.attributes.position; const g=1+0.8*sstep(TL.glow0,TL.glow0+0.6,t);
+  for(let i=0;i<p.count;i++){ const x=FLAG0[i*3], y=FLAG0[i*3+1]; const k=x/0.95;
+    p.setXYZ(i,x*(1-0.06*k),y-0.05*k*k+0.045*g*k*Math.sin(x*7-t*5.5),0.13*g*k*Math.sin(x*8-t*6.5+y*2)+0.04*k*Math.sin(t*3.1+y*5)); }   // ripples you can read from the side, not only in the shading
   p.needsUpdate=true; flagGeo.computeVertexNormals(); }
 
 // ---------------------------------------------------------------- the enlightenment: a slow sunburst behind him, a halo, rising gold motes, a warm glow on him
@@ -186,10 +186,10 @@ function enlighten(t,J){ const e=sm5(sstep(TL.glow0,TL.glow1,t)); const c=J.neck
   waveFlag(t); GRASS(t); }
 
 // ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
-const WIDE={p:V(2.5,4.6,24.5),l:V(2.4,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
+const WIDE={p:V(2.95,4.6,25.5),l:V(2.85,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
 function camAt(t){ const J0=ground(XK);
   const close={p:V(XK+0.05,J0.y+1.5,7.6),l:V(XK+0.05,J0.y+0.85,0)};   // centred on him for the fall and the letting go
-  const top={p:V(PLAT.x-1.2,HH+2.0,10.5),l:V(PLAT.x-0.6,HH+2.3,0)};
+  const top={p:V(PLAT.x-1.75,HH+2.0,10.5),l:V(PLAT.x-1.25,HH+2.3,0)};
   let p=WIDE.p.clone(), l=WIDE.l.clone();
   const u1=sm5(sstep(TL.push0,TL.push1,t)); p.lerp(close.p,u1); l.lerp(close.l,u1);
   if(t>TL.pull0){ // pull back and follow him up the hill, ending framed on the plateau and the lamp
@@ -241,7 +241,7 @@ window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t}
   o.oldLife=proj(V(-0.5,-0.35,1.6));   // OLD LIFE sits just under him on the ground edge at the start
   o.newLife=proj(V(FLAG.x+0.35,HH+2.25,0.2)); o.newLifeWide=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
   // arrow targets: where the place names point (his start spot at the foot of the hill, the hilltop, the flag)
-  o.oldPt=proj(V(X_HOOK,0.05,1.5)); o.newPtWide=proj(V(PLAT.x-1.6,HH+0.08,1.5)); o.newPt=proj(V(FLAG.x,HH+1.3,0.25));
+  o.oldPt=proj(V(X_HOOK,0.05,1.5)); o.newPtWide=proj(V(FLAG.x+0.3,HH+1.75,-0.5)); o.newPt=proj(V(FLAG.x,HH+1.3,0.25));
   return o; };
 window.events={...TL,XK,T_ARR};
 window.ready=true;
