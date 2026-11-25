@@ -55,13 +55,28 @@ const pins={};for(const p of CFG.pins){const d=document.createElement('div');d.c
 const badges={};for(const b of CFG.badges){const d=document.createElement('div');d.className='badge';d.style.fontSize=(b.size||54)*S+'px';d.style.left=(b.x*S)+'px';d.style.top=(b.y*S)+'px';d.innerHTML=b.html;ov.appendChild(d);badges[b.id]={el:d,...b}}
 const counter=document.createElement('div');counter.id='counter';counter.style.top=(CFG.counter.y*S)+'px';counter.style.fontSize=(CFG.counter.size*S)+'px';ov.appendChild(counter);
 const fc=document.createElement('canvas');fc.width=W;fc.height=H;fc.style.cssText='position:absolute;left:0;top:0;pointer-events:none';ov.prepend(fc);const fx=fc.getContext('2d');
-function foot(x,y,a,left,alpha,glow){fx.save();fx.translate(x,y);fx.rotate(a+Math.PI/2);if(left)fx.scale(-1,1);fx.globalAlpha=alpha;const k=S*1.9;
- if(glow){fx.shadowColor='rgba(255,220,120,.95)';fx.shadowBlur=22*S}
- fx.fillStyle='#ffd34d';fx.strokeStyle='rgba(60,30,0,.85)';fx.lineWidth=2.5*S;
+function foot(x,y,a,left,alpha,glow,t){fx.save();fx.translate(x,y);fx.rotate(a+Math.PI/2);if(left)fx.scale(-1,1);fx.globalAlpha=alpha;const k=S*1.9;
+ // saffron halo
+ const hr=(glow?40:28)*k*0.6;const hg=fx.createRadialGradient(0,-2*k,2*k,0,-2*k,hr);hg.addColorStop(0,glow?'rgba(255,215,110,.9)':'rgba(255,175,60,.55)');hg.addColorStop(1,'rgba(255,140,30,0)');
+ fx.fillStyle=hg;fx.beginPath();fx.arc(0,-2*k,hr,0,Math.PI*2);fx.fill();
+ // gold gradient sole + toes
+ const g=fx.createLinearGradient(-8*k,-22*k,8*k,16*k);g.addColorStop(0,'#fff6c9');g.addColorStop(0.35,'#ffd65a');g.addColorStop(0.75,'#f0a81c');g.addColorStop(1,'#c9790a');
+ fx.fillStyle=g;fx.strokeStyle='rgba(110,45,0,.9)';fx.lineWidth=2.2*S;fx.shadowColor='rgba(255,190,70,.9)';fx.shadowBlur=(glow?26:12)*S;
  fx.beginPath();fx.ellipse(0,4*k,7*k,12*k,0.12,0,Math.PI*2);fx.fill();fx.stroke();
  fx.beginPath();fx.ellipse(1.5*k,-11*k,5.5*k,5*k,0.1,0,Math.PI*2);fx.fill();fx.stroke();
  const toes=[[-5.5,-17.5,2.6],[-1.8,-20.5,2.3],[1.8,-21,2.1],[5,-19.5,1.9],[7.6,-16.5,1.7]];
  for(const [tx,ty,r] of toes){fx.beginPath();fx.arc(tx*k,ty*k,r*k,0,Math.PI*2);fx.fill();fx.stroke()}
+ fx.shadowBlur=0;
+ // chakra mark in the sole
+ fx.strokeStyle='rgba(150,20,10,.9)';fx.lineWidth=1.3*S;const cy=5*k,cr=3.6*k;
+ fx.beginPath();fx.arc(0,cy,cr,0,Math.PI*2);fx.stroke();fx.beginPath();fx.arc(0,cy,0.9*k,0,Math.PI*2);fx.fillStyle='rgba(150,20,10,.9)';fx.fill();
+ for(let i=0;i<8;i++){const an=i*Math.PI/4;fx.beginPath();fx.moveTo(Math.cos(an)*0.9*k,cy+Math.sin(an)*0.9*k);fx.lineTo(Math.cos(an)*cr,cy+Math.sin(an)*cr);fx.stroke()}
+ // tilak-like mark on heel
+ fx.strokeStyle='rgba(150,20,10,.85)';fx.lineWidth=1.4*S;fx.beginPath();fx.moveTo(-2*k,11*k);fx.quadraticCurveTo(0,15*k,2*k,11*k);fx.stroke();
+ // sparkles on newest prints
+ if(glow){for(let i=0;i<6;i++){const ph=(t||0)*2.2+i*1.7;const r=(12+9*Math.sin(ph*1.3+i))*k*0.9;const an=i*1.05+ph*0.4;const sx=Math.cos(an)*r,sy=-2*k+Math.sin(an)*r*1.3;const sz=(1.2+Math.abs(Math.sin(ph)))*S*2.2;
+  fx.globalAlpha=alpha*(0.5+0.5*Math.abs(Math.sin(ph)));fx.fillStyle='#fff3c0';fx.beginPath();fx.moveTo(sx,sy-sz*2);fx.lineTo(sx+sz*0.5,sy);fx.lineTo(sx,sy+sz*2);fx.lineTo(sx-sz*0.5,sy);fx.closePath();fx.fill();
+  fx.beginPath();fx.moveTo(sx-sz*2,sy);fx.lineTo(sx,sy+sz*0.5);fx.lineTo(sx+sz*2,sy);fx.lineTo(sx,sy-sz*0.5);fx.closePath();fx.fill()}}
  fx.restore()}
 function progAt(t){const K=CFG.feet.keys;if(t<K[0][0])return -1;let i=0;while(i<K.length-1&&t>K[i+1][0])i++;
  const pv=x=>typeof x==='string'?routeProgressNear(x):x;if(i>=K.length-1)return pv(K[K.length-1][1]);
@@ -71,7 +86,7 @@ function drawFeet(t){fx.clearRect(0,0,W,H);if(!CFG.feet)return;const fv=vis(t,CF
  const marks=[];let acc=0,next=SP*0.5;for(let i=1;i<pts.length;i++){const [x0,y0]=pts[i-1],[x1,y1]=pts[i];const L=Math.hypot(x1-x0,y1-y0);if(L<1e-6)continue;const a=Math.atan2(y1-y0,x1-x0);
   while(next<=acc+L){const f=(next-acc)/L;marks.push([x0+(x1-x0)*f,y0+(y1-y0)*f,a]);next+=SP}acc+=L}
  const n=marks.length;marks.forEach((m,j)=>{const left=j%2==0;const off=(left?-1:1)*15*S;const x=m[0]+Math.cos(m[2]+Math.PI/2)*off,y=m[1]+Math.sin(m[2]+Math.PI/2)*off;
-  if(x<-50||y<-50||x>W+50||y>H+50)return;const age=n-1-j;const al=fv*(age<6?1:Math.max(0.55,1-age*0.01));foot(x,y,m[2],left,al,age<2)})}
+  if(x<-50||y<-50||x>W+50||y>H+50)return;const age=n-1-j;const al=fv*(age<6?1:Math.max(0.55,1-age*0.01));foot(x,y,m[2],left,al,age<2,t)})}
 const stone=document.createElement('div');stone.id='stone';ov.appendChild(stone);
 function camAt(t){const K=CFG.keys;if(t<=K[0].t)return K[0];if(t>=K[K.length-1].t)return K[K.length-1];
  for(let i=0;i<K.length-1;i++){if(t>=K[i].t&&t<=K[i+1].t){const a=K[i],b=K[i+1],f=ease((t-a.t)/(b.t-a.t));

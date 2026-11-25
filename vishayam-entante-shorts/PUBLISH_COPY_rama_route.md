@@ -1,6 +1,6 @@
 # Ramudu Nadichina Dhaari — Publish Copy (విషయం ఏంటంటే)
 
-Video: `rama_route_te.mp4` (1080×1920, ~55s, Teja voice only, pop captions, 3D map with footprint walk)
+Video: `rama_route_te.mp4` (1080×1920, ~62s, Teja voice only, pop captions, 3D map with footprint walk)
 Cover: `rama_cover_1080x1920.jpg` · Thumbnail: `rama_thumbnail_1280x720.jpg`
 
 **Every platform:** turn on the AI label (the feet, boat, padukas and Jatayu clips are AI-generated). YouTube: "Altered or synthetic content" → Yes. Audience: not made for kids.
@@ -32,7 +32,7 @@ Note: ~2,600 km is measured on the map in straight lines between the stops, so t
 📚 Sources: Valmiki Ramayana (Ayodhya, Aranya, Kishkindha, Yuddha Kandas); Telangana Tourism (Parnasala); Andhra Pradesh Tourism (Lepakshi); Karnataka Tourism (Hampi, Anjanadri).
 
 🗺️ Map: Sentinel-2 cloudless 2016 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016), CC BY 4.0; terrain: AWS Terrain Tiles (Mapzen).
-📷 Photos (Wikimedia Commons): "Godavari river at Parnashala Bhadrachalam" — Adityamadhav83 (CC BY-SA 3.0); "Hampi - Tungabhadra River - Anjaneya Hill - 1" — Ingo Mehling (CC BY-SA 4.0); "LPK19-81-Lepakshi-Jatayu statue" — VasuVR (CC BY 4.0).
+📷 Photos (Wikimedia Commons): "Godavari river at Parnashala Bhadrachalam" — Adityamadhav83 (CC BY-SA 3.0); "Hampi - Tungabhadra River - Anjaneya Hill - 1" — Ingo Mehling (CC BY-SA 4.0).
 🤖 Some scenes are AI-generated (feet, boat, padukas, Jatayu).
 
 #Ramayanam #రామాయణం #SriRama #శ్రీరాముడు #Lepakshi #లేపాక్షి #Bhadrachalam #Parnasala #Hampi #Ramayana3DMap #VishayamEntante #TeluguShorts
