@@ -74,7 +74,7 @@ const thrownBy=t=>TL.throws.filter(x=>t>=x).length;
 function heroAt(t){
   const x=xAt(t); let root=ground(x), yaw=0, P;
   if(t<TL.slip0){ const ph=(x-X_HOOK)/0.62*2*Math.PI+0.6; P=R.gait(CARRY,ph,0.85,0.3,0.55,0.05); P.p+=0.03*Math.sin(ph*2); }
-  else if(t<TL.kneel0){ const u=sm5(sstep(TL.slip0,TL.slip1,t)); P=R.blend(CARRY,{...CARRY,p:0.7,tilt:-0.2,aL:-0.25,aR:0.55,kL:0.3,kR:1.0,dy:-0.12},Math.sin(Math.PI*Math.min(1,u*1.2)));
+  else if(t<TL.kneel0){ const u=sm5(sstep(TL.slip0,TL.slip1,t)); P=R.blend(CARRY,{...CARRY,p:1.15,tilt:-0.45,aL:-0.55,aR:-0.35,kL:0.15,kR:0.35,dy:0},Math.sin(Math.PI*Math.min(1,u*1.2)));   // feet trailing down the slope, chest to the hill
     P=R.blend(P,{...CARRY,p:1.05,kL:1.0,kR:0.9,dy:-0.12},sstep(TL.slip1-0.1,TL.kneel0,t)); }
   else { // kneel, and straighten a little with every stone
     const k=sm5(sstep(TL.kneel0,TL.kneel1,t)); const n=thrownBy(t)+ (t>=TL.throws[0]-0.6?0:0);
@@ -86,7 +86,19 @@ function heroAt(t){
       if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.9,t))); } }
   // breathing
   P.p+=0.012*Math.sin(2*Math.PI*0.5*t);
-  return {root,yaw,P,x}; }
+  if(t>=TL.kneel0-0.05&&t<TL.stand1) return {root,yaw,P,x};   // kneeling on the flat at the bottom: knees on the ground is right
+  const f=groundFix(P,root,yaw); return {root:f.root,yaw,P:f.P,x}; }
+// Feet on a 50-degree slope: the rig stands both feet at the root height, so the uphill foot sank into the hill (most
+// visibly in the slide). Keep the body on the surface and bend any leg that would go into the slope until its foot and knee sit on it.
+function groundFix(P,root,yaw){ let J; P={...P};
+  for(let it=0;it<24;it++){ J=R.skel(P,root,yaw); let ok=true;
+    for(const s of ['L','R']){ const f=J['f'+s], k=J['k'+s]; const pen=Math.max(hAt(f.x)+0.012-f.y,hAt(k.x)+0.04-k.y);
+      if(pen>0.004){ ok=false; P['k'+s]+=Math.min(0.35,pen*2.6); P['a'+s]+=Math.min(0.22,pen*1.5); } }
+    if(ok) break; }
+  // safety net: if a foot or knee is still in the slope, lift the whole body just clear of it
+  J=R.skel(P,root,yaw); let lift=0; for(const s of ['L','R']) lift=Math.max(lift,hAt(J['f'+s].x)+0.012-J['f'+s].y,hAt(J['k'+s].x)+0.04-J['k'+s].y);
+  if(lift>0){ root=root.clone(); root.y+=lift; }
+  return {P,root}; }
 
 // ---------------------------------------------------------------- sack placement
 const SACK_R0=0.5;
