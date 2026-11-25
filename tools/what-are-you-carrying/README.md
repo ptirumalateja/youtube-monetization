@@ -1,6 +1,6 @@
 # What Are You Carrying (Slow Light Dark)
 
-19.5 s, 1080x1920, 30 fps (v2). Copy: `publish-copy/what-are-you-carrying.md`. Series look: `storyboards/slow-light-dark/style-sheet.md`.
+20.0 s, 1080x1920, 30 fps (v3: starts on the flat at the bottom and climbs to mid-hill before the slip). Copy: `publish-copy/what-are-you-carrying.md`. Series look: `storyboards/slow-light-dark/style-sheet.md`.
 `sld.js` is the shared kit (umbrella/born-rich version with `vig` and `moteSpan`).
 
 ```

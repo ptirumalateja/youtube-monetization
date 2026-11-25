@@ -47,7 +47,8 @@ bed(bus, room, drone, duck)
 # ---- the climb (frame 0 is already mid-step), the slip, the sack drop
 place(bus['fol'], fade(sfx('strain'), 0.02, 0.4), 0.0, 0.85, 0.0)
 place(bus['fol'], fade(cut(sfx('strain'), 2.6, 0.6), 0.2, 0.6), 3.4, 0.6, 0.0)
-place(bus['fol'], fade(cut(sfx('steps_heavy'), E['slip0'] + 0.1, 0.2)), 0.0, 0.6, 0.0)
+place(bus['fol'], fade(cut(sfx('strain'), 1.4, 0.5), 0.1, 0.5), E['slip0'] - 1.3, 0.5, 0.0)
+place(bus['fol'], fade(np.tile(sfx('steps_heavy'), 2)[:int((E['slip0'] + 0.1) * SR)], 0.01, 0.2), 0.0, 0.6, 0.0)
 place(bus['fol'], fade(sfx('slide_long'), 0.01, 0.2), E['slip0'] - 0.02, 0.9, -0.2)
 place(bus['hit'], fade(sfx('sack_drop'), 0.003, 0.2), E['sackDrop'] + 0.15, 0.85, 0.1)
 

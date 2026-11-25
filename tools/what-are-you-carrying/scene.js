@@ -52,10 +52,11 @@ const stones=[...Array(STONE_N)].map((_,i)=>{ const g=new THREE.IcosahedronGeome
   const m=new THREE.Mesh(g,stoneMat); m.castShadow=true; m.receiveShadow=true; m.scale.setScalar(0.17+0.03*((i*7)%3)); scene.add(m); return m; });
 
 // ---------------------------------------------------------------- his path
-const X_HOOK=1.55, CARRY_V=0.3, X_BOTTOM=-0.75;                      // start on the lower slope at a heavy 0.3 m/s; the slip takes him all the way back down
-const SLIPX=X_HOOK+CARRY_V*TL.slip0-X_BOTTOM;
+const X_HOOK=-0.95, X_PEAK=2.55, X_BOTTOM=-0.75;                     // starts on the flat at the bottom, trudges up to about the middle of the hill (slowing as it steepens), then the slip takes him all the way back down
+const climbU=u=>1-Math.pow(1-u,1.7);
+const SLIPX=X_PEAK-X_BOTTOM;
 const slipU=u=>u<0.6?0.55*Math.pow(u/0.6,2):0.55+0.45*(1-Math.pow(1-(u-0.6)/0.4,2));   // gathers speed down the slope, then skids out on the flat
-const xCarry=t=>X_HOOK+CARRY_V*Math.min(t,TL.slip0)-SLIPX*slipU(clamp((t-TL.slip0)/(TL.slip1-TL.slip0)));
+const xCarry=t=>X_HOOK+(X_PEAK-X_HOOK)*climbU(clamp(t/TL.slip0))-SLIPX*slipU(clamp((t-TL.slip0)/(TL.slip1-TL.slip0)));
 const XK=xCarry(TL.slip1);                                              // where he kneels
 const WALK_V=2.7;
 const X_STOP=PLAT.x-0.15;   // beside the flag
@@ -73,7 +74,7 @@ const LOOKUP={...P0,p:-0.1,tilt:-0.55,sL:0.55,sR:0.55,eL:0.15,eR:0.15,kL:0.04,kR
 const thrownBy=t=>TL.throws.filter(x=>t>=x).length;
 function heroAt(t){
   const x=xAt(t); let root=ground(x), yaw=0, P;
-  if(t<TL.slip0){ const ph=(x-X_HOOK)/0.62*2*Math.PI+0.6; P=R.gait(CARRY,ph,0.85,0.3,0.55,0.05); P.p+=0.03*Math.sin(ph*2); }
+  if(t<TL.slip0){ const ph=(x-X_HOOK)/0.8*2*Math.PI+0.6; P=R.gait(CARRY,ph,0.85,0.3,0.55,0.05); P.p+=0.03*Math.sin(ph*2); }
   else if(t<TL.kneel0){ const u=sm5(sstep(TL.slip0,TL.slip1,t)); P=R.blend(CARRY,{...CARRY,p:1.15,tilt:-0.45,aL:-0.55,aR:-0.35,kL:0.15,kR:0.35,dy:0},Math.sin(Math.PI*Math.min(1,u*1.2)));   // feet trailing down the slope, chest to the hill
     P=R.blend(P,{...CARRY,p:1.05,kL:1.0,kR:0.9,dy:-0.12},sstep(TL.slip1-0.1,TL.kneel0,t)); }
   else { // kneel, and straighten a little with every stone
@@ -223,7 +224,8 @@ window.renderAt=function(t,Ksub=3){ let K=Ksub, sh=1/60;
 const proj=v=>{ const p=v.clone().project(cam); return [p.x*0.5+0.5,0.5-p.y*0.5,p.z<1?1:0]; };
 window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t};
   o.stones=stones.map(m=>m.visible?proj(m.position.clone().add(V(0,0.32,0))):null);
-  o.oldLife=proj(V(0.5,0.35,1.5)); o.newLife=proj(V(FLAG.x+0.35,HH+2.25,0.2)); o.newLifeWide=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
+  o.oldLife=proj(V(-0.5,-0.35,1.6));   // OLD LIFE sits just under him on the ground edge at the start
+  o.newLife=proj(V(FLAG.x+0.35,HH+2.25,0.2)); o.newLifeWide=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
   return o; };
 window.events={...TL,XK,T_ARR};
 window.ready=true;
