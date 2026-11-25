@@ -41,7 +41,7 @@ Paste the exact line into the description of any reel that uses the file.
 | 869757 Dark Suspense Accent | mikiko850 | Night Sky, Scale Ladder |
 | 850262 Orbiting Plasma Burst and Trail FX | CVLTIV8R | Night Sky, Scale Ladder |
 | 822420 Riser Hit sfx 120 | AudioPapkin | Night Sky, Scale Ladder, Roberto Carlos V2 |
-| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees |
+| 22331 wind.ogg | sleepCircle | Night Sky, Scale Ladder, Roberto Carlos V2, What Andromeda Sees, What Are You Carrying |
 | 276871 Sword In Air | lucabia | Night Sky only, Roberto Carlos V2, What Andromeda Sees |
 | 768664 portal gate opening | berkup | Night Sky only |
 | 735062 Fast Warp In | GammaGool | Night Sky only |
@@ -57,6 +57,8 @@ Optional courtesy line: "CC0 sounds by qubodup, mikiko850, CVLTIV8R, AudioPapkin
 |---|---|---|---|
 | Uppbeat braam bass drop / long impact / screaming echo (Tomas Herudek / The Foundation / Epic Stock Media) | Uppbeat free SFX | Scale Ladder | Credit not required for SFX per the Uppbeat help centre, but terms change: re-check the current Uppbeat licence before uploading. |
 | Circuits-hum and explosion files shared later in chat | Unknown source/licence | Experiments only | Not in the final cuts. Confirm origin and licence before using. |
+
+What Are You Carrying (`tools/what-are-you-carrying/mix.py`): CC0 wind room tone (22331) from Freesound; every other sound is an ElevenLabs sound effect generated for the reel (`tools/what-are-you-carrying/sfx/gen.sh`). No credit line needed; keep the AI-generated sound label on the upload.
 
 Everything else in both mixes is synthesised in numpy (sub hits, braaam layers, choir pad, pings, risers, whooshes, ticks) and needs no credit.
 

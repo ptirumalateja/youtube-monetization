@@ -1,0 +1,173 @@
+// What Are You Carrying (Slow Light Dark). A cream figure bent double under a huge sack of stones climbs a steep dark hill
+// toward the series gold lamp at the top. He slips back, kneels, and throws the stones down the slope one by one (each
+// one labelled by the overlay: FEAR, EXCUSES, SELF-DOUBT, TOXIC PEOPLE, BAD HABITS); with every stone he straightens a
+// little. Then he stands, walks up light, and steps into the lamp's pool at the top.
+//
+// Side view: the hill rises along +x (camera on +z). renderAt(t) is pure (no state between frames).
+import * as THREE from 'three';
+import * as SLD from './sld.js';
+const {V,clamp,sstep,lerp,sm5,PAL,rng,rotY}=SLD;
+const TL=await (await fetch('./timeline.json')).json();
+const q=new URLSearchParams(location.search); const W=+q.get('w')||540, H=+q.get('h')||960, DUR=TL.duration;
+
+// ---------------------------------------------------------------- the hill: flat ground, a steep smooth rise, a plateau
+const HL=5.6, HH=4.4;                                                  // rise length / height (max slope about 50 degrees): steep, and the whole climb fits the tall frame
+const hAt=x=>x<=0?0:x>=HL?HH:HH*(()=>{ const u=x/HL; return u*u*(3-2*u); })();
+const slopeAt=x=>x<=0||x>=HL?0:HH/HL*6*(x/HL)*(1-x/HL);
+const PLAT=V(7.4,HH,0);                                               // where he ends, in the light
+// the lamp hangs over the plateau: the new life is the light at the top
+// the lamp hangs high over the top and leans down the slope: the upper climb is in its light, the bottom is not
+const S=SLD.createStage({W,H,lamp:V(PLAT.x-0.6,HH+7.6,1.4),lampTarget:V(PLAT.x-2.6,HH-0.9,0),cone:0.46,spot:150,beam:0.1,motes:4000,moteSpan:14,moteCx:3});
+const {scene,cam}=S; const BEAM=S.NOREFL[0];
+cam.near=0.5; cam.far=90; cam.updateProjectionMatrix();
+S.spot.shadow.camera.far=16; S.spot.shadow.camera.updateProjectionMatrix();
+S.scene.fog.density=0.045;
+const R=SLD.createRig(scene);
+const hero=R.makeFig(PAL.CREAM,'hero',{rim:0.24,lift:0.14});
+const P0=R.P0;
+
+{ // hill mesh: extruded side profile, 3 m deep, dark stone; a faint cream edge on the near top edge so the line reads in the dark
+  const pts=[V(-16,-0.02,0),V(-16,0,0)]; for(let i=0;i<=80;i++){ const x=i/80*HL; pts.push(V(x,hAt(x),0)); } pts.push(V(18,HH,0),V(18,-0.02,0));
+  const sh=new THREE.Shape(pts.map(p=>new THREE.Vector2(p.x,p.y)));
+  const g=new THREE.ExtrudeGeometry(sh,{depth:3,bevelEnabled:false,curveSegments:1}); g.translate(0,0,-1.5);
+  const m=new THREE.Mesh(g,SLD.rimify(new THREE.MeshStandardMaterial({color:0x2f2c28,roughness:0.93,map:SLD.noiseTex(512,9,128,60,120,0.15)}),0x9fb2d6,0.05,'hill'));
+  m.receiveShadow=true; m.castShadow=true; scene.add(m);
+  const ep=[]; for(let i=0;i<=120;i++){ const x=-6+i/120*(24); ep.push(V(x,hAt(x)+0.006,1.5)); }
+  const edge=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ep),400,0.012,6,false),new THREE.MeshBasicMaterial({color:new THREE.Color(0xede6d6).multiplyScalar(0.28)}));
+  scene.add(edge); }
+
+// ---------------------------------------------------------------- the sack and the stones
+const sackMat=new THREE.MeshStandardMaterial({color:0x8c7a62,emissive:0x8c7a62,emissiveIntensity:0.05,roughness:0.97,map:SLD.noiseTex(256,4,150,40,40,0.08)});
+SLD.rimify(sackMat,0xfff1d8,0.2,'sack');
+const sack=new THREE.Mesh((()=>{ const g=new THREE.IcosahedronGeometry(1,5); const p=g.attributes.position; const Rn=rng(3);
+  for(let i=0;i<p.count;i++){ const x=p.getX(i),y=p.getY(i),z=p.getZ(i); const k=1+0.035*Math.sin(x*5+y*3)+0.025*Math.sin(z*6-y*2)+(y<-0.4?-0.12*(y+0.4):0); p.setXYZ(i,x*k,y*k*(y<0?0.9:1.05),z*k); }
+  g.computeVertexNormals(); return g; })(),sackMat);
+sack.castShadow=true; sack.receiveShadow=true; scene.add(sack);
+const neck=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.13,0.18,12),sackMat); neck.castShadow=true; scene.add(neck);   // gathered mouth
+const STONE_N=TL.throws.length;
+const stoneMat=new THREE.MeshStandardMaterial({color:0x9a958c,emissive:0x9a958c,emissiveIntensity:0.05,roughness:0.85,map:SLD.noiseTex(128,12,128,90,30,0.2)});
+SLD.rimify(stoneMat,0xfff1d8,0.25,'stone');
+const stones=[...Array(STONE_N)].map((_,i)=>{ const g=new THREE.IcosahedronGeometry(1,2); const p=g.attributes.position; const Rn=rng(40+i);
+  for(let j=0;j<p.count;j++){ const k=0.85+0.3*Rn(); p.setXYZ(j,p.getX(j)*k,p.getY(j)*k*0.85,p.getZ(j)*k); } g.computeVertexNormals();
+  const m=new THREE.Mesh(g,stoneMat); m.castShadow=true; m.receiveShadow=true; m.scale.setScalar(0.17+0.03*((i*7)%3)); scene.add(m); return m; });
+
+// ---------------------------------------------------------------- his path
+const X_HOOK=1.55, CARRY_V=0.3, SLIPX=0.9;                            // start on the lower slope, heavy 0.32 m/s, slips back 1.15 m
+const xCarry=t=>X_HOOK+CARRY_V*Math.min(t,TL.slip0)-SLIPX*sm5(sstep(TL.slip0,TL.slip1,t));
+const XK=xCarry(TL.slip1);                                              // where he kneels
+const WALK_V=2.35;
+function xWalk(t){ const s=Math.max(0,t-TL.walk0); const ramp=0.35; const d=WALK_V*(s<ramp?s*s/(2*ramp):s-ramp/2); return Math.min(XK+d,PLAT.x); }
+const T_ARR=(()=>{ let t=TL.walk0; while(xWalk(t)<PLAT.x-1e-3&&t<DUR) t+=1/240; return t; })();
+const xAt=t=>t<TL.walk0?xCarry(Math.min(t,TL.slip1)):xWalk(t);
+const ground=x=>V(x,hAt(x),0);
+
+// ---------------------------------------------------------------- poses
+const CARRY={...P0,p:1.0,tilt:-0.55,aL:0.45,aR:0.1,kL:0.75,kR:0.55,dy:-0.05,sL:-0.2,sR:-0.2,eL:2.0,eR:2.0};
+const KNEEL={...P0,p:0.45,tilt:0.2,aL:0.18,aR:0.05,kL:1.62,kR:1.55,dy:-0.03,sL:0.5,sR:0.5,eL:0.4,eR:0.4};   // upright on both knees, leaning to the sack
+const STAND={...P0,p:0.04,tilt:-0.12,kL:0.06,kR:0.06};
+const WALKUP={...P0,p:0.16,tilt:-0.1,kL:0.25,kR:0.25,eL:0.6,eR:0.6};
+const LOOKUP={...P0,p:-0.05,tilt:-0.42,sL:0.25,sR:0.25,eL:0.2,eR:0.2,kL:0.04,kR:0.04};
+const thrownBy=t=>TL.throws.filter(x=>t>=x).length;
+function heroAt(t){
+  const x=xAt(t); let root=ground(x), yaw=0, P;
+  if(t<TL.slip0){ const ph=(x-X_HOOK)/0.62*2*Math.PI+0.6; P=R.gait(CARRY,ph,0.85,0.3,0.55,0.05); P.p+=0.03*Math.sin(ph*2); }
+  else if(t<TL.kneel0){ const u=sm5(sstep(TL.slip0,TL.slip1,t)); P=R.blend(CARRY,{...CARRY,p:0.7,tilt:-0.2,aL:-0.25,aR:0.55,kL:0.3,kR:1.0,dy:-0.12},Math.sin(Math.PI*Math.min(1,u*1.2)));
+    P=R.blend(P,{...CARRY,p:1.05,kL:1.0,kR:0.9,dy:-0.12},sstep(TL.slip1-0.1,TL.kneel0,t)); }
+  else { // kneel, and straighten a little with every stone
+    const k=sm5(sstep(TL.kneel0,TL.kneel1,t)); const n=thrownBy(t)+ (t>=TL.throws[0]-0.6?0:0);
+    const lighter=n/STONE_N; let base=R.blend({...CARRY,p:1.05,kL:1.0,kR:0.9,dy:-0.12},{...KNEEL,p:lerp(0.62,0.12,lighter),tilt:lerp(0.35,-0.1,lighter)},k);
+    P=base;
+    if(t>TL.stand0){ P=R.blend(P,STAND,sm5(sstep(TL.stand0,TL.stand1,t))); }
+    if(t>TL.walk0){ const d=x-XK; const ph=d/1.45*2*Math.PI; const a=sstep(TL.walk0,TL.walk0+0.3,t)*(1-sstep(T_ARR-0.25,T_ARR+0.15,t));
+      P=R.gait(R.blend(STAND,WALKUP,sstep(TL.walk0,TL.walk0+0.4,t)),ph,a,0.55,1.05,0.55); P.p+=0.08*a;
+      if(t>T_ARR-0.2) P=R.blend(P,LOOKUP,sm5(sstep(T_ARR-0.2,T_ARR+0.9,t))); } }
+  // breathing
+  P.p+=0.012*Math.sin(2*Math.PI*0.5*t);
+  return {root,yaw,P,x}; }
+
+// ---------------------------------------------------------------- sack placement
+const SACK_R0=0.5;
+function sackScale(t){ return 1-0.13*thrownBy(t)-0.06*sstep(TL.throws[STONE_N-1],TL.throws[STONE_N-1]+0.5,t); }
+const SACK_GROUND=x=>V(x,hAt(x),-0.4);   // set down beside him on the far side, so it never hides him
+function sackAt(t,J){ const s=sackScale(t)*SACK_R0;
+  // on his back: above the torso, behind the shoulders
+  const back=J.neck.clone().lerp(J.hip,0.42); const up=J.neck.clone().sub(J.hip).normalize(); const nrm=V(-up.y,up.x,0).normalize(); // torso normal in the x-y plane
+  const onBack=back.clone().addScaledVector(nrm.y>0?nrm:nrm.negate(),s*0.95).add(V(0,0,0));
+  const gx=XK+0.55; const onGround=SACK_GROUND(gx).add(V(0,s*0.82,0));
+  const u=sm5(sstep(TL.sackDrop-0.25,TL.sackDrop+0.2,t)); const p=onBack.clone().lerp(onGround,u); p.y+=0.25*Math.sin(Math.PI*u)*(1-u);
+  return {p,s,on:1-u}; }
+
+// ---------------------------------------------------------------- stones: out of the sack, shown, thrown backwards down the hill, rolling into the dark
+const STONE_V=V(-2.2,1.55,0.12), G=9.8;
+const STONE_SIM=TL.throws.map((T,i)=>{ // precomputed flight + roll (pure lookups)
+  const r=stones[i].scale.x; const kneel={...KNEEL,p:lerp(0.62,0.12,i/STONE_N),tilt:lerp(0.35,-0.1,i/STONE_N)};
+  const J=R.skel(kneel,ground(XK),0); const p0=J.shR.clone().add(V(-0.25,0.32,0.05)); const out=[]; let p=p0.clone(), v=STONE_V.clone().multiplyScalar(1+0.06*(i%2)); let rolling=false, ang=0, dt=1/240;
+  for(let k=0;k<240*7;k++){ out.push([p.x,p.y,p.z,ang]);
+    if(!rolling){ v.y-=G*dt; p.addScaledVector(v,dt); const hy=hAt(p.x)+r*0.85; if(p.y<=hy){ p.y=hy; rolling=true; v.y=0; v.x*=0.7; } }
+    else { const s=slopeAt(p.x); const ax=-G*s/(1+s*s)-0.6*Math.sign(v.x)*(Math.abs(v.x)>0.05?1:0); v.x+=ax*dt; v.x*=1-0.15*dt; p.x+=v.x*dt; p.y=hAt(p.x)+r*0.85; p.z+=v.z*dt*0.3; }
+    ang+=Math.hypot(v.x,v.y)*dt/r; }
+  return {p0,out}; });
+function stoneAt(i,t,J){ const T=TL.throws[i];
+  if(t<T-0.62) return null;                                             // still in the sack
+  if(t<T){ // out of the sack mouth, up in front of his chest (readable), then wound back over the shoulder
+    const sk=sackAt(t,J); const mouth=sk.p.clone().add(V(0,sk.s*0.9,0)); const show=J.neck.clone().add(V(0.42,0.12,0.18)); const back=STONE_SIM[i].p0;
+    const u1=sm5(sstep(T-0.62,T-0.3,t)), u2=sstep(T-0.16,T,t);
+    return {p:mouth.clone().lerp(show,u1).lerp(back,u2*u2),ang:0,inHand:true}; }
+  const f=Math.min(STONE_SIM[i].out.length-1,Math.floor((t-T)*240)); const o=STONE_SIM[i].out[f]; return {p:V(o[0],o[1],o[2]),ang:o[3],inHand:false}; }
+
+// ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
+const WIDE={p:V(3.7,4.6,19.5),l:V(3.6,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
+function camAt(t){ const J0=ground(XK);
+  const close={p:V(XK+0.2,J0.y+1.5,7.6),l:V(XK-0.35,J0.y+0.85,0)};
+  const top={p:V(PLAT.x-1.6,HH+2.2,12.5),l:V(PLAT.x-1.8,HH+2.4,0)};
+  let p=WIDE.p.clone(), l=WIDE.l.clone();
+  const u1=sm5(sstep(TL.push0,TL.push1,t)); p.lerp(close.p,u1); l.lerp(close.l,u1);
+  if(t>TL.pull0){ // pull back and follow him up the hill, ending framed on the plateau and the lamp
+    const x=xAt(t); const follow={p:V(x+0.9,hAt(x)+2.4,11.5),l:V(x+0.6,hAt(x)+1.4,0)};
+    const u2=sm5(sstep(TL.pull0,TL.pull1,t)); p.lerp(follow.p,u2); l.lerp(follow.l,u2);
+    const u3=sm5(sstep(T_ARR-0.6,T_ARR+1.2,t)); p.lerp(top.p,u3); l.lerp(top.l,u3); }
+  // a slow drift so the hold never feels frozen
+  p.x+=0.12*Math.sin(t*0.23); return {p,l}; }
+
+// ---------------------------------------------------------------- one sub-frame
+let LAST={};
+function setT(t){
+  const h=heroAt(t); let P=h.P; let J=R.skel(P,h.root,h.yaw);
+  const sk=sackAt(t,J);
+  // hands: hold the sack mouth over the shoulders while carrying; reach into the sack and throw while kneeling
+  const ws=[];
+  if(sk.on>0.02){ const top=sk.p.clone().add(V(0.12,sk.s*0.75,0)); P={...P,tL:top.clone().add(V(0,0,0.14)),tR:top.clone().add(V(0,0,-0.14)),wL:sk.on,wR:sk.on,pL:V(-0.5,-0.5,0.7),pR:V(-0.5,-0.5,-0.7)}; }
+  let held=null;
+  for(let i=0;i<STONE_N;i++){ const s=stoneAt(i,t,J); if(!s){ stones[i].visible=false; continue; }
+    stones[i].visible=true; stones[i].position.copy(s.p); stones[i].rotation.set(0,0,s.ang);
+    if(s.inHand) held=s.p; }
+  if(t>TL.kneel1-0.2&&t<TL.stand1){ // left hand rests on the sack, right hand works the stones
+    const sk2=sackAt(t,J); const rest=sk2.p.clone().add(V(-0.05,sk2.s*0.85,0.18));
+    const tw=held?1:0.6; P={...P,tL:rest,wL:0.8,pL:V(-0.4,-0.6,0.7),tR:held||sk2.p.clone().add(V(0,sk2.s*1.0,-0.05)),wR:tw,pR:V(-0.6,-0.3,-0.7)};
+    // twist the shoulders back as he winds up each throw
+    const tws=TL.throws.reduce((a,T)=>a+Math.exp(-Math.pow((t-T+0.08)/0.16,2)),0); P.ty=(P.ty||0)+0.75*tws; P.hy=(P.hy||0)+0.5*tws; }
+  J=R.skel(P,h.root,h.yaw); R.poseFig(hero,J);
+  sack.position.copy(sk.p); sack.scale.set(sk.s,sk.s*0.95,sk.s*0.9);
+  const tilt=sk.on>0.5?Math.atan2(J.neck.y-J.hip.y,J.neck.x-J.hip.x)-Math.PI/2:0; sack.rotation.set(0,0,tilt*sk.on*0.6);
+  neck.position.copy(sk.p).add(V(0.0,sk.s*1.0,0)); neck.scale.setScalar(Math.max(0.35,sk.s/SACK_R0));
+  // camera
+  const c=camAt(t); cam.position.copy(c.p); cam.lookAt(c.l);
+  // the lamp blooms when he steps into it
+  const pay=0.16*sm5(sstep(TL.bloom0,TL.bloom1,t));
+  S.tick(t,pay);
+  LAST={J}; return {J,h}; }
+
+// ---------------------------------------------------------------- render
+const acc=document.createElement('canvas'); acc.width=W; acc.height=H; const actx=acc.getContext('2d');
+window.renderAt=function(t,Ksub=3){ let K=Ksub, sh=1/60;
+  if(TL.throws.some(T=>t>T-0.15&&t<T+0.35)||(t>TL.slip0&&t<TL.slip1)) K=Math.max(Ksub,5);
+  actx.globalAlpha=1; actx.clearRect(0,0,W,H);
+  for(let k=0;k<K;k++){ const tt=clamp(t+(K>1?(k/(K-1)-0.5)*sh:0),0,DUR-1e-4); setT(tt); S.renderer.shadowMap.needsUpdate=true; S.composer.render(); actx.globalAlpha=1/(k+1); actx.drawImage(S.renderer.domElement,0,0); }
+  return acc.toDataURL('image/jpeg',0.95); };
+const proj=v=>{ const p=v.clone().project(cam); return [p.x*0.5+0.5,0.5-p.y*0.5,p.z<1?1:0]; };
+window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t};
+  o.stones=stones.map(m=>m.visible?proj(m.position.clone().add(V(0,0.32,0))):null);
+  o.oldLife=proj(V(0.5,0.35,1.5)); o.newLife=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
+  return o; };
+window.events={...TL,XK,T_ARR};
+window.ready=true;
