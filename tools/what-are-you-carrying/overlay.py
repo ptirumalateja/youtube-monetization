@@ -82,7 +82,8 @@ def draw(img, t):
     items += caption(t, ['LET IT GO.'], *TL['capD'], size=72, colors=[GOLD])
     # place names on the wide shots
     wide = (1 - sstep(TL['push0'], TL['push0'] + 0.4, t)) + sstep(TL['pull1'] - 0.2, TL['pull1'] + 0.4, t) * (1 - card)
-    for key, name, col in (('oldLife', 'OLD LIFE', CREAM), ('newLife', 'NEW LIFE', GOLD)):
+    nl = 'newLife' if t > TL['pull1'] else 'newLifeWide'   # on the hill top in the opening, at the flag at the end
+    for key, name, col in (('oldLife', 'OLD LIFE', CREAM), (nl, 'NEW LIFE', GOLD)):
         x, y, vis = m[key]
         if vis and 0.04 < x < 0.96 and 0.05 < y < 0.92:
             hw = width(name, font(28, 'Bold'), 6) / 2 + 30

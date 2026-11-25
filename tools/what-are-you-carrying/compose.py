@@ -4,7 +4,7 @@
 
 RENDER_DIR holds frames/f00000.jpg.. (render.cjs frames), meta.json (render.cjs meta) and mix.wav (mix.py). Writes:
   what-are-you-carrying.mp4               master, 1080x1920 30 fps, -15 LUFS, true peak checked after AAC
-  what-are-you-carrying_music-ready.mp4   same picture, silent (slip 3.1 s; sack drop 4.9 s; stones thrown 6.15 / 7.3 / 8.35 / 9.3 / 10.15 s; end-card boom 14.85 s)
+  what-are-you-carrying_music-ready.mp4   same picture, silent (slip 3.1 s; stones 6.15 / 7.3 / 8.35 / 9.3 / 10.15 s; arrival and glow 14.75 s; end-card boom 17.55 s)
 """
 import glob, os, subprocess, sys
 from PIL import Image

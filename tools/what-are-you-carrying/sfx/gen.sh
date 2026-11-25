@@ -15,3 +15,6 @@ gen exhale 1.6 "A man letting out a long deep relieved breath, no words, close, 
 gen steps_light 3.0 "Light quick confident footsteps walking briskly up a gravel slope, close, no music"
 gen arrive 3.5 "A soft warm cinematic swell of light, gentle shimmering rise and glow, calm, no drums, no music melody"
 gen boom 3.0 "A single deep cinematic low boom hit with a long dark tail, no music"
+gen shimmer 4.0 "A radiant bright ethereal shimmer swelling up, soft airy choir-like glow and gentle high sparkles, calm and uplifting, no drums, no music melody"
+gen flag 4.0 "A cloth flag flapping softly in a gentle wind on a hilltop, close, no music"
+gen slide_long 1.4 "A man losing his footing and sliding all the way down a steep gravel slope, a long scrape and stones skittering, no music"

@@ -1,28 +1,66 @@
 {
-  "duration": 17.5,
+  "duration": 19.5,
   "fps": 30,
   "_comment": "All times in seconds. Scene, overlay and mix read these (overlay/mix through meta.json).",
   "slip0": 3.1,
-  "slip1": 3.9,
-  "kneel0": 4.2,
-  "kneel1": 4.9,
-  "sackDrop": 4.75,
-  "push0": 4.3,
-  "push1": 5.5,
-  "throws": [6.15, 7.3, 8.35, 9.3, 10.15],
-  "labels": ["FEAR", "EXCUSES", "SELF-DOUBT", "TOXIC PEOPLE", "BAD HABITS"],
+  "slip1": 4.35,
+  "kneel0": 4.45,
+  "kneel1": 5.05,
+  "sackDrop": 4.95,
+  "push0": 4.4,
+  "push1": 5.7,
+  "throws": [
+    6.15,
+    7.3,
+    8.35,
+    9.3,
+    10.15
+  ],
+  "labels": [
+    "FEAR",
+    "EXCUSES",
+    "SELF-DOUBT",
+    "TOXIC PEOPLE",
+    "BAD HABITS"
+  ],
   "stand0": 10.9,
   "stand1": 11.6,
   "pull0": 11.2,
   "pull1": 12.6,
   "walk0": 11.7,
   "arrive": 14.3,
-  "bloom0": 14.2,
-  "bloom1": 15.2,
-  "capA": [0.0, 1.95],
-  "capB": [1.95, 4.1],
-  "capC": [5.4, 7.7],
-  "capD": [10.55, 12.2],
-  "card": 14.7,
-  "reviewTimes": [0.5, 2.5, 3.6, 4.8, 6.0, 8.3, 10.2, 11.5, 13.0, 15.5]
+  "bloom0": 14.7,
+  "bloom1": 15.6,
+  "capA": [
+    0.0,
+    1.95
+  ],
+  "capB": [
+    1.95,
+    4.1
+  ],
+  "capC": [
+    5.4,
+    7.7
+  ],
+  "capD": [
+    10.55,
+    12.2
+  ],
+  "card": 17.4,
+  "reviewTimes": [
+    0.5,
+    3.6,
+    4.3,
+    5.6,
+    7.0,
+    11.0,
+    13.0,
+    14.9,
+    15.8,
+    16.8,
+    18.5
+  ],
+  "glow0": 14.75,
+  "glow1": 17.2
 }

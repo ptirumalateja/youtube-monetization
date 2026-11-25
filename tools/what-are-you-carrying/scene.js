@@ -52,12 +52,15 @@ const stones=[...Array(STONE_N)].map((_,i)=>{ const g=new THREE.IcosahedronGeome
   const m=new THREE.Mesh(g,stoneMat); m.castShadow=true; m.receiveShadow=true; m.scale.setScalar(0.17+0.03*((i*7)%3)); scene.add(m); return m; });
 
 // ---------------------------------------------------------------- his path
-const X_HOOK=1.55, CARRY_V=0.3, SLIPX=0.9;                            // start on the lower slope, heavy 0.32 m/s, slips back 1.15 m
-const xCarry=t=>X_HOOK+CARRY_V*Math.min(t,TL.slip0)-SLIPX*sm5(sstep(TL.slip0,TL.slip1,t));
+const X_HOOK=1.55, CARRY_V=0.3, X_BOTTOM=-0.75;                      // start on the lower slope at a heavy 0.3 m/s; the slip takes him all the way back down
+const SLIPX=X_HOOK+CARRY_V*TL.slip0-X_BOTTOM;
+const slipU=u=>u<0.6?0.55*Math.pow(u/0.6,2):0.55+0.45*(1-Math.pow(1-(u-0.6)/0.4,2));   // gathers speed down the slope, then skids out on the flat
+const xCarry=t=>X_HOOK+CARRY_V*Math.min(t,TL.slip0)-SLIPX*slipU(clamp((t-TL.slip0)/(TL.slip1-TL.slip0)));
 const XK=xCarry(TL.slip1);                                              // where he kneels
-const WALK_V=2.35;
-function xWalk(t){ const s=Math.max(0,t-TL.walk0); const ramp=0.35; const d=WALK_V*(s<ramp?s*s/(2*ramp):s-ramp/2); return Math.min(XK+d,PLAT.x); }
-const T_ARR=(()=>{ let t=TL.walk0; while(xWalk(t)<PLAT.x-1e-3&&t<DUR) t+=1/240; return t; })();
+const WALK_V=2.7;
+const X_STOP=PLAT.x-0.15;   // beside the flag
+function xWalk(t){ const s=Math.max(0,t-TL.walk0); const ramp=0.35; const d=WALK_V*(s<ramp?s*s/(2*ramp):s-ramp/2); return Math.min(XK+d,X_STOP); }
+const T_ARR=(()=>{ let t=TL.walk0; while(xWalk(t)<X_STOP-1e-3&&t<DUR) t+=1/240; return t; })();
 const xAt=t=>t<TL.walk0?xCarry(Math.min(t,TL.slip1)):xWalk(t);
 const ground=x=>V(x,hAt(x),0);
 
@@ -66,7 +69,7 @@ const CARRY={...P0,p:1.0,tilt:-0.55,aL:0.45,aR:0.1,kL:0.75,kR:0.55,dy:-0.05,sL:-
 const KNEEL={...P0,p:0.45,tilt:0.2,aL:0.18,aR:0.05,kL:1.62,kR:1.55,dy:-0.03,sL:0.5,sR:0.5,eL:0.4,eR:0.4};   // upright on both knees, leaning to the sack
 const STAND={...P0,p:0.04,tilt:-0.12,kL:0.06,kR:0.06};
 const WALKUP={...P0,p:0.16,tilt:-0.1,kL:0.25,kR:0.25,eL:0.6,eR:0.6};
-const LOOKUP={...P0,p:-0.05,tilt:-0.42,sL:0.25,sR:0.25,eL:0.2,eR:0.2,kL:0.04,kR:0.04};
+const LOOKUP={...P0,p:-0.1,tilt:-0.55,sL:0.55,sR:0.55,eL:0.15,eR:0.15,kL:0.04,kR:0.04};   // chest open, face lifted to the light
 const thrownBy=t=>TL.throws.filter(x=>t>=x).length;
 function heroAt(t){
   const x=xAt(t); let root=ground(x), yaw=0, P;
@@ -115,11 +118,51 @@ function stoneAt(i,t,J){ const T=TL.throws[i];
     return {p:mouth.clone().lerp(show,u1).lerp(back,u2*u2),ang:0,inHand:true}; }
   const f=Math.min(STONE_SIM[i].out.length-1,Math.floor((t-T)*240)); const o=STONE_SIM[i].out[f]; return {p:V(o[0],o[1],o[2]),ang:o[3],inHand:false}; }
 
+// ---------------------------------------------------------------- the flag at the top (NEW LIFE), waving gently in the lamp's light
+const FLAG=V(PLAT.x+0.55,HH,0.25);
+{ const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.03,2.0,12),SLD.rimify(new THREE.MeshStandardMaterial({color:0xb9b2a4,metalness:0.3,roughness:0.45}),0xfff1d8,0.2,'pole'));
+  pole.position.copy(FLAG).add(V(0,1.0,0)); pole.castShadow=true; scene.add(pole); }
+const flagGeo=new THREE.PlaneGeometry(0.78,0.46,24,10); flagGeo.translate(0.39,0,0); const FLAG0=flagGeo.attributes.position.array.slice();
+const flag=new THREE.Mesh(flagGeo,new THREE.MeshStandardMaterial({color:PAL.GOLD,emissive:PAL.GOLD,emissiveIntensity:0.18,roughness:0.7,side:THREE.DoubleSide}));
+flag.position.copy(FLAG).add(V(0.02,1.72,0)); flag.castShadow=true; scene.add(flag);
+function waveFlag(t){ const p=flagGeo.attributes.position; const g=1+1.5*sstep(TL.glow0,TL.glow0+0.6,t);
+  for(let i=0;i<p.count;i++){ const x=FLAG0[i*3], y=FLAG0[i*3+1]; const k=x/0.78;
+    p.setXYZ(i,x*(1-0.04*k),y-0.05*k*k,0.07*g*k*Math.sin(x*9-t*6.5+y*2)+0.03*k*Math.sin(t*3.1+y*5)); }
+  p.needsUpdate=true; flagGeo.computeVertexNormals(); }
+
+// ---------------------------------------------------------------- the enlightenment: a slow sunburst behind him, a halo, rising gold motes, a warm glow on him
+const RAYS=new THREE.Group(); scene.add(RAYS); S.NOREFL.push(RAYS);
+const rayU={uA:{value:0}};
+{ const Rn=rng(77); for(let i=0;i<22;i++){ const len=2.2+2.4*Rn(), w=0.05+0.12*Rn(); const g=new THREE.PlaneGeometry(w,len); g.translate(0,len/2,0);
+    const m=new THREE.Mesh(g,new THREE.ShaderMaterial({uniforms:{uA:rayU.uA,uS:{value:Rn()}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false,
+      vertexShader:`varying vec2 vU; void main(){ vU=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader:`uniform float uA,uS; varying vec2 vU; void main(){ float a=pow(1.0-vU.y,1.8)*exp(-pow((vU.x-0.5)*3.2,2.0))*uA*(0.55+0.45*uS); gl_FragColor=vec4(vec3(1.0,0.78,0.42)*a*0.32,1.0); }`}));
+    m.rotation.z=i/22*Math.PI*2+0.15*(Rn()-0.5); RAYS.add(m); } }
+const halo=SLD.glowSprite(scene,0xffd27a,0); const halo2=SLD.glowSprite(scene,0xffb24a,0); S.NOREFL.push(halo,halo2);
+const riseU={uT:{value:0},uH:{value:H},uO:{value:V(0,0,0)},uA:{value:0}};
+{ const Rn=rng(31), N=420, pos=new Float32Array(N*3), sd=new Float32Array(N*4);
+  for(let i=0;i<N;i++){ const a=Rn()*6.283, r=0.15+0.9*Math.sqrt(Rn()); pos.set([Math.cos(a)*r,Rn()*0.4,Math.sin(a)*r*0.6],i*3); sd.set([0.25+0.6*Rn(),Rn()*6.28,0.6+0.8*Rn(),Rn()*2.4],i*4); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('sd',new THREE.BufferAttribute(sd,4));
+  const m=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:riseU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+    vertexShader:`attribute vec4 sd; uniform float uT,uH,uA; uniform vec3 uO; varying float vA;
+      void main(){ float tt=max(0.0,uT-sd.w*0.5); float life=mod(tt*sd.x*0.6,3.0); vec3 p=uO+position+vec3(0.12*sin(uT*sd.z+sd.y),life*1.1,0.1*cos(uT*sd.z*0.7+sd.y));
+        vA=uA*smoothstep(0.0,0.4,life)*(1.0-smoothstep(1.8,3.0,life)); vec4 mv=modelViewMatrix*vec4(p,1.0); gl_Position=projectionMatrix*mv;
+        gl_PointSize=clamp(0.03*uH/(-mv.z),1.0,30.0); }`,
+    fragmentShader:`varying float vA; void main(){ float d=length(gl_PointCoord-0.5); float a=smoothstep(0.5,0.0,d); gl_FragColor=vec4(vec3(1.0,0.82,0.5)*a*a*vA,1.0); }`}));
+  m.frustumCulled=false; scene.add(m); S.NOREFL.push(m); }
+function enlighten(t,J){ const e=sm5(sstep(TL.glow0,TL.glow1,t)); const c=J.neck.clone().lerp(J.hip,0.3);
+  RAYS.position.copy(c).add(V(0,0,-0.7)); RAYS.rotation.z=0.06*t; RAYS.scale.setScalar(0.6+0.5*e); rayU.uA.value=e;
+  halo.position.copy(c).add(V(0,0.2,-0.3)); halo.scale.setScalar(1.4+1.2*e); halo.material.opacity=0.42*e;
+  halo2.position.copy(c).add(V(0,0.3,-0.6)); halo2.scale.setScalar(5.5*e+0.1); halo2.material.opacity=0.16*e;
+  riseU.uT.value=t; riseU.uO.value.copy(J.hip).setY(J.hip.y-0.9); riseU.uA.value=e;
+  hero.mat.emissiveIntensity=0.14+0.3*e; hero.mat.emissive.set(0xede6d6).lerp(new THREE.Color(0xffc670),e); hero.mat.userData.rim.value=0.24+0.4*e;
+  waveFlag(t); }
+
 // ---------------------------------------------------------------- camera: wide side view of the climb; push in for the letting go; follow him up into the light
-const WIDE={p:V(3.7,4.6,19.5),l:V(3.6,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
+const WIDE={p:V(2.5,4.6,24.5),l:V(2.4,4.4,0)};   // the whole hill, him small at the bottom, the lamp at the top
 function camAt(t){ const J0=ground(XK);
   const close={p:V(XK+0.2,J0.y+1.5,7.6),l:V(XK-0.35,J0.y+0.85,0)};
-  const top={p:V(PLAT.x-1.6,HH+2.2,12.5),l:V(PLAT.x-1.8,HH+2.4,0)};
+  const top={p:V(PLAT.x-1.2,HH+2.0,10.5),l:V(PLAT.x-0.6,HH+2.3,0)};
   let p=WIDE.p.clone(), l=WIDE.l.clone();
   const u1=sm5(sstep(TL.push0,TL.push1,t)); p.lerp(close.p,u1); l.lerp(close.l,u1);
   if(t>TL.pull0){ // pull back and follow him up the hill, ending framed on the plateau and the lamp
@@ -153,7 +196,8 @@ function setT(t){
   // camera
   const c=camAt(t); cam.position.copy(c.p); cam.lookAt(c.l);
   // the lamp blooms when he steps into it
-  const pay=0.16*sm5(sstep(TL.bloom0,TL.bloom1,t));
+  const pay=0.32*sm5(sstep(TL.bloom0,TL.bloom1,t));
+  enlighten(t,J);
   S.tick(t,pay);
   LAST={J}; return {J,h}; }
 
@@ -167,7 +211,7 @@ window.renderAt=function(t,Ksub=3){ let K=Ksub, sh=1/60;
 const proj=v=>{ const p=v.clone().project(cam); return [p.x*0.5+0.5,0.5-p.y*0.5,p.z<1?1:0]; };
 window.metaAt=function(t){ const s=setT(t); cam.updateMatrixWorld(); const o={t};
   o.stones=stones.map(m=>m.visible?proj(m.position.clone().add(V(0,0.32,0))):null);
-  o.oldLife=proj(V(0.5,0.35,1.5)); o.newLife=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
+  o.oldLife=proj(V(0.5,0.35,1.5)); o.newLife=proj(V(FLAG.x+0.35,HH+2.25,0.2)); o.newLifeWide=proj(V(PLAT.x-1.3,HH+0.45,1.5)); o.hero=proj(s.J.head);
   return o; };
 window.events={...TL,XK,T_ARR};
 window.ready=true;

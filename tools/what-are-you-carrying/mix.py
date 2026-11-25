@@ -2,11 +2,12 @@
 
   python3 mix.py META.json OUT.wav
 
-- The climb: strained breathing and grunts, slow heavy footsteps on gravel; the slip back (gravel scrape).
+- The climb: strained breathing and grunts, slow heavy footsteps on gravel; the slip all the way back down (long scrape).
 - He kneels: the sack drops with a deep thud and the rocks clunk inside.
 - Each stone: a rummage in the sack, a throw whoosh, then the stone tumbling far down the hill, panned left as it rolls
   away into the dark. The strain fades as the sack empties.
-- LET IT GO: one long relieved breath. Then light, quick footsteps up the slope and a warm swell as he steps into the lamp.
+- LET IT GO: one long relieved breath. Then light, quick footsteps up the slope, a warm swell as he steps into the lamp,
+  and a radiant shimmer for the enlightenment (with the flag flapping softly beside him).
 - The question: one deep boom under WHAT ARE YOU STILL CARRYING?
 CC0 wind room tone from ../sfxlib (sleepCircle 22331); everything else is ElevenLabs.
 """
@@ -47,7 +48,7 @@ bed(bus, room, drone, duck)
 place(bus['fol'], fade(sfx('strain'), 0.02, 0.4), 0.0, 0.85, 0.0)
 place(bus['fol'], fade(cut(sfx('strain'), 2.6, 0.6), 0.2, 0.6), 3.4, 0.6, 0.0)
 place(bus['fol'], fade(cut(sfx('steps_heavy'), E['slip0'] + 0.1, 0.2)), 0.0, 0.6, 0.0)
-place(bus['fol'], fade(sfx('slide')), E['slip0'] - 0.02, 0.85, -0.15)
+place(bus['fol'], fade(sfx('slide_long'), 0.01, 0.2), E['slip0'] - 0.02, 0.9, -0.2)
 place(bus['hit'], fade(sfx('sack_drop'), 0.003, 0.2), E['sackDrop'] + 0.15, 0.85, 0.1)
 
 # ---- the stones
@@ -63,6 +64,8 @@ for i, T in enumerate(THROWS):
 place(bus['fol'], fade(sfx('exhale')), E['stand0'] - 0.1, 0.8, 0.0)
 place(bus['fol'], fade(cut(sfx('steps_light'), E['arrive'] - E['walk0'] + 0.1, 0.15)), E['walk0'], 0.65, 0.1)
 place(bus['air'], fade(sfx('arrive'), 0.3, 0.8), E['bloom0'] - 0.2, 0.8, 0.0)
+place(bus['air'], fade(sfx('shimmer'), 0.4, 1.0), E['glow0'] - 0.1, 0.75, 0.0)
+place(bus['fol'], fade(sfx('flag'), 0.6, 0.8), E['glow0'] - 0.6, 0.3, 0.3)
 
 # ---- the question
 place(bus['hit'], fade(sfx('boom'), 0.003, 0.3), CARD + 0.15, 0.9, 0.0)
