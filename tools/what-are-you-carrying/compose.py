@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'slow-light-dark-common'))
 import overlay
 from sld_sound import master_to_mp4
+from sld_video import NO_LETTERBOX
 
 src, out = sys.argv[1], sys.argv[2]
 os.makedirs(out, exist_ok=True)
@@ -20,7 +21,7 @@ fps = overlay.TL['fps']; total = round(overlay.TL['duration'] * fps)
 frames = sorted(glob.glob(os.path.join(src, 'frames', 'f*.jpg')))
 assert len(frames) == total, f'{len(frames)} frames, expected {total}'
 silent = os.path.join(out, 'what-are-you-carrying_music-ready.mp4')
-enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', '1080x1920', '-r', str(fps), '-i', '-',
+enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', '1080x1920', '-r', str(fps), '-i', '-', '-vf', NO_LETTERBOX,
                         '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', silent], stdin=subprocess.PIPE)
 for f, path in enumerate(frames):
     enc.stdin.write(overlay.draw(Image.open(path).convert('RGB'), f / fps).tobytes())
