@@ -14,3 +14,7 @@
 - v1 flat: `same_size_illusion.py OUT.png`.
 - v2 3D (the one to post): `cd corridor && QS=mode=corridor node still.cjs C.png 2160 2700 && QS=mode=figure node still.cjs F.png 1200 2400`, then `python3 same_size_3d.py C.png F.png OUT.png`. The figure sprite is pasted twice at the same height (360 px in the post); the far copy is only tinted and rim-lit.
 - v3 raw (the one to post): `same_size_sketch.py OUT.png`, a hand-drawn ink sketch on notebook paper (Caveat handwriting in `fonts/`, OFL).
+
+# Pencil vs Pen (25 Nov 2026)
+
+- `pencil_vs_pen.py OUT.png`: notebook page; pencil words rubbed out (eraser strokes, smudge, crumbs), the last line in ballpoint circled in red. Caveat handwriting (`fonts/`, OFL).
