@@ -1,5 +1,5 @@
-"""Audio for First Brick: original nylon-guitar waltz-ish bed in A minor (stands in for the
-ref's licensed song), hummed lead, brick clacks synced to the wall build, level taps, exit steps.
+"""Audio for First Brick: SFX only (no music): brick clacks synced to the wall build, trowel taps,
+level ticks, exit steps.
 Usage: python3 sound.py out.wav"""
 import sys, wave, numpy as np
 
@@ -40,45 +40,7 @@ def hum(f, dur, vib=5.2):
     env = np.minimum(1, t / 0.09) * np.minimum(1, (dur - t) / 0.18).clip(0, 1)
     return s * env
 
-# ---------- music ----------
-BEAT = 60 / 78
-T0 = 0.78
-chords = [  # (bass, chord tones) midi
-    (45, [52, 57, 60, 64]),  # Am
-    (50, [53, 57, 62, 65]),  # Dm
-    (40, [52, 56, 59, 64]),  # E
-    (45, [52, 57, 60, 64]),  # Am
-    (41, [53, 57, 60, 65]),  # F
-]
-pattern = [0, 2, 1, 3, 2, 1, 3, 2]  # eighth-note arpeggio over chord tones
-for bar, (bass, tones) in enumerate(chords):
-    tb = T0 + bar * 4 * BEAT
-    if tb > DUR: break
-    add(pluck(hz(bass), 3.0, 0.35), tb, 0.55, -0.1)
-    for k, ix in enumerate(pattern):
-        t = tb + k * BEAT / 2
-        if t < DUR: add(pluck(hz(tones[ix]), 1.8, 0.45), t, 0.28 + 0.04 * (k % 2 == 0), 0.15)
-# soft pickup before the downbeat (ref is quiet for the first 0.75 s)
-add(pluck(hz(64), 1.5, 0.4), 0.05, 0.12, 0.2)
-add(pluck(hz(69), 1.5, 0.4), 0.42, 0.12, 0.2)
-# hummed lead (original line)
-mel = [(76, 2), (72, 1), (74, 1), (77, 1.5), (76, .5), (74, 2), (71, 1), (72, 1), (74, 1), (76, 1), (69, 3.5), (72, .5), (77, 2), (76, 2)]
-t = T0
-for n, b in mel:
-    if t >= DUR - .05: break
-    d = min(b * BEAT, DUR - t)
-    add(hum(hz(n), d + 0.05), t, 0.11, -0.05)
-    t += b * BEAT
-
-# simple reverb on the music
-def reverb(x, secs=1.1, mix=0.22):
-    n = int(secs * SR); ir = rng.standard_normal(n) * np.exp(-np.arange(n) / SR * 4.2)
-    ir[0] = 0
-    from numpy.fft import rfft, irfft
-    m = len(x) + n; F = 1 << (m - 1).bit_length()
-    y = irfft(rfft(x, F) * rfft(ir, F), F)[: len(x)]
-    return x + mix * y / np.max(np.abs(y) + 1e-9) * np.max(np.abs(x))
-L = reverb(L); Rr = reverb(Rr)
+# no music (Teja: SFX only)
 
 # ---------- sfx (timings mirror scene.html) ----------
 def clack(pitch=1.0):
@@ -99,10 +61,10 @@ def step():
     n = int(0.16 * SR); t = np.arange(n) / SR
     return (rng.standard_normal(n) * np.exp(-t * 40) * 0.5 + np.sin(2 * np.pi * 90 * t) * np.exp(-t * 30))
 
-BL, NC = 72, 9
-COURSE_END = [-1, 1.0, 2.0, 2.9, 3.7, 4.5, 5.2, 5.9, 6.9]
+BL, NC = 72, 6
+COURSE_END = [-1, 1.3, 2.6, 3.9, 5.3, 6.9]
 for c in range(NC):
-    rown = 4
+    rown = 3
     t0 = -3 if c == 0 else COURSE_END[c - 1]; t1 = COURSE_END[c]
     for i in range(rown):
         T = t0 + (t1 - t0) * (i + 1) / rown
@@ -116,7 +78,7 @@ for tt in [0.35, 1.15, 1.7, 2.2, 4.1, 4.75, 5.3, 5.85, 7.4, 7.95, 8.6, 9.2, 12.3
 # level lifted / set back down
 add(clack(1.6) * 0.5, 3.86, 0.18, -0.4); add(clack(1.6) * 0.5, 7.15, 0.18, -0.4)
 # exit footsteps
-for k, tt in enumerate([10.2, 10.45, 10.7, 10.95]):
+for k, tt in enumerate([10.3, 10.65, 11.0, 11.35]):
     add(step(), tt, 0.25 * (1 - 0.15 * k), 0.6)
 
 mix = np.stack([L, Rr], 1)
