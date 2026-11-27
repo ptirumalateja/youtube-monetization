@@ -61,27 +61,58 @@ def step():
     n = int(0.16 * SR); t = np.arange(n) / SR
     return (rng.standard_normal(n) * np.exp(-t * 40) * 0.5 + np.sin(2 * np.pi * 90 * t) * np.exp(-t * 30))
 
-NC = 11
-COURSE_END = [-1, 0.9, 1.75, 2.55, 3.3, 4.0, 4.65, 5.25, 5.85, 6.4, 6.9]
+NC = 9
+COURSE_END = [-1, 1.0, 2.0, 2.9, 3.7, 4.5, 5.2, 5.9, 6.9]
+times = []
 for c in range(NC):
-    rown = 3 if c % 2 == 0 else 4
+    items = 3 if c % 2 == 0 else 4
     t0 = -3 if c == 0 else COURSE_END[c - 1]; t1 = COURSE_END[c]
-    for i in range(rown):
-        T = t0 + (t1 - t0) * (i + 1) / rown
-        if c == 1 and i < 1: T = -1
-        if T > 0: add(clack(0.85 + 0.3 * rng.random()), T, 0.34, 0.25 + 0.1 * rng.random())
-        if T > 0.1 and rng.random() < 0.6:  # trowel tap after setting
-            add(tick() * 0.6, T + 0.07, 0.10, 0.3)
-# perfectionist's tiny level adjustments (left side)
-for tt in [0.35, 1.15, 1.7, 2.2, 4.1, 4.75, 5.3, 5.85, 7.4, 7.95, 8.6, 9.2, 12.3, 12.9, 13.5]:
-    add(tick(), tt, 0.16, -0.45)
+    for i in range(items):
+        T = t0 + (t1 - t0) * (i + 1) / items
+        if c == 1 and i == 0: T = -1
+        times.append(T)
+times.sort()
+for k, T in enumerate(times):
+    if T <= 0: continue
+    prev = times[k - 1]
+    side = 1 if k % 2 else -1
+    # builder grabs from a side pile (soft knock), then sets it (clack + trowel tap); all up on the wall, right of centre
+    add(clack(1.25) * 0.45, prev + 0.3 * (T - prev), 0.16, 0.2 + 0.25 * side)
+    add(clack(0.85 + 0.3 * rng.random()), T, 0.34, 0.3 + 0.1 * rng.random())
+    if rng.random() < 0.6: add(tick() * 0.6, T + 0.07, 0.10, 0.3)
+
+# perfectionist fussing (mirrors fuss()/tapWave() in scene3d.html): taps on the level, scrapes on each nudge
+def wk(t):
+    ss = lambda x: (lambda y: y * y * (3 - 2 * y))(min(1, max(0, x)))
+    if t < 2.45: return 1 - ss((t - 2.2) / 0.25)
+    if 3.9 < t < 6.05: return ss((t - 3.9) / 0.3) * (1 - ss((t - 5.8) / 0.25))
+    if 7.2 < t < 9.45: return ss((t - 7.2) / 0.3) * (1 - ss((t - 9.2) / 0.25))
+    if t > 12.1: return ss((t - 12.1) / 0.3)
+    return 0
+def fw(t, k):
+    ph = (t * 0.62) % 3
+    d = min(abs(ph - k - 0.5), abs(ph - k - 0.5 + 3), abs(ph - k - 0.5 - 3))
+    x = min(1, max(0, (0.62 - d) / 0.25)); return x * x * (3 - 2 * x)
+def scrape():
+    n = int(0.09 * SR); t = np.arange(n) / SR
+    z = rng.standard_normal(n); z = z - np.convolve(z, np.ones(6) / 6, 'same')
+    return z * np.sin(np.pi * t / t[-1]) * 0.5
+for j in range(int(DUR * 2.6)):
+    t = (j + 0.25) / 2.6
+    g = fw(t, 0) * wk(t)
+    if g > 0.3: add(tick(), t, 0.2 * g, -0.45)
+for j in range(int(DUR * 7 / np.pi)):
+    t = (j + 0.5) * np.pi / 7
+    g = fw(t, 2) * wk(t)
+    if g > 0.3: add(scrape(), t - 0.04, 0.12 * g, -0.45)
 # level lifted / set back down
 add(clack(1.6) * 0.5, 3.86, 0.18, -0.4); add(clack(1.6) * 0.5, 7.15, 0.18, -0.4)
 # perfectionist steps up onto his bricks and kneels back down
 add(step(), 9.9, 0.22, -0.4); add(step(), 12.0, 0.2, -0.4)
-# exit footsteps
-for k, tt in enumerate([10.3, 10.65, 11.0, 11.35]):
-    add(step(), tt, 0.25 * (1 - 0.15 * k), 0.6)
+# builder: walks along the top, hops down at 10.7, walks off right
+for k, tt in enumerate([9.95, 10.15, 10.33]): add(step() * 0.7, tt, 0.18, 0.45)
+add(step(), 10.7, 0.42, 0.6); add(clack(0.6) * 0.4, 10.7, 0.15, 0.6)
+for k, tt in enumerate([10.95, 11.3, 11.65]): add(step(), tt, 0.25 * (1 - 0.2 * k), 0.75)
 
 mix = np.stack([L, Rr], 1)
 fade = np.ones(N); fn = int(0.5 * SR); fade[-fn:] = np.linspace(1, 0, fn)

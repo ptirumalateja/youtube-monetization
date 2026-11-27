@@ -24,7 +24,7 @@ const gl=renderer.domElement;gl.id='gl';document.body.appendChild(gl);
 
 const scene=new THREE.Scene();scene.background=null;renderer.setClearColor(0x000000,1);
 const camera=new THREE.PerspectiveCamera(27,W/H,0.1,100);
-const CAM={pos:new THREE.Vector3(-2.3,4.6,10.8),look:new THREE.Vector3(-0.12,1.05,0)};
+const CAM={pos:new THREE.Vector3(-2.3,4.6,10.8),look:new THREE.Vector3(-0.12,1.3,0)};
 camera.position.copy(CAM.pos);camera.lookAt(CAM.look);
 
 // lights: soft key from front-left above, rim from behind, low fill
@@ -135,8 +135,8 @@ function brickMesh(half,seed,inWall){
   scene.add(m);return m;
 }
 // wall: 9 courses, 2.75 bricks long, built left to right course by course
-const WX0=0.02, NC=11, WZ=-0.05;
-const COURSE_END=[-1,0.9,1.75,2.55,3.3,4.0,4.65,5.25,5.85,6.4,6.9];
+const WX0=0.02, NC=9, WZ=-0.05;
+const COURSE_END=[-1,1.0,2.0,2.9,3.7,4.5,5.2,5.9,6.9];
 const wall=[];
 for(let c=0;c<NC;c++){
   const row=c%2===0?[[0,1],[1,1],[2,0.5],[2.5,0.25]]:[[0,0.5],[0.5,1],[1.5,1],[2.5,0.25]];
@@ -152,7 +152,8 @@ wall.sort((a,b)=>a.T-b.T);
 const WALL_LEN=3*BL;
 // perfectionist's bricks (ref: a short loose row, the "first brick" on top under the level)
 const PB=[[-1.18,0,0.25,0],[-0.80,0,0.25,0.04],[-0.44,0,0.28,-0.03],[-0.80,1,0.27,0.02]];
-PB.forEach(([x,c,z,r],i)=>{const m=brickMesh(false,500+i);m.position.set(x,BH/2+c*BH,z);m.rotation.y=r;});
+const PBm=PB.map(([x,c,z,r],i)=>{const m=brickMesh(false,500+i);m.position.set(x,BH/2+c*BH,z);m.rotation.y=r;return m;});
+const FB=PBm[3];
 const loose=brickMesh(false,600);loose.position.set(-0.12,BH/2,0.18);loose.rotation.y=0.15;
 // spirit level
 const level=new THREE.Group();
@@ -173,15 +174,24 @@ const Pst={yaw:66,sp:22,tw:-4,hp:24,hy:-20,lR:[2,3,4],lL:[-2,3,5],aR:[14,6,16],a
 const PK=[[0,Pk],[2.45,Pk],[2.85,Plift],[3.5,Plift],[3.9,Pk],[6.05,Pk],[6.35,Preach],[6.85,Preach],[7.2,Pk],[9.45,Pk],[10.0,Pst],[11.45,Pst],[12.1,Pk]];
 const PX=-0.92,PZ=0.42;
 
-// ---------- action taker poses: behind the wall on the floor, facing the camera-left ----------
-const Asq={yaw:-35,sp:62,tw:6,hp:22,hy:10,lR:[100,10,130],lL:[96,12,128],aR:[70,6,40],aL:[60,8,40]};
-const Abend={yaw:-30,sp:52,tw:6,hp:16,hy:10,lR:[40,6,60],lL:[34,8,56],aR:[80,6,30],aL:[70,8,30]};
-const Ast={yaw:-25,sp:34,tw:6,hp:10,hy:8,lR:[8,4,12],lL:[2,6,8],aR:[85,6,40],aL:[75,8,40]};
-const Alean={yaw:-25,sp:14,tw:4,hp:12,hy:30,lR:[4,4,6],lL:[-2,6,4],aR:[78,18,96],aL:[78,14,100]};
-const Arel={yaw:-20,sp:4,hp:-2,hy:25,lR:[2,4,4],lL:[-2,6,4],aR:[6,8,10],aL:[6,8,10]};
-function walkQ(ph){const s=Math.sin(ph);return {yaw:80,sp:6,hp:0,hy:-20,lR:[26*s,4,10+34*Math.max(0,Math.sin(ph-1.3))],lL:[-26*s,4,10+34*Math.max(0,Math.sin(ph+Math.PI-1.3))],aR:[-24*s,6,16],aL:[24*s,6,16]};}
+// ---------- action taker: up on the wall, rising one course at a time (ref's cinematic liberty) ----------
+// supply piles ride on the wall top at both ends; he turns, grabs a brick from a side, lays it in front
+const AX=0.56, AZ=WZ-0.02, PILE_L=WX0+0.17, PILE_R=WX0+3*BL-0.17;
+const piles=[];
+for(const [px,sd] of [[PILE_L,-1],[PILE_R,1]])for(let k=0;k<3;k++){const m=brickMesh(false,700+k+(sd>0?10:0));m.rotation.y=Math.PI/2+(k%2?0.08:-0.05)*sd;piles.push({m,px,k,sd});}
+const Acr={yaw:0,sp:58,tw:0,hp:20,hy:0,lR:[96,10,120],lL:[92,12,118],aR:[60,8,30],aL:[56,8,30]};
+const Ast={yaw:-10,sp:6,tw:0,hp:6,hy:-25,lR:[4,4,6],lL:[-2,6,4],aR:[8,10,12],aL:[8,10,12]};
+const Asit={yaw:-12,sp:8,tw:0,hp:14,hy:-35,lR:[88,8,92],lL:[84,10,96],aR:[24,26,10],aL:[22,26,10]};
+function walkQ(ph,yaw=80){const s=Math.sin(ph);return {yaw,sp:6,hp:0,hy:-15,lR:[26*s,4,10+34*Math.max(0,Math.sin(ph-1.3))],lL:[-26*s,4,10+34*Math.max(0,Math.sin(ph+Math.PI-1.3))],aR:[-24*s,6,16],aL:[24*s,6,16]};}
 function wallTop(t){let n=0;for(let c=0;c<NC;c++)if(t>=COURSE_END[c])n=c+1;const p=n===0?-1:COURSE_END[n-1],nx=n<NC?COURSE_END[n]:p+1;return (n+(n<NC?ss((t-p)/(nx-p)):0))*BH;}
-function activeBrick(t){for(const b of wall)if(b.T>t)return b;return null}
+function activeBrick(t){for(let i=0;i<wall.length;i++)if(wall[i].T>t)return {b:wall[i],prev:i?wall[i-1].T:-1,idx:i};return null}
+
+// ---------- perfectionist fussing: tap, sight along the level, nudge the brick (loops while he works) ----------
+function fuss(t){
+  const ph=(t*0.62)%3, w=k=>{const d=Math.min(Math.abs(ph-k-0.5),Math.abs(ph-k-0.5+3),Math.abs(ph-k-0.5-3));return ss((0.62-d)/0.25);};
+  return {tap:w(0),sight:w(1),nudge:w(2)};
+}
+const tapWave=t=>Math.pow(Math.max(0,Math.sin(t*2*Math.PI*2.6)),3);
 
 window.setTime=function(t){
   // wall
@@ -192,38 +202,65 @@ window.setTime=function(t){
   // perfectionist
   let q=track(PK,t);
   const work=(t<2.45||(t>3.9&&t<6.05)||(t>7.2&&t<9.45)||t>12.1);
-  if(work){q={...q,hp:q.hp+Math.sin(t*2.3)*4,sp:q.sp+Math.sin(t*1.7)*2,aR:[q.aR[0]+Math.sin(t*5.1)*3,q.aR[1],q.aR[2]],aL:[q.aL[0]+Math.sin(t*4.3+1)*3,q.aL[1],q.aL[2]]};}
+  const wk=work?(t<2.45?1-ss((t-2.2)/0.25):t<6.05&&t>3.9?ss((t-3.9)/0.3)*(1-ss((t-5.8)/0.25)):t<9.45&&t>7.2?ss((t-7.2)/0.3)*(1-ss((t-9.2)/0.25)):ss((t-12.1)/0.3)):0;
+  const f=fuss(t), tp=tapWave(t)*f.tap*wk, nd=Math.sin(t*7)*f.nudge*wk;
+  q={...q,
+    sp:q.sp+f.sight*wk*16+Math.sin(t*1.7)*2,
+    hp:q.hp+f.sight*wk*18+f.tap*wk*6,
+    sl:(q.sl||0)+f.sight*wk*-14,
+    hy:q.hy+f.sight*wk*-12+Math.sin(t*2.3)*4*wk,
+    aR:[q.aR[0]+tp*-30+f.nudge*wk*14+nd*6,q.aR[1],q.aR[2]+tp*-22],
+    aL:[q.aL[0]+f.nudge*wk*16-nd*6+f.sight*wk*6,q.aL[1],q.aL[2]]};
   const stw=ss((t-9.5)/0.5)*(1-ss((t-11.45)/0.6));
   applyPose(P,q,PX,PZ,stw*BH);
+  // the first brick reacts: tiny shove on each nudge, jolt on each tap
+  FB.rotation.y=0.02+nd*0.035;FB.position.set(-0.80+nd*0.012,1.5*BH+tp*0.006,0.27);
   // level: on the first brick, or in his hands
-  const rest=new THREE.Vector3(-0.80,2*BH+0.03,0.27);
+  const rest=new THREE.Vector3(-0.80+nd*0.02+f.sight*wk*0.0,2*BH+0.03+tp*0.008,0.27);
   const hR=handPos(P.armR),hL=handPos(P.armL);
   const held=(t>2.6&&t<3.8)?ss((t-2.6)/0.2)*(1-ss((t-3.6)/0.2)):(t>6.15&&t<7.05?ss((t-6.15)/0.15)*(1-ss((t-6.9)/0.15)):0);
   let lp=rest.clone(),lrot=0;
   if(t>6.15&&t<7.05){const hp=hR.clone();lp.lerp(new THREE.Vector3(hp.x+0.2,hp.y,hp.z),held);}
   else{const mid=hR.clone().add(hL).multiplyScalar(0.5);lp.lerp(mid,held);}
-  if(work)lp.x+=Math.sin(t*5.1)*0.008,lrot=Math.sin(t*3.7)*0.02;
+  if(work)lrot=Math.sin(t*3.7)*0.02*wk+tp*0.03;
   level.position.copy(lp);level.rotation.set(0,0.0,lrot);
   // action taker
-  const hgt=wallTop(t);let qa,ax=0.62,az=-0.5;
-  const ab=activeBrick(t);
-  if(t<6.95){
-    const u=clamp((hgt-0.15)/0.85,0,1);
-    qa=u<.5?blend(Asq,Abend,ss(u*2)):blend(Abend,Ast,ss((u-.5)*2));
-    // reach toward the brick being placed
-    if(ab){const dx=ab.x-ax;qa={...qa,tw:qa.tw+clamp(-dx*40,-25,25),aR:[qa.aR[0]+Math.sin(t*14)*8,qa.aR[1],qa.aR[2]]};}
-    qa.hp+=Math.sin(t*6)*3;
-  }else if(t<9.35){qa=t<7.45?blend(Ast,Alean,ease((t-6.95)/0.5)):{...Alean,hy:Alean.hy+Math.sin(t*1.7)*4};}
-  else if(t<10.1){qa=blend(Alean,Arel,ease((t-9.35)/0.6));}
-  else{const w=t-10.1;qa=blend(Arel,walkQ(w*9),ss(w/0.25));ax=0.62+w*0.95;az=-0.5+Math.min(w,0.6)*0.9;}
-  applyPose(A,qa,ax,az);
-  // brick in hand flies into its slot
-  if(ab&&t<6.95&&ab.T-t<0.22){
-    const h=handPos(A.armR),v=1-(ab.T-t)/0.22;ab.m.visible=true;
-    ab.m.position.set(lerp(h.x,ab.x,ease(v)),lerp(h.y,ab.y,ease(v))+Math.sin(v*Math.PI)*0.06,lerp(h.z,ab.z,ease(v)));
+  const top=wallTop(t);let qa,ax=AX,az=AZ,ay=top;
+  const act=t<6.9?activeBrick(t):null;
+  let carry=null;
+  if(act){
+    const {b,prev,idx}=act;const u=clamp((t-prev)/(b.T-prev),0,1);
+    const side=idx%2?1:-1, pileX=side<0?PILE_L:PILE_R;
+    // 0-0.35 turn + reach to the pile, 0.35-0.8 swing round, 0.8-1 set it in front
+    const toPile=ss(u/0.3)*(1-ss((u-0.4)/0.35));
+    const slotTw=clamp((b.x-AX)*-50,-30,30);
+    qa={...Acr,tw:lerp(slotTw*(u>0.5?1:0.3),side*62,toPile),sl:side*-10*toPile,
+      sp:Acr.sp+toPile*10-(1-toPile)*Math.sin(u*Math.PI)*6,
+      aR:[Acr.aR[0]+toPile*12+ss((u-0.7)/0.3)*20,Acr.aR[1],Acr.aR[2]-ss((u-0.7)/0.3)*20],
+      aL:[Acr.aL[0]+toPile*10,Acr.aL[1],Acr.aL[2]],hp:Acr.hp+Math.sin(t*6)*3};
+    carry={b,u,pileX};
+  }else if(t<7.35){qa=blend(Acr,Ast,ease((t-6.9)/0.45));}
+  else if(t<7.75){qa=blend(Ast,Asit,ease((t-7.35)/0.4));az=lerp(AZ,WZ+0.1,ease((t-7.35)/0.4));}
+  else if(t<9.3){qa={...Asit,hy:Asit.hy+Math.sin(t*1.5)*6,lR:[Asit.lR[0],Asit.lR[1],Asit.lR[2]+Math.sin(t*2.2)*10],lL:[Asit.lL[0],Asit.lL[1],Asit.lL[2]+Math.sin(t*2.2+2)*10]};az=WZ+0.1;}
+  else if(t<9.8){qa=blend(Asit,Ast,ease((t-9.3)/0.5));az=lerp(WZ+0.1,AZ,ease((t-9.3)/0.5));}
+  else if(t<10.35){const w=t-9.8;qa=blend(Ast,walkQ(w*9,90),ss(w/0.2));ax=AX+w*0.75;}
+  else if(t<10.7){const w=(t-10.35)/0.35;qa=blend(walkQ(4.95,90),{...Ast,yaw:90,sp:18,lR:[14,4,40],lL:[-6,4,30],aR:[40,30,10],aL:[40,30,10]},ss(w*3));ax=AX+0.41+w*0.42;ay=top*(1-w*w)+Math.sin(w*Math.PI)*0.14;}
+  else{const w=t-10.7;qa=walkQ(w*9+1,90);ax=AX+0.83+w*0.95;ay=0;}
+  if(t>=7.35&&t<9.8){ // sitting / standing on the top edge: hips sit right on the top
+    if(t>=7.6&&t<9.55){applyPose(A,qa,ax,az,ay);A.root.position.y=ay+L.limbR+0.01;A.root.updateMatrixWorld(true);}
+    else applyPose(A,qa,ax,az,ay);
+  }else applyPose(A,qa,ax,az,ay);
+  // supply piles sit on the top at both ends and rise with him; leave once the wall is done
+  for(const pl of piles){const gone=ss((t-6.9)/0.3);pl.m.visible=gone<1;pl.m.position.set(pl.px,top+BH/2+pl.k*BH+gone*0.0,AZ-0.02);pl.m.scale.setScalar(1-gone);}
+  if(carry){
+    const {b,u,pileX}=carry;const h=handPos(A.armR);b.m.visible=true;
+    const pileP=new THREE.Vector3(pileX,top+BH*2.5,AZ-0.02);
+    let p;
+    if(u<0.3)p=pileP; else if(u<0.82)p=pileP.clone().lerp(h,ss((u-0.3)/0.12)); else p=h.clone().lerp(new THREE.Vector3(b.x,b.y,b.z),ease((u-0.82)/0.18));
+    b.m.position.copy(p);b.m.rotation.y=u<0.4?Math.PI/2:lerp(Math.PI/2,0,ss((u-0.4)/0.4));
   }
+  for(const b of wall)if(b.T<=t)b.m.rotation.y=0;
 };
-
 // ---------- reflection: mirror the whole scene below the floor ----------
 function renderGL(){
   renderer.autoClear=false;renderer.clear();
@@ -241,7 +278,7 @@ const glow=document.createElement('canvas');glow.width=W/4;glow.height=H/4;const
 function labels(g){
   g.save();g.font=`700 ${25}px Orb`;g.fillStyle='#f4f4f4';g.textAlign='center';
   g.letterSpacing='7px';g.shadowColor='rgba(255,255,255,.6)';g.shadowBlur=10;
-  g.fillText('ACTION TAKER',735,585);g.fillText('PERFECTIONIST',330,775);g.restore();
+  g.fillText('ACTION TAKER',735,420);g.fillText('PERFECTIONIST',330,560);g.restore();
 }
 const SUB=3;
 window.renderFrame=function(t){
