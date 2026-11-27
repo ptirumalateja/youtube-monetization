@@ -1,0 +1,305 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Orb;src:url(Orbitron.ttf);font-weight:100 900}
+html,body{margin:0;background:#000}
+canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// First Brick (Perfectionist vs Action Taker) - exact remake of the ref.
+// Layout numbers are in the ref's 720x1280 space, drawn at x1.5.
+const W=1080,H=1920,S=1.5,DUR=13.93;
+const FP=925;   // floor line under the perfectionist (nearer the camera)
+const FW=905;   // floor line under the wall (a little further back)
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const mk=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;return c};
+const LA=mk(),la=LA.getContext('2d');   // wall + action taker layer
+const LP=mk(),lp=LP.getContext('2d');   // perfectionist layer
+const FG=mk(),fg=FG.getContext('2d');   // temp figure layer (for glow)
+const RF=mk(),rx=RF.getContext('2d');   // reflection temp
+const AC=mk(),ax=AC.getContext('2d');   // motion-blur accumulator
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ss=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
+const ease=t=>{t=clamp(t,0,1);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+function hash(i){const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+
+// ---------- bricks ----------
+const BL=72,BH=33,GAP=2.4,WX=405,NC=9;
+const COURSE_END=[-1,1.0,2.0,2.9,3.7,4.5,5.2,5.9,6.9];
+const wall=[];
+(function(){
+  for(let c=0;c<NC;c++){
+    const row=[];
+    if(c%2===0){for(let i=0;i<3;i++)row.push([WX+i*BL,BL]);row.push([WX+3*BL,BL/2]);}
+    else{row.push([WX,BL/2]);for(let i=0;i<3;i++)row.push([WX+BL/2+i*BL,BL]);}
+    const t0=c===0?-3:COURSE_END[c-1], t1=COURSE_END[c];
+    row.forEach((b,i)=>{
+      let T=lerp(t0,t1,(i+1)/row.length);
+      if(c===1&&i<1)T=-1;
+      wall.push({x:b[0],w:b[1],y:FW-(c+1)*BH,c,T,id:wall.length});
+    });
+  }
+  wall.sort((a,b)=>a.T-b.T);
+})();
+const pBricks=[{x:46,y:FP-BH,w:76},{x:124,y:FP-BH,w:76},{x:202,y:FP-BH,w:76},{x:160,y:FP-2*BH,w:76}];
+const loose=[{x:338,y:FW-BH,w:62}];
+
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+function drawBrick(g,x,y,w,h,seed,top=true){
+  x*=S;y*=S;w*=S;h*=S;const g2=GAP*S/2;
+  const v=(hash(seed)-.5)*16;
+  const col=(r,gg,b,a=1)=>`rgba(${r+v|0},${gg+v|0},${b+v|0},${a})`;
+  const fx=x+g2,fy=y+g2,fw=w-2*g2,fh=h-2*g2,d=11;
+  // right side sliver
+  g.fillStyle=col(140,129,116);
+  g.beginPath();g.moveTo(fx+fw,fy);g.lineTo(fx+fw+5,fy-d);g.lineTo(fx+fw+5,fy+fh-d);g.lineTo(fx+fw,fy+fh);g.closePath();g.fill();
+  if(top){
+    const tg=g.createLinearGradient(0,fy-d,0,fy);tg.addColorStop(0,col(236,229,219));tg.addColorStop(1,col(222,213,201));
+    g.fillStyle=tg;
+    g.beginPath();g.moveTo(fx,fy);g.lineTo(fx+fw,fy);g.lineTo(fx+fw+5,fy-d);g.lineTo(fx+5,fy-d);g.closePath();g.fill();
+  }
+  const gr=g.createLinearGradient(0,fy,0,fy+fh);
+  gr.addColorStop(0,col(212,200,186));gr.addColorStop(1,col(170,158,144));
+  g.fillStyle=gr;rr(g,fx,fy,fw,fh,3);g.fill();
+  g.fillStyle=col(238,230,220,.6);g.fillRect(fx+2,fy+1.5,fw-4,2);
+  g.fillStyle='rgba(55,44,33,.4)';g.fillRect(fx+2,fy+fh-2.5,fw-4,2.5);
+}
+
+// ---------- level ----------
+function drawLevel(g,cx,cy,ang,len=106){
+  g.save();g.translate(cx*S,cy*S);g.rotate(ang);
+  const L=len*S,h=12*S;
+  g.fillStyle='#0a0a0a';rr(g,-L/2-3,-h/2-3,L+6,h+6,5);g.fill();
+  const gr=g.createLinearGradient(0,-h/2,0,h/2);gr.addColorStop(0,'#ff5040');gr.addColorStop(.5,'#e5281c');gr.addColorStop(1,'#b0130b');
+  g.fillStyle=gr;rr(g,-L/2,-h/2,L,h,3);g.fill();
+  g.fillStyle='#f4f4f4';rr(g,-11*S,-h/2+2.5*S,22*S,h-5*S,2);g.fill();
+  g.fillStyle='#86d36b';g.beginPath();g.arc(clamp(ang*120,-6,6)*S,0,2.6*S,0,7);g.fill();
+  g.strokeStyle='#333';g.lineWidth=1.2;g.beginPath();g.moveTo(-4*S,-3*S);g.lineTo(-4*S,3*S);g.moveTo(4*S,-3*S);g.lineTo(4*S,3*S);g.stroke();
+  g.restore();
+}
+
+// ---------- stick figure ----------
+const LEN={th:74,sh:74,ua:60,fa:56},R=40,W0=33;
+function ik(a,t,l1,l2,bend){
+  let dx=t[0]-a[0],dy=t[1]-a[1];let d=Math.hypot(dx,dy);
+  const md=l1+l2-.5;if(d>md){t=[a[0]+dx/d*md,a[1]+dy/d*md];dx=t[0]-a[0];dy=t[1]-a[1];d=md;}
+  d=Math.max(d,Math.abs(l1-l2)+1);
+  const A=Math.atan2(dy,dx),c=clamp((l1*l1+d*d-l2*l2)/(2*l1*d),-1,1),B=Math.acos(c);
+  const an=A-bend*B;return [[a[0]+Math.cos(an)*l1,a[1]+Math.sin(an)*l1],t];
+}
+function seg(g,pts,wid,col){
+  g.lineCap='round';g.lineJoin='round';
+  g.beginPath();g.moveTo(pts[0][0]*S,pts[0][1]*S);for(let i=1;i<pts.length;i++)g.lineTo(pts[i][0]*S,pts[i][1]*S);
+  g.strokeStyle='#050505';g.lineWidth=(wid+11)*S;g.stroke();
+  g.strokeStyle=col;g.lineWidth=wid*S;g.stroke();
+  // soft roundness: a faint darker edge stroke inside
+}
+function head(g,c){
+  g.beginPath();g.arc(c[0]*S,c[1]*S,(R+5.5)*S,0,7);g.fillStyle='#050505';g.fill();
+  const hg=g.createRadialGradient((c[0]-12)*S,(c[1]-14)*S,4,c[0]*S,c[1]*S,R*S);
+  hg.addColorStop(0,'#ffffff');hg.addColorStop(.75,'#f6f6f6');hg.addColorStop(1,'#dcdcdc');
+  g.beginPath();g.arc(c[0]*S,c[1]*S,R*S,0,7);g.fillStyle=hg;g.fill();
+}
+function drawFigure(g,p){
+  const sh=[lerp(p.neck[0],p.hip[0],.12),lerp(p.neck[1],p.hip[1],.12)];
+  const lA=ik(p.hip,p.fA,LEN.th,LEN.sh,p.kA), lB=ik(p.hip,p.fB,LEN.th,LEN.sh,p.kB);
+  const eA=ik(sh,p.hA,LEN.ua,LEN.fa,p.eA), eB=ik(sh,p.hB,LEN.ua,LEN.fa,p.eB);
+  const back='#d4d4d4',front='#fcfcfc';
+  seg(g,[sh,eB[0],eB[1]],W0-2,back);
+  seg(g,[p.hip,lB[0],lB[1]],W0,back);
+  seg(g,[p.hip,p.neck],W0+4,front);
+  seg(g,[p.hip,lA[0],lA[1]],W0,front);
+  if(!p.armOver) seg(g,[sh,eA[0],eA[1]],W0-2,front);
+  head(g,p.head);
+  if(p.armOver) seg(g,[sh,eA[0],eA[1]],W0-2,front);
+}
+const KEYS=['hip','neck','head','hA','hB','fA','fB'];
+function mixPose(a,b,t){
+  const o={};for(const k in a){
+    if(Array.isArray(a[k]))o[k]=[lerp(a[k][0],b[k][0],t),lerp(a[k][1],b[k][1],t)];
+    else o[k]=t<.5?a[k]:b[k];
+  }return o;
+}
+function off(p,dx,dy){const o={...p};for(const k of KEYS)o[k]=[p[k][0]+dx,p[k][1]+dy];return o;}
+function mir(p){const o={...p};for(const k of KEYS)o[k]=[-p[k][0],p[k][1]];o.kA=-p.kA;o.kB=-p.kB;o.eA=-p.eA;o.eB=-p.eB;return o;}
+function track(keys,t){
+  if(t<=keys[0][0])return keys[0][1];
+  for(let i=0;i<keys.length-1;i++){const[a,pa]=keys[i],[b,pb]=keys[i+1];if(t<=b)return mixPose(pa,pb,ease((t-a)/(b-a)));}
+  return keys[keys.length-1][1];
+}
+function trackV(K,t){
+  if(t<=K[0][0])return K[0][1];
+  for(let i=0;i<K.length-1;i++){const[a,pa]=K[i],[b,pb]=K[i+1];if(t<=b){const u=ease((t-a)/(b-a));return pa.map((v,j)=>lerp(v,pb[j],u));}}
+  return K[K.length-1][1];
+}
+
+// ----- Perfectionist (absolute coords, faces right) -----
+const FY=FP-17;
+const Ph   ={hip:[165,815],neck:[224,778],head:[246,806],hA:[226,843],hB:[172,843],fA:[228,FY],fB:[78,FY],kA:1,kB:1,eA:1,eB:1};
+const Plift={hip:[162,806],neck:[176,712],head:[186,670],hA:[226,843],hB:[172,843],fA:[232,FY],fB:[78,FY],kA:1,kB:1,eA:1,eB:-1,armOver:true};
+const Preach={hip:[162,808],neck:[192,722],head:[180,678],hA:[262,736],hB:[160,820],fA:[230,FY],fB:[78,FY],kA:1,kB:1,eA:1,eB:1};
+const Pstand={hip:[192,752],neck:[234,668],head:[262,640],hA:[232,764],hB:[252,770],fA:[226,FY],fB:[150,FY],kA:1,kB:1,eA:1,eB:1};
+const Pstand2={...Pstand,neck:[236,670],head:[266,636]};
+const PK=[[0,Ph],[2.45,Ph],[2.8,Plift],[3.5,Plift],[3.85,Ph],[6.05,Ph],[6.3,Preach],[6.85,Preach],[7.15,Ph],[9.5,Ph],[9.9,Pstand],[10.6,Pstand2],[11.45,Pstand2],[12.05,Ph]];
+function levelAt(t){
+  const rest=[198,FP-2*BH-6.5,0];
+  const fid=Math.sin(t*5.1)*2.2+Math.sin(t*11.3)*1.2;
+  const tilt=Math.sin(t*3.7)*.02+Math.sin(t*8.9)*.008;
+  const hunch=[rest[0]+fid,rest[1],tilt];
+  const lift=[184,760+Math.sin(t*4)*2,.04*Math.sin(t*2.5)];
+  const reach=[292,734,-.03];
+  return trackV([[0,hunch],[2.45,hunch],[2.8,lift],[3.5,lift],[3.85,hunch],[6.05,hunch],[6.3,reach],[6.85,reach],[7.15,hunch],[9.5,hunch],[9.85,rest],[11.5,rest],[12.05,hunch]],t);
+}
+function perfectionist(t){
+  const p={...track(PK,t)};
+  const lv=levelAt(t);
+  const ca=Math.cos(lv[2]),sa=Math.sin(lv[2]);
+  const onA=[lv[0]+ca*28,lv[1]-6+sa*28],onB=[lv[0]-ca*26,lv[1]-6-sa*26];
+  // weight of "hands on the level" (fades out when he stands)
+  const hw=1-ss((t-9.55)/0.3)+ss((t-11.6)/0.4);
+  const isReach=t>6.15&&t<7.1;
+  if(isReach){
+    const u=ss((t-6.15)/0.15)*(1-ss((t-6.95)/0.15));
+    p.hA=[lerp(onA[0],lv[0]-24,u),lerp(onA[1],lv[1]-2,u)];
+    p.hB=[lerp(onB[0],170,u),lerp(onB[1],826,u)];
+  }else{
+    const hw2=clamp(hw,0,1);
+    p.hA=[lerp(p.hA[0],onA[0],hw2),lerp(p.hA[1],onA[1],hw2)];
+    p.hB=[lerp(p.hB[0],onB[0],hw2),lerp(p.hB[1],onB[1],hw2)];
+  }
+  if(hw>0.5){p.head=[p.head[0],p.head[1]+Math.sin(t*2.3)*1.5];}
+  return {p,lv,levelFront:(t>2.55&&t<3.8)||isReach};
+}
+
+// ----- Action Taker (behind the wall) -----
+function wallTop(t){
+  let n=0;for(let c=0;c<NC;c++)if(t>=COURSE_END[c])n=c+1;
+  const prevEnd=n===0?-1:COURSE_END[n-1],nextEnd=n<NC?COURSE_END[n]:prevEnd+1;
+  const frac=n<NC?clamp((t-prevEnd)/(nextEnd-prevEnd),0,1):0;
+  return FW-(n+ss(frac))*BH;
+}
+function activeBrick(t){for(const b of wall)if(b.T>t)return b;return null}
+function lastBrick(t){let l=null;for(const b of wall)if(b.T<=t)l=b;return l}
+// relative to base point (0,0) = where he stands, faces right
+const Acrouch={hip:[-34,-100],neck:[30,-150],head:[66,-138],hA:[60,-20],hB:[20,-22],fA:[26,-17],fB:[-54,-17],kA:1,kB:1,eA:1,eB:1};
+const Alean  ={hip:[16,-110],neck:[-8,-200],head:[-30,-244],hA:[-50,-196],hB:[-26,-192],fA:[10,-17],fB:[34,-17],kA:-1,kB:-1,eA:-1,eB:-1};
+const Astand ={hip:[0,-150],neck:[-4,-250],head:[-12,-293],hA:[-14,-140],hB:[12,-140],fA:[-14,-17],fB:[14,-17],kA:1,kB:1,eA:-1,eB:-1};
+function walkPose(ph){
+  const s=Math.sin(ph),c=Math.cos(ph);
+  return {hip:[0,-148-Math.abs(c)*4],neck:[8,-248],head:[16,-290],hA:[-s*36+6,-92],hB:[s*36+6,-92],fA:[s*40,-17-Math.max(0,-c)*14],fB:[-s*40,-17-Math.max(0,c)*14],kA:1,kB:1,eA:1,eB:1};
+}
+function actionTaker(t){
+  let bx,by,pose,carry=null,sc=1;
+  const ab=activeBrick(t),lb=lastBrick(t);
+  const WT=wallTop(t);
+  if(t<6.95){
+    const slot=ab||lb;
+    bx=clamp(0.4*(slot.x+slot.w/2)+0.6*520,470,585);
+    by=Math.min(FW-10,WT+48);
+    pose={...Acrouch};
+    if(ab){
+      const u=clamp(1-(ab.T-t)/0.16,0,1);
+      const pick=[bx+64,by-70];
+      const dst=[ab.x+ab.w/2,ab.y+6];
+      const cx=lerp(pick[0],dst[0],ease(u)),cy=lerp(pick[1],dst[1],ease(u))-Math.sin(u*Math.PI)*24;
+      if(ab.T-t<0.16)carry={b:ab,x:cx-ab.w/2,y:cy-6};
+      pose.hA=[cx-bx,cy-by];
+    }
+    if(lb)pose.hB=[lb.x+lb.w/2-bx-8,lb.y+4-by+Math.sin(t*38)*3];
+    const j=Math.sin(t*6),k=Math.sin(t*8.5);
+    pose.head=[pose.head[0]+j*2.5,pose.head[1]+k*2];pose.neck=[pose.neck[0]+j*2,pose.neck[1]+k*1.5];
+    pose.hip=[pose.hip[0],pose.hip[1]+Math.sin(t*7)*3];
+  }else if(t<10.15){
+    // lean on the finished wall, chin on hands, watching the perfectionist; then stand
+    const x0=clamp(0.4*(WX+BL*3.25)+0.6*520,470,585);
+    const u=ss((t-6.95)/0.5);
+    bx=lerp(x0,520,u);by=lerp(Math.min(FW-10,WT+48),FW-118,u);
+    const lean={...Alean};
+    const st={...Astand};
+    if(t<7.5)pose=mixPose(Acrouch,lean,ease((t-6.95)/0.5));
+    else if(t<9.4)pose={...lean,head:[lean.head[0]+Math.sin(t*1.7)*2,lean.head[1]+Math.sin(t*2.1)*1.5]};
+    else pose=mixPose(lean,st,ease((t-9.4)/0.45));
+  }else{
+    // walks right out from behind the wall, coming toward the camera
+    const w=t-10.15;
+    bx=520+w*230;by=lerp(FW-118,FP+30,ss(w/0.55));sc=lerp(1,1.3,ss(w/0.55));
+    pose=mixPose(Astand,walkPose(w*12),ss(w/0.15));
+  }
+  return {p:off(pose,bx,by),carry,bx,by,sc};
+}
+
+// ---------- labels ----------
+function labels(g){
+  g.save();g.font=`700 ${18.2*S}px Orb`;g.fillStyle='#f4f4f4';g.textAlign='center';g.textBaseline='alphabetic';
+  g.letterSpacing=(5.2*S)+'px';
+  g.shadowColor='rgba(255,255,255,.6)';g.shadowBlur=10;
+  g.fillText('ACTION TAKER',494*S,416*S);
+  g.fillText('PERFECTIONIST',222*S,549*S);
+  g.restore();
+}
+
+function glowFigure(dst,fn){
+  fg.clearRect(0,0,W,H);fn(fg);
+  dst.save();dst.filter='blur(16px)';dst.globalAlpha=.7;dst.drawImage(FG,0,0);dst.restore();
+  dst.drawImage(FG,0,0);
+}
+function drawLayers(t){
+  la.clearRect(0,0,W,H);lp.clearRect(0,0,W,H);
+  const A=actionTaker(t);
+  // action taker first (behind the wall); scaled about his base while he walks out
+  loose.forEach((b,i)=>drawBrick(la,b.x,b.y,b.w,BH,950+i));
+  const laid=wall.filter(b=>b.T<=t).sort((a,b)=>a.c-b.c||a.x-b.x);
+  la.fillStyle='#2b2520';for(const b of laid)la.fillRect((b.x+1)*S,(b.y+1)*S,(b.w-1)*S,(BH-1)*S);
+  for(const b of laid){
+    const age=t-b.T;const drop=age<0.07?(1-age/0.07)*6:0;
+    const isTop=!laid.some(o=>o.c===b.c+1&&o.x<b.x+b.w-1&&o.x+o.w>b.x+1);
+    drawBrick(la,b.x,b.y-drop,b.w,BH,b.id,isTop);
+  }
+  // action taker stands behind the wall: draw him after it, masked by the wall's face
+  const WT=wallTop(t)+5;
+  glowFigure(la,g=>{g.save();if(t<10.32){g.beginPath();g.rect(0,0,W,H);g.rect((WX+BL*3.5)*S,WT*S,-(BL*3.5+6)*S,(FW-WT)*S);g.clip('evenodd');}
+    g.translate(A.bx*S,A.by*S);g.scale(A.sc,A.sc);g.translate(-A.bx*S,-A.by*S);drawFigure(g,A.p);g.restore();});
+  if(A.carry)drawBrick(la,A.carry.x,A.carry.y,A.carry.b.w,BH,A.carry.b.id);
+  // perfectionist
+  pBricks.forEach((b,i)=>drawBrick(lp,b.x,b.y,b.w,BH,900+i,i!==1));
+  const P=perfectionist(t);
+  glowFigure(lp,g=>{
+    if(!P.levelFront)drawLevel(g,P.lv[0],P.lv[1],P.lv[2]);
+    drawFigure(g,P.p);
+    if(P.levelFront)drawLevel(g,P.lv[0],P.lv[1],P.lv[2]);
+  });
+}
+function addLayer(src,floor,alpha){
+  // reflection
+  rx.globalCompositeOperation='source-over';rx.clearRect(0,0,W,H);
+  rx.save();rx.translate(0,2*floor*S);rx.scale(1,-1);rx.filter='blur(2.5px)';rx.drawImage(src,0,0);rx.restore();
+  rx.globalCompositeOperation='destination-in';
+  const g=rx.createLinearGradient(0,floor*S,0,(floor+175)*S);
+  g.addColorStop(0,'rgba(0,0,0,.62)');g.addColorStop(.35,'rgba(0,0,0,.26)');g.addColorStop(1,'rgba(0,0,0,0)');
+  rx.fillStyle=g;rx.fillRect(0,floor*S,W,H);
+  rx.globalCompositeOperation='destination-out';rx.fillStyle='#000';rx.fillRect(0,0,W,floor*S);
+  rx.globalCompositeOperation='source-over';
+  ax.globalAlpha=alpha;
+  ax.drawImage(RF,0,0);
+  ax.save();ax.beginPath();ax.rect(0,0,W,floor*S+1);ax.clip();ax.drawImage(src,0,0);ax.restore();
+  ax.globalAlpha=1;
+}
+const SUB=3;
+const TM=mk(),tm=TM.getContext('2d');
+window.renderFrame=function(t){
+  ctx.globalCompositeOperation='source-over';ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<SUB;i++){
+    const tt=t+(i-(SUB-1)/2)*(1/30)/SUB*0.9;
+    drawLayers(tt);
+    ax.globalCompositeOperation='source-over';ax.fillStyle='#000';ax.fillRect(0,0,W,H);
+    addLayer(LA,FW,1);addLayer(LP,FP,1);
+    ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1/SUB;ctx.drawImage(AC,0,0);
+  }
+  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+  labels(ctx);
+};
+window.ready=document.fonts.load('700 20px Orb').then(()=>true);
+</script></body></html>
