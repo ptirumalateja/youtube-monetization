@@ -77,7 +77,7 @@ for k, T in enumerate(times):
     prev = times[k - 1]
     side = 1 if k % 2 else -1
     # builder grabs from a side pile (soft knock), then sets it (clack + trowel tap); all up on the wall, right of centre
-    add(clack(1.25) * 0.45, prev + 0.3 * (T - prev), 0.16, 0.2 + 0.25 * side)
+    add(clack(1.25) * 0.3, prev + 0.3 * (T - prev), 0.1, 0.35)
     add(clack(0.85 + 0.3 * rng.random()), T, 0.34, 0.3 + 0.1 * rng.random())
     if rng.random() < 0.6: add(tick() * 0.6, T + 0.07, 0.10, 0.3)
 
