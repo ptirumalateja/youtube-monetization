@@ -84,9 +84,11 @@ def sob(d=0.45):
 
 
 def drip(f=1500):
-    t = tt(0.25)
-    fr = f * (1 + 0.8 * np.exp(-t * 60))
-    return np.sin(2 * np.pi * np.cumsum(fr) / SR) * np.exp(-t / 0.045) * np.minimum(1, t / 0.002)
+    """Non-tonal wet drop: soft noise tick + tiny low thump (no pitched chirp)."""
+    t = tt(0.12)
+    tick = bandnoise(len(t), 600, 2500) * np.exp(-t / 0.006)
+    thump = np.sin(2 * np.pi * 140 * t) * np.exp(-t / 0.018)
+    return 0.7 * tick + 0.5 * thump
 
 
 def splat(big=1.0):
@@ -132,7 +134,7 @@ for x, th in [(-.5, 6.02), (0.0, 6.10), (0.1, 6.0), (0.6, 6.16), (-0.3, 6.08), (
 
 # airy room bed (the ref has a soft hiss/air layer up to ~17 kHz)
 air = bandnoise(N, 2500, 16000) * (0.7 + 0.3 * np.sin(2 * np.pi * np.arange(N) / SR / 1.7))
-place(air, 0, 0.005, -0.2); place(np.roll(air, 9000), 0, 0.005, 0.2)
+# no air bed (read as hiss)
 
 # reverb: exponential noise IR
 ir_t = tt(2.2)

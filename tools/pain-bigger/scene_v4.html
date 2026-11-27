@@ -326,6 +326,9 @@ function renderFrame(t){
   ctx.setTransform(K,0,0,K,0,0);
   bubbles(t,s);
   title(t,s);
+  // Slow Light label (where the ref had its watermark)
+  ctx.setTransform(K,0,0,K,0,0);ctx.save();ctx.font='700 11px SM';ctx.textAlign='center';ctx.letterSpacing='5px';
+  ctx.fillStyle='rgba(150,150,150,0.55)';ctx.fillText('SLOW LIGHT',362,1002);ctx.restore();
   // end fade
   const fo=fade(t,10.92,11.40);
   if(fo>0){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=`rgba(0,0,0,${fo})`;ctx.fillRect(0,0,1080,1920);}
