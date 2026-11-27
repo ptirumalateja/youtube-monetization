@@ -275,6 +275,9 @@ const TY=20; // shifted down 20 ref px to sit inside the 300 px safe line
 const SPL=[ // x,y (title space), hit time
   [150,197,6.02],[345,176,6.10],[395,201,6.0],[560,190,6.16],[268,251,6.08],[458,246,6.22]
 ];
+const CTA={tag:['TAG THE ONE WHO','ALWAYS SAYS SORRY FIRST.'], send:['SOMEONE IN YOUR LIFE','NEEDS TO SEE THIS.'],
+  honest:['BE HONEST. HAVE YOU EVER','BEEN THE ONE CRYING?'], twist:['HE NEVER SAID','HIS PAIN WAS BIGGER.']};
+const CTAK=new URLSearchParams(location.search).get('cta')||'tag';
 function title(t,s){
   const ta=1-fade(t,7.6,8.0);
   if(ta>0){ctx.save();ctx.globalAlpha=ta;ctx.fillStyle='#f6f6f6';ctx.font='700 29px SM';ctx.textAlign='center';ctx.textBaseline='alphabetic';
@@ -286,10 +289,10 @@ function title(t,s){
   const ca=fade(t,8.1,8.4);
   if(ca>0){const u=clamp((t-8.1)/0.35), pop=0.9+0.1*(1-Math.pow(1-u,3));
     ctx.save();ctx.globalAlpha=ca;ctx.translate(361,236+TY);ctx.scale(pop,pop);ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    ctx.fillStyle='#f6f6f6';ctx.font='700 38px SM';ctx.letterSpacing='3px';ctx.fillText('WHICH ONE ARE YOU?',0,-12);
-    const b=fade(t,8.5,8.8);ctx.globalAlpha=ca*b;
-    ctx.font="700 25px SM, 'Noto Color Emoji'";ctx.letterSpacing='2px';ctx.fillStyle='#d8323b';
-    ctx.fillText('COMMENT 🔪 OR 💧',0,34);
+    const L=CTA[CTAK];
+    ctx.fillStyle='#f6f6f6';ctx.font='700 33px SM';ctx.letterSpacing='3px';ctx.fillText(L[0],0,-12);
+    const b=fade(t,8.45,8.75);ctx.globalAlpha=ca*b;
+    ctx.fillStyle='#d8323b';ctx.fillText(L[1],0,34);
     ctx.restore();}
   spray(t,s);
   // blood drops
