@@ -109,10 +109,9 @@ for j in range(int(DUR * 7 / np.pi)):
 add(clack(1.6) * 0.5, 3.86, 0.18, -0.4); add(clack(1.6) * 0.5, 7.15, 0.18, -0.4)
 # perfectionist steps up onto his bricks and kneels back down
 add(step(), 9.9, 0.22, -0.4); add(step(), 12.0, 0.2, -0.4)
-# builder: walks along the top, hops down at 10.7, walks off right
-for k, tt in enumerate([9.95, 10.15, 10.33]): add(step() * 0.7, tt, 0.18, 0.45)
-add(step(), 10.7, 0.42, 0.6); add(clack(0.6) * 0.4, 10.7, 0.15, 0.6)
-for k, tt in enumerate([10.95, 11.3, 11.65]): add(step(), tt, 0.25 * (1 - 0.2 * k), 0.75)
+# builder: steps down behind the wall, walks out right
+add(step() * 0.6, 9.6, 0.15, 0.45); add(step() * 0.7, 9.9, 0.18, 0.5)
+for k, tt in enumerate([10.2, 10.55, 10.9, 11.25]): add(step(), tt, 0.25 * (1 - 0.15 * k), 0.75)
 
 mix = np.stack([L, Rr], 1)
 fade = np.ones(N); fn = int(0.5 * SR); fade[-fn:] = np.linspace(1, 0, fn)
