@@ -1,9 +1,14 @@
 # usage: python3 render_film.py REPO OUT_DIR GFX_DIR [i0 i1]
 import sys,os,subprocess,math,random,numpy as np
 from PIL import Image,ImageFilter
-sys.path.insert(0,os.path.dirname(__file__)); from edl import SHOTS,END
+sys.path.insert(0,os.path.dirname(__file__))
+SHORT=bool(os.environ.get('SHORT'))
+if SHORT:
+    from edl_short import build; _m,SHOTS,_c,END=build()
+else:
+    from edl import SHOTS,END
 REPO,OUT,GFX=sys.argv[1:4]; os.makedirs(OUT,exist_ok=True)
-FPS=30;W,H=1920,1080
+FPS=30;W,H=(1080,1920) if SHORT else (1920,1080)
 rng=range(len(SHOTS)) if len(sys.argv)<6 else range(int(sys.argv[4]),int(sys.argv[5]))
 def fr(t): return round(t*FPS)
 def enc_cmd(path,extra_in=None):
@@ -77,11 +82,14 @@ def still_frames(kind,src,o,n,t0):
         yield fx.apply(f,i/FPS)
 def grid_frames(n):
     ims=[load('I',k) for k in ('I01','I02','I03','I04')]
+    ar=W/H
     for i in range(n):
         u=i/max(1,n-1); canvas=Image.new('RGB',(W,H))
         for k,im in enumerate(ims):
-            iw,ih=im.size; z=1.2+0.08*u; cw,ch=iw/z*0.95,iw/z*0.95*9/16
-            x0=0.03*iw; y0=max(0,(ih-ch)*0.4)
+            iw,ih=im.size
+            bw,bh=(ih*ar,ih) if iw/ih>ar else (iw,iw/ar)
+            z=1.2+0.08*u; cw,ch=bw/z,bh/z
+            cx=iw*(.42 if SHORT else .45); x0=min(max(cx-cw/2,0),min(iw-cw,0.86*iw-cw if 0.86*iw-cw>0 else iw-cw)); y0=max(0,(ih-ch)*0.35)
             t=im.transform((W//2,H//2),Image.EXTENT,(x0,y0,x0+cw,y0+ch),Image.BICUBIC)
             canvas.paste(t,((k%2)*W//2,(k//2)*H//2))
         yield np.asarray(canvas)

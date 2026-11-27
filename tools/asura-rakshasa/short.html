@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const W=1080,H=1920,cv=document.getElementById('c'),x=cv.getContext('2d');
+const GOLD='#f6cf7a',GOLD2='#ffe3a3',RED='#ff6a4d',IVORY='#f7ead2';
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));const eout=t=>1-Math.pow(1-t,3);const ramp=(t,a,d=.25)=>eout(clamp((t-a)/d));
+function txt(s,X,Y,size,a=1,{font='Cinzel',w=900,col=GOLD,glow=28,sc=1,ls=0,maxw=980}={}){if(a<=0)return;x.save();x.globalAlpha=clamp(a);x.translate(X,Y);
+  x.font=`${w} ${size}px "${font}"`;if(ls)x.letterSpacing=ls+'px';const mw=x.measureText(s).width;const k=Math.min(1,maxw/mw)*sc;x.scale(k,k);
+  x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.lineWidth=size*.12;x.strokeStyle='rgba(15,8,20,.85)';x.strokeText(s,0,0);
+  x.shadowColor='rgba(255,170,70,.85)';x.shadowBlur=glow;x.fillStyle=col;x.fillText(s,0,0);x.shadowBlur=glow*.3;x.fillText(s,0,0);x.restore()}
+function sub(s,X,Y,size,a=1,col=IVORY){txt(s,X,Y,size,a,{font:'Cormorant Garamond',w:600,col,glow:10})}
+function slamS(t,a){const u=clamp((t-a)/.3);return {sc:1+.8*Math.pow(1-u,3),a:u}}
+function band(a,y0,y1){if(a<=0)return;x.save();x.globalAlpha=a;const g=x.createLinearGradient(0,y0,0,y1);g.addColorStop(0,'rgba(10,6,20,0)');g.addColorStop(.35,'rgba(10,6,20,.72)');g.addColorStop(.65,'rgba(10,6,20,.72)');g.addColorStop(1,'rgba(10,6,20,0)');x.fillStyle=g;x.fillRect(0,y0,W,y1-y0);x.restore()}
+let C=[];window.setCues=c=>{C=c};
+function last(t,types){let r=null;for(const c of C){if(c[0]<=t&&types.includes(c[1]))r=c}return r}
+function next(t0,types){for(const c of C){if(c[0]>t0+1e-6&&types.includes(c[1]))return c[0]}return 1e9}
+window.draw=(t)=>{x.clearRect(0,0,W,H);
+  // title (frame 0 payoff)
+  if(t<3.9){band(1,380,820);txt('4 WORDS',W/2,520,170,1,{col:GOLD2,ls:10});txt('NOT THE SAME',W/2,690,96,1,{col:RED,ls:6})}
+  // grid words
+  const g=last(t,['grid']);if(g&&t<next(g[0],['slam','list','sub','subtop'])){const W4=['ASURA','RAKSHASA','DAITYA','DANAVA'];
+    x.save();x.strokeStyle=GOLD;x.lineWidth=5;x.shadowColor='rgba(255,170,70,.9)';x.shadowBlur=14;x.beginPath();x.moveTo(W/2,0);x.lineTo(W/2,H);x.moveTo(0,H/2);x.lineTo(W,H/2);x.stroke();x.restore();
+    W4.forEach((w,i)=>{const X=i%2?W*.75:W*.25,Y=i<2?H/2-80:H/2+80;txt(w,X,Y,64,ramp(t,g[0]+.08*i),{maxw:480})})}
+  // list (boon seals)
+  const L=C.filter(c=>c[1]=='list'&&c[0]<=t);const xx=last(t,['x']);const endList=next(L.length?L[0][0]:1e9,['slam']);
+  if(L.length&&t<endList){x.save();x.globalAlpha=.75;x.fillStyle='rgba(12,7,22,.8)';x.fillRect(150,500,780,(xx?960:760));x.strokeStyle=GOLD;x.lineWidth=2;x.globalAlpha=.8;x.strokeRect(150,500,780,(xx?960:760));x.restore();
+    L.forEach((c,i)=>{const s=slamS(t,c[0]);txt(c[2],W/2,580+i*112,78,s.a,{sc:s.sc,ls:4})});
+    if(xx){const s=slamS(t,xx[0]);txt(xx[2],W/2,580+6*112+40,82,s.a,{col:'#cfc4b2',glow:0,sc:s.sc,ls:4});
+      const p=clamp((t-xx[0]-.35)/.3);if(p>0){x.save();x.strokeStyle=RED;x.lineWidth=10;x.beginPath();x.moveTo(300,580+6*112+40);x.lineTo(300+480*p,580+6*112+40);x.stroke();x.restore()}
+      sub('not named',W/2,580+7*112+50,58,ramp(t,xx[0]+.6),RED)}}
+  // slam words
+  const sl=last(t,['slam']);if(sl&&t<Math.min(sl[0]+4,next(sl[0],['slam','grid','list','title','cut','subtop']))&&!(L.length&&t<endList)){const s=slamS(t,sl[0]);band(1,1020,1460);
+    txt(sl[2],W/2,1170,sl[2].length>8?120:150,s.a,{sc:s.sc,ls:8,col:sl[2]=='RAMA WAS'?IVORY:GOLD});
+    const s2=last(t,['slam2']);if(s2&&s2[0]>=sl[0]){const q=slamS(t,s2[0]);txt(s2[2],W/2,1320,150,q.a,{sc:q.sc,ls:10,col:RED})}
+    if(t<sl[0]+.12){x.fillStyle=`rgba(255,230,180,${.25*(1-(t-sl[0])/.12)})`;x.fillRect(0,0,W,H)}}
+  // subs
+  const su=last(t,['sub']);if(su&&t<Math.min(su[0]+3.6,next(su[0],['sub','grid','list','title','cut','slam']))){if(!(sl&&t<sl[0]+4&&sl[0]<=t))band(1,1180,1440);sub(su[2],W/2,1330,66,ramp(t,su[0]))}
+  const st=last(t,['subtop']);if(st&&t<next(st[0],['subtop','slam'])){band(1,300,520);sub(st[2],W/2,410,62,ramp(t,st[0]))}
+};
+window.ready=document.fonts.load('900 40px Cinzel').then(()=>document.fonts.load('600 40px "Cormorant Garamond"'));
+</script></body></html>
