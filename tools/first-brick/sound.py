@@ -61,10 +61,10 @@ def step():
     n = int(0.16 * SR); t = np.arange(n) / SR
     return (rng.standard_normal(n) * np.exp(-t * 40) * 0.5 + np.sin(2 * np.pi * 90 * t) * np.exp(-t * 30))
 
-BL, NC = 72, 6
-COURSE_END = [-1, 1.3, 2.6, 3.9, 5.3, 6.9]
+NC = 11
+COURSE_END = [-1, 0.9, 1.75, 2.55, 3.3, 4.0, 4.65, 5.25, 5.85, 6.4, 6.9]
 for c in range(NC):
-    rown = 3
+    rown = 3 if c % 2 == 0 else 4
     t0 = -3 if c == 0 else COURSE_END[c - 1]; t1 = COURSE_END[c]
     for i in range(rown):
         T = t0 + (t1 - t0) * (i + 1) / rown
@@ -77,6 +77,8 @@ for tt in [0.35, 1.15, 1.7, 2.2, 4.1, 4.75, 5.3, 5.85, 7.4, 7.95, 8.6, 9.2, 12.3
     add(tick(), tt, 0.16, -0.45)
 # level lifted / set back down
 add(clack(1.6) * 0.5, 3.86, 0.18, -0.4); add(clack(1.6) * 0.5, 7.15, 0.18, -0.4)
+# perfectionist steps up onto his bricks and kneels back down
+add(step(), 9.9, 0.22, -0.4); add(step(), 12.0, 0.2, -0.4)
 # exit footsteps
 for k, tt in enumerate([10.3, 10.65, 11.0, 11.35]):
     add(step(), tt, 0.25 * (1 - 0.15 * k), 0.6)

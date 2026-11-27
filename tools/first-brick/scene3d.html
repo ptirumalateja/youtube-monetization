@@ -1,0 +1,260 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Orb;src:url(Orbitron.ttf);font-weight:100 900}
+html,body{margin:0;background:#000}canvas{display:block}
+#gl{position:absolute;left:-9999px}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script type="module">
+// First Brick v4: true 3D remake. Camera, layout, postures and timing follow the ref frame by frame.
+// Figures: Slow Light two-tone vinyl (yellow head + torso, cream limbs), black ink outline.
+import * as THREE from 'three';
+import {RoundedBoxGeometry} from './vendor/addons/RoundedBoxGeometry.js';
+
+const W=1080,H=1920;
+const out=document.getElementById('c'),ctx=out.getContext('2d');
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:false});
+renderer.setPixelRatio(1);renderer.setSize(W,H,false);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+const gl=renderer.domElement;gl.id='gl';document.body.appendChild(gl);
+
+const scene=new THREE.Scene();scene.background=null;renderer.setClearColor(0x000000,1);
+const camera=new THREE.PerspectiveCamera(27,W/H,0.1,100);
+const CAM={pos:new THREE.Vector3(-2.3,4.6,10.8),look:new THREE.Vector3(-0.12,1.05,0)};
+camera.position.copy(CAM.pos);camera.lookAt(CAM.look);
+
+// lights: soft key from front-left above, rim from behind, low fill
+scene.add(new THREE.HemisphereLight(0xffffff,0x202020,0.55));
+const key=new THREE.DirectionalLight(0xffffff,2.2);key.position.set(-3,6,6);scene.add(key);
+const fill=new THREE.DirectionalLight(0xfff2e0,0.6);fill.position.set(4,2,5);scene.add(fill);
+const rim=new THREE.DirectionalLight(0xffffff,1.4);rim.position.set(1,4,-6);scene.add(rim);
+
+// every material fades with depth below the floor, so the mirrored copy reads as a glossy floor reflection
+const MATS=[];
+function fadeMat(m){
+  m.onBeforeCompile=sh=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying float vWY;')
+      .replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvWY=(modelMatrix*vec4(transformed,1.0)).y;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vWY;')
+      .replace('#include <dithering_fragment>','#include <dithering_fragment>\nif(vWY<-0.0005){float k=smoothstep(-0.9,0.0,vWY);gl_FragColor.rgb*=0.6*k*k;}');
+  };
+  MATS.push(m);return m;
+}
+const vinyl=(c,cc=0.6)=>fadeMat(new THREE.MeshPhysicalMaterial({color:c,emissive:c,emissiveIntensity:0.12,roughness:0.32,clearcoat:cc,clearcoatRoughness:0.18,metalness:0}));
+const M={
+  body:vinyl(0xe0b02c),limb:vinyl(0xeee5d2),limbFar:vinyl(0xc9bfac),
+  ink:fadeMat(new THREE.MeshBasicMaterial({color:0x050505,side:THREE.BackSide})),
+  brick:fadeMat(new THREE.MeshStandardMaterial({color:0xcdbfa6,roughness:0.85})),
+  red:fadeMat(new THREE.MeshStandardMaterial({color:0xe2261a,roughness:0.4})),
+  white:fadeMat(new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:0.5})),
+  black:fadeMat(new THREE.MeshBasicMaterial({color:0x111111})),
+};
+MATS.forEach(m=>m.side=m.side===THREE.BackSide?THREE.BackSide:THREE.FrontSide);
+
+// ---------- figure ----------
+const L={hipW:0.085,thigh:0.37,shin:0.37,torso:0.5,shW:0.12,ua:0.29,fa:0.28,head:0.175,limbR:0.058,torsoR:0.105};
+const INK=1.13;
+function capsule(r,len,mat){
+  const g=new THREE.Group();
+  const geo=new THREE.CapsuleGeometry(r,len,6,16);geo.translate(0,-len/2,0);
+  const m=new THREE.Mesh(geo,mat);g.add(m);
+  const o=new THREE.Mesh(new THREE.CapsuleGeometry(r+0.016,len,6,16).translate(0,-len/2,0),M.ink);g.add(o);
+  return g;
+}
+function makeFigure(){
+  const F={root:new THREE.Group()};
+  const hips=new THREE.Group();F.root.add(hips);F.hips=hips;
+  const spine=new THREE.Group();hips.add(spine);F.spine=spine;
+  const torso=capsule(L.torsoR,L.torso-0.1,M.body);torso.rotation.x=Math.PI;torso.position.y=0.05;spine.add(torso);
+  const neck=new THREE.Group();neck.position.y=L.torso;spine.add(neck);F.neck=neck;
+  const headG=new THREE.Group();headG.position.y=L.head+0.03;neck.add(headG);
+  const hm=new THREE.Mesh(new THREE.SphereGeometry(L.head,32,24),M.body);headG.add(hm);
+  headG.add(new THREE.Mesh(new THREE.SphereGeometry(L.head+0.016,32,24),M.ink));
+  const limb=(side,isArm)=>{
+    const far=side<0; const mat=far?M.limbFar:M.limb;
+    const top=new THREE.Group();
+    if(isArm){top.position.set(side*L.shW,L.torso-0.07,0);spine.add(top);}else{top.position.set(side*L.hipW,0,0);hips.add(top);}
+    const a=capsule(L.limbR*(isArm?0.9:1),isArm?L.ua:L.thigh,mat);top.add(a);
+    const joint=new THREE.Group();joint.position.y=-(isArm?L.ua:L.thigh);top.add(joint);
+    const b=capsule(L.limbR*(isArm?0.88:0.98),isArm?L.fa:L.shin,mat);joint.add(b);
+    const tip=new THREE.Object3D();tip.position.y=-(isArm?L.fa:L.shin)-L.limbR;joint.add(tip);
+    return {top,joint,tip};
+  };
+  // side +1 = figure's right (near the camera for the perfectionist), -1 = left
+  F.legR=limb(1,false);F.legL=limb(-1,false);F.armR=limb(1,true);F.armL=limb(-1,true);
+  F.root.traverse(o=>{if(o.isMesh)o.renderOrder=1;});
+  scene.add(F.root);return F;
+}
+const d2r=Math.PI/180;
+// pose: yaw (deg, 0 = facing camera, +90 facing screen-right), sp (spine bend fwd), tw (spine twist), sl (side lean),
+// hp (head pitch down), hy (head yaw), legs [swing fwd, out, knee], arms [swing fwd, out, elbow]
+function applyPose(F,q,x,z,floorY=0){
+  F.root.position.set(x,0,z);F.root.rotation.set(0,(q.yaw||0)*d2r,0);
+  F.hips.position.set(0,0,0);F.hips.rotation.set(0,0,0);
+  F.spine.rotation.set((q.sp||0)*d2r,(q.tw||0)*d2r,(q.sl||0)*d2r,'YXZ');
+  F.neck.rotation.set((q.hp||0)*d2r,(q.hy||0)*d2r,0,'YXZ');
+  const leg=(Lg,[sw,ab,kn])=>{Lg.top.rotation.set(-sw*d2r,0,ab*d2r,'XZY');Lg.joint.rotation.set(kn*d2r,0,0);};
+  const arm=(A,[sw,ab,el],side)=>{A.top.rotation.set(-sw*d2r,0,side*ab*d2r,'XZY');A.joint.rotation.set(-el*d2r,0,0);};
+  leg(F.legR,q.lR);leg(F.legL,q.lL);arm(F.armR,q.aR,1);arm(F.armL,q.aL,-1);
+  // ground: lowest foot tip / knee rests on the floor
+  F.root.updateMatrixWorld(true);
+  const v=new THREE.Vector3();let low=1e9;
+  for(const Lg of [F.legR,F.legL]){
+    Lg.tip.getWorldPosition(v);low=Math.min(low,v.y);
+    Lg.joint.getWorldPosition(v);low=Math.min(low,v.y-L.limbR);
+  }
+  F.root.position.y=floorY-low+0.002;F.root.updateMatrixWorld(true);
+}
+function handPos(A){const v=new THREE.Vector3();A.tip.getWorldPosition(v);return v;}
+
+// pose blending
+const PN=['yaw','sp','tw','sl','hp','hy'];
+function blend(a,b,t){
+  const o={};for(const k of PN)o[k]=lerp(a[k]||0,b[k]||0,t);
+  for(const k of ['lR','lL','aR','aL'])o[k]=a[k].map((v,i)=>lerp(v,b[k][i],t));
+  return o;
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const ss=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
+const ease=t=>{t=clamp(t,0,1);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+function track(K,t){if(t<=K[0][0])return K[0][1];for(let i=0;i<K.length-1;i++){const[a,pa]=K[i],[b,pb]=K[i+1];if(t<=b)return blend(pa,pb,ease((t-a)/(b-a)));}return K[K.length-1][1];}
+function hash(i){const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+
+// ---------- bricks ----------
+const BL=0.36,BH=0.118,BD=0.17,GAP=0.012;
+const brickGeo=new RoundedBoxGeometry(BL-GAP,BH-GAP,BD,2,0.012);
+const halfGeo=new RoundedBoxGeometry(BL/2-GAP,BH-GAP,BD,2,0.012);
+const WD=0.34;const wBrickGeo=new RoundedBoxGeometry(BL-GAP,BH-GAP,WD,2,0.012),wHalfGeo=new RoundedBoxGeometry(BL/2-GAP,BH-GAP,WD,2,0.012);
+function brickMesh(half,seed,inWall){
+  const m=new THREE.Mesh(inWall?(half?wHalfGeo:wBrickGeo):(half?halfGeo:brickGeo),M.brick.clone());
+  const v=(hash(seed)-.5)*0.08;m.material.color.offsetHSL(0,0,v);fadeMat(m.material);
+  scene.add(m);return m;
+}
+// wall: 9 courses, 2.75 bricks long, built left to right course by course
+const WX0=0.02, NC=11, WZ=-0.05;
+const COURSE_END=[-1,0.9,1.75,2.55,3.3,4.0,4.65,5.25,5.85,6.4,6.9];
+const wall=[];
+for(let c=0;c<NC;c++){
+  const row=c%2===0?[[0,1],[1,1],[2,0.5],[2.5,0.25]]:[[0,0.5],[0.5,1],[1.5,1],[2.5,0.25]];
+  const items=(c%2===0?[[0,1],[1,1],[2,1]]:[[0,0.5],[0.5,1],[1.5,1],[2.5,0.5]]);
+  const t0=c===0?-3:COURSE_END[c-1],t1=COURSE_END[c];
+  items.forEach(([u,w],i)=>{
+    let T=lerp(t0,t1,(i+1)/items.length);if(c===1&&i===0)T=-1;
+    const m=brickMesh(w<1,c*10+i,true);
+    wall.push({m,x:WX0+(u+w/2)*BL,y:BH/2+c*BH,z:WZ,T,c});
+  });
+}
+wall.sort((a,b)=>a.T-b.T);
+const WALL_LEN=3*BL;
+// perfectionist's bricks (ref: a short loose row, the "first brick" on top under the level)
+const PB=[[-1.18,0,0.25,0],[-0.80,0,0.25,0.04],[-0.44,0,0.28,-0.03],[-0.80,1,0.27,0.02]];
+PB.forEach(([x,c,z,r],i)=>{const m=brickMesh(false,500+i);m.position.set(x,BH/2+c*BH,z);m.rotation.y=r;});
+const loose=brickMesh(false,600);loose.position.set(-0.12,BH/2,0.18);loose.rotation.y=0.15;
+// spirit level
+const level=new THREE.Group();
+{const body=new THREE.Mesh(new RoundedBoxGeometry(0.58,0.06,0.07,2,0.012),M.red);level.add(body);
+ const win=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.034,0.072),M.white);level.add(win);
+ const bub=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.016,0.074),fadeMat(new THREE.MeshBasicMaterial({color:0x7fd46a})));level.add(bub);
+ const o=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.08,0.09),M.ink);level.add(o);}
+scene.add(level);
+
+const P=makeFigure(),A=makeFigure();
+
+// ---------- perfectionist poses (ref frames 0.3 / 3.0 / 6.5 / 10.2) ----------
+// kneeling on his left knee, right foot planted forward, body 3/4 to camera facing right
+const Pk={yaw:78,sp:38,tw:-6,sl:0,hp:38,hy:-6,lR:[84,6,88],lL:[-10,4,96],aR:[34,8,34],aL:[38,10,30]};
+const Plift={yaw:72,sp:4,tw:-8,hp:6,hy:-15,lR:[88,6,92],lL:[-8,4,96],aR:[58,6,95],aL:[58,10,95]};
+const Preach={yaw:72,sp:12,tw:-10,hp:4,hy:-14,lR:[86,6,92],lL:[-8,4,96],aR:[82,4,6],aL:[28,10,40]};
+const Pst={yaw:66,sp:22,tw:-4,hp:24,hy:-20,lR:[2,3,4],lL:[-2,3,5],aR:[14,6,16],aL:[10,8,14]};
+const PK=[[0,Pk],[2.45,Pk],[2.85,Plift],[3.5,Plift],[3.9,Pk],[6.05,Pk],[6.35,Preach],[6.85,Preach],[7.2,Pk],[9.45,Pk],[10.0,Pst],[11.45,Pst],[12.1,Pk]];
+const PX=-0.92,PZ=0.42;
+
+// ---------- action taker poses: behind the wall on the floor, facing the camera-left ----------
+const Asq={yaw:-35,sp:62,tw:6,hp:22,hy:10,lR:[100,10,130],lL:[96,12,128],aR:[70,6,40],aL:[60,8,40]};
+const Abend={yaw:-30,sp:52,tw:6,hp:16,hy:10,lR:[40,6,60],lL:[34,8,56],aR:[80,6,30],aL:[70,8,30]};
+const Ast={yaw:-25,sp:34,tw:6,hp:10,hy:8,lR:[8,4,12],lL:[2,6,8],aR:[85,6,40],aL:[75,8,40]};
+const Alean={yaw:-25,sp:14,tw:4,hp:12,hy:30,lR:[4,4,6],lL:[-2,6,4],aR:[78,18,96],aL:[78,14,100]};
+const Arel={yaw:-20,sp:4,hp:-2,hy:25,lR:[2,4,4],lL:[-2,6,4],aR:[6,8,10],aL:[6,8,10]};
+function walkQ(ph){const s=Math.sin(ph);return {yaw:80,sp:6,hp:0,hy:-20,lR:[26*s,4,10+34*Math.max(0,Math.sin(ph-1.3))],lL:[-26*s,4,10+34*Math.max(0,Math.sin(ph+Math.PI-1.3))],aR:[-24*s,6,16],aL:[24*s,6,16]};}
+function wallTop(t){let n=0;for(let c=0;c<NC;c++)if(t>=COURSE_END[c])n=c+1;const p=n===0?-1:COURSE_END[n-1],nx=n<NC?COURSE_END[n]:p+1;return (n+(n<NC?ss((t-p)/(nx-p)):0))*BH;}
+function activeBrick(t){for(const b of wall)if(b.T>t)return b;return null}
+
+window.setTime=function(t){
+  // wall
+  for(const b of wall){
+    if(b.T<=t){b.m.visible=true;const age=t-b.T;b.m.position.set(b.x,b.y+(age<0.07?(1-age/0.07)*0.025:0),b.z);}
+    else b.m.visible=false;
+  }
+  // perfectionist
+  let q=track(PK,t);
+  const work=(t<2.45||(t>3.9&&t<6.05)||(t>7.2&&t<9.45)||t>12.1);
+  if(work){q={...q,hp:q.hp+Math.sin(t*2.3)*4,sp:q.sp+Math.sin(t*1.7)*2,aR:[q.aR[0]+Math.sin(t*5.1)*3,q.aR[1],q.aR[2]],aL:[q.aL[0]+Math.sin(t*4.3+1)*3,q.aL[1],q.aL[2]]};}
+  const stw=ss((t-9.5)/0.5)*(1-ss((t-11.45)/0.6));
+  applyPose(P,q,PX,PZ,stw*BH);
+  // level: on the first brick, or in his hands
+  const rest=new THREE.Vector3(-0.80,2*BH+0.03,0.27);
+  const hR=handPos(P.armR),hL=handPos(P.armL);
+  const held=(t>2.6&&t<3.8)?ss((t-2.6)/0.2)*(1-ss((t-3.6)/0.2)):(t>6.15&&t<7.05?ss((t-6.15)/0.15)*(1-ss((t-6.9)/0.15)):0);
+  let lp=rest.clone(),lrot=0;
+  if(t>6.15&&t<7.05){const hp=hR.clone();lp.lerp(new THREE.Vector3(hp.x+0.2,hp.y,hp.z),held);}
+  else{const mid=hR.clone().add(hL).multiplyScalar(0.5);lp.lerp(mid,held);}
+  if(work)lp.x+=Math.sin(t*5.1)*0.008,lrot=Math.sin(t*3.7)*0.02;
+  level.position.copy(lp);level.rotation.set(0,0.0,lrot);
+  // action taker
+  const hgt=wallTop(t);let qa,ax=0.62,az=-0.5;
+  const ab=activeBrick(t);
+  if(t<6.95){
+    const u=clamp((hgt-0.15)/0.85,0,1);
+    qa=u<.5?blend(Asq,Abend,ss(u*2)):blend(Abend,Ast,ss((u-.5)*2));
+    // reach toward the brick being placed
+    if(ab){const dx=ab.x-ax;qa={...qa,tw:qa.tw+clamp(-dx*40,-25,25),aR:[qa.aR[0]+Math.sin(t*14)*8,qa.aR[1],qa.aR[2]]};}
+    qa.hp+=Math.sin(t*6)*3;
+  }else if(t<9.35){qa=t<7.45?blend(Ast,Alean,ease((t-6.95)/0.5)):{...Alean,hy:Alean.hy+Math.sin(t*1.7)*4};}
+  else if(t<10.1){qa=blend(Alean,Arel,ease((t-9.35)/0.6));}
+  else{const w=t-10.1;qa=blend(Arel,walkQ(w*9),ss(w/0.25));ax=0.62+w*0.95;az=-0.5+Math.min(w,0.6)*0.9;}
+  applyPose(A,qa,ax,az);
+  // brick in hand flies into its slot
+  if(ab&&t<6.95&&ab.T-t<0.22){
+    const h=handPos(A.armR),v=1-(ab.T-t)/0.22;ab.m.visible=true;
+    ab.m.position.set(lerp(h.x,ab.x,ease(v)),lerp(h.y,ab.y,ease(v))+Math.sin(v*Math.PI)*0.06,lerp(h.z,ab.z,ease(v)));
+  }
+};
+
+// ---------- reflection: mirror the whole scene below the floor ----------
+function renderGL(){
+  renderer.autoClear=false;renderer.clear();
+  scene.scale.y=-1;scene.updateMatrixWorld(true);
+  renderer.render(scene,camera);
+  scene.scale.y=1;scene.updateMatrixWorld(true);
+  renderer.clearDepth();
+  renderer.render(scene,camera);
+}
+// fix: ink hulls must stay BackSide in the normal pass
+M.ink.side=THREE.BackSide;
+
+const acc=document.createElement('canvas');acc.width=W;acc.height=H;const ac=acc.getContext('2d');
+const glow=document.createElement('canvas');glow.width=W/4;glow.height=H/4;const gc=glow.getContext('2d');
+function labels(g){
+  g.save();g.font=`700 ${25}px Orb`;g.fillStyle='#f4f4f4';g.textAlign='center';
+  g.letterSpacing='7px';g.shadowColor='rgba(255,255,255,.6)';g.shadowBlur=10;
+  g.fillText('ACTION TAKER',735,585);g.fillText('PERFECTIONIST',330,775);g.restore();
+}
+const SUB=3;
+window.renderFrame=function(t){
+  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<SUB;i++){
+    setTime(t+(i-(SUB-1)/2)*(1/30)/SUB*0.9);renderGL();
+    ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1/SUB;ctx.drawImage(gl,0,0);
+  }
+  // soft glow
+  gc.clearRect(0,0,W/4,H/4);gc.filter='blur(6px)';gc.drawImage(out,0,0,W/4,H/4);gc.filter='none';
+  ctx.globalCompositeOperation='lighter';ctx.globalAlpha=0.22;ctx.drawImage(glow,0,0,W,H);
+  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+  labels(ctx);
+};
+window.ready=document.fonts.load('700 20px Orb').then(()=>true);
+</script></body></html>

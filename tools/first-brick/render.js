@@ -6,7 +6,7 @@ const dir = __dirname;
 const srv = http.createServer((q, r) => {
   const f = path.join(dir, decodeURIComponent(q.url.split('?')[0]));
   fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); return; }
-    r.writeHead(200, { 'Content-Type': f.endsWith('.html') ? 'text/html' : f.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream' }); r.end(d); });
+    r.writeHead(200, { 'Content-Type': f.endsWith('.html') ? 'text/html' : f.endsWith('.js') ? 'text/javascript' : f.endsWith('.ttf') ? 'font/ttf' : 'application/octet-stream' }); r.end(d); });
 }).listen(0);
 (async () => {
   const port = srv.address().port;
