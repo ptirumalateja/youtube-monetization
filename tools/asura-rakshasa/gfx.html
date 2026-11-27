@@ -1,0 +1,151 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+</head><body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const W=1920,H=1080,cv=document.getElementById('c'),x=cv.getContext('2d');
+const GOLD='#f6cf7a',GOLD2='#ffe3a3',DIM='rgba(246,207,122,0.28)',RED='#ff6a4d',IVORY='#f7ead2';
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const eout=t=>1-Math.pow(1-t,3);
+const ramp=(t,a,d=.8)=>eout(clamp((t-a)/d));
+// seeded rng
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+const dust=[...Array(140)].map(()=>({x:rnd()*W,y:rnd()*H,r:.6+rnd()*2.2,s:4+rnd()*14,p:rnd()*6.28}));
+function bg(t,alpha){
+  if(alpha){x.clearRect(0,0,W,H);return}
+  const g=x.createRadialGradient(W*.5,H*.42,60,W*.5,H*.5,W*.75);
+  g.addColorStop(0,'#3a1f45');g.addColorStop(.45,'#23142f');g.addColorStop(1,'#120d22');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  // soft light shafts
+  x.save();x.globalCompositeOperation='lighter';
+  for(let i=0;i<3;i++){const a=.035+.015*Math.sin(t*.4+i*2);x.fillStyle=`rgba(255,190,110,${a})`;x.beginPath();
+    const cx=W*(.3+.2*i);x.moveTo(cx-60,0);x.lineTo(cx+60,0);x.lineTo(cx+340,H);x.lineTo(cx+120,H);x.fill();}
+  for(const d of dust){const yy=(d.y-t*d.s+H*10)%H,xx=d.x+Math.sin(t*.5+d.p)*18,a=.25+.25*Math.sin(t*1.3+d.p);
+    x.fillStyle=`rgba(255,215,140,${a})`;x.beginPath();x.arc(xx,yy,d.r,0,6.283);x.fill();}
+  x.restore();
+}
+function txt(s,X,Y,size,a=1,{font='Cinzel',w=700,col=GOLD,glow=26,align='center',sc=1,ls=0}={}){
+  if(a<=0)return;x.save();x.globalAlpha=clamp(a);x.translate(X,Y);x.scale(sc,sc);
+  x.font=`${w} ${size}px "${font}"`;x.textAlign=align;x.textBaseline='middle';
+  if(ls)x.letterSpacing=ls+'px';
+  x.shadowColor='rgba(255,170,70,0.85)';x.shadowBlur=glow;x.fillStyle=col;x.fillText(s,0,0);
+  x.shadowBlur=glow*.35;x.fillText(s,0,0);x.restore();
+}
+function sub(s,X,Y,size,a=1,col=IVORY,align='center'){txt(s,X,Y,size,a,{font:'Cormorant Garamond',w:500,col,glow:10,align})}
+function line(x1,y1,x2,y2,p,a=1,wd=3,col=GOLD){if(p<=0||a<=0)return;x.save();x.globalAlpha=a;x.strokeStyle=col;x.lineWidth=wd;
+  x.shadowColor='rgba(255,170,70,.9)';x.shadowBlur=16;x.beginPath();x.moveTo(x1,y1);x.lineTo(x1+(x2-x1)*p,y1+(y2-y1)*p);x.stroke();x.restore()}
+function curve(x1,y1,x2,y2,p,a=1,wd=3){if(p<=0||a<=0)return;x.save();x.globalAlpha=a;x.strokeStyle=GOLD;x.lineWidth=wd;
+  x.shadowColor='rgba(255,170,70,.9)';x.shadowBlur=16;x.beginPath();const N=40;
+  for(let i=0;i<=N*p;i++){const u=i/N,yy=y1+(y2-y1)*u,xx=x1+(x2-x1)*(u*u*(3-2*u));i?x.lineTo(xx,yy):x.moveTo(xx,yy)}x.stroke();x.restore()}
+function node(X,Y,r,a=1,fill=GOLD){if(a<=0)return;x.save();x.globalAlpha=a;x.shadowColor='rgba(255,180,80,1)';x.shadowBlur=30;
+  x.fillStyle=fill;x.beginPath();x.arc(X,Y,r,0,6.283);x.fill();x.restore()}
+function ring(X,Y,r,a=1,dash=false,col=GOLD,wd=4){if(a<=0)return;x.save();x.globalAlpha=a;x.strokeStyle=col;x.lineWidth=wd;if(dash)x.setLineDash([14,12]);
+  x.shadowColor='rgba(255,170,70,.9)';x.shadowBlur=dash?0:18;x.beginPath();x.arc(X,Y,r,0,6.283);x.stroke();x.restore()}
+function slam(t,a){const u=clamp((t-a)/.35);return {sc:1+0.9*Math.pow(1-u,3),a:u}}
+function band(a){if(a<=0)return;x.save();x.globalAlpha=a*.55;const g=x.createLinearGradient(0,H-330,0,H);g.addColorStop(0,'rgba(10,6,20,0)');g.addColorStop(1,'rgba(10,6,20,.95)');x.fillStyle=g;x.fillRect(0,H-330,W,330);x.restore()}
+
+const S={
+// ---- overlays (alpha) ----
+G01:{d:11,alpha:1,f(t){const words=['ASURA','RAKSHASA','DAITYA','DANAVA'];const i=Math.min(3,Math.floor(t/2.75)),s=slam(t,i*2.75);
+  band(1);txt(words[i],W/2,H-170,150,s.a,{w:900,sc:s.sc,ls:8});
+  if(t>i*2.75&&t<i*2.75+.15){x.fillStyle=`rgba(255,230,180,${.35*(1-(t-i*2.75)/.15)})`;x.fillRect(0,0,W,H)}}},
+G02:{d:8.5,alpha:1,f(t){const L=[['DAITYA',.6],['ASURA',3.2],['DANAVA',5.6]];
+  x.save();x.globalAlpha=.6*ramp(t,.2);const g=x.createLinearGradient(W*.5,0,W,0);g.addColorStop(0,'rgba(10,6,20,0)');g.addColorStop(1,'rgba(10,6,20,.9)');x.fillStyle=g;x.fillRect(W*.5,0,W*.5,H);x.restore();
+  L.forEach(([w,a],k)=>{const s=slam(t,a);txt(w,W*.77,330+k*210,104,s.a*(k<L.length-1&&t>L[k+1][1]?0.55:1),{w:900,sc:s.sc,ls:6});
+    if(k)txt('·',W*.77,330+k*210-105,50,s.a)});
+  sub('the same king, Prahlada',W*.77,140,46,ramp(t,.2))}},
+G03:{d:5.5,alpha:1,f(t){band(ramp(t,0,.5));txt('SAME MOTHER.',W/2-400,H-150,84,ramp(t,.3,.5),{w:900});txt('SAME FATHER.',W/2+400,H-150,84,ramp(t,1.3,.5),{w:900})}},
+// ---- full graphics ----
+G04:{d:11.5,f(t){const names=['Aditi','Diti','Danu','Kala','Danayu','Simhika','Krodha','Pradha','Vishva','Vinata','Kapila','Muni','Kadru'];
+  const KX=W/2,KY=210;node(KX,KY,22,ramp(t,.2));txt('KASHYAPA',KX,KY-70,66,ramp(t,.2),{w:900,ls:6});sub('the sage',KX+110,KY,36,ramp(t,.6));
+  sub('married thirteen daughters of Daksha',KX,H-90,44,ramp(t,2.2));
+  const hl={1:1,2:1,11:1};const on=t>6.3;
+  names.forEach((n,i)=>{const X=150+i*135,Y=560;
+    const st=1+i*.28;curve(KX,KY+22,X,Y-22,clamp((t-st)/.9),.75,2.5);const big=on&&hl[i],dim=on&&!hl[i];
+    node(X,Y,big?20:11,ramp(t,st+.7)*(dim?.35:1));
+    if(big)txt(n.toUpperCase(),X,Y+(i==2?150:80),48,ramp(t,6.3,.5),{w:900});else sub(n,X,Y+(i%2?44:84),30,ramp(t,st+.7)*(dim?.3:.9));
+    if(big)ring(X,Y,44+6*Math.sin(t*3),ramp(t,6.3,.5))})}},
+G05:{d:20,f(t){const A=[[W*.3,'DITI','DAITYAS',.3],[W*.7,'DANU','DANAVAS',4.2]];
+  A.forEach(([X,m,c,s])=>{node(X,230,18,ramp(t,s));txt(m,X,165,74,ramp(t,s),{w:900,ls:6});line(X,252,X,520,clamp((t-s-.6)/1),1,3);
+    txt(c,X,590,96,ramp(t,s+1.4),{w:900,ls:4});sub(m==='DITI'?"Diti's sons":"Danu's sons",X,665,40,ramp(t,s+1.8))});
+  const p=clamp((t-8.6)/1.4);if(p>0){x.save();x.strokeStyle=GOLD;x.lineWidth=4;x.shadowColor='rgba(255,170,70,.9)';x.shadowBlur=18;x.globalAlpha=p;
+    x.beginPath();x.moveTo(W*.3,730);x.lineTo(W*.3,780);x.lineTo(W*.3+(W*.4)*p,780);x.stroke();if(p==1){x.beginPath();x.moveTo(W*.7,730);x.lineTo(W*.7,780);x.moveTo(W/2,780);x.lineTo(W/2,820);x.stroke()}x.restore()}
+  const s=slam(t,10);txt('ASURAS',W/2,900,150,s.a,{w:900,sc:s.sc,ls:10,col:GOLD2});
+  sub('not a fourth kind of being: the family name for both lines',W/2,1010,42,ramp(t,12.5))}},
+G06:{d:19,f(t){const MX=W/2,MY=200;node(MX,MY,18,ramp(t,.2));txt('MUNI',MX,MY-62,74,ramp(t,.2),{w:900,ls:6});
+  const K=[['GANDHARVAS',W*.25,2],['APSARAS',W*.5,3],['RAKSHASAS?',W*.75,5]];
+  K.forEach(([n,X,s],i)=>{curve(MX,MY+20,X,430,clamp((t-s)/.9),1,3);node(X,450,12,ramp(t,s+.8));txt(n,X,520,64,ramp(t,s+.8)*(t>10.6?.35:1),{w:700})});
+  sub('in some lists',W*.75,580,36,ramp(t,6)*(t>10.6?.35:1));
+  // split
+  const p=clamp((t-10.6)/1.2);if(p>0){line(W/2,720,W*.27,860,p,1,4);line(W/2,720,W*.73,860,p,1,4);node(W/2,720,14,p)}
+  txt('ASURAS',W*.25,930,100,ramp(t,11.8),{w:900,ls:6});txt('RAKSHASAS',W*.75,930,100,ramp(t,12.6),{w:900,ls:6});
+  sub('the tree separates',W/2,1030,40,ramp(t,13.5))}},
+G07:{d:11,f(t){line(W/2,140,W/2,940,ramp(t,0,1.2),.6,2);
+  const s1=slam(t,.8),s2=slam(t,3.6);
+  txt('RAKSHAMA',W*.26,400,104,s1.a,{w:900,sc:s1.sc,ls:6});sub('“we will protect”',W*.27,510,58,ramp(t,1.6));
+  txt('YAKSHAMA',W*.74,400,104,s2.a,{w:900,sc:s2.sc,ls:6});sub('“we will worship”',W*.73,510,58,ramp(t,4.4));
+  line(W*.27,590,W*.27,700,clamp((t-6.5)/.6));line(W*.73,590,W*.73,700,clamp((t-7.2)/.6));
+  txt('RAKSHASAS',W*.27,790,92,ramp(t,7),{w:900,col:GOLD2});txt('YAKSHAS',W*.73,790,92,ramp(t,7.7),{w:900,col:GOLD2});
+  sub('Valmiki Ramayana, Uttara Kanda',W/2,980,34,ramp(t,1.5))}},
+G08:{d:25,f(t){const R=[[['HETI','PRAHETI'],0.3,'the first Rakshasa lords'],[['SUKESHA'],2.8,"Heti's grandson"],[['MALYAVAN','SUMALI','MALI'],5,'three sons · a city of gold in the sea'],[['KAIKESI','VISHRAVA'],13,"Sumali's daughter  ·  the sage"],[['RAVANA','VIBHISHANA'],19.5,'two brothers']];
+  const Y0=120,dy=205;
+  R.forEach(([ns,s,cap],r)=>{const y=Y0+r*dy;const n=ns.length;
+    ns.forEach((nm,i)=>{const X=W/2+(i-(n-1)/2)*(n==3?440:(r==4?820:640));const hi=(r==2&&i==1)||(r==4);
+      txt(nm,X,y,r==4?88:68,ramp(t,s+i*.25),{w:900,ls:4,col:hi?GOLD2:GOLD});
+      if(r<4&&!(r==3)){} });
+    if(n==2&&r==3){line(W/2-110,y,W/2+110,y,clamp((t-s-.6)/.6),.8,2);sub('married',W/2,y-28,32,ramp(t,s+.9))}
+    sub(cap,W/2,y+58,34,ramp(t,s+.6)*.85);
+    if(r>0){const prevY=Y0+(r-1)*dy+86;const fromX=r==3?W/2-440*0+0:W/2;
+      let fx=W/2;if(r==3)fx=W/2;  // from Sumali
+      line(fx,prevY,r==3?W/2-320:W/2,y-50,clamp((t-s+.6)/.6),.8,2.5)}
+  });
+  if(t>19.5){line(W/2,Y0+3*dy+86,W/2,Y0+4*dy-56,1,.8,2.5)}}},
+G09:{d:23.5,f(t){const s=slam(t,.5);const split=clamp((t-12.5)/1);
+  if(split<1)txt('ASURA',W/2,380,210,s.a*(1-split),{w:900,sc:s.sc,ls:14,col:GOLD2});
+  sub('Rigveda',W/2,180,44,ramp(t,2.2)*(1-split));txt('“MIGHTY LORD”',W/2,580,84,ramp(t,3.5)*(1-split),{w:700});
+  sub('a title for gods: Varuna · Mitra',W/2,690,48,ramp(t,6)*(1-split));
+  if(split>0){txt('A',W/2-330-80*split,380,210,split,{w:900,col:RED,ls:14});txt('SURA',W/2+90+40*split,380,210,split,{w:900,ls:14});
+    sub('later',W/2,180,44,split);txt('“NOT A GOD”',W/2,580,84,ramp(t,14.2),{w:700,col:'#ffb39e'})}
+  const p=clamp((t-17.5)/1.5);if(p>0){line(W*.25,880,W*.25+W*.5*p,880,1,p,3);
+    sub('mighty lord',W*.25,940,40,p);sub('not-a-god',W*.75,940,40,ramp(t,18.6));txt('▸',W*.25+W*.5*p,878,40,p,{w:900})}}},
+G10:{d:23,f(t){const C=[['YAKSHA','trees · rivers · treasure',.5],['GANDHARVA','music · messengers',6.5],['RAKSHASA','forest · cremation ground · crossroads',12]];
+  sub('jobs in nature',W/2,150,48,ramp(t,.2));
+  C.forEach(([n,d,s],i)=>{const X=W*(.2+.3*i);node(X,430,16,ramp(t,s));ring(X,430,60+5*Math.sin(t*2+i),ramp(t,s+.2));
+    txt(n,X,600,74,ramp(t,s+.3),{w:900,ls:4});sub(d,X,690,38,ramp(t,s+1))});
+  sub('before they became labels for evil',W/2,900,46,ramp(t,17))}},
+G11:{d:21,f(t){const L=[['YAKSHAS',4.6],['DAITYAS',5.4],['DANAVAS',6.2],['RAKSHASAS',7.2],['SERPENTS',8.2],['GODS',9.1]];
+  sub('Ravana’s boon: “never to be killed by…”',W/2,120,52,ramp(t,1.5));
+  L.forEach(([n,s],i)=>{const c=i%4,r=Math.floor(i/4);const X=W/2+(c-1.5)*400+(r?400:0),Y=r?640:340;const q=slam(t,s);
+    ring(X,Y,120,q.a);x.save();x.translate(X,Y);x.scale(q.sc,q.sc);x.translate(-X,-Y);node(X,Y,105,q.a*.12);x.restore();
+    txt(n,X,Y,n.length>8?34:42,q.a,{w:900,sc:q.sc})});
+  const X=W/2+2*400-200,Y=640;const a=ramp(t,12.5,1);ring(X,Y,120,a,true,'rgba(247,234,210,.6)',3);
+  txt('HUMANS',X,Y,46,a*(0.35+.25*Math.sin(t*4)),{w:900,col:'#bdb3a2',glow:0});
+  txt('NOT NAMED',X,Y+170,40,ramp(t,13.6),{w:900,col:RED});
+  sub('Rama was human.',W/2,950,62,ramp(t,16.5))}},
+G12:{d:22,f(t){const w=['ASURA','RAKSHASA','DAITYA','DANAVA'];const m=ease(clamp((t-9)/2.5));
+  w.forEach((s,i)=>{const X0=W*(.17+.22*i);const X=X0+(W/2-X0)*m;txt(s,X,470,84,ramp(t,.4+i*.5)*(1-m),{w:900,ls:4})});
+  const q=slam(t,11.6);txt('DEMON',W/2,470,190,q.a,{w:900,sc:q.sc,col:RED,ls:16});
+  sub('TV serials · subtitles · school retellings',W/2,680,48,ramp(t,2.5));
+  sub('four words, one label',W/2,800,48,ramp(t,13.5))}},
+G13:{d:11.5,f(t){txt('VISHRAVA',W*.36,170,70,ramp(t,.3),{w:900});sub('father · a sage',W*.36,235,36,ramp(t,.7));
+  txt('KAIKESI',W*.64,170,70,ramp(t,1.6),{w:900});sub('mother · a Rakshasa princess',W*.64,235,36,ramp(t,2));
+  line(W*.36,280,W*.25,620,clamp((t-3)/1));line(W*.64,280,W*.25,620,clamp((t-3.2)/1));line(W*.36,280,W*.75,620,clamp((t-3.4)/1));line(W*.64,280,W*.75,620,clamp((t-3.6)/1));
+  txt('RAVANA',W*.25,700,104,ramp(t,4.3),{w:900,ls:6});txt('VIBHISHANA',W*.75,700,104,ramp(t,4.9),{w:900,ls:6});
+  sub('same birth · same house · same kingdom',W/2,900,48,ramp(t,7.5))}},
+G14:{d:16.5,f(t){const T=[['DAITYA','the sub-group','his specific line',.5],['ASURA','the umbrella','his family',3.2],['DANAVA','the loose label','used for any mighty opponent',6.2]];
+  sub('What was Prahlada?',W/2,120,56,ramp(t,0,.6));
+  T.forEach(([n,a,b,s],i)=>{const Y=330+i*230;const q=slam(t,s);
+    x.save();x.globalAlpha=ramp(t,s)*.5;x.strokeStyle=GOLD;x.lineWidth=2;x.strokeRect(W*.18,Y-85,W*.64,170);x.restore();
+    txt(n,W*.32,Y,92,q.a,{w:900,sc:q.sc,ls:6});txt(a.toUpperCase(),W*.62,Y-22,44,ramp(t,s+.4),{w:700,col:GOLD2});sub(b,W*.62,Y+36,38,ramp(t,s+.7))});
+  sub('three levels, not contradictions',W/2,1020,46,ramp(t,10.5))}},
+G15:{d:20,f(t){txt('SLOW LIGHT',W/2,150,64,ramp(t,.3),{w:900,ls:18});sub('stories worth slowing down for',W/2,220,40,ramp(t,.8));
+  // end-screen safe boxes (left video, right subscribe) left empty
+  x.save();x.globalAlpha=.25*ramp(t,1.2);x.strokeStyle=GOLD;x.lineWidth=2;x.setLineDash([10,10]);x.strokeRect(150,380,920,520);x.beginPath();x.arc(1500,640,170,0,6.283);x.stroke();x.restore()}},
+};
+window.SCENES=Object.fromEntries(Object.entries(S).map(([k,v])=>[k,{d:v.d,alpha:!!v.alpha}]));
+window.draw=(id,t)=>{const s=S[id];x.save();bg(t,s.alpha);s.f(t);x.restore()};
+window.ready=Promise.all(['900 40px Cinzel','700 40px Cinzel','500 40px "Cormorant Garamond"'].map(f=>document.fonts.load(f)));
+</script></body></html>
